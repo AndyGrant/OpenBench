@@ -1,0 +1,20 @@
+{% extends "OpenBench/base.html" %}
+
+{% block title %}
+Login
+{% endblock %}
+
+{% block style %}
+{% load static %}
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="/login/">
+    {% csrf_token %}
+    <label type="text">Username</label>
+    <input type="text" name="username"></br>
+    <label type="text">Password</label>
+    <input type="password" name="password"></br>
+    <input type="submit" name="submit" value="Login">
+</form>
+{% endblock %}

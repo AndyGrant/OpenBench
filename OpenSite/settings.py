@@ -33,7 +33,7 @@ ALLOWED_HOSTS = ['*']
 SETTINGS_DIR  = os.path.dirname(__file__)
 PROJECT_PATH  = os.path.join(SETTINGS_DIR, os.pardir)
 PROJECT_PATH  = os.path.abspath(PROJECT_PATH)
-TEMPLATE_PATH = os.path.join(PROJECT_PATH,'templates')
+TEMPLATE_PATH = os.path.join(PROJECT_PATH,'Templates')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -60,7 +60,7 @@ ROOT_URLCONF = 'OpenSite.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [TEMPLATE_PATH, ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

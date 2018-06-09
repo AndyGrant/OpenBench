@@ -1,5 +1,16 @@
 from django.shortcuts import render as djangoRender
 
+from django.http import HttpResponse, HttpResponseRedirect
+
+from django.contrib.auth import authenticate
+from django.contrib.auth import login as loginUser
+from django.contrib.auth import logout as logoutUser
+from django.contrib.auth.models import User
+
+
+
+from OpenBench.config import *
+
 # Wrap django.shortcuts.render to add framework settings
 def render(request, template, data):
     data.update(FRAMEWORK_DEFAULTS)
@@ -8,13 +19,39 @@ def render(request, template, data):
 ## ADMIN
 
 def register(request):
-    pass
+
+    # User trying to view the registration page
+    if request.method == 'GET':
+        return render(request, 'register.html', {})
+
+    # Attempt to create and login the new user
+    user = User.objects.create_user(
+        request.POST['username'],
+        request.POST['email'],
+        request.POST['password']
+    )
+
+    # Login the user and return to index
+    user.save()
+    loginUser(request, user)
+    return HttpResponseRedirect("/index/")
 
 def login(request):
-    pass
+
+    # User trying to view the login page
+    if request.method == "GET":
+        return render(request, "login.html", {})
+
+    # Attempt to login the user, and return to index
+    user = authenticate(username=request.POST["username"], password=request.POST["password"])
+    loginUser(request, user)
+    return HttpResponseRedirect("/index/")
 
 def logout(request):
-    pass
+
+    # Logout the user and return to index
+    logoutUser(request)
+    return HttpResponseRedirect("/index/")
 
 ## CONTENT VIEWING
 
