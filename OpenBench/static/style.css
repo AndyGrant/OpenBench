@@ -1,0 +1,136 @@
+body {
+    font-family: "Courier New";
+    font-size: 20px;
+}
+
+#sidebar {
+    float: left;
+    margin: 20px;
+    padding-right: 20px;
+}
+
+#content {
+    float: left;
+    padding-top: 20px;
+    padding-bottom: 20px;
+    display: block;
+    width: auto;
+}
+
+#errormessagebar {
+    background-color: RED;
+    padding: 8px;
+    text-align: center;
+}
+
+table {
+    background-color: none;
+}
+
+.tabletitle {
+    background-color: GREEN;
+    font-size: 20px;
+}
+
+th, td {
+    border: 1px solid black;
+}
+
+th {
+    text-align: center;
+    padding: 3px 16px;
+    background-color: #4CAF50;
+    color: white;
+}
+
+td {
+    padding: 2px 16px;
+    text-align: right;
+}
+
+tr:nth-child(even){background-color: #DBDBDB}
+tr:nth-child(odd){background-color: #BDBDBD}
+
+.failed:nth-child(even){background-color: #FAA5A5}
+.failed:nth-child(odd){background-color: #FA8E8E}
+
+.passed:nth-child(even){background-color: #2FFA62}
+.passed:nth-child(odd){background-color: #9DF779}
+
+.active:nth-child(even){background-color: #E9FA32}
+.active:nth-child(odd){background-color: #EEF788}
+
+ul {
+    list-style-type: none;
+    display: block;
+    margin: 20px 0px 0px 0px;
+    padding-left: 10px;
+}
+
+li {
+    margin: 8px;
+}
+
+.listheader {
+    font-weight: bold;
+    color: grey;
+}
+
+table {
+    line-height: 75%;
+}
+
+a:link, a:visited, a:hover, a:active {
+    text-decoration: none;
+    color: blue;
+}
+
+
+#pagebrowse {
+    display: inline-block;
+    text-align: center;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.page {
+    border-style: solid;
+    border-width: 2px;
+    border-color: black;
+    border-radius: 4px;
+    font-weight: bold;
+    text-align: center;
+    display: inline-block;
+    padding-top : 8px;
+    padding-bottom: 8px;
+    width: 5%;
+}
+
+input[type=text], input[type=password], textarea, select {
+    padding: 8px 6px;
+    display: inline-block;
+    vertical-align: middle;
+    width: 400px;
+}
+
+input[type=submit] {
+    background-color: #4CAF50;
+    color: white;
+    padding: 8px 6px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    width: 100%;
+}
+
+input[type=submit]:hover {
+    background-color: #45a049;
+}
+
+label, option {
+    display: inline-block;
+    width: 140px;
+    font-weight:bold;
+    vertical-align: middle;
+}

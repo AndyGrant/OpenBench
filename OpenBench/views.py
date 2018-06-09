@@ -9,14 +9,12 @@ from django.contrib.auth.models import User
 
 from OpenBench.config import *
 
-from OpenBench.models import LogEvent
+from OpenBench.models import LogEvent, Machine, Test
 
 # Wrap django.shortcuts.render to add framework settings
 def render(request, template, data):
     data.update(FRAMEWORK_DEFAULTS)
     return djangoRender(request, 'OpenBench/{0}'.format(template), data)
-
-## ADMIN
 
 def register(request):
 
@@ -59,8 +57,6 @@ def logout(request):
     logoutUser(request)
     return HttpResponseRedirect("/index/")
 
-## CONTENT VIEWING
-
 def eventLog(request):
 
     # Build context dictionary for template
@@ -73,9 +69,36 @@ def eventLog(request):
     return render(request, "eventLog.html", data)
 
 def index(request, page=0):
-    pass
 
-## TEST MANAGMENT
+    # Get tests pending approval
+    pending = Test.objects.filter(approved=False)
+    pending = pending.exclude(deleted=True)
+    pending = pending.order_by('creation')
+
+    # Get tests currently running
+    active = Test.objects.filter(approved=True)
+    active = active.exclude(passed=True)
+    active = active.exclude(failed=True)
+    active = active.exclude(deleted=True)
+    active = active.order_by('priority', 'currentllr')
+
+    # Get the last 50 completed tests
+    completed = Test.objects.filter(finished=True)
+    completed = completed.exclude(deleted=True)
+    completed = completed.order_by('completion')
+
+    # Get machines currently active workloads
+    # machines = Machine.objects.get()
+    # machines = Machines played within last <minutes>
+    # Save my @nitrocan @defenchess
+
+    data = {
+        'pending'   : [],
+        'active'    : [],
+        'completed' : [],
+    }
+
+    return render(request, 'index.html', data)
 
 def newTest(request):
     pass
@@ -88,8 +111,6 @@ def viewTest(request, id):
 
 def approveTest(request, id):
     pass
-
-## CLIENT TARGETS
 
 def getFiles(request):
     pass

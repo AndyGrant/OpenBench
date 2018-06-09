@@ -25,6 +25,9 @@ class Machine(Model):
 
     owner    = CharField(max_length=64)
     osname   = CharField(max_length=128)
+
+    cores    = IntegerField(default=0)
+    mnps     = FloatField(default=0.00)
     lastseen = DateTimeField(auto_now=True)
 
     def __str__(self):
@@ -41,7 +44,6 @@ class Results(Model):
     draws    = IntegerField(default=0)
     crashes  = IntegerField(default=0)
     time     = IntegerField(default=0)
-
     lastseen = DateTimeField(default=0)
 
     def __str__(self):
@@ -80,11 +82,12 @@ class Test(Model):
 
     passed      = BooleanField(default=False)
     failed      = BooleanField(default=False)
+    finished    = BooleanField(default=False)
     deleted     = BooleanField(default=False)
     approved    = BooleanField(default=False)
 
     creation    = DateTimeField(auto_now=True)
-    complted    = DateTimeField(auto_now=True)
+    completion  = DateTimeField(auto_now=True)
 
     def __str__(self):
         return '{0} vs {1} @ {2}'.format(self.dev.name, self.base.name, self.timecontrol)
