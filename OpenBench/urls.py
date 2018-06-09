@@ -7,9 +7,11 @@ urlpatterns = [
     path(r'login/', OpenBench.views.login),
     path(r'logout/', OpenBench.views.logout),
 
-    path(r'eventLog/', OpenBench.views.eventLog),
     path(r'index/', OpenBench.views.index),
     path(r'index/<int:page>/', OpenBench.views.index),
+    path(r'users/', OpenBench.views.users),
+    path(r'machines/', OpenBench.views.machines),
+    path(r'eventLog/', OpenBench.views.eventLog),
 
     path(r'newTest/', OpenBench.views.newTest),
     path(r'editTest/<int:id>/', OpenBench.views.editTest),

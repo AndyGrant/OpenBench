@@ -11,7 +11,6 @@
         {% endblock %}
     </title>
 </head>
-
 <body>
     <div id="sidebar">
         {% block sidebar %}
@@ -25,19 +24,20 @@
             {% endif %}
         </ul>
         <ul>
-            <li class="listheader"> CONTENT </li>
-            <li> <a href="/index"> Index </a> </li>
-            <li> <a href="/newTest/"> New Test </a> </li>
-            <li> <a href="/eventLog"> Event Log </a> </li>
+            <li class="listheader"> CONTENT</li>
+            <li><a href="/index">Home</a></li>
+            <li><a href="/users">Users</a></li>
+            <li><a href="/machines">Machines</a></li>
+            <li><a href="/eventLog">Event Log</a></li>
+            <li><a href="/newTest">Create Test</a></li>
         </ul>
         <ul>
-            <li class="listheader"> LINKS </li>
-            <li> <a href="{{config.homepage}}">{{config.engine}}</a> </li>
-            <li> <a href="{{config.framework}}"> OpenBench </a> </li>
+            <li class="listheader">LINKS</li>
+            <li><a href="{{config.homepage}}">{{config.engine}}</a></li>
+            <li><a href="{{config.framework}}">OpenBench </a></li>
         </ul>
         {% endblock %}
     </div>
-
     <div id="content">
         {% block content %}
         {% endblock %}

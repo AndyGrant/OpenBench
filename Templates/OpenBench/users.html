@@ -1,0 +1,28 @@
+{% extends "OpenBench/base.html" %}
+
+{% block title %}
+Event Log
+{% endblock %}
+
+{% block style %}
+{% load static %}
+{% endblock %}
+
+{% block content %}
+<table>
+    <tr>
+        <th>Username</th>
+        <th>Games</th>
+        <th>Tests</th>
+        <th>Repository</th>
+    </tr>
+    {% for profile in profiles %}
+    <tr>
+        <td>{{profile.user.username}}</td>
+        <td>{{profile.games}}</td>
+        <td>{{profile.tests}}</td>
+        <td>{{profile.repo}}</td>
+    </tr>
+    {% endfor %}
+<table>
+{% endblock %}

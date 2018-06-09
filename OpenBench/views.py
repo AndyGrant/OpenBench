@@ -9,7 +9,8 @@ from django.contrib.auth.models import User
 
 from OpenBench.config import *
 
-from OpenBench.models import LogEvent, Machine, Test
+from OpenBench.models import LogEvent, Engine, Profile
+from OpenBench.models import Machine, Results, Test
 
 # Wrap django.shortcuts.render to add framework settings
 def render(request, template, data):
@@ -33,40 +34,34 @@ def register(request):
     user.save()
     loginUser(request, user)
 
+    # Wrap the User in a Profile
+    profile = Profile()
+    profile.user = user
+    profile.save()
+
     # Log the registration
     event = LogEvent()
-    event.data = "Created user {0}".format(request.POST['username'])
+    event.data = 'Created user {0}'.format(request.POST['username'])
     event.save()
 
-    return HttpResponseRedirect("/index/")
+    return HttpResponseRedirect('/index/')
 
 def login(request):
 
     # User trying to view the login page
-    if request.method == "GET":
-        return render(request, "login.html", {})
+    if request.method == 'GET':
+        return render(request, 'login.html', {})
 
     # Attempt to login the user, and return to index
-    user = authenticate(username=request.POST["username"], password=request.POST["password"])
+    user = authenticate(username=request.POST['username'], password=request.POST['password'])
     loginUser(request, user)
-    return HttpResponseRedirect("/index/")
+    return HttpResponseRedirect('/index/')
 
 def logout(request):
 
     # Logout the user and return to index
     logoutUser(request)
-    return HttpResponseRedirect("/index/")
-
-def eventLog(request):
-
-    # Build context dictionary for template
-    data = {"events": []}
-    for event in LogEvent.objects.all():
-        data["events"].append({
-            "data"     : event.data,
-            "creation" : event.creation})
-
-    return render(request, "eventLog.html", data)
+    return HttpResponseRedirect('/index/')
 
 def index(request, page=0):
 
@@ -93,12 +88,31 @@ def index(request, page=0):
     # Save my @nitrocan @defenchess
 
     data = {
-        'pending'   : [],
-        'active'    : [],
-        'completed' : [],
+        'pending'   : pending,
+        'active'    : active,
+        'completed' : completed,
     }
 
     return render(request, 'index.html', data)
+
+def users(request):
+    profiles = Profile.objects.all()
+    data = {'profiles' : Profile.objects.all()}
+    return render(request, 'users.html', data)
+
+def machines(request):
+    pass
+
+def eventLog(request):
+
+    # Build context dictionary for template
+    data = {'events': []}
+    for event in LogEvent.objects.all():
+        data['events'].append({
+            'data'     : event.data,
+            'creation' : event.creation})
+
+    return render(request, 'eventLog.html', data)
 
 def newTest(request):
     pass

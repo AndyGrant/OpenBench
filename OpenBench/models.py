@@ -1,6 +1,8 @@
-from django.db.models import CharField, IntegerField, BooleanField
-from django.db.models import FloatField, ForeignKey, DateTimeField
-from django.db.models import PROTECT, Model
+from django.db.models import CharField, IntegerField, BooleanField, FloatField
+from django.db.models import ForeignKey, DateTimeField, OneToOneField
+from django.db.models import CASCADE, PROTECT, Model
+from django.contrib.auth.models import User
+
 
 class LogEvent(Model):
 
@@ -20,6 +22,16 @@ class Engine(Model):
 
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.bench)
+
+class Profile(Model):
+
+    user  = OneToOneField(User, on_delete=CASCADE)
+    games = IntegerField(default=0)
+    tests = IntegerField(default=0)
+    repo  = CharField(max_length=256)
+
+    def __str__(self):
+        return self.user.__str__()
 
 class Machine(Model):
 

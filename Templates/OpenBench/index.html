@@ -6,14 +6,11 @@
 Index
 {% endblock %}
 
+
 {% block content %}
+<h2>Pending</h2>
 <table>
     <tr>
-        <th class="tabletitle">TEST</th>
-        <th class="tabletitle">DIFF</th>
-        <th class="tabletitle">APPROVE</th>
-    </tr>
-
     {% for test in pending %}
     <tr class={{test.status}}>
         <td style="text-align:left;font-weight:bold">
@@ -26,15 +23,9 @@ Index
     </tr>
     {% endfor %}
 </table>
-<table>
-    <tr>
-        <th class="tabletitle">AUTHOR</th>
-        <th class="tabletitle">TEST</th>
-        <th class="tabletitle">DIFF</th>
-        <th class="tabletitle">STATS</th>
-        <th class="tabletitle">ELO</th>
-    </tr>
 
+<h2>Approved</h2>
+<table>
     {% for test in active %}
     <tr class={{test.status}}>
         <td style="text-align:left;font-weight:bold">
@@ -50,7 +41,6 @@ Index
             {{test.eloupper|twoDigitPrecision}}] <br> Games: {{test.games}}
             W: {{test.wins}} L: {{test.losses}} D: {{test.draws}}
         </strong></td>
-        <td> {{enginetest.elo|twoDigitPrecision}} </td>
     </tr>
     {% endfor %}
 
@@ -69,7 +59,6 @@ Index
             {{test.eloupper|twoDigitPrecision}}] <br> Games: {{test.games}}
             W: {{test.wins}} L: {{test.losses}} D: {{test.draws}}
         </strong></td>
-        <td> {{enginetest.elo|twoDigitPrecision}} </td>
     </tr>
     {% endfor %}
 </table>
