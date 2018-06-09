@@ -69,6 +69,7 @@ class Test(Model):
     passed      = BooleanField(default=False)
     failed      = BooleanField(default=False)
     deleted     = BooleanField(default=False)
+    approved    = BooleanField(default=False)
 
     def __str__(self):
         return '{0} vs {1} @ {2}'.format(self.dev.name, self.base.name, self.timecontrol)
