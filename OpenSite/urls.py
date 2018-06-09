@@ -5,5 +5,5 @@ import OpenBench.urls
 
 urlpatterns = [
     path(r'admin/', admin.site.urls),
-    path(r'^', include(OpenBench.urls.urlpatterns)),
+    path(r'', include(OpenBench.urls.urlpatterns)),
 ]

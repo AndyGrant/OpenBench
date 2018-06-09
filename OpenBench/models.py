@@ -49,8 +49,8 @@ class Results(Model):
 
 class Test(Model):
 
-    dev  = ForeignKey('Engine', PROTECT, related_name='dev')
-    base = ForeignKey('Engine', PROTECT, related_name='base')
+    dev         = ForeignKey('Engine', PROTECT, related_name='dev')
+    base        = ForeignKey('Engine', PROTECT, related_name='base')
 
     devoptions  = CharField(max_length=256)
     baseoptions = CharField(max_length=256)
@@ -83,8 +83,8 @@ class Test(Model):
     deleted     = BooleanField(default=False)
     approved    = BooleanField(default=False)
 
-    creation = DateTimeField(auto_now=True)
-    complted = DateTimeField(auto_now=True)
+    creation    = DateTimeField(auto_now=True)
+    complted    = DateTimeField(auto_now=True)
 
     def __str__(self):
         return '{0} vs {1} @ {2}'.format(self.dev.name, self.base.name, self.timecontrol)

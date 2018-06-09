@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+
+{% load static %}
+
+<head>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <title>
+        {% block title %}
+        OpenBench
+        {% endblock %}
+    </title>
+</head>
+
+<body>
+    <div id="sidebar">
+        {% block sidebar %}
+        <ul>
+            <li class="listheader">ADMIN</li>
+            {% if user.is_authenticated %}
+            <li><a href="/logout/">Logout</a></li>
+            {% else %}
+            <li><a href="/login">Login </a></li>
+            <li><a href="/register">Register</a></li>
+            {% endif %}
+        </ul>
+        <ul>
+            <li class="listheader"> CONTENT </li>
+            <li> <a href="/all"> All </a> </li>
+            <li> <a href="/index"> Index </a> </li>
+            <li> <a href="/greens"> Greens </a> </li>
+            <li> <a href="/newTest/"> New Test </a> </li>
+        </ul>
+        <ul>
+            <li class="listheader"> LINKS </li>
+            <li> <a href="{{config.homepage}}">{{config.engine}}</a> </li>
+            <li> <a href="{{config.framework}}"> OpenBench </a> </li>
+        </ul>
+        {% endblock %}
+    </div>
+
+    <div id="content">
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+</html>

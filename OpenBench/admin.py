@@ -1,5 +1,5 @@
 from django.contrib import admin
-from EtherBench.models import LogEvent, Engine, Machine, Results, Test
+from OpenBench.models import LogEvent, Engine, Machine, Results, Test
 
 admin.site.register(LogEvent)
 admin.site.register(Engine)

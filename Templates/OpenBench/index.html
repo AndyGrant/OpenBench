@@ -1,0 +1,52 @@
+{% extends "OpenBench/base.html" %}
+
+{% block title %}
+Index
+{% endblock %}
+
+{% block content %}
+<table>
+    <tr>
+        <th class="tabletitle"> TEST </th>
+        <th class="tabletitle"> DIFF </th>
+        <th class="tabletitle"> APPROVE </th>
+    </tr>
+
+    {% for test in pendingtests %}
+    <tr class={{test.status}}>
+        <td style="text-align:left;font-weight:bold">
+            <a href="/viewTest/{{test.id}}">{{test.dev.name}}</a>
+        </td>
+        <td style="text-align:left;font-weight:bold">
+            <a href="{{test|gitDiffLink}}">diff</a>
+        </td>
+        <td><a href="/approveTest/{{test.id}}">approve</a></td>
+    </tr>
+</table>
+<table>
+    <tr>
+        <th class="tabletitle"> TEST </th>
+        <th class="tabletitle"> DIFF </th>
+        <th class="tabletitle"> STATS </th>
+        <th class="tabletitle"> ELO </th>
+    </tr>
+
+    {% for test in activetests %}
+    <tr class={{test.status}}>
+        <td style="text-align:left;font-weight:bold">
+            <a href="/viewTest/{{test.id}}">{{test.dev.name}}</a>
+        </td>
+        <td style="text-align:left;font-weight:bold">
+            <a href="{{test|gitDiffLink}}">diff</a>
+        </td>
+        <td style="text-align:left;font-size:14px"><strong>
+            SPRT @ {{test.timecontrol}}s Threads={{test.threads}} Hash={{test.hashsize}}MB<br>
+            LLR: {{test.currentllr|twoDigitPrecision}} ({{test.lowerllr|twoDigitPrecision}},
+            {{test.upperllr|twoDigitPrecision}}) [{{test.elolower|twoDigitPrecision}},
+            {{test.eloupper|twoDigitPrecision}}] <br> Games: {{test.games}}
+            W: {{test.wins}} L: {{test.losses}} D: {{test.draws}}
+        </strong></td>
+        <td> {{enginetest.elo|twoDigitPrecision}} </td>
+    </tr>
+</table>
+{% endblock %}
