@@ -7,6 +7,9 @@ class LogEvent(Model):
     data     = CharField(max_length=256)
     creation = DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return "{0} : {1}".format(self.creation, self.data)
+
 class Engine(Model):
 
     name    = CharField(max_length=128)
