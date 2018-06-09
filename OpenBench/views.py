@@ -7,9 +7,9 @@ from django.contrib.auth import login as loginUser
 from django.contrib.auth import logout as logoutUser
 from django.contrib.auth.models import User
 
-
-
 from OpenBench.config import *
+
+from OpenBench.models import LogEvent
 
 # Wrap django.shortcuts.render to add framework settings
 def render(request, template, data):
@@ -34,6 +34,12 @@ def register(request):
     # Login the user and return to index
     user.save()
     loginUser(request, user)
+
+    # Log the registration
+    event = LogEvent()
+    event.data = "Created user {0}".format(request.POST['username'])
+    event.save()
+
     return HttpResponseRedirect("/index/")
 
 def login(request):
@@ -56,7 +62,15 @@ def logout(request):
 ## CONTENT VIEWING
 
 def eventLog(request):
-    pass
+
+    # Build context dictionary for template
+    data = {"events": []}
+    for event in LogEvent.objects.all():
+        data["events"].append({
+            "data"     : event.data,
+            "creation" : event.creation})
+
+    return render(request, "eventLog.html", data)
 
 def index(request, page=0):
     pass

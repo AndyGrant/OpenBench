@@ -1,0 +1,20 @@
+{% extends "OpenBench/base.html" %}
+
+{% block title %}
+Event Log
+{% endblock %}
+
+{% block style %}
+{% load static %}
+{% endblock %}
+
+{% block content %}
+<table>
+    {% for event in events %}
+    <tr>
+        <td>{{event.creation}}</td>
+        <td>{{event.data}}</td>
+    </tr>
+    {% endfor %}
+<table>
+{% endblock %}
