@@ -2,6 +2,11 @@ from django.db.models import CharField, IntegerField, BooleanField
 from django.db.models import FloatField, ForeignKey, DateTimeField
 from django.db.models import PROTECT, Model
 
+class LogEvent(Model):
+
+    data     = CharField(max_length=256)
+    creation = DateTimeField(auto_now=True)
+
 class Engine(Model):
 
     name    = CharField(max_length=128)
@@ -73,6 +78,9 @@ class Test(Model):
     failed      = BooleanField(default=False)
     deleted     = BooleanField(default=False)
     approved    = BooleanField(default=False)
+
+    creation = DateTimeField(auto_now=True)
+    complted = DateTimeField(auto_now=True)
 
     def __str__(self):
         return '{0} vs {1} @ {2}'.format(self.dev.name, self.base.name, self.timecontrol)
