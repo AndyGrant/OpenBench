@@ -22,7 +22,7 @@ class Machine(Model):
     def __str__(self):
         return '{0}-{1} ({2})'.format(self.owner.name, self.osname, self.id)
 
-class Workload(Model):
+class Results(Model):
 
     test     = ForeignKey('Test', PROTECT, related_name='test')
     machine  = ForeignKey('Machine', PROTECT, related_name='machine')
@@ -43,6 +43,9 @@ class Test(Model):
 
     dev  = ForeignKey('Engine', PROTECT, related_name='dev')
     base = ForeignKey('Engine', PROTECT, related_name='base')
+
+    devoptions  = CharField(max_length=256)
+    baseoptions = CharField(max_length=256)
 
     timecontrol = CharField(max_length=16)
     hashsize    = IntegerField(default=1)
