@@ -140,6 +140,12 @@ def newTest(request):
         return render(request, 'newTest.html', {"user" : request.user})
 
     try:
+
+        # Throw out non-approved / disabled users
+        profile = Profile.objects.get(user=request.user)
+        if not profile.enabled:
+            raise Exception("Account not Enabled")
+
         # Create test and verify fields
         test = OpenBench.utils.newTest(request)
 
@@ -172,10 +178,15 @@ def viewTest(request, id):
     except Exception as error:
         return index(request, error=str(error))
 
-@staff_member_required
+@login_required
 def approveTest(request, id):
 
     try:
+        # Throw out users without approver status
+        profile = Profile.objects.get(user=request.user)
+        if not profile.approver:
+            raise Exception("No Approver Permissions on Account")
+
         # Approve the provided test
         test = Test.objects.get(id=id)
         test.approved = True

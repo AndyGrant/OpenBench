@@ -10,14 +10,18 @@
         <th>Username</th>
         <th>Games</th>
         <th>Tests</th>
-        <th>Repository</th>
+        <th>Repo</th>
+        <th>Enabled</th>
+        <th>Approver</th>
     </tr>
     {% for profile in profiles %}
     <tr>
-        <td>{{profile.user.username}}</td>
+        <td><a href="/viewUser/{{profile.user.username}}">{{profile.user.username}}</a></td>
         <td>{{profile.games}}</td>
         <td>{{profile.tests}}</td>
         <td>{{profile.repo}}</td>
+        <td>{{profile.enabled}}</td>
+        <td>{{profile.approver}}</td>
     </tr>
     {% endfor %}
 <table>

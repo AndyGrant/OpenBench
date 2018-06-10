@@ -26,10 +26,12 @@ class Engine(Model):
 
 class Profile(Model):
 
-    user  = OneToOneField(User, on_delete=CASCADE)
-    games = IntegerField(default=0)
-    tests = IntegerField(default=0)
-    repo  = CharField(max_length=256)
+    user     = OneToOneField(User, on_delete=CASCADE)
+    games    = IntegerField(default=0)
+    tests    = IntegerField(default=0)
+    repo     = CharField(max_length=256)
+    enabled  = BooleanField(default=False)
+    approver = BooleanField(default=False)
 
     def __str__(self):
         return self.user.__str__()
