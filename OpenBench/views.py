@@ -129,7 +129,7 @@ def machines(request):
 def eventLog(request):
 
     # Build context dictionary for template
-    data = {'events': LogEvent.objects.all()}
+    data = {'events': LogEvent.objects.all().order_by('-id')[:50]}
     return render(request, 'eventLog.html', data)
 
 @login_required
@@ -140,7 +140,6 @@ def newTest(request):
         return render(request, 'newTest.html', {"user" : request.user})
 
     try:
-
         # Throw out non-approved / disabled users
         profile = Profile.objects.get(user=request.user)
         if not profile.enabled:
@@ -151,7 +150,7 @@ def newTest(request):
 
         # Log the test creation
         event = LogEvent()
-        event.data = 'Created Test {0} ({1})'.format(str(test), test.id)
+        event.data = 'Created test {0} ({1})'.format(str(test), test.id)
         event.author = request.user.username
         event.save()
 

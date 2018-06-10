@@ -1,5 +1,5 @@
 body {
-    font-family: "Consolas";
+    font-family: "Courier New";
     font-size: 20px;
 }
 
@@ -32,8 +32,8 @@ table {
     font-size: 20px;
 }
 
-th, td {
-    border: 1px solid black;
+tr {
+    background-color: #DBDBDB;
 }
 
 th {
@@ -48,17 +48,14 @@ td {
     text-align: right;
 }
 
-tr:nth-child(even){background-color: #DBDBDB}
-tr:nth-child(odd){background-color: #BDBDBD}
+.red:nth-child(even){background-color: #FAA5A5}
+.red:nth-child(odd){background-color: #FA8E8E}
 
-.failed:nth-child(even){background-color: #FAA5A5}
-.failed:nth-child(odd){background-color: #FA8E8E}
+.green:nth-child(even){background-color: #2FFA62}
+.green:nth-child(odd){background-color: #9DF779}
 
-.passed:nth-child(even){background-color: #2FFA62}
-.passed:nth-child(odd){background-color: #9DF779}
-
-.active:nth-child(even){background-color: #E9FA32}
-.active:nth-child(odd){background-color: #EEF788}
+.yellow:nth-child(even){background-color: #E9FA32}
+.yellow:nth-child(odd){background-color: #EEF788}
 
 ul {
     list-style-type: none;

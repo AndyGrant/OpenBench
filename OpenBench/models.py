@@ -29,7 +29,7 @@ class Profile(Model):
     user     = OneToOneField(User, on_delete=CASCADE)
     games    = IntegerField(default=0)
     tests    = IntegerField(default=0)
-    repo     = CharField(max_length=256)
+    repo     = CharField(max_length=256, blank=True)
     enabled  = BooleanField(default=False)
     approver = BooleanField(default=False)
 

@@ -8,6 +8,7 @@
     <tr>
     {% for test in pending %}
     <tr>
+        <td>{{test.creation|date:'Y-m-d'}}</td>
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td style="text-align:left"><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td style="text-align"><a href="{{test|gitDiffLink}}">diff</a></td>
@@ -21,8 +22,18 @@
 
 <h2>Active</h2>
 <table>
-    {% for test in active %}
+    {% if active %}
     <tr>
+        <th>Creation</th>
+        <th>Author</th>
+        <th>Test</th>
+        <th>Diff</th>
+        <th>Stats</th>
+    </tr>
+    {% endif %}
+    {% for test in active %}
+    <tr class="{{test|testResultColour}}">
+        <td>{{test.creation|date:'Y-m-d'}}</td>
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td style="text-align:left"><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td style="text-align:left"><a href="{{test|gitDiffLink}}">diff</a></td>
@@ -35,8 +46,18 @@
 
 <h2>Finished</h2>
 <table>
+    {% if completed %}
+    <tr>
+        <th>Creation</th>
+        <th>Author</th>
+        <th>Test</th>
+        <th>Diff</th>
+        <th>Stats</th>
+    </tr>
+    {% endif %}
     {% for test in completed %}
-    <tr class="{{test.status}}">
+    <tr class="{{test|testResultColour}}">
+        <td>{{test.creation|date:'Y-m-d'}}</td>
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td style="text-align:left"><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td style="text-align:left"><a href="{{test|gitDiffLink}}">diff</a></td>
