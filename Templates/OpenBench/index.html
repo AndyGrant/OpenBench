@@ -3,9 +3,18 @@
 {% load mytags %}
 
 {% block content %}
-<h2>Pending</h2>
+
 <table>
+    <tr><td style="background-color:white;text-align:left"><h2>Pending</h2></td></tr>
+    {% if pending %}
     <tr>
+        <th>Creation</th>
+        <th>Author</th>
+        <th>Test</th>
+        <th>Diff</th>
+        <th>Stats</th>
+    </tr>
+    {% endif %}
     {% for test in pending %}
     <tr>
         <td>{{test.creation|date:'Y-m-d'}}</td>
@@ -15,13 +24,10 @@
         {% autoescape off %}
         <td style="text-align:left;font-size:14px"><strong>{{test|statParagraph}}</strong></td>
         {% endautoescape %}
-        <td><a href="/approveTest/{{test.id}}">approve</td>
     </tr>
     {% endfor %}
-</table>
 
-<h2>Active</h2>
-<table>
+    <tr><td style="background-color:white;text-align:left"><h2>Active</h2></td></tr>
     {% if active %}
     <tr>
         <th>Creation</th>
@@ -42,10 +48,8 @@
         {% endautoescape %}
     </tr>
     {% endfor %}
-<table>
 
-<h2>Finished</h2>
-<table>
+    <tr><td style="background-color:white;text-align:left"><h2>Finished</h2></td></tr>
     {% if completed %}
     <tr>
         <th>Creation</th>
