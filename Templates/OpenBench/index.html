@@ -11,17 +11,13 @@ Index
 <table>
     <tr>
     {% for test in pending %}
-    <tr class="{{test.status}}">
+    <tr>
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td style="text-align:left"><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td style="text-align"><a href="{{test|gitDiffLink}}">diff</a></td>
-        <td style="text-align:left;font-size:14px"><strong>
-            SPRT @ {{test.timecontrol}}s Threads={{test.threads}} Hash={{test.hashsize}}MB<br>
-            LLR: {{test.currentllr|twoDigitPrecision}} ({{test.lowerllr|twoDigitPrecision}},
-            {{test.upperllr|twoDigitPrecision}}) [{{test.elolower|twoDigitPrecision}},
-            {{test.eloupper|twoDigitPrecision}}] <br> Games: {{test.games}}
-            W: {{test.wins}} L: {{test.losses}} D: {{test.draws}}
-        </strong></td>
+        {% autoescape off %}
+        <td style="text-align:left;font-size:14px"><strong>{{test|statParagraph}}</strong></td>
+        {% endautoescape %}
         <td><a href="/approveTest/{{test.id}}">approve</td>
     </tr>
     {% endfor %}
@@ -30,17 +26,13 @@ Index
 <h2>Active</h2>
 <table>
     {% for test in active %}
-    <tr class="{{test.status}}">
+    <tr>
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td style="text-align:left"><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td style="text-align:left"><a href="{{test|gitDiffLink}}">diff</a></td>
-        <td style="text-align:left;font-size:14px"><strong>
-            SPRT @ {{test.timecontrol}}s Threads={{test.threads}} Hash={{test.hashsize}}MB<br>
-            LLR: {{test.currentllr|twoDigitPrecision}} ({{test.lowerllr|twoDigitPrecision}},
-            {{test.upperllr|twoDigitPrecision}}) [{{test.elolower|twoDigitPrecision}},
-            {{test.eloupper|twoDigitPrecision}}] <br> Games: {{test.games}}
-            W: {{test.wins}} L: {{test.losses}} D: {{test.draws}}
-        </strong></td>
+        {% autoescape off %}
+        <td style="text-align:left;font-size:14px"><strong>{{test|statParagraph}}</strong></td>
+        {% endautoescape %}
     </tr>
     {% endfor %}
 <table>
@@ -52,13 +44,9 @@ Index
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td style="text-align:left"><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td style="text-align:left"><a href="{{test|gitDiffLink}}">diff</a></td>
-        <td style="text-align:left;font-size:14px"><strong>
-            SPRT @ {{test.timecontrol}}s Threads={{test.threads}} Hash={{test.hashsize}}MB<br>
-            LLR: {{test.currentllr|twoDigitPrecision}} ({{test.lowerllr|twoDigitPrecision}},
-            {{test.upperllr|twoDigitPrecision}}) [{{test.elolower|twoDigitPrecision}},
-            {{test.eloupper|twoDigitPrecision}}] <br> Games: {{test.games}}
-            W: {{test.wins}} L: {{test.losses}} D: {{test.draws}}
-        </strong></td>
+        {% autoescape off %}
+        <td style="text-align:left;font-size:14px"><strong>{{test|statParagraph}}</strong></td>
+        {% endautoescape %}
     </tr>
     {% endfor %}
 </table>

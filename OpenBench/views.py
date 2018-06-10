@@ -163,7 +163,17 @@ def editTest(request, id):
     pass
 
 def viewTest(request, id):
-    pass
+
+    try:
+        # Find Test and Results
+        test = Test.objects.get(id=id)
+        results = Results.objects.all().filter(test=test)
+        data = {'test' : test, 'results' : results}
+        return render(request, 'viewTest.html', data)
+
+    # Unable to find test
+    except Exception as error:
+        return index(request, error=str(error))
 
 @staff_member_required
 def approveTest(request, id):
