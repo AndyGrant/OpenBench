@@ -1,9 +1,5 @@
 {% extends "OpenBench/base.html" %}
 
-{% block title %}
-New Testhttp://127.0.0.1:12345/index
-{% endblock %}
-
 {% block content %}
 <form method="POST" action="/newTest/">
     {% csrf_token %}

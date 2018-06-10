@@ -1,9 +1,5 @@
 {% extends "OpenBench/base.html" %}
 
-{% block title %}
-Event Log
-{% endblock %}
-
 {% block style %}
 {% load static %}
 {% endblock %}
@@ -12,7 +8,8 @@ Event Log
 <table>
     {% for event in events %}
     <tr>
-        <td>{{event.creation}}</td>
+        <td style='text-align:left'>{{event.creation}}</td>
+        <td style='text-align:left'>{{event.author}}</td>
         <td style='text-align:left'>{{event.data}}</td>
     </tr>
     {% endfor %}

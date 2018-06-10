@@ -43,7 +43,8 @@ def register(request):
 
         # Log the registration
         event = LogEvent()
-        event.data = 'Created user {0}'.format(request.POST['username'])
+        event.data = 'Created an account'
+        event.author = request.POST['username']
         event.save()
 
         # Kick back to index
@@ -128,11 +129,7 @@ def machines(request):
 def eventLog(request):
 
     # Build context dictionary for template
-    data = {'events': []}
-    for event in LogEvent.objects.all():
-        data['events'].append({
-            'data'     : event.data,
-            'creation' : event.creation})
+    data = {'events': LogEvent.objects.all()}
     return render(request, 'eventLog.html', data)
 
 @login_required
@@ -148,8 +145,8 @@ def newTest(request):
 
         # Log the test creation
         event = LogEvent()
-        event.data = '{0} : Created {1} (id={2})'.format(
-            request.user.username, str(test), test.id)
+        event.data = 'Created Test {0} ({1})'.format(str(test), test.id)
+        event.author = request.user.username
         event.save()
 
         return HttpResponseRedirect('/index/')

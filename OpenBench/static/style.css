@@ -32,6 +32,10 @@ table {
     font-size: 20px;
 }
 
+th, td {
+    border: 1px solid black;
+}
+
 th {
     text-align: center;
     padding: 4px 16px;

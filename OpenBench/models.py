@@ -7,10 +7,11 @@ from django.contrib.auth.models import User
 class LogEvent(Model):
 
     data     = CharField(max_length=256)
+    author   = CharField(max_length=64)
     creation = DateTimeField(auto_now=True)
 
     def __str__(self):
-        return "{0} : {1}".format(self.creation, self.data)
+        return "{0} {1} : {2}".format(self.creation, self.author, self.data)
 
 class Engine(Model):
 
