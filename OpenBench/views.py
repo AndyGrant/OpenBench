@@ -133,7 +133,14 @@ def newTest(request):
 
     try:
         # Create test and verify fields
-        OpenBench.utils.newTest(request)
+        test = OpenBench.utils.newTest(request)
+
+        # Log the test creation
+        event = LogEvent()
+        event.data = '{0} : Created {1} (id={2})'.format(
+            request.user.username, str(test), test.id)
+        event.save()
+
         return HttpResponseRedirect('/index/')
 
     # Bad data, kick back to index with error
@@ -149,7 +156,17 @@ def viewTest(request, id):
 
 @staff_member_required
 def approveTest(request, id):
-    pass
+
+    try:
+        # Approve the provided test
+        test = Test.objects.get(id=id)
+        test.approved = True
+        test.save()
+        return HttpResponseRedirect('/index/')
+
+    # Bad test id, permissions, or other
+    except Exception as error:
+        return index(request, error=str(error))
 
 def getFiles(request):
     pass

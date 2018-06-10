@@ -1,5 +1,5 @@
 body {
-    font-family: "Courier New";
+    font-family: "Consolas";
     font-size: 20px;
 }
 
@@ -32,19 +32,15 @@ table {
     font-size: 20px;
 }
 
-th, td {
-    border: 1px solid black;
-}
-
 th {
     text-align: center;
-    padding: 3px 16px;
+    padding: 4px 16px;
     background-color: #4CAF50;
     color: white;
 }
 
 td {
-    padding: 2px 16px;
+    padding: 4px 16px;
     text-align: right;
 }
 

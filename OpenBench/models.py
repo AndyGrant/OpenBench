@@ -61,6 +61,8 @@ class Results(Model):
 
 class Test(Model):
 
+    author      = CharField(max_length=64)
+
     dev         = ForeignKey('Engine', PROTECT, related_name='dev')
     base        = ForeignKey('Engine', PROTECT, related_name='base')
 

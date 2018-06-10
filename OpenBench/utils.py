@@ -34,6 +34,7 @@ def newEngine(name, source, protocol, sha, bench):
 def newTest(request):
 
     test = Test() # New Test, saved only after parsing
+    test.author = request.user.username
 
     # Extract Development Fields
     devname     = request.POST['devbranch']
