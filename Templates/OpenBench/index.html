@@ -11,7 +11,7 @@ Index
 <table>
     <tr>
     {% for test in pending %}
-    <tr class={{test.status}}>
+    <tr class="{{test.status}}">
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td style="text-align:left"><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td style="text-align"><a href="{{test|gitDiffLink}}">diff</a></td>
@@ -27,17 +27,13 @@ Index
     {% endfor %}
 </table>
 
-<h2>Approved</h2>
+<h2>Active</h2>
 <table>
     {% for test in active %}
-    <tr class={{test.status}}>
+    <tr class="{{test.status}}">
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
-        <td style="text-align:left;font-weight:bold">
-            <a href="/viewTest/{{test.id}}">{{test.dev.name}}</a>
-        </td>
-        <td style="text-align:left;font-weight:bold">
-            <a href="{{test|gitDiffLink}}">diff</a>
-        </td>
+        <td style="text-align:left"><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
+        <td style="text-align:left"><a href="{{test|gitDiffLink}}">diff</a></td>
         <td style="text-align:left;font-size:14px"><strong>
             SPRT @ {{test.timecontrol}}s Threads={{test.threads}} Hash={{test.hashsize}}MB<br>
             LLR: {{test.currentllr|twoDigitPrecision}} ({{test.lowerllr|twoDigitPrecision}},
@@ -47,16 +43,15 @@ Index
         </strong></td>
     </tr>
     {% endfor %}
+<table>
 
+<h2>Finished</h2>
+<table>
     {% for test in completed %}
-    <tr class={{test.status}}>
+    <tr class="{{test.status}}">
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
-        <td style="text-align:left;font-weight:bold">
-            <a href="/viewTest/{{test.id}}">{{test.dev.name}}</a>
-        </td>
-        <td style="text-align:left;font-weight:bold">
-            <a href="{{test|gitDiffLink}}">diff</a>
-        </td>
+        <td style="text-align:left"><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
+        <td style="text-align:left"><a href="{{test|gitDiffLink}}">diff</a></td>
         <td style="text-align:left;font-size:14px"><strong>
             SPRT @ {{test.timecontrol}}s Threads={{test.threads}} Hash={{test.hashsize}}MB<br>
             LLR: {{test.currentllr|twoDigitPrecision}} ({{test.lowerllr|twoDigitPrecision}},

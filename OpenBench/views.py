@@ -75,7 +75,13 @@ def logout(request):
     logoutUser(request)
     return HttpResponseRedirect('/index/')
 
-def index(request, page=0, error=''):
+def viewProfile(request):
+    pass
+
+def viewUser(request, username):
+    return index(request, username=username)
+
+def index(request, page=0, username=None, error=''):
 
     # Get tests pending approval
     pending = Test.objects.filter(approved=False)
@@ -93,6 +99,11 @@ def index(request, page=0, error=''):
     completed = Test.objects.filter(finished=True)
     completed = completed.exclude(deleted=True)
     completed = completed.order_by('completion')
+
+    if username != None: # View from just one user
+        pending   = pending.filter(author=username)
+        active    = active.filter(author=username)
+        completed = completed.filter(author=username)
 
     # Compile context dictionary
     data = {

@@ -7,6 +7,9 @@ urlpatterns = [
     path(r'login/', OpenBench.views.login),
     path(r'logout/', OpenBench.views.logout),
 
+    path(r'viewProfile/', OpenBench.views.viewProfile),
+    path(r'viewUser/<str:username>/', OpenBench.views.viewUser),
+
     path(r'index/', OpenBench.views.index),
     path(r'index/<int:page>/', OpenBench.views.index),
     path(r'users/', OpenBench.views.users),
