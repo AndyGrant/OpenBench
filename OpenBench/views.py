@@ -1,16 +1,17 @@
 from django.shortcuts import render as djangoRender
-
 from django.http import HttpResponse, HttpResponseRedirect
-
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as loginUser
 from django.contrib.auth import logout as logoutUser
 from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 
 from OpenBench.config import *
-
 from OpenBench.models import LogEvent, Engine, Profile
 from OpenBench.models import Machine, Results, Test
+
+import OpenBench.utils
 
 # Wrap django.shortcuts.render to add framework settings
 def render(request, template, data):
@@ -23,28 +24,34 @@ def register(request):
     if request.method == 'GET':
         return render(request, 'register.html', {})
 
-    # Attempt to create and login the new user
-    user = User.objects.create_user(
-        request.POST['username'],
-        request.POST['email'],
-        request.POST['password']
-    )
+    try:
+        # Attempt to create and login the new user
+        user = User.objects.create_user(
+            request.POST['username'],
+            request.POST['email'],
+            request.POST['password']
+        )
 
-    # Login the user and return to index
-    user.save()
-    loginUser(request, user)
+        # Login the user and return to index
+        user.save()
+        loginUser(request, user)
 
-    # Wrap the User in a Profile
-    profile = Profile()
-    profile.user = user
-    profile.save()
+        # Wrap the User in a Profile
+        profile = Profile()
+        profile.user = user
+        profile.save()
 
-    # Log the registration
-    event = LogEvent()
-    event.data = 'Created user {0}'.format(request.POST['username'])
-    event.save()
+        # Log the registration
+        event = LogEvent()
+        event.data = 'Created user {0}'.format(request.POST['username'])
+        event.save()
 
-    return HttpResponseRedirect('/index/')
+        # Kick back to index
+        return HttpResponseRedirect('/index/')
+
+    # Bad data, kick back to index with error
+    except Exception as error:
+        return index(request, error=str(error))
 
 def login(request):
 
@@ -52,10 +59,15 @@ def login(request):
     if request.method == 'GET':
         return render(request, 'login.html', {})
 
-    # Attempt to login the user, and return to index
-    user = authenticate(username=request.POST['username'], password=request.POST['password'])
-    loginUser(request, user)
-    return HttpResponseRedirect('/index/')
+    try:
+        # Attempt to login the user, and return to index
+        user = authenticate(username=request.POST['username'], password=request.POST['password'])
+        loginUser(request, user)
+        return HttpResponseRedirect('/index/')
+
+    # Bad data, kick back to index with error
+    except Exception as error:
+        return index(request, error=str(error))
 
 def logout(request):
 
@@ -63,7 +75,7 @@ def logout(request):
     logoutUser(request)
     return HttpResponseRedirect('/index/')
 
-def index(request, page=0):
+def index(request, page=0, error=''):
 
     # Get tests pending approval
     pending = Test.objects.filter(approved=False)
@@ -82,20 +94,19 @@ def index(request, page=0):
     completed = completed.exclude(deleted=True)
     completed = completed.order_by('completion')
 
-    # Get machines currently active workloads
-    # machines = Machine.objects.get()
-    # machines = Machines played within last <minutes>
-    # Save my @nitrocan @defenchess
-
+    # Compile context dictionary
     data = {
         'pending'   : pending,
         'active'    : active,
         'completed' : completed,
+        'error'     : error,
     }
 
     return render(request, 'index.html', data)
 
 def users(request):
+
+    # Build context dictionary for template
     profiles = Profile.objects.all()
     data = {'profiles' : Profile.objects.all()}
     return render(request, 'users.html', data)
@@ -111,18 +122,32 @@ def eventLog(request):
         data['events'].append({
             'data'     : event.data,
             'creation' : event.creation})
-
     return render(request, 'eventLog.html', data)
 
+@login_required
 def newTest(request):
-    pass
 
+    # User trying to view the new test page
+    if request.method == 'GET':
+        return render(request, 'newTest.html', {"user" : request.user})
+
+    try:
+        # Create test and verify fields
+        OpenBench.utils.newTest(request)
+        return HttpResponseRedirect('/index/')
+
+    # Bad data, kick back to index with error
+    except Exception as error:
+        return index(request, error=str(error))
+
+@staff_member_required
 def editTest(request, id):
     pass
 
 def viewTest(request, id):
     pass
 
+@staff_member_required
 def approveTest(request, id):
     pass
 

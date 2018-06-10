@@ -1,0 +1,65 @@
+{% extends "OpenBench/base.html" %}
+
+{% block title %}
+New Test
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="/newTest/">
+    {% csrf_token %}
+    <div style="float:left; margin-right:0px">
+        <label type="text"> Dev Branch </label>
+        <input type="text" name="devbranch" autofocus>
+        </br>
+        <label type="text"> Dev Bench </label>
+        <input type="text" name="devbench">
+        </br>
+        <label type="text"> Dev Options </label>
+        <input type="text" value="Threads={{config.threads}} Hash={{config.hash}}" name="devoptions">
+        </br>
+        <label type="text"> Dev Protocol </label>
+        <input type="text" value="{{config.protocol}}" name="devprotocol">
+        </br>
+        <label type="text"> Base Branch </label>
+        <input type="text" value="master" name="basebranch">
+        </br>
+        <label type="text"> Base Bench </label>
+        <input type="text" name="basebench">
+        </br>
+        <label type="text"> Base Options </label>
+        <input type="text" value="Threads={{config.threads}} Hash={{config.hash}}" name="baseoptions">
+        </br>
+        <label type="text"> Base Protocol </label>
+        <input type="text" value="{{config.protocol}}" name="baseprotocol">
+        </br>
+        <label type="text"> Source </label>
+        <input type="text" value="{{user.repo}}" name="source">
+        </br>
+        <label type="text"> Opening Book </label>
+        <input type="text" value="{{config.bookname}}" name="bookname">
+        </br>
+        <label type="text"> Time Control </label>
+        <input type="text" value="{{config.timecontrol}}" name="timecontrol">
+        </br>
+        <label type="text"> Priority </label>
+        <input type="text" value="0" name="priority">
+        </br>
+        <label type="text"> Throughput </label>
+        <input type="text" value="1000" name="throughput">
+        </br>
+        <label type="text"> Lower Bound </label>
+        <input type="text" value="{{config.elolower}}" name="elolower">
+        </br>
+        <label type="text"> Upper Bound </label>
+        <input type="text" value="{{config.eloupper}}" name="eloupper">
+        </br>
+        <label type="text"> Alpha </label>
+        <input type="text" value="{{config.alpha}}" name="alpha">
+        </br>
+        <label type="text"> Beta </label>
+        <input type="text" value="{{config.beta}}" name="beta">
+        </br>
+        <input type="submit" name="submit" value="Create Engine Test">
+    </div>
+</form>
+{% endblock %}

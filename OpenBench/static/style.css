@@ -17,7 +17,7 @@ body {
     width: auto;
 }
 
-#errormessagebar {
+#error {
     background-color: RED;
     padding: 8px;
     text-align: center;
@@ -130,7 +130,7 @@ input[type=submit]:hover {
 
 label, option {
     display: inline-block;
-    width: 140px;
+    width: 180px;
     font-weight:bold;
     vertical-align: middle;
 }

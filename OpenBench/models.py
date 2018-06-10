@@ -14,11 +14,11 @@ class LogEvent(Model):
 
 class Engine(Model):
 
-    name    = CharField(max_length=128)
-    source  = CharField(max_length=1024)
-    proto   = CharField(max_length=16)
-    sha     = CharField(max_length=64)
-    bench   = IntegerField(default=0)
+    name     = CharField(max_length=128)
+    source   = CharField(max_length=1024)
+    protocol = CharField(max_length=16)
+    sha      = CharField(max_length=64)
+    bench    = IntegerField(default=0)
 
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.bench)
@@ -37,7 +37,6 @@ class Machine(Model):
 
     owner    = CharField(max_length=64)
     osname   = CharField(max_length=128)
-
     cores    = IntegerField(default=0)
     mnps     = FloatField(default=0.00)
     lastseen = DateTimeField(auto_now=True)
@@ -49,7 +48,6 @@ class Results(Model):
 
     test     = ForeignKey('Test', PROTECT, related_name='test')
     machine  = ForeignKey('Machine', PROTECT, related_name='machine')
-
     games    = IntegerField(default=0)
     wins     = IntegerField(default=0)
     losses   = IntegerField(default=0)
@@ -71,16 +69,14 @@ class Test(Model):
 
     bookname    = CharField(max_length=32)
     timecontrol = CharField(max_length=16)
-    hashsize    = IntegerField(default=1)
-    threads     = IntegerField(default=1)
 
     priority    = IntegerField(default=0)
     throughput  = IntegerField(default=0)
 
-    alpha       = FloatField(default=0.0)
-    beta        = FloatField(default=0.0)
     elolower    = FloatField(default=0.0)
     eloupper    = FloatField(default=0.0)
+    alpha       = FloatField(default=0.0)
+    beta        = FloatField(default=0.0)
 
     lowerllr    = FloatField(default=0.0)
     currentllr  = FloatField(default=0.0)

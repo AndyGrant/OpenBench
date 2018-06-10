@@ -40,7 +40,7 @@ def gitDiffLink(test):
 
     repo = "/".join(dev.split("/")[:-2])
 
-    return "{0}/compare/{1}...{2}".format(repo, basesha[:8], testsha[:8])
+    return "{0}/compare/{1}...{2}".format(repo, basesha[:8], devsha[:8])
 
 register = template.Library()
 register.filter("oneDigitPrecision", oneDigitPrecision)

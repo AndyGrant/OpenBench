@@ -12,6 +12,11 @@
     </title>
 </head>
 <body>
+    {% if error %}
+     <div id="error">
+         <strong>{{error}}</strong>
+     </div>
+    {% endif %}
     <div id="sidebar">
         {% block sidebar %}
         <ul>
