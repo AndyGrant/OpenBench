@@ -104,5 +104,32 @@
         <input type="submit" name="submit" value="Modify">
     </form>
 </div>
+<br>
+<table style="padding-top:40px">
+    <tr>
+        <th>User</th>
+        <th>Machine</th>
+        <th>Updated</th>
+        <th>Games</th>
+        <th>Wins</th>
+        <th>Losses</th>
+        <th>Draws</th>
+        <th>Crashes</th>
+        <th>Time</th>
+    </tr>
+    {% for result in results %}
+    <tr>
+        <td>{{result.machine.owner}}</th>
+        <td>{{result.machine.osname}}</th>
+        <td>{{result.lastseen}}</td>
+        <td>{{result.games}}</td>
+        <td>{{result.wins}}</td>
+        <td>{{result.losses}}</td>
+        <td>{{result.draws}}</td>
+        <td>{{result.crashes}}</td>
+        <td>{{result.time}}</td>
+    </tr>
+    {% endfor %}
+</table>
 
 {% endblock %}

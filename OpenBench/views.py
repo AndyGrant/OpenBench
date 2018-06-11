@@ -87,13 +87,13 @@ def index(request, page=0, username=None, error=''):
     # Get tests pending approval
     pending = Test.objects.filter(approved=False)
     pending = pending.exclude(deleted=True)
-    pending = pending.order_by('creation')
+    pending = pending.order_by('-creation')
 
     # Get tests currently running
     active = Test.objects.filter(approved=True)
     active = active.exclude(finished=True)
     active = active.exclude(deleted=True)
-    active = active.order_by('priority', 'currentllr')
+    active = active.order_by('-priority', '-currentllr')
 
     # Get the complted tests (sliced later)
     completed = Test.objects.filter(finished=True)
@@ -174,7 +174,32 @@ def viewTest(request, id):
 
 @login_required(login_url='/login/')
 def editTest(request, id):
-    pass
+
+    try:
+        # Only let approvers or the author edit a test
+        test = Test.objects.get(id=id)
+        profile = Profile.objects.get(user=request.user)
+        if not profile.approver and test.author != profile.user.username:
+            raise Exception("Only Admins Or Test Owners Can Edit A Test")
+
+        # Edit the provided test
+        test = Test.objects.get(id=id)
+        test.priority = int(request.POST['priority'])
+        test.throughput = max(0, int(request.POST['throughput']))
+        test.save()
+
+        # Log the test stopping
+        event = LogEvent()
+        event.data = 'Edit test {0} ({1}) P={2} TP={3}'.format(str(test), test.id, test.priority, test.throughput)
+        event.author = request.user.username
+        event.save()
+
+        return HttpResponseRedirect('/index/')
+
+    # Bad test id, permissions, or other
+    except Exception as error:
+        return index(request, error=str(error))
+
 
 @login_required(login_url='/login/')
 def approveTest(request, id):
