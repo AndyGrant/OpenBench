@@ -1,0 +1,22 @@
+{% extends "OpenBench/base.html" %}
+
+{% block style %}
+{% load static %}
+{% endblock %}
+
+{% block content %}
+<form method="POST" action="/editProfile/">
+    {% csrf_token %}
+    <label type="text">Username</label>
+    <input readonly value="{{profile.user.username}}" type="text" name="username"></br>
+    <label type="text">Email</label>
+    <input value="{{profile.user.email}}" type="text" name="email"></br>
+    <label type="text">New Password</label>
+    <input type="password" name="password1"></br>
+    <label type="text">Verify Password</label>
+    <input type="password" name="password2"></br>
+    <label type="text">Source Repo</label>
+    <input value="{{profile.repo}}" type="text" name="repo"></br>
+    <input type="submit" name="submit" value="Edit">
+</form>
+{% endblock %}

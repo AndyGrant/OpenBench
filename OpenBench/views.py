@@ -68,7 +68,7 @@ def login(request):
 
     # Bad data, kick back to index with error
     except Exception as error:
-        return index(request, error=str(error))
+        return index(request, error='Invalid Login Credentials')
 
 def logout(request):
 
@@ -76,11 +76,35 @@ def logout(request):
     logoutUser(request)
     return HttpResponseRedirect('/index/')
 
+@login_required(login_url='/login/')
 def viewProfile(request):
-    pass
 
-def viewUser(request, username):
-    return index(request, username=username)
+    # Build context dictionary for template
+    profile = Profile.objects.get(user=request.user)
+    data = {'profile' : profile}
+    return render(request, 'viewProfile.html', data)
+
+@login_required(login_url='/login/')
+def editProfile(request):
+
+    # Update Email & Source Repo
+    profile = Profile.objects.get(user=request.user)
+    profile.user.email = request.POST['email']
+    profile.repo = request.POST['repo']
+    profile.save()
+
+    # Change Passwords
+    password1 = request.POST['password1']
+    password2 = request.POST['password2']
+    if password1 != '' and password1 == password2:
+        profile.user.set_password(password1)
+        profile.user.save()
+        user = authenticate(username=request.user.username, password=password1)
+        loginUser(request, user)
+
+    # Send back to see the changes
+    return HttpResponseRedirect('/viewProfile/')
+
 
 def index(request, page=0, username=None, error=''):
 
@@ -122,6 +146,11 @@ def users(request):
     data = {'profiles' : Profile.objects.all()}
     return render(request, 'users.html', data)
 
+def viewUser(request, username):
+
+    # Index but with only username's tests
+    return index(request, username=username)
+
 def machines(request):
     pass
 
@@ -136,13 +165,14 @@ def newTest(request):
 
     # User trying to view the new test page
     if request.method == 'GET':
-        return render(request, 'newTest.html', {"user" : request.user})
+        profile = Profile.objects.get(user=request.user)
+        return render(request, 'newTest.html', {'profile' : profile})
 
     try:
         # Throw out non-approved / disabled users
         profile = Profile.objects.get(user=request.user)
         if not profile.enabled:
-            raise Exception("Account not Enabled")
+            raise Exception('Account not Enabled')
 
         # Create test and verify fields
         test = OpenBench.utils.newTest(request)
@@ -180,7 +210,7 @@ def editTest(request, id):
         test = Test.objects.get(id=id)
         profile = Profile.objects.get(user=request.user)
         if not profile.approver and test.author != profile.user.username:
-            raise Exception("Only Admins Or Test Owners Can Edit A Test")
+            raise Exception('Only Admins Or Test Owners Can Edit A Test')
 
         # Edit the provided test
         test = Test.objects.get(id=id)
@@ -200,7 +230,6 @@ def editTest(request, id):
     except Exception as error:
         return index(request, error=str(error))
 
-
 @login_required(login_url='/login/')
 def approveTest(request, id):
 
@@ -208,7 +237,7 @@ def approveTest(request, id):
         # Throw out users without approver status
         profile = Profile.objects.get(user=request.user)
         if not profile.approver:
-            raise Exception("No Approver Permissions on Account")
+            raise Exception('No Approver Permissions on Account')
 
         # Approve the provided test
         test = Test.objects.get(id=id)
@@ -235,12 +264,12 @@ def restartTest(request, id):
         test = Test.objects.get(id=id)
         profile = Profile.objects.get(user=request.user)
         if not profile.approver and test.author != profile.user.username:
-            raise Exception("Only Admins Or Test Owners Can Restart A Test")
+            raise Exception('Only Admins Or Test Owners Can Restart A Test')
 
         # Restart the provided test
         test = Test.objects.get(id=id)
         if test.passed or test.failed:
-            raise Exception("Test Already Finished via SPRT")
+            raise Exception('Test Already Finished via SPRT')
         test.finished = False
         test.save()
 
@@ -264,7 +293,7 @@ def stopTest(request, id):
         test = Test.objects.get(id=id)
         profile = Profile.objects.get(user=request.user)
         if not profile.approver and test.author != profile.user.username:
-            raise Exception("Only Admins Or Test Owners Can Stop A Test")
+            raise Exception('Only Admins Or Test Owners Can Stop A Test')
 
         # Stop the provided test
         test = Test.objects.get(id=id)
@@ -291,7 +320,7 @@ def deleteTest(request, id):
         test = Test.objects.get(id=id)
         profile = Profile.objects.get(user=request.user)
         if not profile.approver and test.author != profile.user.username:
-            raise Exception("Only Admins Or Test Owners Can Delete A Test")
+            raise Exception('Only Admins Or Test Owners Can Delete A Test')
 
         # Delete the provided test
         test = Test.objects.get(id=id)
@@ -309,7 +338,6 @@ def deleteTest(request, id):
     # Bad test id, permissions, or other
     except Exception as error:
         return index(request, error=str(error))
-
 
 def getFiles(request):
     pass

@@ -1,4 +1,4 @@
-from OpenBench.models import Engine, Test
+from OpenBench.models import Engine, Profile, Machine, Test
 
 import math, requests
 
@@ -69,6 +69,11 @@ def newTest(request):
     # Build or fetch the Base version
     basesha, basesource = getSourceLocation(basename, request.POST['source'])
     test.base = newEngine(basename, basesource, baseprotocol, basesha, basebench)
+
+    # Track # of tests by this user
+    profile = Profile.objects.get(user=request.user)
+    profile.tests += 1
+    profile.save()
 
     # Nothing seems to have gone wrong
     test.save()
