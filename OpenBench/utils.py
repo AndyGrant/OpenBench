@@ -183,7 +183,7 @@ def workloadDictionary(profile, machine, result, test):
                 'protocol'  : test.base.protocol,
                 'sha'       : test.base.sha,
                 'bench'     : test.base.bench,
-                'options'   : test.base.baseoptions,
+                'options'   : test.baseoptions,
             },
         },
     }
