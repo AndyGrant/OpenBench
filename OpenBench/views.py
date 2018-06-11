@@ -375,9 +375,11 @@ def getWorkload(request):
     try: # Find an active Test to work on
         test = OpenBench.utils.getWorkload(machine.threads)
     except:
-        import traceback
-        print (traceback.print_exc())
         return HttpResponse('None')
+
+    print(user)
+    print(machine)
+    print(test)
 
 @csrf_exempt
 def submitResults(request):

@@ -1,6 +1,6 @@
-from OpenBench.models import Engine, Profile, Machine, Test
+import math, requests, random
 
-import math, requests
+from OpenBench.models import Engine, Profile, Machine, Test
 
 def getSourceLocation(branch, repo):
 
@@ -102,4 +102,51 @@ def newTest(request):
     return test
 
 def getWorkload(threads):
-    pass
+
+    # Get a list of all active tests
+    tests = Test.objects.filter(finished=False)
+    tests = tests.filter(deleted=False)
+    tests = list(tests.filter(approved=True))
+
+    # No tests, error out and let views handle it
+    if len(tests) == 0: raise Exception('ANone')
+
+    options = [] # Highest priority with acceptable threads
+
+    # Find our options for workloads
+    for test in tests:
+
+        # Find Threads for the Dev Engine
+        tokens = test.devoptions.split(' ')
+        devthreads = tokens[0].split('=')[1]
+
+        # Find Threads for the Base Engine
+        tokens = test.baseoptions.split(' ')
+        basethreads = tokens[0].split('=')[1]
+
+        # Machines need at to support Dev & Base
+        threadcnt = max(devthreads, basethreads)
+
+        # Empty list or higher priority found for workable test
+        if (options == [] or test.priority > highest) and threadcnt <= threads:
+            highest = test.priority
+            options = [test]
+
+        # New workable test with the same priority
+        elif options != [] and test.priority == highest and threadcnt <= threads:
+            options.append(test)
+
+    # Sum of throughputs, for weighted randomness
+    total = sum([test.throughput for test in options])
+    target = random.randrange(0, total)
+
+    # Finally, select our test with the weighted target
+    while True:
+
+        # Found test within the target throughput
+        if target < options[0].throughput:
+            return options[0]
+
+        # Drop the test from selection
+        target -= options[0].throughput
+        options = options[1:]
