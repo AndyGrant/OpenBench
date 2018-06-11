@@ -48,14 +48,15 @@ td {
     text-align: right;
 }
 
-.red:nth-child(even){background-color: #FAA5A5}
-.red:nth-child(odd){background-color: #FA8E8E}
 
 .green:nth-child(even){background-color: #2FFA62}
 .green:nth-child(odd){background-color: #9DF779}
 
 .yellow:nth-child(even){background-color: #E9FA32}
 .yellow:nth-child(odd){background-color: #EEF788}
+
+.red:nth-child(even){background-color: #FAA5A5}
+.red:nth-child(odd){background-color: #FA8E8E}
 
 ul {
     list-style-type: none;
@@ -119,6 +120,7 @@ input[type=submit] {
     border-radius: 4px;
     cursor: pointer;
     width: 100%;
+    font-weight: bold;
 }
 
 input[type=submit]:hover {
@@ -130,4 +132,18 @@ label, option {
     width: 180px;
     font-weight:bold;
     vertical-align: middle;
+}
+
+.buttonlink {
+    background-color: #4CAF50;
+    color: white;
+    padding: 8px 6px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    text-align: center;
+    display: inline-block;
+    width: 20%;
 }

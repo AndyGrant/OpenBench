@@ -17,9 +17,12 @@ urlpatterns = [
     path(r'eventLog/', OpenBench.views.eventLog),
 
     path(r'newTest/', OpenBench.views.newTest),
-    path(r'editTest/<int:id>/', OpenBench.views.editTest),
     path(r'viewTest/<int:id>/', OpenBench.views.viewTest),
+    path(r'editTest/<int:id>/', OpenBench.views.editTest),
     path(r'approveTest/<int:id>/', OpenBench.views.approveTest),
+    path(r'restartTest/<int:id>/', OpenBench.views.restartTest),
+    path(r'stopTest/<int:id>/', OpenBench.views.stopTest),
+    path(r'deleteTest/<int:id>/', OpenBench.views.deleteTest),
 
     path(r'getFiles/', OpenBench.views.getFiles),
     path(r'getWorkload/', OpenBench.views.getFiles),

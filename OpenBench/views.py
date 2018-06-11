@@ -91,15 +91,14 @@ def index(request, page=0, username=None, error=''):
 
     # Get tests currently running
     active = Test.objects.filter(approved=True)
-    active = active.exclude(passed=True)
-    active = active.exclude(failed=True)
+    active = active.exclude(finished=True)
     active = active.exclude(deleted=True)
     active = active.order_by('priority', 'currentllr')
 
-    # Get the last 50 completed tests
+    # Get the complted tests (sliced later)
     completed = Test.objects.filter(finished=True)
     completed = completed.exclude(deleted=True)
-    completed = completed.order_by('completion')
+    completed = completed.order_by('-completion')
 
     if username != None: # View from just one user
         pending   = pending.filter(author=username)
@@ -110,7 +109,7 @@ def index(request, page=0, username=None, error=''):
     data = {
         'pending'   : pending,
         'active'    : active,
-        'completed' : completed,
+        'completed' : completed[:50],
         'error'     : error,
     }
 
@@ -132,7 +131,7 @@ def eventLog(request):
     data = {'events': LogEvent.objects.all().order_by('-id')[:50]}
     return render(request, 'eventLog.html', data)
 
-@login_required
+@login_required(login_url='/login/')
 def newTest(request):
 
     # User trying to view the new test page
@@ -160,10 +159,6 @@ def newTest(request):
     except Exception as error:
         return index(request, error=str(error))
 
-@staff_member_required
-def editTest(request, id):
-    pass
-
 def viewTest(request, id):
 
     try:
@@ -177,7 +172,11 @@ def viewTest(request, id):
     except Exception as error:
         return index(request, error=str(error))
 
-@login_required
+@login_required(login_url='/login/')
+def editTest(request, id):
+    pass
+
+@login_required(login_url='/login/')
 def approveTest(request, id):
 
     try:
@@ -190,11 +189,102 @@ def approveTest(request, id):
         test = Test.objects.get(id=id)
         test.approved = True
         test.save()
+
+        # Log the test approval
+        event = LogEvent()
+        event.data = 'Approved test {0} ({1})'.format(str(test), test.id)
+        event.author = request.user.username
+        event.save()
+
         return HttpResponseRedirect('/index/')
 
     # Bad test id, permissions, or other
     except Exception as error:
         return index(request, error=str(error))
+
+@login_required(login_url='/login/')
+def restartTest(request, id):
+
+    try:
+        # Only let approvers or the author restart a test
+        test = Test.objects.get(id=id)
+        profile = Profile.objects.get(user=request.user)
+        if not profile.approver and test.author != profile.user.username:
+            raise Exception("Only Admins Or Test Owners Can Restart A Test")
+
+        # Restart the provided test
+        test = Test.objects.get(id=id)
+        if test.passed or test.failed:
+            raise Exception("Test Already Finished via SPRT")
+        test.finished = False
+        test.save()
+
+        # Log the test stopping
+        event = LogEvent()
+        event.data = 'Restart test {0} ({1})'.format(str(test), test.id)
+        event.author = request.user.username
+        event.save()
+
+        return HttpResponseRedirect('/index/')
+
+    # Bad test id, permissions, or other
+    except Exception as error:
+        return index(request, error=str(error))
+
+@login_required(login_url='/login/')
+def stopTest(request, id):
+
+    try:
+        # Only let approvers or the author stop a test
+        test = Test.objects.get(id=id)
+        profile = Profile.objects.get(user=request.user)
+        if not profile.approver and test.author != profile.user.username:
+            raise Exception("Only Admins Or Test Owners Can Stop A Test")
+
+        # Stop the provided test
+        test = Test.objects.get(id=id)
+        test.finished = True
+        test.save()
+
+        # Log the test stopping
+        event = LogEvent()
+        event.data = 'Stopped test {0} ({1})'.format(str(test), test.id)
+        event.author = request.user.username
+        event.save()
+
+        return HttpResponseRedirect('/index/')
+
+    # Bad test id, permissions, or other
+    except Exception as error:
+        return index(request, error=str(error))
+
+@login_required(login_url='/login/')
+def deleteTest(request, id):
+
+    try:
+        # Only let approvers or the author delete a test
+        test = Test.objects.get(id=id)
+        profile = Profile.objects.get(user=request.user)
+        if not profile.approver and test.author != profile.user.username:
+            raise Exception("Only Admins Or Test Owners Can Delete A Test")
+
+        # Delete the provided test
+        test = Test.objects.get(id=id)
+        test.delete = True
+        test.save()
+
+        # Log the test deltion
+        event = LogEvent()
+        event.data = 'Deleted test {0} ({1})'.format(str(test), test.id)
+        event.author = request.user.username
+        event.save()
+
+        return HttpResponseRedirect('/index/')
+
+    # Bad test id, permissions, or other
+    except Exception as error:
+        return index(request, error=str(error))
+
 
 def getFiles(request):
     pass
