@@ -6,6 +6,7 @@ from django.contrib.auth import logout as logoutUser
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
+from django.views.decorators.csrf import csrf_exempt
 
 from OpenBench.config import *
 from OpenBench.models import LogEvent, Engine, Profile
@@ -111,7 +112,6 @@ def editProfile(request):
 
     # Send back to see the changes
     return HttpResponseRedirect('/viewProfile/')
-
 
 def index(request, page=0, username=None, error=''):
 
@@ -347,13 +347,38 @@ def deleteTest(request, id):
         return index(request, error=str(error))
 
 def getFiles(request):
-    pass
 
+    # Core Files should be sitting in framework's repo
+    source = FRAMEWORK_REPO_URL + '/raw/master/CoreFiles/'
+    return HttpResponse(source)
+
+@csrf_exempt
 def getWorkload(request):
-    pass
 
+    try: # Attempt to login in user
+        user = authenticate(
+            username=request.POST['username'],
+            password=request.POST['password'])
+        loginUser(request, user)
+    except:
+        return HttpResponse('Bad Credentials')
+
+    try: # Create or fetch the Machine
+        machine = verifyMachine(
+            request.POST['machineid'],
+            request.POST['username'],
+            request.POST['osname'],
+            request.POST['threads'])
+    except:
+        return HttpResponse('Bad Machine')
+
+@csrf_exempt
 def submitResults(request):
     pass
 
+@csrf_exempt
 def invalidBench(request):
     pass
+
+
+

@@ -40,7 +40,7 @@ class Machine(Model):
 
     owner    = CharField(max_length=64)
     osname   = CharField(max_length=128)
-    cores    = IntegerField(default=0)
+    threads  = IntegerField(default=0)
     mnps     = FloatField(default=0.00)
     lastseen = DateTimeField(auto_now=True)
 
@@ -68,6 +68,7 @@ class Test(Model):
 
     dev         = ForeignKey('Engine', PROTECT, related_name='dev')
     base        = ForeignKey('Engine', PROTECT, related_name='base')
+    source      = CharField(max_length=1024)
 
     devoptions  = CharField(max_length=256)
     baseoptions = CharField(max_length=256)

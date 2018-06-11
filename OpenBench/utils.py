@@ -15,6 +15,27 @@ def getSourceLocation(branch, repo):
     except:
         raise Exception('Unable to find branch ({0})'.format(branch))
 
+def verifyMachine(machineid, username, osname, threads):
+
+    # Machine does not exist, make a new one
+    if machineid == None:
+        machine = Machine()
+        machine.owner = username
+        machine.osname = osname
+        machine.threads = threads
+        machine.mnps = 0.00
+        machine.save()
+        return machine
+
+    # Verify the selected machine is the user's
+    machine = Machine.objects.get(id=machineid)
+    assert machine.owner == username
+    assert machine.osname == osname
+    machine.threads = threads
+    machine.mnps = 0.00
+    machine.save()
+    return machine
+
 def newEngine(name, source, protocol, sha, bench):
 
     # Engine may already exist, which is okay
@@ -47,6 +68,7 @@ def newTest(request):
     baseprotocol = request.POST['baseprotocol']
 
     # Extract test configuration
+    test.source      = request.POST['source']
     test.devoptions  = request.POST['devoptions']
     test.baseoptions = request.POST['baseoptions']
     test.bookname    = request.POST['bookname']
@@ -63,11 +85,11 @@ def newTest(request):
     test.upperllr = math.log((1.0 - test.beta) / test.alpha)
 
     # Build or fetch the Development version
-    devsha, devsource = getSourceLocation(devname,  request.POST['source'])
-    test.dev = newEngine(devname,  devsource,  devprotocol,  devsha,  devbench)
+    devsha, devsource = getSourceLocation(devname, test.source)
+    test.dev = newEngine(devname, devsource, devprotocol, devsha, devbench)
 
     # Build or fetch the Base version
-    basesha, basesource = getSourceLocation(basename, request.POST['source'])
+    basesha, basesource = getSourceLocation(basename, test.source)
     test.base = newEngine(basename, basesource, baseprotocol, basesha, basebench)
 
     # Track # of tests by this user
