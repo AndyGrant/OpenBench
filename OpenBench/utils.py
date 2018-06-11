@@ -153,3 +153,37 @@ def getWorkload(machine):
 
 def getResults(machine, test):
     pass
+
+def workloadDictionary(profile, machine, result, test):
+    
+    # Worker will send back the id of each model for ease of
+    # updating. Worker needs test information, as well as the
+    # specification for both engines. Group the dev and base
+    # options with the coressponding engine, for easy usage
+    return {
+        'profile' : { 'id'  : profile.id, },
+        'machine' : { 'id'  : machine.id, },
+        'result'  : { 'id'  : result.id, },        
+        'test' : {
+            'id'            : test.id,
+            'bookname'      : test.bookname,
+            'booksource'    : FRAMEWORK_REPO_URL + '/raw/master/Books/'
+            'timecontrol'   : test.timecontrol,
+            'dev' : { 
+                'name'      : test.dev.name,
+                'source'    : test.dev.source,
+                'protocol'  : test.dev.protocol,
+                'sha'       : test.dev.sha,
+                'bench'     : test.dev.bench,
+                'options'   : test.devoptions,
+            },
+            'base' : {
+                'name'      : test.base.name,
+                'source'    : test.base.source,
+                'protocol'  : test.base.protocol,
+                'sha'       : test.base.sha,
+                'bench'     : test.base.bench,
+                'options'   : test.base.baseoptions,
+            },
+        },
+    }
