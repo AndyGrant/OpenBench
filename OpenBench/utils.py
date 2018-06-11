@@ -18,7 +18,7 @@ def getSourceLocation(branch, repo):
 def verifyMachine(machineid, username, osname, threads):
 
     # Machine does not exist, make a new one
-    if machineid == None:
+    if machineid == 'None':
         machine = Machine()
         machine.owner = username
         machine.osname = osname
@@ -100,3 +100,6 @@ def newTest(request):
     # Nothing seems to have gone wrong
     test.save()
     return test
+
+def getWorkload(threads):
+    pass

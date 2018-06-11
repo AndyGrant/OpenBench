@@ -45,7 +45,7 @@ class Machine(Model):
     lastseen = DateTimeField(auto_now=True)
 
     def __str__(self):
-        return '{0}-{1} ({2})'.format(self.owner.name, self.osname, self.id)
+        return '{0}-{1} ({2})'.format(self.owner, self.osname, self.id)
 
 class Results(Model):
 

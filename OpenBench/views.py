@@ -364,13 +364,20 @@ def getWorkload(request):
         return HttpResponse('Bad Credentials')
 
     try: # Create or fetch the Machine
-        machine = verifyMachine(
+        machine = OpenBench.utils.verifyMachine(
             request.POST['machineid'],
             request.POST['username'],
             request.POST['osname'],
             request.POST['threads'])
     except:
         return HttpResponse('Bad Machine')
+
+    try: # Find an active Test to work on
+        test = OpenBench.utils.getWorkload(machine.threads)
+    except:
+        import traceback
+        print (traceback.print_exc())
+        return HttpResponse('None')
 
 @csrf_exempt
 def submitResults(request):

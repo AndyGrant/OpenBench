@@ -26,7 +26,7 @@ urlpatterns = [
     path(r'deleteTest/<int:id>/', OpenBench.views.deleteTest),
 
     path(r'getFiles/', OpenBench.views.getFiles),
-    path(r'getWorkload/', OpenBench.views.getFiles),
+    path(r'getWorkload/', OpenBench.views.getWorkload),
     path(r'submitResults/', OpenBench.views.submitResults),
     path(r'invalidBench/', OpenBench.views.invalidBench),
 ]

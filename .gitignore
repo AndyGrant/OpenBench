@@ -1,1 +1,4 @@
 *.pyc
+Client/
+!Client/cleanup.sh
+!Client/OpenBench.py
