@@ -25,16 +25,23 @@ def register(request):
         return render(request, 'register.html', {})
 
     try:
+        # Verify that the passwords are matching
+        if request.POST['password1'] != request.POST['password2']:
+            raise Exception('Passwords Do Not Match')
+
+        # Force alpha numeric usernames
+        if not request.POST['username'].isalnum():
+            raise Exception('Alpha Numeric Usernames Only')
+
         # Attempt to create and login the new user
         user = User.objects.create_user(
             request.POST['username'],
             request.POST['email'],
-            request.POST['password']
+            request.POST['password1']
         )
 
-        # Login the user and return to index
-        user.save()
-        loginUser(request, user)
+        # Save and log the user in
+        user.save(); loginUser(request, user)
 
         # Wrap the User in a Profile
         profile = Profile()
