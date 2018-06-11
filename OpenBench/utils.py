@@ -15,27 +15,6 @@ def getSourceLocation(branch, repo):
     except:
         raise Exception('Unable to find branch ({0})'.format(branch))
 
-def verifyMachine(machineid, username, osname, threads):
-
-    # Machine does not exist, make a new one
-    if machineid == 'None':
-        machine = Machine()
-        machine.owner = username
-        machine.osname = osname
-        machine.threads = threads
-        machine.mnps = 0.00
-        machine.save()
-        return machine
-
-    # Verify the selected machine is the user's
-    machine = Machine.objects.get(id=machineid)
-    assert machine.owner == username
-    assert machine.osname == osname
-    machine.threads = threads
-    machine.mnps = 0.00
-    machine.save()
-    return machine
-
 def newEngine(name, source, protocol, sha, bench):
 
     # Engine may already exist, which is okay
@@ -101,7 +80,28 @@ def newTest(request):
     test.save()
     return test
 
-def getWorkload(threads):
+def getMachine(machineid, username, osname, threads):
+
+    # Machine does not exist, make a new one
+    if machineid == 'None':
+        machine = Machine()
+        machine.owner = username
+        machine.osname = osname
+        machine.threads = threads
+        machine.mnps = 0.00
+        machine.save()
+        return machine
+
+    # Verify the selected machine is the user's
+    machine = Machine.objects.get(id=machineid)
+    assert machine.owner == username
+    assert machine.osname == osname
+    machine.threads = threads
+    machine.mnps = 0.00
+    machine.save()
+    return machine
+
+def getWorkload(machine):
 
     # Get a list of all active tests
     tests = Test.objects.filter(finished=False)
@@ -128,12 +128,12 @@ def getWorkload(threads):
         threadcnt = max(devthreads, basethreads)
 
         # Empty list or higher priority found for workable test
-        if (options == [] or test.priority > highest) and threadcnt <= threads:
+        if (options == [] or test.priority > highest) and threadcnt <= machine.threads:
             highest = test.priority
             options = [test]
 
         # New workable test with the same priority
-        elif options != [] and test.priority == highest and threadcnt <= threads:
+        elif options != [] and test.priority == highest and threadcnt <= machine.threads:
             options.append(test)
 
     # Sum of throughputs, for weighted randomness
@@ -150,3 +150,6 @@ def getWorkload(threads):
         # Drop the test from selection
         target -= options[0].throughput
         options = options[1:]
+
+def getResults(machine, test):
+    pass

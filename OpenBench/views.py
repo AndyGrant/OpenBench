@@ -355,31 +355,37 @@ def getFiles(request):
 @csrf_exempt
 def getWorkload(request):
 
-    try: # Attempt to login in user
-        user = authenticate(
+    # Attempt to login in user
+    try: loginUser(request, authenticate(
             username=request.POST['username'],
-            password=request.POST['password'])
-        loginUser(request, user)
-    except:
-        return HttpResponse('Bad Credentials')
+            password=request.POST['password']))
+    except: return HttpResponse('Bad Credentials')
 
-    try: # Create or fetch the Machine
-        machine = OpenBench.utils.verifyMachine(
+    # Create or fetch the Machine
+    try: machine = OpenBench.utils.getMachine(
             request.POST['machineid'],
             request.POST['username'],
             request.POST['osname'],
             request.POST['threads'])
-    except:
-        return HttpResponse('Bad Machine')
+    except: return HttpResponse('Bad Machine')
 
-    try: # Find an active Test to work on
-        test = OpenBench.utils.getWorkload(machine.threads)
-    except:
-        return HttpResponse('None')
+    # Find an active Test to work on
+    try: test = OpenBench.utils.getWorkload(machine)
+    except: return HttpResponse('None')
 
-    print(user)
-    print(machine)
-    print(test)
+    # Create or fetch the Results
+    try: results = OpenBench.utils.getResults(machine, test)
+    except: return HttpResponse('None')
+
+    # Convert everything for the Client
+    data = {
+        "machine" : machine.dictionary(),
+        "test"    : test.dictionary(),
+        "result"  : results.dictionary()
+    }
+
+    # Send context as a string0
+    return HttpResponse(str(data))
 
 @csrf_exempt
 def submitResults(request):

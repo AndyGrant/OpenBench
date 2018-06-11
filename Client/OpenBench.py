@@ -402,22 +402,3 @@ if __name__ == "__main__":
         print (response)
 
         sys.exit(0)
-
-
-    #while True:
-    #    try:
-    #        request = requests.get("{0}/getWorkload/{1}".format(server, cores))
-    #        asstring = request.content.decode("utf-8")
-    #
-    #        if asstring == "No Workloads":
-    #            time.sleep(60)
-    #
-    #        else:
-    #            asdictionary = ast.literal_eval(asstring)
-    #            completeWorkload(server, cores, asdictionary)
-    #            time.sleep(1)
-    #
-    #    except:
-    #        print ("<Error> : ", sys.exc_info()[0])
-    #        time.sleep(10)
-
