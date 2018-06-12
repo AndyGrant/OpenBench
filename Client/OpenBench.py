@@ -360,7 +360,7 @@ def completeWorkload(data):
             break
 
         # Batch result updates
-        if (sum(score) - sum(sent)) % 5 == 0 and score != sent:
+        if (sum(score) - sum(sent)) % 25 == 0 and score != sent:
             wins   = score[0] - sent[0]
             losses = score[1] - sent[1]
             draws  = score[2] - sent[2]
@@ -372,8 +372,8 @@ def completeWorkload(data):
 
     # One final result send before we exit just in case
     wins   = score[0] - sent[0]
-    losses = score[0] - sent[0]
-    draws  = score[0] - sent[0]
+    losses = score[1] - sent[1]
+    draws  = score[2] - sent[2]
     reportResults(data, wins, losses, draws, crashes, timeloss)
 
 if __name__ == '__main__':
