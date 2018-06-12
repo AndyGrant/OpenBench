@@ -166,13 +166,15 @@ def getCutechessCommand(data, scalefactor):
         inc = round(inc * scalefactor, 2)
         tc = str(start) + '+' + str(inc)
 
-    # Find Threads for the Dev Engine
+    # Find Threads / Options for the Dev Engine
     tokens = data['test']['dev']['options'].split(' ')
     devthreads = int(tokens[0].split('=')[1])
+    devoptions = ' option.'.join(['']+tokens)
 
-    # Find Threads for the Base Engine
+    # Find Threads / Options for the Base Engine
     tokens = data['test']['base']['options'].split(' ')
     basethreads = int(tokens[0].split('=')[1])
+    baseoptions = ' option.'.join(['']+tokens)
 
     # Finally, output the time control for the user
     print ('ORIGINAL  :', data['test']['timecontrol'])
