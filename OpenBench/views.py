@@ -113,7 +113,7 @@ def index(request, page=0, username=None, error=''):
 
     # Get tests pending approval
     pending = Test.objects.filter(approved=False)
-    pending = pending.exclude(finished=False)
+    pending = pending.exclude(finished=True)
     pending = pending.exclude(deleted=True)
     pending = pending.order_by('-creation')
 
@@ -383,21 +383,41 @@ def wrongBench(request):
             password=request.POST['password']))
     except: return HttpResponse('Bad Credentials')
 
-    # Find the engine with the bad bench
-    engineid = int(request.POST['engineid'])
-    engine = Engine.objects.get(id=engineid)
+    try:
+        # Find the engine with the bad bench
+        engineid = int(request.POST['engineid'])
+        engine = Engine.objects.get(id=engineid)
 
-    # Find and stop the test with the bad bench
-    testid = int(request.POST['testid'])
-    test = Test.objects.get(id=testid)
-    test.finished = True
-    test.save()
+        # Find and stop the test with the bad bench
+        testid = int(request.POST['testid'])
+        test = Test.objects.get(id=testid)
+        test.finished = True
+        test.save()
 
-    # Log the bad bench so we know why the test was stopped
-    LogEvent.objects.create(
-        data='Invalid bench for {0} with {1}'.format(str(test), str(engine)),
-        author=request.POST['username']
-    )
+        # Log the bad bench so we know why the test was stopped
+        LogEvent.objects.create(
+            data='Invalid bench for {0} with {1}'.format(str(test), str(engine)),
+            author=request.POST['username']
+        )
+    except: pass
+
+    return HttpResponse('None')
+
+@csrf_exempt
+def submitNPS(request):
+
+    # Attempt to login in user
+    try: loginUser(request, authenticate(
+            username=request.POST['username'],
+            password=request.POST['password']))
+    except: return HttpResponse('Bad Credentials')
+
+    # Try to update the NPS for the machine
+    try:
+        machine = Machine.objects.get(id=int(request.POST['machineid']))
+        machine.mnps = float(request.POST['nps']) / 1e6
+        machine.save()
+    except: return HttpResponse('Bad Machine ID')
 
     return HttpResponse('None')
 

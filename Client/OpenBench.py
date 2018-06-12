@@ -168,22 +168,23 @@ def getCutechessCommand(data, scalefactor):
 
     # Find Threads for the Dev Engine
     tokens = data['test']['dev']['options'].split(' ')
-    devthreads = tokens[0].split('=')[1]
+    devthreads = int(tokens[0].split('=')[1])
 
     # Find Threads for the Base Engine
     tokens = data['test']['base']['options'].split(' ')
-    basethreads = tokens[0].split('=')[1]
+    basethreads = int(tokens[0].split('=')[1])
 
     # Finally, output the time control for the user
-    print ('ORIGINAL  :\n', data['test']['timecontrol']),
-    print ('SCALED    :\n', timecontrol)
+    print ('ORIGINAL  :', data['test']['timecontrol'])
+    print ('SCALED    :', timecontrol)
+    print ('')
 
     generalFlags = (
         '-repeat'
         ' -srand ' + str(int(time.time())) +
         ' -resign movecount=3 score=400'
         ' -draw movenumber=40 movecount=8 score=10'
-        ' -concurrency ' + str(floor(THREADS / max(devthreads, basethreads))) +
+        ' -concurrency ' + str(math.floor(THREADS / max(devthreads, basethreads))) +
         ' -games 1000'
         ' -recover'
         ' -wait 10'
@@ -229,7 +230,7 @@ def singleCoreBench(name, outqueue):
 
 def getBenchSignature(engine):
 
-    print ('Running Benchmark for {0} on {1} cores'.format(engine['name'], THREADS))
+    print ('\nRunning Benchmark for {0} on {1} cores'.format(engine['name'], THREADS))
 
     # Allow each process to send back completition times
     outqueue = multiprocessing.Queue()
@@ -261,13 +262,23 @@ def getBenchSignature(engine):
 
 def reportWrongBench(data, engine):
 
-    # Server wants verification for reporting
+    # Server wants verification for reporting wrong benchs
     postdata = {
         'username'  : USERNAME,
         'password'  : PASSWORD,
         'engineid'  : engine['id'],
         'testid'    : data['test']['id']}
     requests.post('{0}/wrongBench/'.format(SERVER), data=postdata)
+
+def reportNPS(data, nps):
+
+    # Server wants verification for reporting nps counts
+    postdata = {
+        'nps'       : nps,
+        'username'  : USERNAME,
+        'password'  : PASSWORD,
+        'machineid' : data['machine']['id']}
+    requests.post('{0}/submitNPS/'.format(SERVER), data=postdata)
 
 def reportResults(data, wins, losses, draws, crashes, timeloss):
     pass
@@ -297,6 +308,7 @@ def completeWorkload(data):
 
     # Compute and report CPU scaling factor
     avgnps = (devnps + basenps) / 2.0
+    reportNPS(data, avgnps)
     scalefactor = 2650000 / avgnps
     print ('FACTOR    : {0}'.format(round(1 / scalefactor, 2)))
 
@@ -398,7 +410,8 @@ if __name__ == '__main__':
         # Try to complete the workload, rest for a few
         # seconds in the event of an error, giving the
         # server time to correct the mistake ...
-        try: completeWorkload(data)
-        except Exception as error:
-            print ('<WARNING> {0}'.format(error))
+        completeWorkload(data)
+
+        #except Exception as error:
+        #    print ('<WARNING> {0}'.format(error))
         time.sleep(15)

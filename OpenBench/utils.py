@@ -81,7 +81,7 @@ def getMachine(machineid, username, osname, threads):
 
     # Client has no saved machine ID, make a new machine
     if machineid == 'None':
-        return Machine.objects.create(owner=username, osname=osname, threads=threads)
+        return Machine.objects.create(owner=username, osname=osname, threads=int(threads))
 
     # Fetch and verify the claimed machine ID
     machine = Machine.objects.get(id=machineid)
@@ -89,7 +89,7 @@ def getMachine(machineid, username, osname, threads):
     assert machine.osname == osname
 
     # Update to reflect new worload
-    machine.threads = threads
+    machine.threads = int(threads)
     machine.mnps = 0.00
     machine.save()
     return machine
@@ -102,7 +102,7 @@ def getWorkload(machine):
     tests = list(tests.filter(approved=True))
 
     # No tests, error out and let views handle it
-    if len(tests) == 0: raise Exception('ANone')
+    if len(tests) == 0: raise Exception('None')
 
     options = [] # Highest priority with acceptable threads
 
@@ -111,11 +111,11 @@ def getWorkload(machine):
 
         # Find Threads for the Dev Engine
         tokens = test.devoptions.split(' ')
-        devthreads = tokens[0].split('=')[1]
+        devthreads = int(tokens[0].split('=')[1])
 
         # Find Threads for the Base Engine
         tokens = test.baseoptions.split(' ')
-        basethreads = tokens[0].split('=')[1]
+        basethreads = int(tokens[0].split('=')[1])
 
         # Minimum threads to support Dev & Base
         threadcnt = max(devthreads, basethreads)

@@ -28,5 +28,6 @@ urlpatterns = [
     path(r'getFiles/', OpenBench.views.getFiles),
     path(r'getWorkload/', OpenBench.views.getWorkload),
     path(r'wrongBench/', OpenBench.views.wrongBench),
+    path(r'submitNPS/', OpenBench.views.submitNPS),
     path(r'submitResults/', OpenBench.views.submitResults),
 ]
