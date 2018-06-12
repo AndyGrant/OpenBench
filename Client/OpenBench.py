@@ -286,7 +286,7 @@ def reportResults(data, wins, losses, draws, crashes, timeloss):
 
     # Server wants verification for reporting nps counts
     postdata = {
-        'wins'      : 200,#wins,
+        'wins'      : wins,
         'losses'    : losses,
         'draws'     : draws,
         'crashes'   : crashes,
