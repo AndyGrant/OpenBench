@@ -426,8 +426,6 @@ def submitResults(request):
 
     # Try to update each location
     try: OpenBench.utils.update(request)
-    except Exception as error:
-        print (error)
-        return HttpResponse('Stop')
+    except: return HttpResponse('Stop')
 
     return HttpResponse('None')

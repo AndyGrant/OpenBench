@@ -270,7 +270,7 @@ def reportWrongBench(data, engine):
         'password'  : PASSWORD,
         'engineid'  : engine['id'],
         'testid'    : data['test']['id']}
-    requests.post('{0}/wrongBench/'.format(SERVER), data=postdata)
+    return requests.post('{0}/wrongBench/'.format(SERVER), data=postdata).text
 
 def reportNPS(data, nps):
 
@@ -280,13 +280,13 @@ def reportNPS(data, nps):
         'username'  : USERNAME,
         'password'  : PASSWORD,
         'machineid' : data['machine']['id']}
-    requests.post('{0}/submitNPS/'.format(SERVER), data=postdata)
+    return requests.post('{0}/submitNPS/'.format(SERVER), data=postdata).text
 
 def reportResults(data, wins, losses, draws, crashes, timeloss):
 
     # Server wants verification for reporting nps counts
     postdata = {
-        'wins'      : wins,
+        'wins'      : 200,#wins,
         'losses'    : losses,
         'draws'     : draws,
         'crashes'   : crashes,
@@ -296,7 +296,7 @@ def reportResults(data, wins, losses, draws, crashes, timeloss):
         'machineid' : data['machine']['id'],
         'resultid'  : data['result']['id'],
         'testid'    : data['test']['id']}
-    requests.post('{0}/submitResults/'.format(SERVER), data=postdata)
+    return requests.post('{0}/submitResults/'.format(SERVER), data=postdata).text
 
 def completeWorkload(data):
 
@@ -364,7 +364,9 @@ def completeWorkload(data):
             wins   = score[0] - sent[0]
             losses = score[1] - sent[1]
             draws  = score[2] - sent[2]
-            reportResults(data, wins, losses, draws, crashes, timeloss)
+            if reportResults(data, wins, losses, draws, crashes, timeloss) == 'Stop':
+                killProcess(process)
+                break
             crashes = timeloss = 0
             sent = score[::]
 
