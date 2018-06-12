@@ -8,7 +8,7 @@ class LogEvent(Model):
 
     data     = CharField(max_length=256)
     author   = CharField(max_length=64)
-    creation = DateTimeField(auto_now=True)
+    creation = DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return "{0} {1} : {2}".format(self.creation, self.author, self.data)
@@ -42,12 +42,12 @@ class Machine(Model):
     osname   = CharField(max_length=128)
     threads  = IntegerField(default=0)
     mnps     = FloatField(default=0.00)
-    lastseen = DateTimeField(auto_now=True)
+    updated  = DateTimeField(auto_now=True)
 
     def __str__(self):
         return '{0}-{1} ({2})'.format(self.owner, self.osname, self.id)
 
-class Results(Model):
+class Result(Model):
 
     test     = ForeignKey('Test', PROTECT, related_name='test')
     machine  = ForeignKey('Machine', PROTECT, related_name='machine')
@@ -57,7 +57,7 @@ class Results(Model):
     draws    = IntegerField(default=0)
     crashes  = IntegerField(default=0)
     time     = IntegerField(default=0)
-    lastseen = DateTimeField(default=0)
+    updated  = DateTimeField(auto_now=True)
 
     def __str__(self):
         return '{0} {1}'.format(self.test.dev.name, self.machine.__str__())
@@ -100,8 +100,8 @@ class Test(Model):
     deleted     = BooleanField(default=False)
     approved    = BooleanField(default=False)
 
-    creation    = DateTimeField(auto_now=True)
-    completion  = DateTimeField(auto_now=True)
+    creation    = DateTimeField(auto_now_add=True)
+    updated     = DateTimeField(auto_now=True)
 
     def __str__(self):
         return '{0} vs {1} @ {2}'.format(self.dev.name, self.base.name, self.timecontrol)

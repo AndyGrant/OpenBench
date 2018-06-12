@@ -15,22 +15,6 @@ def getSourceLocation(branch, repo):
     except:
         raise Exception('Unable to find branch ({0})'.format(branch))
 
-def newEngine(name, source, protocol, sha, bench):
-
-    # Engine may already exist, which is okay
-    try: return Engine.objects.get(sha=sha)
-    except: pass
-
-    # Build new Engine
-    engine = Engine()
-    engine.name = name
-    engine.source = source
-    engine.protocol = protocol
-    engine.sha = sha
-    engine.bench = bench
-    engine.save()
-    return engine
-
 def newTest(request):
 
     test = Test() # New Test, saved only after parsing
@@ -65,11 +49,11 @@ def newTest(request):
 
     # Build or fetch the Development version
     devsha, devsource = getSourceLocation(devname, test.source)
-    test.dev = newEngine(devname, devsource, devprotocol, devsha, devbench)
+    test.dev = getEngine(devname, devsource, devprotocol, devsha, devbench)
 
     # Build or fetch the Base version
     basesha, basesource = getSourceLocation(basename, test.source)
-    test.base = newEngine(basename, basesource, baseprotocol, basesha, basebench)
+    test.base = getEngine(basename, basesource, baseprotocol, basesha, basebench)
 
     # Track # of tests by this user
     profile = Profile.objects.get(user=request.user)
@@ -80,22 +64,29 @@ def newTest(request):
     test.save()
     return test
 
+def getEngine(name, source, protocol, sha, bench):
+
+    # Engine may already exist, which is okay
+    try: return Engine.objects.get(sha=sha)
+    except: pass
+
+    # Build new Engine
+    return Engine.objects.create(
+            name=name, source=source,
+            protocol=protocol, sha=sha, bench=bench)
+
 def getMachine(machineid, username, osname, threads):
 
-    # Machine does not exist, make a new one
+    # Client has no saved machine ID, make a new machine
     if machineid == 'None':
-        machine = Machine()
-        machine.owner = username
-        machine.osname = osname
-        machine.threads = threads
-        machine.mnps = 0.00
-        machine.save()
-        return machine
+        return Machine.objects.create(owner=username, osname=osname, threads=threads)
 
-    # Verify the selected machine is the user's
+    # Fetch and verify the claimed machine ID
     machine = Machine.objects.get(id=machineid)
     assert machine.owner == username
     assert machine.osname == osname
+
+    # Update to reflect new worload
     machine.threads = threads
     machine.mnps = 0.00
     machine.save()
@@ -124,7 +115,7 @@ def getWorkload(machine):
         tokens = test.baseoptions.split(' ')
         basethreads = tokens[0].split('=')[1]
 
-        # Machines need at to support Dev & Base
+        # Minimum threads to support Dev & Base
         threadcnt = max(devthreads, basethreads)
 
         # Empty list or higher priority found for workable test
@@ -152,24 +143,28 @@ def getWorkload(machine):
         options = options[1:]
 
 def getResults(machine, test):
-    pass
 
-def workloadDictionary(profile, machine, result, test):
-    
+    # Can find an existing result by test and machine
+    results = Result.objects.filter(test=test)
+    results = list(Result.objects.filter(machine=machine))
+
+
+
+def workloadDictionary(machine, result, test):
+
     # Worker will send back the id of each model for ease of
     # updating. Worker needs test information, as well as the
     # specification for both engines. Group the dev and base
     # options with the coressponding engine, for easy usage
     return {
-        'profile' : { 'id'  : profile.id, },
         'machine' : { 'id'  : machine.id, },
-        'result'  : { 'id'  : result.id, },        
+        'result'  : { 'id'  : result.id, },
         'test' : {
             'id'            : test.id,
             'bookname'      : test.bookname,
-            'booksource'    : FRAMEWORK_REPO_URL + '/raw/master/Books/'
+            'booksource'    : FRAMEWORK_REPO_URL + '/raw/master/Books/',
             'timecontrol'   : test.timecontrol,
-            'dev' : { 
+            'dev' : {
                 'name'      : test.dev.name,
                 'source'    : test.dev.source,
                 'protocol'  : test.dev.protocol,

@@ -10,7 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 from OpenBench.config import *
 from OpenBench.models import LogEvent, Engine, Profile
-from OpenBench.models import Machine, Results, Test
+from OpenBench.models import Machine, Result, Test
 
 import OpenBench.utils
 
@@ -34,26 +34,20 @@ def register(request):
         if not request.POST['username'].isalnum():
             raise Exception('Alpha Numeric Usernames Only')
 
-        # Attempt to create and login the new user
-        user = User.objects.create_user(
-            request.POST['username'],
-            request.POST['email'],
-            request.POST['password1']
-        )
+        # Create new User and Profile
+        Profile.objects.create(
+            user=User.objects.create_user(
+                request.POST['username'],
+                request.POST['email'],
+                request.POST['password1']))
 
-        # Save and log the user in
-        user.save(); loginUser(request, user)
-
-        # Wrap the User in a Profile
-        profile = Profile()
-        profile.user = user
-        profile.save()
+        # Log the User in now
+        loginUser(request, User.objects.get(name=request.POST['username']))
 
         # Log the registration
-        event = LogEvent()
-        event.data = 'Created an account'
-        event.author = request.POST['username']
-        event.save()
+        LogEvent.objects.create(
+            data='Created an account',
+            author=request.POST['username'])
 
         # Kick back to index
         return HttpResponseRedirect('/index/')
@@ -185,10 +179,9 @@ def newTest(request):
         test = OpenBench.utils.newTest(request)
 
         # Log the test creation
-        event = LogEvent()
-        event.data = 'Created test {0} ({1})'.format(str(test), test.id)
-        event.author = request.user.username
-        event.save()
+        LogEvent.objects.create(
+            data='Created test {0} ({1})'.format(str(test), test.id),
+            author=request.user.username)
 
         return HttpResponseRedirect('/index/')
 
@@ -201,7 +194,7 @@ def viewTest(request, id):
     try:
         # Find Test and Results
         test = Test.objects.get(id=id)
-        results = Results.objects.all().filter(test=test)
+        results = Result.objects.all().filter(test=test)
         data = {'test' : test, 'results' : results}
         return render(request, 'viewTest.html', data)
 
@@ -377,15 +370,8 @@ def getWorkload(request):
     try: results = OpenBench.utils.getResults(machine, test)
     except: return HttpResponse('None')
 
-    # Convert everything for the Client
-    data = {
-        "machine" : machine.dictionary(),
-        "test"    : test.dictionary(),
-        "result"  : results.dictionary()
-    }
-
-    # Send context as a string0
-    return HttpResponse(str(data))
+    # Send ID's and test information as a string dictionary
+    return HttpResponse(str(workloadDictionary(machine, result, test)))
 
 @csrf_exempt
 def submitResults(request):
