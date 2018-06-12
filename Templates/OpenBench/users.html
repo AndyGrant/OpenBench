@@ -16,7 +16,7 @@
     </tr>
     {% for profile in profiles %}
     <tr>
-        <td><a href="/viewUser/{{profile.user.username}}">{{profile.user.username}}</a></td>
+        <td style="text-align:left"><a href="/viewUser/{{profile.user.username}}">{{profile.user.username}}</a></td>
         <td>{{profile.games}}</td>
         <td>{{profile.tests}}</td>
         <td><a href="{{profile.repo}}">{{profile.repo}}</a></td>

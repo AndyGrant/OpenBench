@@ -31,7 +31,6 @@ OS_NAME = platform.system() + " " + platform.release()
 try:
     with open("machine.txt") as fin:
         MACHINE_ID = int(fin.readlines()[0])
-        print("Machine ID = {0}".format(MACHINE_ID))
 except:
     MACHINE_ID = None
     print("<Warning> Machine unregistered, will register with Server")
@@ -375,6 +374,7 @@ if __name__ == "__main__":
 
         # Server has nothing to run, ask again later
         if response == "None":
+            print("<Warning> Server has no workloads for us")
             time.sleep(60)
             continue
 
@@ -392,12 +392,12 @@ if __name__ == "__main__":
         response = ast.literal_eval(response)
 
         # Update and save our assigned machine ID
-        data["machineid"] = response["machineid"]
-        with open("machine.txt") as fout:
-            fout.write(data["machineid"])
+        data["machineid"] = response["machine"]["id"]
+        with open("machine.txt", "w") as fout:
+            fout.write(str(data["machineid"]))
 
         # Update machine id in case ours was bad
-        data["machineid"] = response["machineid"]
+        data["machineid"] = response["machine"]["id"]
 
         print (response)
 

@@ -1,6 +1,8 @@
 import math, requests, random
 
-from OpenBench.models import Engine, Profile, Machine, Test
+from OpenBench.config import *
+from OpenBench.models import Engine, Profile, Machine, Result, Test
+
 
 def getSourceLocation(branch, repo):
 
@@ -142,13 +144,15 @@ def getWorkload(machine):
         target -= options[0].throughput
         options = options[1:]
 
-def getResults(machine, test):
+def getResult(machine, test):
 
     # Can find an existing result by test and machine
     results = Result.objects.filter(test=test)
     results = list(Result.objects.filter(machine=machine))
+    if results != []: return results[0]
 
-
+    # Must make a new one for the machine
+    return Result.objects.create(test=test, machine=machine)
 
 def workloadDictionary(machine, result, test):
 

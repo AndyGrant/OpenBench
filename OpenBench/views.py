@@ -42,7 +42,7 @@ def register(request):
                 request.POST['password1']))
 
         # Log the User in now
-        loginUser(request, User.objects.get(name=request.POST['username']))
+        loginUser(request, User.objects.get(username=request.POST['username']))
 
         # Log the registration
         LogEvent.objects.create(
@@ -64,8 +64,9 @@ def login(request):
 
     try:
         # Attempt to login the user, and return to index
-        user = authenticate(username=request.POST['username'], password=request.POST['password'])
-        loginUser(request, user)
+        loginUser(request, authenticate(
+            username=request.POST['username'],
+            password=request.POST['password']))
         return HttpResponseRedirect('/index/')
 
     # Bad data, kick back to index with error
@@ -81,7 +82,7 @@ def logout(request):
 @login_required(login_url='/login/')
 def viewProfile(request):
 
-    # Build context dictionary for template
+    # Build context dictionary for profile template
     profile = Profile.objects.get(user=request.user)
     data = {'profile' : profile}
     return render(request, 'viewProfile.html', data)
@@ -101,8 +102,9 @@ def editProfile(request):
     if password1 != '' and password1 == password2:
         profile.user.set_password(password1)
         profile.user.save()
-        user = authenticate(username=request.user.username, password=password1)
-        loginUser(request, user)
+        loginUser(request, authenticate(
+            username=request.user.username,
+            password=password1))
 
     # Send back to see the changes
     return HttpResponseRedirect('/viewProfile/')
@@ -111,6 +113,7 @@ def index(request, page=0, username=None, error=''):
 
     # Get tests pending approval
     pending = Test.objects.filter(approved=False)
+    pending = pending.exclude(finished=False)
     pending = pending.exclude(deleted=True)
     pending = pending.order_by('-creation')
 
@@ -120,17 +123,18 @@ def index(request, page=0, username=None, error=''):
     active = active.exclude(deleted=True)
     active = active.order_by('-priority', '-currentllr')
 
-    # Get the complted tests (sliced later)
+    # Get the completed tests (sliced later)
     completed = Test.objects.filter(finished=True)
     completed = completed.exclude(deleted=True)
-    completed = completed.order_by('-completion')
+    completed = completed.order_by('-updated')
 
-    if username != None: # View from just one user
+    # Index is wrapped just to view one user
+    if username != None:
         pending   = pending.filter(author=username)
         active    = active.filter(author=username)
         completed = completed.filter(author=username)
 
-    # Compile context dictionary
+    # Build context dictionary for index template
     data = {
         'pending'   : pending,
         'active'    : active,
@@ -157,7 +161,7 @@ def machines(request):
 
 def eventLog(request):
 
-    # Build context dictionary for template
+    # Build context dictionary for event log template
     data = {'events': LogEvent.objects.all().order_by('-id')[:50]}
     return render(request, 'eventLog.html', data)
 
@@ -171,8 +175,7 @@ def newTest(request):
 
     try:
         # Throw out non-approved / disabled users
-        profile = Profile.objects.get(user=request.user)
-        if not profile.enabled:
+        if not Profile.objects.get(user=request.user).enabled:
             raise Exception('Account not Enabled')
 
         # Create test and verify fields
@@ -192,7 +195,7 @@ def newTest(request):
 def viewTest(request, id):
 
     try:
-        # Find Test and Results
+        # Build context dictionary for test template
         test = Test.objects.get(id=id)
         results = Result.objects.all().filter(test=test)
         data = {'test' : test, 'results' : results}
@@ -206,7 +209,7 @@ def viewTest(request, id):
 def editTest(request, id):
 
     try:
-        # Only let approvers or the author edit a test
+        # Only let approvers or the test author edit a test
         test = Test.objects.get(id=id)
         profile = Profile.objects.get(user=request.user)
         if not profile.approver and test.author != profile.user.username:
@@ -218,11 +221,10 @@ def editTest(request, id):
         test.throughput = max(0, int(request.POST['throughput']))
         test.save()
 
-        # Log the test stopping
-        event = LogEvent()
-        event.data = 'Edit test {0} ({1}) P={2} TP={3}'.format(str(test), test.id, test.priority, test.throughput)
-        event.author = request.user.username
-        event.save()
+        # Log changes to the test settings
+        LogEvent.objects.create(
+            data='Edit test {0} ({1}) P={2} TP={3}'.format(str(test), test.id, test.priority, test.throughput),
+            author=request.user.username)
 
         return HttpResponseRedirect('/index/')
 
@@ -245,10 +247,9 @@ def approveTest(request, id):
         test.save()
 
         # Log the test approval
-        event = LogEvent()
-        event.data = 'Approved test {0} ({1})'.format(str(test), test.id)
-        event.author = request.user.username
-        event.save()
+        LogEvent.objects.create(
+            data='Approved test {0} ({1})'.format(str(test), test.id),
+            author=request.user.username)
 
         return HttpResponseRedirect('/index/')
 
@@ -274,10 +275,9 @@ def restartTest(request, id):
         test.save()
 
         # Log the test stopping
-        event = LogEvent()
-        event.data = 'Restart test {0} ({1})'.format(str(test), test.id)
-        event.author = request.user.username
-        event.save()
+        LogEvent.objects.create(
+            data='Restarted test {0} ({1})'.format(str(test), test.id),
+            author=request.user.username)
 
         return HttpResponseRedirect('/index/')
 
@@ -339,6 +339,7 @@ def deleteTest(request, id):
     except Exception as error:
         return index(request, error=str(error))
 
+@csrf_exempt
 def getFiles(request):
 
     # Core Files should be sitting in framework's repo
@@ -367,11 +368,11 @@ def getWorkload(request):
     except: return HttpResponse('None')
 
     # Create or fetch the Results
-    try: results = OpenBench.utils.getResults(machine, test)
+    try: result = OpenBench.utils.getResult(machine, test)
     except: return HttpResponse('None')
 
     # Send ID's and test information as a string dictionary
-    return HttpResponse(str(workloadDictionary(machine, result, test)))
+    return HttpResponse(str(OpenBench.utils.workloadDictionary(machine, result, test)))
 
 @csrf_exempt
 def submitResults(request):
