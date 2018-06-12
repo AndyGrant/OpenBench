@@ -1,0 +1,29 @@
+{% extends "OpenBench/base.html" %}
+
+{% load mytags %}
+
+{% block style %}
+{% load static %}
+{% endblock %}
+
+{% block content %}
+<table style="padding-top:40px">
+    <tr>
+        <th>User</th>
+        <th>System</th>
+        <th>Updated</th>
+        <th>Threads</th>
+        <th>MNPS</th>
+    </tr>
+    {% for machine in machines %}
+    <tr>
+        <td>{{machine.owner}}</th>
+        <td>{{machine.osname}}</th>
+        <td>{{machine.updated}}</th>
+        <td>{{machine.threads}}</th>
+        <td>{{machine.mnps|twoDigitPrecision}}</th>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

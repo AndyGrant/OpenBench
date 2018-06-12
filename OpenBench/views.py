@@ -7,12 +7,14 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.csrf import csrf_exempt
+from django.utils.timezone import utc
 
 from OpenBench.config import *
 from OpenBench.models import LogEvent, Engine, Profile
 from OpenBench.models import Machine, Result, Test
 
-import OpenBench.utils
+import OpenBench.utils, datetime
+
 
 # Wrap django.shortcuts.render to add framework settings
 def render(request, template, data):
@@ -147,7 +149,6 @@ def index(request, page=0, username=None, error=''):
 def users(request):
 
     # Build context dictionary for template
-    profiles = Profile.objects.all()
     data = {'profiles' : Profile.objects.all()}
     return render(request, 'users.html', data)
 
@@ -157,7 +158,11 @@ def viewUser(request, username):
     return index(request, username=username)
 
 def machines(request):
-    pass
+
+    # Build context dictionary for machine template with machines updated within 5 mins
+    target = datetime.datetime.utcnow().replace(tzinfo=utc) - datetime.timedelta(minutes=5)
+    data = {'machines' : Machine.objects.filter(updated__gte=target)}
+    return render(request, 'machines.html', data)
 
 def eventLog(request):
 
