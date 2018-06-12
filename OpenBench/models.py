@@ -56,7 +56,7 @@ class Result(Model):
     losses   = IntegerField(default=0)
     draws    = IntegerField(default=0)
     crashes  = IntegerField(default=0)
-    time     = IntegerField(default=0)
+    timeloss = IntegerField(default=0)
     updated  = DateTimeField(auto_now=True)
 
     def __str__(self):

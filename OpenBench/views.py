@@ -423,5 +423,9 @@ def submitNPS(request):
 
 @csrf_exempt
 def submitResults(request):
-    pass
 
+    # Try to update each location
+    OpenBench.utils.update(request)
+    #except: return HttpResponse('Stop')
+
+    return HttpResponse('None')

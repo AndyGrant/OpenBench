@@ -283,7 +283,21 @@ def reportNPS(data, nps):
     requests.post('{0}/submitNPS/'.format(SERVER), data=postdata)
 
 def reportResults(data, wins, losses, draws, crashes, timeloss):
-    pass
+
+    # Server wants verification for reporting nps counts
+    postdata = {
+        'wins'      : wins,
+        'losses'    : losses,
+        'draws'     : draws,
+        'crashes'   : crashes,
+        'timeloss'  : timeloss,
+        'username'  : USERNAME,
+        'password'  : PASSWORD,
+        'machineid' : data['machine']['id'],
+        'resultid'  : data['result']['id'],
+        'testid'    : data['test']['id']}
+    print (postdata)
+    requests.post('{0}/submitResults/'.format(SERVER), data=postdata)
 
 def completeWorkload(data):
 
@@ -347,12 +361,13 @@ def completeWorkload(data):
             break
 
         # Batch result updates
-        if (sum(score) - sum(sent)) % 25 == 0 and score != sent:
+        if (sum(score) - sum(sent)) % 5 == 0 and score != sent:
             wins   = score[0] - sent[0]
-            losses = score[0] - sent[0]
-            draws  = score[0] - sent[0]
+            losses = score[1] - sent[1]
+            draws  = score[2] - sent[2]
             reportResults(data, wins, losses, draws, crashes, timeloss)
             crashes = timeloss = 0
+            sent = score[::]
 
     # One final result send before we exit just in case
     wins   = score[0] - sent[0]

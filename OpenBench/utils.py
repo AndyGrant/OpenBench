@@ -1,5 +1,7 @@
 import math, requests, random
 
+from django.contrib.auth import authenticate
+
 from OpenBench.config import *
 from OpenBench.models import Engine, Profile, Machine, Result, Test
 
@@ -188,3 +190,46 @@ def workloadDictionary(machine, result, test):
             },
         },
     }
+
+def update(request):
+
+    # Log the user in to verify
+    user = authenticate(
+        username=request.POST['username'],
+        password=request.POST['password'])
+
+    # Parse the data from the worker
+    wins     = int(request.POST['wins'])
+    losses   = int(request.POST['losses'])
+    draws    = int(request.POST['draws'])
+    crashes  = int(request.POST['crashes'])
+    timeloss = int(request.POST['timeloss'])
+
+    # Get each model to be updated
+    profile = Profile.objects.get(user=user)
+    machine = Machine.objects.get(id=int(request.POST['machineid']))
+    result  =  Result.objects.get(id=int(request.POST['resultid']))
+    test    =    Test.objects.get(id=int(request.POST['testid']))
+
+    # Update Profile
+    profile.games += wins + losses + draws
+    profile.save()
+
+    # Update Machine
+    machine.save()
+
+    # Update Result
+    result.games    += wins + losses + draws
+    result.wins     += wins
+    result.losses   += losses
+    result.draws    += draws
+    result.crashes  += crashes
+    result.timeloss += timeloss
+    result.save()
+
+    # Update Test
+    test.games    += wins + losses + draws
+    test.wins     += wins
+    test.losses   += losses
+    test.draws    += draws
+    test.save()
