@@ -69,7 +69,7 @@ def newTest(request):
 def getEngine(name, source, protocol, sha, bench):
 
     # Engine may already exist, which is okay
-    try: return Engine.objects.get(sha=sha)
+    try: return Engine.objects.get(name=name, source=source, protocol=protocol, sha=sha, bench=bench)
     except: pass
 
     # Build new Engine
@@ -169,6 +169,7 @@ def workloadDictionary(machine, result, test):
             'booksource'    : FRAMEWORK_REPO_URL + '/raw/master/Books/',
             'timecontrol'   : test.timecontrol,
             'dev' : {
+                'id'        : test.dev.id,
                 'name'      : test.dev.name,
                 'source'    : test.dev.source,
                 'protocol'  : test.dev.protocol,
@@ -177,6 +178,7 @@ def workloadDictionary(machine, result, test):
                 'options'   : test.devoptions,
             },
             'base' : {
+                'id'        : test.base.id,
                 'name'      : test.base.name,
                 'source'    : test.base.source,
                 'protocol'  : test.base.protocol,

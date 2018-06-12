@@ -8,4 +8,3 @@ rm -rf *.fen
 rm -rf *.epd
 rm -rf *.dll
 rm -rf cutechess*
-rm -rf machine.txt

@@ -324,7 +324,7 @@ def deleteTest(request, id):
 
         # Delete the provided test
         test = Test.objects.get(id=id)
-        test.delete = True
+        test.deleted = True
         test.save()
 
         # Log the test deltion
@@ -343,7 +343,7 @@ def deleteTest(request, id):
 def getFiles(request):
 
     # Core Files should be sitting in framework's repo
-    source = FRAMEWORK_REPO_URL + '/raw/master/CoreFiles/'
+    source = FRAMEWORK_REPO_URL + 'raw/master/CoreFiles/'
     return HttpResponse(source)
 
 @csrf_exempt
@@ -375,12 +375,33 @@ def getWorkload(request):
     return HttpResponse(str(OpenBench.utils.workloadDictionary(machine, result, test)))
 
 @csrf_exempt
-def submitResults(request):
-    pass
+def wrongBench(request):
+
+    # Attempt to login in user
+    try: loginUser(request, authenticate(
+            username=request.POST['username'],
+            password=request.POST['password']))
+    except: return HttpResponse('Bad Credentials')
+
+    # Find the engine with the bad bench
+    engineid = int(request.POST['engineid'])
+    engine = Engine.objects.get(id=engineid)
+
+    # Find and stop the test with the bad bench
+    testid = int(request.POST['testid'])
+    test = Test.objects.get(id=testid)
+    test.finished = True
+    test.save()
+
+    # Log the bad bench so we know why the test was stopped
+    LogEvent.objects.create(
+        data='Invalid bench for {0} with {1}'.format(str(test), str(engine)),
+        author=request.POST['username']
+    )
+
+    return HttpResponse('None')
 
 @csrf_exempt
-def invalidBench(request):
+def submitResults(request):
     pass
-
-
 
