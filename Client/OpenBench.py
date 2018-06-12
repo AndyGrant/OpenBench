@@ -296,7 +296,6 @@ def reportResults(data, wins, losses, draws, crashes, timeloss):
         'machineid' : data['machine']['id'],
         'resultid'  : data['result']['id'],
         'testid'    : data['test']['id']}
-    print (postdata)
     requests.post('{0}/submitResults/'.format(SERVER), data=postdata)
 
 def completeWorkload(data):

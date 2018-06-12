@@ -211,6 +211,10 @@ def update(request):
     result  =  Result.objects.get(id=int(request.POST['resultid']))
     test    =    Test.objects.get(id=int(request.POST['testid']))
 
+    # Don't update an finished, deleted, or unappoved test
+    if test.finished or test.deleted or not test.approved:
+        raise Exception()
+
     # Update Profile
     profile.games += wins + losses + draws
     profile.save()
@@ -228,8 +232,56 @@ def update(request):
     result.save()
 
     # Update Test
-    test.games    += wins + losses + draws
-    test.wins     += wins
-    test.losses   += losses
-    test.draws    += draws
+    test.games     += wins + losses + draws
+    test.wins      += wins
+    test.losses    += losses
+    test.draws     += draws
+    test.currentllr = SPRT(test)
+    test.elo        = ELO(test)
+    test.passed     = test.currentllr > test.upperllr
+    test.failed     = test.currentllr < test.lowerllr
+    test.finished   = test.passed or test.failed
     test.save()
+
+    # Signal back to kill the test
+    if test.finished: raise Exception()
+
+def ELO(test):
+    w = test.wins
+    d = test.draws
+    l = test.losses
+    n = w + d + l
+    if n == 0: return 0.0
+    s = w + d / 2.0
+    p = s / n
+    if p == 0.0 or p == 1.0: return 0.0
+    return -400.0 * math.log10(1 / p - 1)
+
+def bayeselo_to_proba(elo, drawelo):
+    pwin  = 1.0 / (1.0 + math.pow(10.0, (-elo + drawelo) / 400.0))
+    ploss = 1.0 / (1.0 + math.pow(10.0, ( elo + drawelo) / 400.0))
+    pdraw = 1.0 - pwin - ploss
+    return pwin, pdraw, ploss
+
+def proba_to_bayeselo(pwin, pdraw, ploss):
+    elo     = 200 * math.log10(pwin/ploss * (1-ploss)/(1-pwin))
+    drawelo = 200 * math.log10((1-ploss)/ploss * (1-pwin)/pwin)
+    return elo, drawelo
+
+def SPRT(test):
+
+    # Estimate drawelo out of sample. Return LLR = 0.0 if there are not enough
+    # games played yet to compute an LLR. 0.0 will always be an active state
+    if test.wins > 0 and test.losses > 0 and test.draws > 0:
+        N = test.wins + test.losses + test.draws
+        elo, drawelo = proba_to_bayeselo(float(test.wins)/N, float(test.draws)/N, float(test.losses)/N)
+    else: return 0.00
+
+    # Probability laws under H0 and H1
+    p0win, p0draw, p0loss = bayeselo_to_proba(test.elolower, drawelo)
+    p1win, p1draw, p1loss = bayeselo_to_proba(test.eloupper, drawelo)
+
+    # Log-Likelyhood Ratio
+    return    test.wins * math.log(p1win  /  p0win) \
+          + test.losses * math.log(p1loss / p0loss) \
+          +  test.draws * math.log(p1draw / p0draw)

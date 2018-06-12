@@ -425,7 +425,9 @@ def submitNPS(request):
 def submitResults(request):
 
     # Try to update each location
-    OpenBench.utils.update(request)
-    #except: return HttpResponse('Stop')
+    try: OpenBench.utils.update(request)
+    except Exception as error:
+        print (error)
+        return HttpResponse('Stop')
 
     return HttpResponse('None')
