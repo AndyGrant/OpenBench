@@ -5,7 +5,7 @@ import shutil, subprocess, requests, zipfile, os, math, json
 parser = argparse.ArgumentParser()
 parser.add_argument('-U', '--username', help='Username', required=True)
 parser.add_argument('-P', '--password', help='Password', required=True)
-parser.add_argument('-E', '--server', help='Server Address', required=True)
+parser.add_argument('-S', '--server', help='Server Address', required=True)
 parser.add_argument('-T', '--threads', help='# of Threads', required=True)
 parser.add_argument('-C', '--compiler', help='Compiler Name', required=True)
 parser.add_argument('-O', '--profile', help='Use PGO Builds', required=False, default=False)
