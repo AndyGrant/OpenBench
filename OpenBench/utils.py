@@ -159,6 +159,7 @@ def getResult(machine, test):
     if results != []: return results[0]
 
     # Must make a new one for the machine
+    machine.save()
     return Result.objects.create(test=test, machine=machine)
 
 def workloadDictionary(machine, result, test):
