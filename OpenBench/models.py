@@ -26,7 +26,7 @@ class Engine(Model):
 
 class Profile(Model):
 
-    user     = OneToOneField(User, on_delete=CASCADE)
+    user     = ForeignKey(User, PROTECT, related_name='user')
     games    = IntegerField(default=0)
     tests    = IntegerField(default=0)
     repo     = CharField(max_length=256, blank=True)
