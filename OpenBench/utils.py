@@ -85,7 +85,7 @@ def getMachine(machineid, username, osname, threads):
     # Client has no saved machine ID, make a new machine
     if machineid == 'None':
         machine = Machine()
-        machine.username = username
+        machine.owner = username
         machine.osname = osname
         machine.threads = int(threads)
         return machine
