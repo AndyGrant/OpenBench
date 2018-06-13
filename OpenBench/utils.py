@@ -197,12 +197,7 @@ def workloadDictionary(machine, result, test):
         },
     }
 
-def update(request):
-
-    # Log the user in to verify
-    user = authenticate(
-        username=request.POST['username'],
-        password=request.POST['password'])
+def update(request, user):
 
     # Parse the data from the worker
     wins     = int(request.POST['wins'])
@@ -230,11 +225,7 @@ def update(request):
     finished = passed or failed
 
     # Update total # of games played for the User
-    for profile in Profile.objects.all():
-        if profile.user.username == request.POST['username']:
-            profile.games += games
-            profile.save()
-            break
+    Profile.objects.filter(user=user).update(games=F('games') + games)
 
     # Just force an update to Machine.update
     Machine.objects.filter(id=machineid).update()

@@ -352,11 +352,11 @@ def getFiles(request):
 @csrf_exempt
 def getWorkload(request):
 
-    # Verify credentials
-    try: authenticate(
-            username=request.POST['username'],
-            password=request.POST['password'])
-    except: return HttpResponse('Bad Credentials')
+    # Verify that we got a valid login
+    user = authenticate(
+        username=request.POST['username'],
+        password=request.POST['password'])
+    if user == None: return HttpResponse('Bad Credentials')
 
     # Create or fetch the Machine
     try: machine = OpenBench.utils.getMachine(
@@ -380,11 +380,11 @@ def getWorkload(request):
 @csrf_exempt
 def wrongBench(request):
 
-    # Verify credentials
-    try: authenticate(
-            username=request.POST['username'],
-            password=request.POST['password'])
-    except: return HttpResponse('Bad Credentials')
+    # Verify that we got a valid login
+    user = authenticate(
+        username=request.POST['username'],
+        password=request.POST['password'])
+    if user == None: return HttpResponse('Bad Credentials')
 
     try:
         # Find the engine with the bad bench
@@ -409,11 +409,11 @@ def wrongBench(request):
 @csrf_exempt
 def submitNPS(request):
 
-    # Verify credentials
-    try: authenticate(
-            username=request.POST['username'],
-            password=request.POST['password'])
-    except: return HttpResponse('Bad Credentials')
+    # Verify that we got a valid login
+    user = authenticate(
+        username=request.POST['username'],
+        password=request.POST['password'])
+    if user == None: return HttpResponse('Bad Credentials')
 
     # Try to update the NPS for the machine
     try:
@@ -427,8 +427,14 @@ def submitNPS(request):
 @csrf_exempt
 def submitResults(request):
 
+    # Verify that we got a valid login
+    user = authenticate(
+        username=request.POST['username'],
+        password=request.POST['password'])
+    if user == None: return HttpResponse('Stop')
+
     # Try to update each location
-    try: OpenBench.utils.update(request)
+    try: OpenBench.utils.update(request, user)
     except: return HttpResponse('Stop')
 
     return HttpResponse('None')
