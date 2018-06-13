@@ -159,8 +159,8 @@ def viewUser(request, username):
 
 def machines(request):
 
-    # Build context dictionary for machine template with machines updated within 5 mins
-    target = datetime.datetime.utcnow().replace(tzinfo=utc) - datetime.timedelta(minutes=5)
+    # Build context dictionary for machine template with machines updated recently
+    target = datetime.datetime.utcnow().replace(tzinfo=utc) - datetime.timedelta(minutes=20)
     data = {'machines' : Machine.objects.filter(updated__gte=target)}
     return render(request, 'machines.html', data)
 
@@ -228,7 +228,7 @@ def editTest(request, id):
 
         # Log changes to the test settings
         LogEvent.objects.create(
-            data='Edit test {0} ({1}) P={2} TP={3}'.format(str(test), test.id, test.priority, test.throughput),
+            data='Edited test {0} ({1}) P={2} TP={3}'.format(str(test), test.id, test.priority, test.throughput),
             author=request.user.username)
 
         return HttpResponseRedirect('/index/')
@@ -306,10 +306,9 @@ def stopTest(request, id):
         test.save()
 
         # Log the test stopping
-        event = LogEvent()
-        event.data = 'Stopped test {0} ({1})'.format(str(test), test.id)
-        event.author = request.user.username
-        event.save()
+        LogEvent.objects.create(
+            data='Stopped test {0} ({1})'.format(str(test), test.id),
+            author=request.user.username)
 
         return HttpResponseRedirect('/index/')
 
@@ -333,10 +332,9 @@ def deleteTest(request, id):
         test.save()
 
         # Log the test deltion
-        event = LogEvent()
-        event.data = 'Deleted test {0} ({1})'.format(str(test), test.id)
-        event.author = request.user.username
-        event.save()
+        LogEvent.objects.create(
+            data='Deleted test {0} ({1})'.format(str(test), test.id),
+            author=request.user.username)
 
         return HttpResponseRedirect('/index/')
 
@@ -354,10 +352,10 @@ def getFiles(request):
 @csrf_exempt
 def getWorkload(request):
 
-    # Attempt to login in user
-    try: loginUser(request, authenticate(
+    # Verify credentials
+    try: authenticate(
             username=request.POST['username'],
-            password=request.POST['password']))
+            password=request.POST['password'])
     except: return HttpResponse('Bad Credentials')
 
     # Create or fetch the Machine
@@ -382,10 +380,10 @@ def getWorkload(request):
 @csrf_exempt
 def wrongBench(request):
 
-    # Attempt to login in user
-    try: loginUser(request, authenticate(
+    # Verify credentials
+    try: authenticate(
             username=request.POST['username'],
-            password=request.POST['password']))
+            password=request.POST['password'])
     except: return HttpResponse('Bad Credentials')
 
     try:
@@ -411,10 +409,10 @@ def wrongBench(request):
 @csrf_exempt
 def submitNPS(request):
 
-    # Attempt to login in user
-    try: loginUser(request, authenticate(
+    # Verify credentials
+    try: authenticate(
             username=request.POST['username'],
-            password=request.POST['password']))
+            password=request.POST['password'])
     except: return HttpResponse('Bad Credentials')
 
     # Try to update the NPS for the machine

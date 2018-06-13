@@ -1,5 +1,6 @@
 import math, requests, random
 
+from django.db.models import F
 from django.contrib.auth import authenticate
 
 from OpenBench.config import *
@@ -204,47 +205,56 @@ def update(request):
     draws    = int(request.POST['draws'])
     crashes  = int(request.POST['crashes'])
     timeloss = int(request.POST['timeloss'])
+    games    = wins + losses + draws
 
-    # Get each model to be updated
-    profile = Profile.objects.get(user=user)
-    machine = Machine.objects.get(id=int(request.POST['machineid']))
-    result  =  Result.objects.get(id=int(request.POST['resultid']))
-    test    =    Test.objects.get(id=int(request.POST['testid']))
+    # Parse the various IDs sent back
+    machineid = int(request.POST['machineid'])
+    resultid  = int(request.POST['resultid'])
+    testid    = int(request.POST['testid'])
 
     # Don't update an finished, deleted, or unappoved test
+    test = Test.objects.get(id=testid)
     if test.finished or test.deleted or not test.approved:
         raise Exception()
 
-    # Update Profile
-    profile.games += wins + losses + draws
-    profile.save()
+    # New stats for the test
+    elo      = ELO(test)
+    sprt     = SPRT(test)
+    passed   = sprt > test.upperllr
+    failed   = sprt < test.lowerllr
+    finished = passed or failed
 
-    # Update Machine
-    machine.save()
+    # Update total # of games played for the User
+    Profile.objects.filter(user=user).update(games=F('games') + games)
 
-    # Update Result
-    result.games    += wins + losses + draws
-    result.wins     += wins
-    result.losses   += losses
-    result.draws    += draws
-    result.crashes  += crashes
-    result.timeloss += timeloss
-    result.save()
+    # Just force an update to Machine.update
+    Machine.objects.filter(id=machineid).update()
 
-    # Update Test
-    test.games     += wins + losses + draws
-    test.wins      += wins
-    test.losses    += losses
-    test.draws     += draws
-    test.currentllr = SPRT(test)
-    test.elo        = ELO(test)
-    test.passed     = test.currentllr > test.upperllr
-    test.failed     = test.currentllr < test.lowerllr
-    test.finished   = test.passed or test.failed
-    test.save()
+    # Update for the new results
+    Result.objects.filter(id=resultid).update(
+        games=F('games') + games,
+        wins=F('wins') + wins,
+        losses=F('losses') + losses,
+        draws=F('draws') + draws,
+        crashes=F('crashes') + crashes,
+        timeloss=F('timeloss') + timeloss,
+    )
 
-    # Signal back to kill the test
-    if test.finished: raise Exception()
+    # Finally, update test data and flags
+    Test.objects.filter(id=testid).update(
+        games=F('games') + games,
+        wins=F('wins') + wins,
+        losses=F('losses') + losses,
+        draws=F('draws') + draws,
+        currentllr=sprt,
+        elo=elo,
+        passed=passed,
+        failed=failed,
+        finished=finished
+    )
+
+    # Signal to stop completed tests
+    if finished: raise Exception()
 
 def ELO(test):
     w = test.wins

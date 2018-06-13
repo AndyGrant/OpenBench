@@ -222,12 +222,12 @@ def singleCoreBench(name, outqueue):
     dir = os.path.join('Engines', getNameAsExe(name))
 
     # Last two lines should hold node count and NPS
-    data = os.popen('{0} bench 13 |tail -2'.format(dir)).read()
+    data = os.popen('{0} bench'.format(dir)).read()
     data = data.strip().split('\n')
 
     # Parse and dump results into queue
-    bench = int(data[0].split(':')[1])
-    nps   = int(data[1].split(':')[1])
+    bench = int(data[-2].split(':')[1])
+    nps   = int(data[-1].split(':')[1])
     outqueue.put((bench, nps))
 
 def getBenchSignature(engine):
@@ -275,28 +275,32 @@ def reportWrongBench(data, engine):
 def reportNPS(data, nps):
 
     # Server wants verification for reporting nps counts
-    postdata = {
-        'nps'       : nps,
-        'username'  : USERNAME,
-        'password'  : PASSWORD,
-        'machineid' : data['machine']['id']}
-    return requests.post('{0}/submitNPS/'.format(SERVER), data=postdata).text
+    try:
+        postdata = {
+            'nps'       : nps,
+            'username'  : USERNAME,
+            'password'  : PASSWORD,
+            'machineid' : data['machine']['id']}
+        return requests.post('{0}/submitNPS/'.format(SERVER), data=postdata).text
+    except: print ('<Warning> Unable to reach server')
 
 def reportResults(data, wins, losses, draws, crashes, timeloss):
 
     # Server wants verification for reporting nps counts
-    postdata = {
-        'wins'      : wins,
-        'losses'    : losses,
-        'draws'     : draws,
-        'crashes'   : crashes,
-        'timeloss'  : timeloss,
-        'username'  : USERNAME,
-        'password'  : PASSWORD,
-        'machineid' : data['machine']['id'],
-        'resultid'  : data['result']['id'],
-        'testid'    : data['test']['id']}
-    return requests.post('{0}/submitResults/'.format(SERVER), data=postdata).text
+    try:
+        postdata = {
+            'wins'      : wins,
+            'losses'    : losses,
+            'draws'     : draws,
+            'crashes'   : crashes,
+            'timeloss'  : timeloss,
+            'username'  : USERNAME,
+            'password'  : PASSWORD,
+            'machineid' : data['machine']['id'],
+            'resultid'  : data['result']['id'],
+            'testid'    : data['test']['id']}
+        return requests.post('{0}/submitResults/'.format(SERVER), data=postdata).text
+    except: print ('<Warning> Unable to reach server')
 
 def completeWorkload(data):
 
@@ -359,6 +363,14 @@ def completeWorkload(data):
             killProcess(process)
             break
 
+        # Parse engine crashes
+        if 'disconnects' in line or 'connection stalls' in line:
+            crashes += 1
+
+        # Parse losses on time
+        if 'on time' in line:
+            timeloss += 1
+
         # Batch result updates
         if (sum(score) - sum(sent)) % 25 == 0 and score != sent:
             wins   = score[0] - sent[0]
@@ -392,44 +404,43 @@ if __name__ == '__main__':
 
     while True:
 
-        # Request the information for the next workload
-        request = requests.post('{0}/getWorkload/'.format(SERVER), data=postdata)
+        try:
+            # Request the information for the next workload
+            request = requests.post('{0}/getWorkload/'.format(SERVER), data=postdata)
 
-        # Response is a dictionary of information, 'None', or an erro
-        data = request.content.decode('utf-8')
+            # Response is a dictionary of information, 'None', or an erro
+            data = request.content.decode('utf-8')
 
-        # Server has nothing to run, ask again later
-        if data == 'None':
-            print ('<Warning> Server has no workloads for us')
-            time.sleep(60)
-            continue
+            # Server has nothing to run, ask again later
+            if data == 'None':
+                print ('<Warning> Server has no workloads for us')
+                time.sleep(60)
+                continue
 
-        # Server was unable to authenticate us
-        if data == 'Bad Credentials':
-            print ('<ERROR> Invalid Login Credentials')
-            sys.exit()
+            # Server was unable to authenticate us
+            if data == 'Bad Credentials':
+                print ('<ERROR> Invalid Login Credentials')
+                sys.exit()
 
-        # Server might reject our Machine ID
-        if data == 'Bad Machine':
-            print ('<ERROR> Bad Machine. Delete machine.txt')
-            sys.exit()
+            # Server might reject our Machine ID
+            if data == 'Bad Machine':
+                print ('<ERROR> Bad Machine. Delete machine.txt')
+                sys.exit()
 
-        # Convert response into a data dictionary
-        data = ast.literal_eval(data)
+            # Convert response into a data dictionary
+            data = ast.literal_eval(data)
 
-        # Update and save our assigned machine ID
-        postdata['machineid'] = data['machine']['id']
-        with open('machine.txt', 'w') as fout:
-            fout.write(str(postdata['machineid']))
+            # Update and save our assigned machine ID
+            postdata['machineid'] = data['machine']['id']
+            with open('machine.txt', 'w') as fout:
+                fout.write(str(postdata['machineid']))
 
-        # Update machine id in case ours was bad
-        postdata['machineid'] = data['machine']['id']
+            # Update machine id in case ours was bad
+            postdata['machineid'] = data['machine']['id']
 
-        # Try to complete the workload, rest for a few
-        # seconds in the event of an error, giving the
-        # server time to correct the mistake ...
-        completeWorkload(data)
+            # Begin working on the games to be played
+            completeWorkload(data)
 
-        #except Exception as error:
-        #    print ('<WARNING> {0}'.format(error))
-        time.sleep(15)
+        except Exception as error:
+            print ('<ERROR> {0}'.format(str(error)))
+            time.sleep(10)
