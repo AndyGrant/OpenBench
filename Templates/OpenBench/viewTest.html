@@ -120,8 +120,8 @@
     {% for result in results %}
     <tr>
         <td>{{result.machine.owner}}</th>
-        <td>{{result.machine.osname}}</th>
-        <td>{{result.updated}}</td>
+        <td style="text-align:left">{{result.machine.osname}}</th>
+        <td>{{result.updated|date:'Y-m-d H:i'}}</td>
         <td>{{result.games}}</td>
         <td>{{result.wins}}</td>
         <td>{{result.losses}}</td>

@@ -155,7 +155,7 @@ def getResult(machine, test):
 
     # Can find an existing result by test and machine
     results = Result.objects.filter(test=test)
-    results = list(Result.objects.filter(machine=machine))
+    results = list(results.filter(machine=machine))
     if results != []: return results[0]
 
     # Must make a new one for the machine
