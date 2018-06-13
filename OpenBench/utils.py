@@ -94,7 +94,6 @@ def getMachine(machineid, username, osname, threads):
     # Update to reflect new worload
     machine.threads = int(threads)
     machine.mnps = 0.00
-    machine.save()
     return machine
 
 def getWorkload(machine):
