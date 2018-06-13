@@ -1,6 +1,9 @@
 import ast, argparse, time, sys, platform, multiprocessing
 import shutil, subprocess, requests, zipfile, os, math, json
 
+# Run from any location ...
+os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
 # Argument Parsing ... <Server> <Threads> <?Compiler> <?UsePGO>
 parser = argparse.ArgumentParser()
 parser.add_argument('-U', '--username', help='Username', required=True)
@@ -34,9 +37,6 @@ try:
 except:
     MACHINE_ID = None
     print('<Warning> Machine unregistered, will register with Server')
-
-# Run from any location ...
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
 def killProcess(process):
     if not IS_WINDOWS : os.system('pkill -TERM -P {0}'.format(process.pid))
