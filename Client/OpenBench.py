@@ -296,6 +296,7 @@ def reportResults(data, wins, losses, draws, crashes, timeloss):
             'timeloss'  : timeloss,
             'username'  : USERNAME,
             'password'  : PASSWORD,
+            'profileid' : data['profile']['id'],
             'machineid' : data['machine']['id'],
             'resultid'  : data['result']['id'],
             'testid'    : data['test']['id']}

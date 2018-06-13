@@ -169,6 +169,7 @@ def workloadDictionary(machine, result, test):
     # specification for both engines. Group the dev and base
     # options with the coressponding engine, for easy usage
     return {
+        'profile' : { 'id'  : profile.id },
         'machine' : { 'id'  : machine.id, },
         'result'  : { 'id'  : result.id, },
         'test' : {
@@ -213,6 +214,7 @@ def update(request):
     games    = wins + losses + draws
 
     # Parse the various IDs sent back
+    profileid = int(request.POST['profileid'])
     machineid = int(request.POST['machineid'])
     resultid  = int(request.POST['resultid'])
     testid    = int(request.POST['testid'])
@@ -230,7 +232,7 @@ def update(request):
     finished = passed or failed
 
     # Update total # of games played for the User
-    Profile.objects.filter(user=user).update(games=F('games') + games)
+    Profile.objects.filter(id=profileid).update(games=F('games') + games)
 
     # Just force an update to Machine.update
     Machine.objects.filter(id=machineid).update()
