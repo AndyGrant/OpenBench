@@ -374,9 +374,6 @@ def getWorkload(request):
     try: result = OpenBench.utils.getResult(machine, test)
     except: return HttpResponse('None')
 
-    # Got everything
-    machine.save();
-
     # Send ID's and test information as a string dictionary
     return HttpResponse(str(OpenBench.utils.workloadDictionary(machine, result, test)))
 

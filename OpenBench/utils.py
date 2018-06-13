@@ -84,7 +84,11 @@ def getMachine(machineid, username, osname, threads):
 
     # Client has no saved machine ID, make a new machine
     if machineid == 'None':
-        return Machine.objects.create(owner=username, osname=osname, threads=int(threads))
+        machine = Machine()
+        machine.username = username
+        machine.osname = osname
+        machine.threads = int(threads)
+        return machine
 
     # Fetch and verify the claimed machine ID
     machine = Machine.objects.get(id=machineid)
@@ -94,6 +98,7 @@ def getMachine(machineid, username, osname, threads):
     # Update to reflect new worload
     machine.threads = int(threads)
     machine.mnps = 0.00
+    machine.save()
     return machine
 
 def getWorkload(machine):
