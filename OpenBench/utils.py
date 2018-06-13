@@ -230,7 +230,11 @@ def update(request):
     finished = passed or failed
 
     # Update total # of games played for the User
-    Profile.objects.filter(user=user).update(games=F('games') + games)
+    for profile in Profile.objects.all():
+        if profile.user.username == request.POST['username']:
+            profile.games += games
+            profile.save()
+            break
 
     # Just force an update to Machine.update
     Machine.objects.filter(id=machineid).update()
