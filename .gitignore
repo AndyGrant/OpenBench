@@ -2,3 +2,4 @@
 Client/*
 !Client/OpenBench.py
 !Client/cleanup.sh
+OpenBench/migrations/*

@@ -32,6 +32,7 @@ class Profile(Model):
     repo     = CharField(max_length=256, blank=True)
     enabled  = BooleanField(default=False)
     approver = BooleanField(default=False)
+    updated  = DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.user.__str__()

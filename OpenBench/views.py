@@ -149,7 +149,7 @@ def index(request, page=0, username=None, error=''):
 def users(request):
 
     # Build context dictionary for template
-    data = {'profiles' : Profile.objects.all()}
+    data = {'profiles' : Profile.objects.order_by('games')}
     return render(request, 'users.html', data)
 
 def viewUser(request, username):

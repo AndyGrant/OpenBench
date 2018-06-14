@@ -8,6 +8,7 @@
 <table class="datatable">
     <tr>
         <th>Username</th>
+        <th>Last Seen</th>
         <th>Games</th>
         <th>Tests</th>
         <th>Repo</th>
@@ -17,6 +18,7 @@
     {% for profile in profiles %}
     <tr>
         <td><a href="/viewUser/{{profile.user.username}}">{{profile.user.username}}</a></td>
+        <td>{{profile.updated|date:'Y-m-d H:i'}}</th>
         <td class="numeric">{{profile.games}}</td>
         <td class="numeric">{{profile.tests}}</td>
         <td><a href="{{profile.repo}}">{{profile.repo}}</a></td>

@@ -1,5 +1,6 @@
 import math, requests, random
 
+from django.utils import timezone
 from django.db.models import F
 from django.contrib.auth import authenticate
 
@@ -224,11 +225,19 @@ def update(request, user):
     failed   = sprt < test.lowerllr
     finished = passed or failed
 
-    # Update total # of games played for the User
-    Profile.objects.filter(user=user).update(games=F('games') + games)
+    # Updating times manually since .update() won't invoke
+    updated = timezone.now()
 
-    # Just force an update to Machine.update
-    Machine.objects.filter(id=machineid).update()
+    # Update total # of games played for the User
+    Profile.objects.filter(user=user).update(
+        games=F('games') + games,
+        updated=updated
+    )
+
+    # Update last time we saw a result
+    Machine.objects.filter(id=machineid).update(
+        updated=updated
+    )
 
     # Update for the new results
     Result.objects.filter(id=resultid).update(
@@ -238,6 +247,7 @@ def update(request, user):
         draws=F('draws') + draws,
         crashes=F('crashes') + crashes,
         timeloss=F('timeloss') + timeloss,
+        updated=updated
     )
 
     # Finally, update test data and flags
@@ -250,7 +260,8 @@ def update(request, user):
         elo=elo,
         passed=passed,
         failed=failed,
-        finished=finished
+        finished=finished,
+        updated=updated
     )
 
     # Signal to stop completed tests
