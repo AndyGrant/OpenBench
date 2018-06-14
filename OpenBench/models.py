@@ -3,16 +3,6 @@ from django.db.models import ForeignKey, DateTimeField, OneToOneField
 from django.db.models import CASCADE, PROTECT, Model
 from django.contrib.auth.models import User
 
-
-class LogEvent(Model):
-
-    data     = CharField(max_length=256)
-    author   = CharField(max_length=64)
-    creation = DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return "{0} {1} : {2}".format(self.creation, self.author, self.data)
-
 class Engine(Model):
 
     name     = CharField(max_length=128)
@@ -106,3 +96,13 @@ class Test(Model):
 
     def __str__(self):
         return '{0} vs {1} @ {2}'.format(self.dev.name, self.base.name, self.timecontrol)
+
+class LogEvent(Model):
+
+    data     = CharField(max_length=256)
+    author   = CharField(max_length=64)
+    test     = ForeignKey('Test', PROTECT, related_name='test1')
+    creation = DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return "{0} {1} {2}".format(self.author, str(self.test), self.data)

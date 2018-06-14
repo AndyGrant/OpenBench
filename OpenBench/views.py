@@ -46,11 +46,6 @@ def register(request):
         # Log the User in now
         loginUser(request, User.objects.get(username=request.POST['username']))
 
-        # Log the registration
-        LogEvent.objects.create(
-            data='Created an account',
-            author=request.POST['username'])
-
         # Kick back to index
         return HttpResponseRedirect('/index/')
 
@@ -188,8 +183,9 @@ def newTest(request):
 
         # Log the test creation
         LogEvent.objects.create(
-            data='Created test {0} ({1})'.format(str(test), test.id),
-            author=request.user.username)
+            data='Created Test',
+            author=request.user.username,
+            test=test)
 
         return HttpResponseRedirect('/index/')
 
@@ -228,8 +224,9 @@ def editTest(request, id):
 
         # Log changes to the test settings
         LogEvent.objects.create(
-            data='Edited test {0} ({1}) P={2} TP={3}'.format(str(test), test.id, test.priority, test.throughput),
-            author=request.user.username)
+            data='Edited Test P={0} TP={1}'.format(test.priority, test.throughput),
+            author=request.user.username,
+            test=test)
 
         return HttpResponseRedirect('/index/')
 
@@ -253,8 +250,9 @@ def approveTest(request, id):
 
         # Log the test approval
         LogEvent.objects.create(
-            data='Approved test {0} ({1})'.format(str(test), test.id),
-            author=request.user.username)
+            data='Approved Test',
+            author=request.user.username,
+            test=test)
 
         return HttpResponseRedirect('/index/')
 
@@ -281,8 +279,9 @@ def restartTest(request, id):
 
         # Log the test stopping
         LogEvent.objects.create(
-            data='Restarted test {0} ({1})'.format(str(test), test.id),
-            author=request.user.username)
+            data='Restarted Test',
+            author=request.user.username,
+            test=test)
 
         return HttpResponseRedirect('/index/')
 
@@ -307,8 +306,9 @@ def stopTest(request, id):
 
         # Log the test stopping
         LogEvent.objects.create(
-            data='Stopped test {0} ({1})'.format(str(test), test.id),
-            author=request.user.username)
+            data='Stopped Test',
+            author=request.user.username,
+            test=test)
 
         return HttpResponseRedirect('/index/')
 
@@ -333,8 +333,9 @@ def deleteTest(request, id):
 
         # Log the test deltion
         LogEvent.objects.create(
-            data='Deleted test {0} ({1})'.format(str(test), test.id),
-            author=request.user.username)
+            data='Deleted Test',
+            author=request.user.username,
+            test=test)
 
         return HttpResponseRedirect('/index/')
 
@@ -399,9 +400,9 @@ def wrongBench(request):
 
         # Log the bad bench so we know why the test was stopped
         LogEvent.objects.create(
-            data='Invalid bench for {0} with {1}'.format(str(test), str(engine)),
-            author=request.POST['username']
-        )
+            data='Invalid Bench',
+            author=request.POST['username'],
+            test=test)
     except: pass
 
     return HttpResponse('None')

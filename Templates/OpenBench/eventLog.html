@@ -9,12 +9,14 @@
     <tr>
         <th>Date</th>
         <th>User</th>
+        <th>Test</th>
         <th>Action</th>
     </tr>
     {% for event in events %}
     <tr>
         <td>{{event.creation|date:'Y-m-d H:i:s'}}</td>
         <td>{{event.author}}</td>
+        <td><a href="/viewTest/{{event.test.id}}">{{event.test.dev.name}}</a></td>
         <td>{{event.data}}</td>
     </tr>
     {% endfor %}
