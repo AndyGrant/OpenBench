@@ -175,7 +175,7 @@ def workloadDictionary(machine, result, test):
         'test' : {
             'id'            : test.id,
             'bookname'      : test.bookname,
-            'booksource'    : FRAMEWORK_REPO_URL + '/raw/master/Books/',
+            'booksource'    : FRAMEWORK_REPO_URL + 'raw/master/Books/' + test.bookname,
             'timecontrol'   : test.timecontrol,
             'dev' : {
                 'id'        : test.dev.id,

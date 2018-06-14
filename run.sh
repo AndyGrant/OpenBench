@@ -1,3 +1,3 @@
 #!/bin/sh
 
-python3 manage.py runserver 127.0.0.1:12345
+python3 -u manage.py runserver 192.168.7.29:8000
