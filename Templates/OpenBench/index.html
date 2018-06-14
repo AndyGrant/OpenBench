@@ -4,8 +4,8 @@
 
 {% block content %}
 
-<table>
-    <tr><td style="background-color:white;text-align:left"><h2>Pending</h2></td></tr>
+<table class="datatable">
+    <tr><td class="embedded"><h2>Pending</h2></td></tr>
     {% if pending %}
     <tr>
         <th>Creation</th>
@@ -19,15 +19,15 @@
     <tr>
         <td>{{test.creation|date:'Y-m-d'}}</td>
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
-        <td style="text-align:left"><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
-        <td style="text-align"><a href="{{test|gitDiffLink}}">diff</a></td>
+        <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
+        <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
         {% autoescape off %}
-        <td style="text-align:left;font-size:14px"><strong>{{test|statParagraph}}</strong></td>
+        <td class="statblock"><strong>{{test|statParagraph}}</strong></td>
         {% endautoescape %}
     </tr>
     {% endfor %}
 
-    <tr><td style="background-color:white;text-align:left"><h2>Active</h2></td></tr>
+    <tr><td class="embedded"><h2>Active</h2></td></tr>
     {% if active %}
     <tr>
         <th>Creation</th>
@@ -41,15 +41,15 @@
     <tr class="{{test|testResultColour}}">
         <td>{{test.creation|date:'Y-m-d'}}</td>
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
-        <td style="text-align:left"><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
-        <td style="text-align:left"><a href="{{test|gitDiffLink}}">diff</a></td>
+        <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
+        <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
         {% autoescape off %}
-        <td style="text-align:left;font-size:14px"><strong>{{test|statParagraph}}</strong></td>
+        <td class="statblock"><strong>{{test|statParagraph}}</strong></td>
         {% endautoescape %}
     </tr>
     {% endfor %}
 
-    <tr><td style="background-color:white;text-align:left"><h2>Finished</h2></td></tr>
+    <tr><td class="embedded"><h2>Finished</h2></td></tr>
     {% if completed %}
     <tr>
         <th>Creation</th>
@@ -63,10 +63,10 @@
     <tr class="{{test|testResultColour}}">
         <td>{{test.creation|date:'Y-m-d'}}</td>
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
-        <td style="text-align:left"><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
-        <td style="text-align:left"><a href="{{test|gitDiffLink}}">diff</a></td>
+        <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
+        <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
         {% autoescape off %}
-        <td style="text-align:left;font-size:14px"><strong>{{test|statParagraph}}</strong></td>
+        <td class="statblock"><strong>{{test|statParagraph}}</strong></td>
         {% endautoescape %}
     </tr>
     {% endfor %}

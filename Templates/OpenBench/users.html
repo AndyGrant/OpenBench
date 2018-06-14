@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block content %}
-<table>
+<table class="datatable">
     <tr>
         <th>Username</th>
         <th>Games</th>
@@ -16,9 +16,9 @@
     </tr>
     {% for profile in profiles %}
     <tr>
-        <td style="text-align:left"><a href="/viewUser/{{profile.user.username}}">{{profile.user.username}}</a></td>
-        <td>{{profile.games}}</td>
-        <td>{{profile.tests}}</td>
+        <td><a href="/viewUser/{{profile.user.username}}">{{profile.user.username}}</a></td>
+        <td class="numeric">{{profile.games}}</td>
+        <td class="numeric">{{profile.tests}}</td>
         <td><a href="{{profile.repo}}">{{profile.repo}}</a></td>
         <td>{{profile.enabled}}</td>
         <td>{{profile.approver}}</td>

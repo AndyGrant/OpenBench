@@ -7,14 +7,14 @@
 {% block content %}
 <form id="registerForm" method="POST" action="/register/">
     {% csrf_token %}
-    <label type="text">Username</label>
-    <input type="text" name="username"></br>
-    <label type="text">Create Password</label>
+    <label>Username</label>
+    <input name="username"></br>
+    <label>Create Password</label>
     <input type="password" name="password1"></br>
-    <label type="text">Verify Password</label>
+    <label>Verify Password</label>
     <input type="password" name="password2"></br>
-    <label type="text">Email Address</label>
-    <input type="text" name="email"></br>
+    <label>Email Address</label>
+    <input name="email"></br>
     <input type="submit" name="submit" value="Create User">
 </form>
 {% endblock %}

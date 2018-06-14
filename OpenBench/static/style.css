@@ -1,149 +1,199 @@
 body {
     font-family: "Courier New";
-    font-size: 20px;
+    font-size: 16px;
 }
 
 #sidebar {
     float: left;
     margin: 20px;
-    padding-right: 20px;
 }
 
-#content {
-    float: left;
-    padding-top: 20px;
-    padding-bottom: 20px;
-    display: block;
-    width: auto;
-}
-
-#error {
-    background-color: RED;
-    padding: 8px;
-    text-align: center;
-}
-
-table {
-    background-color: none;
-}
-
-.tabletitle {
-    background-color: GREEN;
-    font-size: 20px;
-}
-
-tr {
-    background-color: #DBDBDB;
-}
-
-th {
-    text-align: center;
-    padding: 4px 16px;
-    background-color: #4CAF50;
-    color: white;
-}
-
-td {
-    padding: 4px 16px;
-    text-align: right;
-}
-
-
-.green:nth-child(even){background-color: #2FFA62}
-.green:nth-child(odd){background-color: #9DF779}
-
-.yellow:nth-child(even){background-color: #E9FA32}
-.yellow:nth-child(odd){background-color: #EEF788}
-
-.red:nth-child(even){background-color: #FAA5A5}
-.red:nth-child(odd){background-color: #FA8E8E}
-
-ul {
+#sidebar ul {
     list-style-type: none;
-    display: block;
-    margin: 20px 0px 0px 0px;
-    padding-left: 10px;
+    padding: 0px;
 }
 
-li {
-    margin: 8px;
-}
-
-.listheader {
+#sidebar .header {
     font-weight: bold;
     color: grey;
 }
 
-table {
-    line-height: 75%;
+#sidebar li {
+    font-size: 20px;
 }
 
-a:link, a:visited, a:hover, a:active {
-    text-decoration: none;
-    color: blue;
+#content {
+    float: left;
+    padding: 20px 0px;
 }
 
-
-#pagebrowse {
+#content label {
+    width: 180px;
+    font-weight:bold;
     display: inline-block;
-    text-align: center;
-    width: 100%;
-    margin-top: 8px;
 }
 
-.page {
-    border-style: solid;
-    border-width: 2px;
-    border-color: black;
-    border-radius: 4px;
-    font-weight: bold;
-    text-align: center;
-    display: inline-block;
-    padding-top : 8px;
-    padding-bottom: 8px;
-    width: 5%;
-}
-
-input[type=text], input[type=password], textarea, select {
-    padding: 8px 6px;
+#content input {
+    padding: 8px;
+    margin: 2px 0px;
     display: inline-block;
     vertical-align: middle;
     width: 400px;
 }
 
-input[type=submit] {
-    background-color: #4CAF50;
+#content input:read-only {
+    font-weight: bold;
+}
+
+#content input:-moz-read-only {
+    font-weight: bold;
+}
+
+#content input[type=submit] {
+    background-color: #15A049;
     color: white;
-    padding: 8px 6px;
-    margin: 8px 0;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
     width: 100%;
     font-weight: bold;
 }
 
-input[type=submit]:hover {
-    background-color: #45a049;
-}
-
-label, option {
-    display: inline-block;
-    width: 180px;
-    font-weight:bold;
-    vertical-align: middle;
-}
-
-.buttonlink {
+#content input[type=submit]:hover {
     background-color: #4CAF50;
-    color: white;
-    padding: 8px 6px;
-    margin: 8px 0;
-    border: none;
+}
+
+#content #configuration {
+    float: left;
+    margin-top: 20px;
+}
+
+#content .rawtable td {
+    padding-right: 30px;
+}
+
+#content .rawtable th {
+    text-align: left;
+}
+
+#content #actions {
+    float: left;
+}
+
+#content #actions .anchorbutton {
+    color: black;
+    padding: 8px 8px;
     border-radius: 4px;
-    cursor: pointer;
     font-weight: bold;
     text-align: center;
     display: inline-block;
     width: 20%;
+}
+
+#content #actions #approvebutton {
+    background-color: #9DF779;
+}
+
+#content #actions #stopbutton {
+    background-color: #EEF788;
+}
+
+#content #actions #restartbutton {
+    background-color: #EEF788;
+}
+
+#content #actions #deletebutton {
+    background-color: #FA8E8E;
+}
+
+#content #actions input {
+    width: 240px;
+}
+
+#content #actions input[type=submit] {
+    width: 100%;
+}
+
+#content .datatable th {
+    color: white;
+    font-size: 20px;
+    padding: 6px 12px;
+    border: 1px solid black;
+    background-color: #15A049;
+}
+
+#content .datatable td {
+    padding: 6px 12px;
+    border: 1px solid black;
+}
+
+#content .datatable .numeric {
+    text-align: right;
+}
+
+#content .datatable tr {
+    background-color: #DBDBDB;
+}
+
+#content .datatable .embedded {
+    background-color: white;
+    text-align: left;
+    border: none;
+    padding-left: 0px;
+}
+
+#content .datatable .embedded h2 {
+    margin: 16px 0px 0px 0px;
+    pading: 0px;
+}
+
+#content .datatable .green {
+    background-color: #9DF779
+}
+
+#content .datatable .yellow {
+    background-color: #EEF788
+}
+
+#content .datatable .red {
+    background-color: #FAA5A5
+}
+
+#content .datatable .statblock {
+    line-height: 70%;
+}
+
+#content #results {
+    display: inline-block;
+    margin-top: 50px;
+    width: inherit;
+}
+
+#content table {
+    line-height: 96%;
+}
+
+#content .textcenter {
+    text-align: center;
+}
+
+#content strong {
+    font-size: 14px;
+}
+
+#content a {
+    font-weight: bold;
+}
+
+#error {
+    background-color: #ED7676;
+    padding: 8px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+a:link, a:visited, a:hover, a:active {
+    text-decoration: none;
+    color: blue;
 }

@@ -7,88 +7,89 @@
 {% endblock %}
 
 {% block content %}
-<div style="float:left">
-    <table>
+<div id="configuration">
+    <table class="rawtable">
         <tr>
-            <th style="text-align:left">Dev Branch</th>
-            <td style="text-align:left">{{test.dev.name}}</td>
+            <td>Dev Branch</td>
+            <td>{{test.dev.name}}</td>
         </tr>
         <tr>
-            <th style="text-align:left">Dev Bench</th>
-            <td style="text-align:left">{{test.dev.bench}}</td>
+            <td>Dev Bench</td>
+            <td>{{test.dev.bench}}</td>
         </tr>
         <tr>
-            <th style="text-align:left">Dev Options</th>
-            <td style="text-align:left">{{test.devoptions}}</td>
+            <td>Dev Options</td>
+            <td>{{test.devoptions}}</td>
         </tr>
         <tr>
-            <th style="text-align:left">Dev Protocol</th>
-            <td style="text-align:left">{{test.dev.protocol}}</td>
+            <td>Dev Protocol</td>
+            <td>{{test.dev.protocol}}</td>
         </tr>
         <tr>
-            <th style="text-align:left">Dev Sha</th>
-            <td style="text-align:left">{{test.dev.sha}}</td>
+            <td>Dev Sha</td>
+            <td>{{test.dev.sha}}</td>
         </tr>
         <tr>
-            <th style="text-align:left">Base Branch</th>
-            <td style="text-align:left">{{test.base.name}}</td>
+            <td>Base Branch</td>
+            <td>{{test.base.name}}</td>
         </tr>
         <tr>
-            <th style="text-align:left">Base Bench</th>
-            <td style="text-align:left">{{test.base.bench}}</td>
+            <td>Base Bench</td>
+            <td>{{test.base.bench}}</td>
         </tr>
         <tr>
-            <th style="text-align:left">Base Options</th>
-            <td style="text-align:left">{{test.baseoptions}}</td>
+            <td>Base Options</td>
+            <td>{{test.baseoptions}}</td>
         </tr>
         <tr>
-            <th style="text-align:left">Base Protocol</th>
-            <td style="text-align:left">{{test.base.protocol}}</td>
+            <td>Base Protocol</td>
+            <td>{{test.base.protocol}}</td>
         </tr>
         <tr>
-            <th style="text-align:left">Base Sha</th>
-            <td style="text-align:left">{{test.base.sha}}</td>
+            <td>Base Sha</td>
+            <td>{{test.base.sha}}</td>
         </tr>
         <tr>
-            <th style="text-align:left">Source Repo</th>
-            <td style="text-align:left">{{test.source}}</td>
+            <td>Source Repo</td>
+            <td>{{test.source}}</td>
         </tr>
         <tr>
-            <th style="text-align:left">Opening Book</th>
-            <td style="text-align:left">{{test.bookname}}</td>
+            <td>Opening Book</td>
+            <td>{{test.bookname}}</td>
         </tr>
         <tr>
-            <th style="text-align:left">Time Control</th>
-            <td style="text-align:left">{{test.timecontrol}}s</td>
+            <td>Time Control</td>
+            <td>{{test.timecontrol}}s</td>
         </tr>
         <tr>
-            <th style="text-align:left">Elo Bounds</th>
-            <td style="text-align:left">[{{test.elolower}}, {{test.eloupper}}]</td>
+            <td>Elo Bounds</td>
+            <td>[{{test.elolower}}, {{test.eloupper}}]</td>
         </tr>
         <tr>
-            <th style="text-align:left">SPRT Bounds</th>
-            <td style="text-align:left">({{test.lowerllr|twoDigitPrecision}}, {{test.upperllr|twoDigitPrecision}})</td>
+            <td>SPRT Bounds</td>
+            <td>({{test.lowerllr|twoDigitPrecision}}, {{test.upperllr|twoDigitPrecision}})</td>
         </tr>
         <tr>
-            <th style="text-align:left">Creation</th>
-            <td style="text-align:left">{{test.creation|date:'Y-m-d H:i:s'}}</td>
+            <td>Creation</td>
+            <td>{{test.creation|date:'Y-m-d H:i:s'}}</td>
         </tr>
         <tr>
-            <th style="text-align:left">Author</th>
-            <td style="text-align:left">{{test.author}}</td>
+            <td>Author</td>
+            <td>{{test.author}}</td>
         </tr>
     </table>
 </div>
-<div style="float:left;margin-left:40px">
+
+<div id="actions">
 
     <h2>Actions</h2>
-    <a class="buttonlink" href="/approveTest/{{test.id}}/" style="background-color: #9DF779">Approve</a>
+    <a class="anchorbutton" id="approvebutton" href="/approveTest/{{test.id}}/">Approve</a>
     {% if test.finished %}
-    <a class="buttonlink" href="/restartTest/{{test.id}}/" style="background-color: #EEF788">Restart</a>
+    <a class="anchorbutton" id="restartbutton" href="/restartTest/{{test.id}}/">Restart</a>
     {% else %}
-    <a class="buttonlink" href="/stopTest/{{test.id}}/" style="background-color: #EEF788">Stop</a>
+    <a class="anchorbutton" id="stopbutton" href="/stopTest/{{test.id}}/">Stop</a>
     {% endif %}
-    <a class="buttonlink" href="/deleteTest/{{test.id}}/" style="background-color: #FA8E8E">Delete</a>
+    <a class="anchorbutton" id="deletebutton" href="/deleteTest/{{test.id}}/">Delete</a>
 
     <h4>{{test.dev.name}} vs {{test.base.name}} <a href="{{test|gitDiffLink}}">DIFF</a></h4>
     {% autoescape off %}
@@ -97,39 +98,41 @@
 
     <form method="POST" action="/editTest/{{test.id}}/">
         {% csrf_token %}
-        <label type="text">Priority</label>
-        <input style="width: 240px" type="text" value="{{test.priority}}" name="priority"></br>
-        <label type="text">Throughput</label>
-        <input style="width: 240px" type="text" value="{{test.throughput}}" name="throughput"></br>
+        <label>Priority</label>
+        <input value="{{test.priority}}" name="priority"></br>
+        <label>Throughput</label>
+        <input value="{{test.throughput}}" name="throughput"></br>
         <input type="submit" name="submit" value="Modify">
     </form>
 </div>
 <br>
-<table style="padding-top:40px">
-    <tr>
-        <th>User</th>
-        <th>Machine</th>
-        <th>Updated</th>
-        <th>Games</th>
-        <th>Wins</th>
-        <th>Losses</th>
-        <th>Draws</th>
-        <th>Crashes</th>
-        <th>Time</th>
-    </tr>
-    {% for result in results %}
-    <tr>
-        <td>{{result.machine.owner}}</th>
-        <td style="text-align:left">{{result.machine.osname}}</th>
-        <td>{{result.updated|date:'Y-m-d H:i'}}</td>
-        <td>{{result.games}}</td>
-        <td>{{result.wins}}</td>
-        <td>{{result.losses}}</td>
-        <td>{{result.draws}}</td>
-        <td>{{result.crashes}}</td>
-        <td>{{result.timeloss}}</td>
-    </tr>
-    {% endfor %}
-</table>
+<div id="results">
+    <table class="datatable">
+        <tr>
+            <th>User</th>
+            <th>Machine</th>
+            <th>Updated</th>
+            <th>Games</th>
+            <th>Win</th>
+            <th>Loss</th>
+            <th>Draw</th>
+            <th>Crash</th>
+            <th>Time</th>
+        </tr>
+        {% for result in results %}
+        <tr>
+            <td>{{result.machine.owner}}</td>
+            <td>{{result.machine.osname}}</td>
+            <td>{{result.updated|date:'Y-m-d H:i'}}</td>
+            <td class="numeric">{{result.games}}</td>
+            <td class="numeric">{{result.wins}}</td>
+            <td class="numeric">{{result.losses}}</td>
+            <td class="numeric">{{result.draws}}</td>
+            <td class="numeric">{{result.crashes}}</td>
+            <td class="numeric">{{result.timeloss}}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</div>
 
 {% endblock %}

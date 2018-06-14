@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block content %}
-<table>
+<table class="rawtable">
     <tr>
         <th>Date</th>
         <th>User</th>
@@ -13,9 +13,9 @@
     </tr>
     {% for event in events %}
     <tr>
-        <td style='text-align:left'>{{event.creation|date:'Y-m-d H:i:s'}}</td>
-        <td style='text-align:left'>{{event.author}}</td>
-        <td style='text-align:left'>{{event.data}}</td>
+        <td>{{event.creation|date:'Y-m-d H:i:s'}}</td>
+        <td>{{event.author}}</td>
+        <td>{{event.data}}</td>
     </tr>
     {% endfor %}
 <table>

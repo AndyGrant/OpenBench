@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<table style="padding-top:40px">
+<table class="datatable">
     <tr>
         <th>User</th>
         <th>System</th>
@@ -18,10 +18,10 @@
     {% for machine in machines %}
     <tr>
         <td>{{machine.owner}}</th>
-        <td style="text-align:left">{{machine.osname}}</th>
+        <td>{{machine.osname}}</th>
         <td>{{machine.updated|date:'Y-m-d H:i'}}</th>
-        <td>{{machine.threads}}</th>
-        <td>{{machine.mnps|twoDigitPrecision}}</th>
+        <td class="numeric">{{machine.threads}}</th>
+        <td class="numeric">{{machine.mnps|twoDigitPrecision}}</th>
     </tr>
     {% endfor %}
 </table>
