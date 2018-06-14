@@ -150,21 +150,21 @@ def getCutechessCommand(data, scalefactor):
         start, inc = map(float, timecontrol.split('/')[1].split('+'))
         start = round(start * scalefactor, 2)
         inc = round(inc * scalefactor, 2)
-        tc  = moves + '/' + str(start) + '+' + str(inc)
+        timecontrol  = moves + '/' + str(start) + '+' + str(inc)
 
     # Parse X / Y time controls
     elif '/' in timecontrol:
         moves = timecontrol.split('/')[0]
         start = float(timecontrol.split('/')[1])
         start = round(start * scalefactor, 2)
-        tc = moves + '/' + str(start)
+        timecontrol = moves + '/' + str(start)
 
     # Parse X + Z time controls
     else:
         start, inc = map(float, timecontrol.split('+'))
         start = round(start * scalefactor, 2)
         inc = round(inc * scalefactor, 2)
-        tc = str(start) + '+' + str(inc)
+        timecontrol = str(start) + '+' + str(inc)
 
     # Find Threads / Options for the Dev Engine
     tokens = data['test']['dev']['options'].split(' ')
