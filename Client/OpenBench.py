@@ -318,11 +318,11 @@ def completeWorkload(data):
         return
 
     # Verify the bench of the base engine
-    basebench, basenps = getBenchSignature(data['test']['dev'])
-    if basebench != int(data['test']['dev']['bench']):
+    basebench, basenps = getBenchSignature(data['test']['base'])
+    if basebench != int(data['test']['base']['bench']):
         print ('<ERROR> Invalid Bench. Got {0} Expected {1}'.format(
-            basebench, int(data['test']['dev']['bench'])))
-        reportWrongBench(data, data['test']['baes'])
+            basebench, int(data['test']['base']['bench'])))
+        reportWrongBench(data, data['test']['base'])
         return
 
     # Compute and report CPU scaling factor
