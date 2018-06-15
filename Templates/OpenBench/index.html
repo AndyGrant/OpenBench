@@ -1,9 +1,6 @@
 {% extends "OpenBench/base.html" %}
-
 {% load mytags %}
-
 {% block content %}
-
 <table class="datatable">
     <tr><td class="embedded"><h2>Pending</h2></td></tr>
     {% if pending %}
@@ -21,12 +18,9 @@
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
-        {% autoescape off %}
-        <td class="statblock"><strong>{{test|statParagraph}}</strong></td>
-        {% endautoescape %}
+        <td class="statblock"><strong>{{test|statParagraph|linebreaksbr}}</strong></td>
     </tr>
     {% endfor %}
-
     <tr><td class="embedded"><h2>Active</h2></td></tr>
     {% if active %}
     <tr>
@@ -43,12 +37,9 @@
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
-        {% autoescape off %}
-        <td class="statblock"><strong>{{test|statParagraph}}</strong></td>
-        {% endautoescape %}
+        <td class="statblock"><strong>{{test|statParagraph|linebreaksbr}}</strong></td>
     </tr>
     {% endfor %}
-
     <tr><td class="embedded"><h2>Finished</h2></td></tr>
     {% if completed %}
     <tr>
@@ -65,9 +56,7 @@
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
-        {% autoescape off %}
-        <td class="statblock"><strong>{{test|statParagraph}}</strong></td>
-        {% endautoescape %}
+        <td class="statblock"><strong>{{test|statParagraph|linebreaksbr}}</strong></td>
     </tr>
     {% endfor %}
 </table>

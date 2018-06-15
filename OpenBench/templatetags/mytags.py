@@ -54,8 +54,8 @@ def statParagraph(test):
     elolower   = twoDigitPrecision(test.elolower)
     eloupper   = twoDigitPrecision(test.eloupper)
 
-    return 'SPRT @ {0}s Threads={1} Hash={2}MB<br>'.format(test.timecontrol, threads, hash) \
-         + 'LLR: {0} ({1}, {2}) [{3}, {4}]<br>'.format(currentllr, lowerllr, upperllr, elolower, eloupper) \
+    return 'SPRT @ {0}s Threads={1} Hash={2}MB\n'.format(test.timecontrol, threads, hash) \
+         + 'LLR: {0} ({1}, {2}) [{3}, {4}]\n'.format(currentllr, lowerllr, upperllr, elolower, eloupper) \
          + 'Games: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
 
 def testResultColour(test):
