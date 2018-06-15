@@ -15,6 +15,10 @@ FRAMEWORK_DEFAULTS = {
         'alpha'       : 0.10,
         'beta'        : 0.10,
         'threads'     : 1,
-        'bookname'    : '2moves_v1.pgn',
+
+        'books' : [
+            '2moves_v1.pgn',
+            '8moves_v3.pgn',
+        ],
     }
 }

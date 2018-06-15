@@ -32,7 +32,11 @@
         <input value="{{profile.repo}}" name="source">
         </br>
         <label> Opening Book </label>
-        <input value="{{config.bookname}}" name="bookname">
+        <select name="bookname">
+        {% for book in config.books %}
+            <option value="{{book}}">{{book}}</option>
+        {% endfor %}
+        </select>
         </br>
         <label> Time Control </label>
         <input value="{{config.timecontrol}}" name="timecontrol">

@@ -33,20 +33,15 @@ body {
     display: inline-block;
 }
 
-#content input {
+#content input, #content select {
     padding: 8px;
     margin: 2px 0px;
     display: inline-block;
     vertical-align: middle;
     width: 400px;
-}
-
-#content input:read-only {
-    font-weight: bold;
-}
-
-#content input:-moz-read-only {
-    font-weight: bold;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
 }
 
 #content input[type=submit] {
@@ -61,6 +56,14 @@ body {
 
 #content input[type=submit]:hover {
     background-color: #4CAF50;
+}
+
+#content input:read-only {
+    font-weight: bold;
+}
+
+#content input:-moz-read-only {
+    font-weight: bold;
 }
 
 #content #configuration {
