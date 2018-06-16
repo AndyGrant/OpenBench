@@ -9,6 +9,8 @@
         <th>Author</th>
         <th>Test</th>
         <th>Diff</th>
+        <th>P</th>
+        <th>Time</th>
         <th>Stats</th>
     </tr>
     {% endif %}
@@ -18,6 +20,8 @@
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
+        <td>{{test.priority}}</td>
+        <td>{{test.timecontrol}}</td>
         <td class="statblock"><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
     </tr>
     {% endfor %}
@@ -28,6 +32,8 @@
         <th>Author</th>
         <th>Test</th>
         <th>Diff</th>
+        <th>P</th>
+        <th>Time</th>
         <th>Stats</th>
     </tr>
     {% endif %}
@@ -37,6 +43,8 @@
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
+        <td>{{test.priority}}</td>
+        <td>{{test.timecontrol}}</td>
         <td class="statblock"><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
     </tr>
     {% endfor %}
@@ -47,6 +55,8 @@
         <th>Author</th>
         <th>Test</th>
         <th>Diff</th>
+        <th>P</th>
+        <th>Time</th>
         <th>Stats</th>
     </tr>
     {% endif %}
@@ -56,6 +66,8 @@
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
+        <td>{{test.priority}}</td>
+        <td>{{test.timecontrol}}</td>
         <td class="statblock"><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
     </tr>
     {% endfor %}
