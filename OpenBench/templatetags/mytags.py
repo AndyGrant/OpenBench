@@ -45,10 +45,6 @@ def gitDiffLink(test):
 
 def shortStatBlock(test):
 
-    tokens = test.devoptions.split(' ')
-    threads = tokens[0].split('=')[1]
-    hash = tokens[1].split('=')[1]
-
     lowerllr   = twoDigitPrecision(test.lowerllr)
     currentllr = twoDigitPrecision(test.currentllr)
     upperllr   = twoDigitPrecision(test.upperllr)
