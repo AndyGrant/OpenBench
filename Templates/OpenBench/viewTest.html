@@ -90,11 +90,8 @@
     <a class="anchorbutton" id="stopbutton" href="/stopTest/{{test.id}}/">Stop</a>
     {% endif %}
     <a class="anchorbutton" id="deletebutton" href="/deleteTest/{{test.id}}/">Delete</a>
-
     <h4>{{test.dev.name}} vs {{test.base.name}} <a href="{{test|gitDiffLink}}">DIFF</a></h4>
-    {% autoescape off %}
-    <pre>{{test|statParagraph}}</pre>
-    {% endautoescape %}
+    <pre>{{test|longStatBlock|linebreaksbr}}</pre>
 
     <form method="POST" action="/editTest/{{test.id}}/">
         {% csrf_token %}

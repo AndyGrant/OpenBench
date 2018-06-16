@@ -79,7 +79,6 @@ class Test(Model):
     currentllr  = FloatField(default=0.0)
     upperllr    = FloatField(default=0.0)
 
-    elo         = FloatField(default=0.0)
     games       = IntegerField(default=0)
     wins        = IntegerField(default=0)
     draws       = IntegerField(default=0)

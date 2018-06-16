@@ -18,7 +18,7 @@
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
-        <td class="statblock"><strong>{{test|statParagraph|linebreaksbr}}</strong></td>
+        <td class="statblock"><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
     </tr>
     {% endfor %}
     <tr><td class="embedded"><h2>Active</h2></td></tr>
@@ -37,7 +37,7 @@
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
-        <td class="statblock"><strong>{{test|statParagraph|linebreaksbr}}</strong></td>
+        <td class="statblock"><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
     </tr>
     {% endfor %}
     <tr><td class="embedded"><h2>Finished</h2></td></tr>
@@ -56,7 +56,7 @@
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
-        <td class="statblock"><strong>{{test|statParagraph|linebreaksbr}}</strong></td>
+        <td class="statblock"><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
     </tr>
     {% endfor %}
 </table>

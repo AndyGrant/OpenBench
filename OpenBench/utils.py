@@ -224,7 +224,6 @@ def update(request, user):
     sdraws = test.draws + draws
 
     # New stats for the test
-    elo      = ELO(swins, slosses, sdraws)
     sprt     = SPRT(swins, slosses, sdraws, test.elolower, test.eloupper)
     passed   = sprt > test.upperllr
     failed   = sprt < test.lowerllr
@@ -262,7 +261,6 @@ def update(request, user):
         losses=F('losses') + losses,
         draws=F('draws') + draws,
         currentllr=sprt,
-        elo=elo,
         passed=passed,
         failed=failed,
         finished=finished,
@@ -271,25 +269,6 @@ def update(request, user):
 
     # Signal to stop completed tests
     if finished: raise Exception()
-
-def ELO(wins, losses, draws):
-    games = wins + draws + losses
-    if games == 0: return 0.0
-    score = wins + draws / 2.0
-    percent = score / games
-    if percent == 0.0 or percent == 1.0: return 0.0
-    return -400.0 * math.log10(1 / percent - 1)
-
-def bayeselo_to_proba(elo, drawelo):
-    pwin  = 1.0 / (1.0 + math.pow(10.0, (-elo + drawelo) / 400.0))
-    ploss = 1.0 / (1.0 + math.pow(10.0, ( elo + drawelo) / 400.0))
-    pdraw = 1.0 - pwin - ploss
-    return pwin, pdraw, ploss
-
-def proba_to_bayeselo(pwin, pdraw, ploss):
-    elo     = 200 * math.log10(pwin/ploss * (1-ploss)/(1-pwin))
-    drawelo = 200 * math.log10((1-ploss)/ploss * (1-pwin)/pwin)
-    return elo, drawelo
 
 def SPRT(wins, losses, draws, elo0, elo1):
 
@@ -308,3 +287,50 @@ def SPRT(wins, losses, draws, elo0, elo1):
     return    wins * math.log(p1win  /  p0win) \
           + losses * math.log(p1loss / p0loss) \
           +  draws * math.log(p1draw / p0draw)
+
+def bayeselo_to_proba(elo, drawelo):
+    pwin  = 1.0 / (1.0 + math.pow(10.0, (-elo + drawelo) / 400.0))
+    ploss = 1.0 / (1.0 + math.pow(10.0, ( elo + drawelo) / 400.0))
+    pdraw = 1.0 - pwin - ploss
+    return pwin, pdraw, ploss
+
+def proba_to_bayeselo(pwin, pdraw, ploss):
+    elo     = 200 * math.log10(pwin/ploss * (1-ploss)/(1-pwin))
+    drawelo = 200 * math.log10((1-ploss)/ploss * (1-pwin)/pwin)
+    return elo, drawelo
+
+def erf_inv(x):
+    a = 8*(math.pi-3)/(3*math.pi*(4-math.pi))
+    y = math.log(1-x*x)
+    z = 2/(math.pi*a) + y/2
+    return math.copysign(math.sqrt(math.sqrt(z*z - y/a) - z), x)
+
+def phi_inv(p):
+    # Quantile function for the standard Gaussian law: probability -> quantile
+    assert(0 <= p and p <= 1)
+    return math.sqrt(2)*erf_inv(2*p-1)
+
+def ELO(wins, losses, draws):
+
+    def _elo(x):
+        if x <= 0 or x >= 1: return 0.0
+        return -400*math.log10(1/x-1)
+
+    # win/loss/draw ratio
+    N = wins + losses + draws;
+    if N == 0: return (0, 0, 0)
+    w = float(wins)  / N
+    l = float(losses)/ N
+    d = float(draws) / N
+
+    # mu is the empirical mean of the variables (Xi), assumed i.i.d.
+    mu = w + d/2
+
+    # stdev is the empirical standard deviation of the random variable (X1+...+X_N)/N
+    stdev = math.sqrt(w*(1-mu)**2 + l*(0-mu)**2 + d*(0.5-mu)**2) / math.sqrt(N)
+
+    # 95% confidence interval for mu
+    mu_min = mu + phi_inv(0.025) * stdev
+    mu_max = mu + phi_inv(0.975) * stdev
+
+    return (_elo(mu_min), _elo(mu), _elo(mu_max))
