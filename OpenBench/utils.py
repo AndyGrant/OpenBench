@@ -55,6 +55,7 @@ def newTest(request):
 
     test = Test() # New Test, saved only after parsing
     test.author = request.user.username
+    test.engine = request.POST['enginename']
 
     # Extract Development Fields
     devname     = request.POST['devbranch']
@@ -204,6 +205,7 @@ def workloadDictionary(machine, result, test):
         'result'  : { 'id'  : result.id, },
         'test' : {
             'id'            : test.id,
+            'nps'           : FRAMEWORK_DEFAULTS['config']['engines'][test.engine]['nps'],
             'book'          : FRAMEWORK_DEFAULTS['config']['books'][test.bookname],
             'timecontrol'   : test.timecontrol,
             'dev' : {

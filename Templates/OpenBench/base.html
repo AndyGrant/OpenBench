@@ -35,7 +35,10 @@
         </ul>
         <ul>
             <li class="header">LINKS</li>
-            <li><a href="{{config.framework}}">OpenBench </a></li>
+            <li><a href="{{config.framework}}">OpenBench</a></li>
+            {% for engine, data in config.engines.items|dictsort:"0.lower" %}
+                <li><a href="{{data.source}}">{{data.name}}</a></li>
+            {% endfor %}
         </ul>
         {% endblock %}
     </div>

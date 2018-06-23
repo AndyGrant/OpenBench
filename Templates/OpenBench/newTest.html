@@ -4,6 +4,17 @@
 <form method="POST" action="/newTest/">
     {% csrf_token %}
     <div>
+        <label> Engine Name </label>
+        <select name="enginename">
+        {% for name, data in config.engines.items %}
+            {% if data.default %}
+                <option selected value="{{name}}">{{data.name}}</option>
+            {% else %}
+                <option value="{{name}}">{{data.name}}</option>
+            {% endif %}
+        {% endfor %}
+        </select>
+        <br>
         <label> Dev Branch </label>
         <input name="devbranch" autofocus>
         </br>

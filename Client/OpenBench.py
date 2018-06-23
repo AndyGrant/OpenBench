@@ -339,7 +339,7 @@ def completeWorkload(data):
     # Compute and report CPU scaling factor
     avgnps = (devnps + basenps) / 2.0
     reportNPS(data, avgnps)
-    scalefactor = 2650000 / avgnps
+    scalefactor = int(data['test']['nps']) / avgnps
     print ('\nFACTOR    : {0}'.format(round(1 / scalefactor, 2)))
 
     # Compute and report cutechess-cli string

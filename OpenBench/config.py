@@ -11,15 +11,6 @@ FRAMEWORK_DEFAULTS = {
         'source'      : 'http://github.com/AndyGrant/EtherealDev/',
         'homepage'    : 'http://github.com/AndyGrant/Ethereal',
 
-        # Configured engines for the framework. To scale NPS for your engine,
-        # in order to match the time controls used here, do the following.
-        # Average a few bench runs for the latest version of Ethereal. Now
-        # take a few bench runs for the latest version of the new engine.
-        # Scale your NPS to match Ethereal's NPS of 2,500,000
-        'engines'     : {
-            'Ethereal' : {'nps' : 2500000},
-        },
-
         # Default engine test options
         'protocol'    : 'uci',
         'threads'     : 1,
@@ -32,6 +23,27 @@ FRAMEWORK_DEFAULTS = {
         'eloupper'    : 5.0,
         'alpha'       : 0.10,
         'beta'        : 0.10,
+
+        # Configured engines for the framework. To scale NPS for your engine,
+        # in order to match the time controls used here, do the following.
+        # Average a few bench runs for the latest version of Ethereal. Now
+        # take a few bench runs for the latest version of the new engine.
+        # Scale your NPS to match Ethereal's NPS of 2,500,000
+        'engines'     : {
+            'Ethereal' : {
+                'name'    : 'Ethereal',
+                'source'  : 'https://github.com/AndyGrant/Ethereal',
+                'nps'     : 2500000,
+                'default' : True,
+            },
+
+            'Laser' : {
+                'name'    : 'Laser',
+                'source'  : 'https://github.com/jeffreyan11/uci-chess-engine',
+                'nps'     : 875000,
+                'default' : False,
+            },
+        },
 
         # Book confgiruation. When addding a book, follow the provided template.
         # The SHA is defined by hashlib.sha256(book).hexdigest(). OpenBench.py
