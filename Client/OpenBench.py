@@ -1,4 +1,4 @@
-import ast, argparse, time, sys, platform, multiprocessing
+import ast, argparse, time, sys, platform, multiprocessing, hashlib
 import shutil, subprocess, requests, zipfile, os, math, json
 
 # Run from any location ...
@@ -49,6 +49,7 @@ def getNameAsExe(program):
 def getFile(source, outname):
 
     # Read a file from the given source and save it locally
+    print('Downloading : {0}'.format(source))
     request = requests.get(url=source, stream=True)
     with open(outname, 'wb') as fout:
         for chunk in request.iter_content(chunk_size=1024):
@@ -83,10 +84,11 @@ def getEngine(data):
     if os.path.isfile('Engines/' + exe):
         return
 
-    # Log the fact that we are downloading a new engine
-    print('\nEngine :', data['name'])
-    print(  'Commit :', data['sha'])
-    print(  'Source :', source)
+    # Log the fact that we are setting up a new engine
+    print('\nSETTING UP ENGINE')
+    print('Engine      :', data['name'])
+    print('Commit      :', data['sha'])
+    print('Source      :', source)
 
     # Extract and delete the zip file
     getFile(source, name + '.zip')
@@ -208,7 +210,7 @@ def getCutechessCommand(data, scalefactor):
 
     bookflags = (
         '-openings'
-        ' file=' + data['test']['bookname'] +
+        ' file=' + data['test']['book']['name'] +
         ' format=pgn'
         ' order=random'
         ' plies=16'
@@ -259,7 +261,7 @@ def getBenchSignature(engine):
 
     # Log and return computed bench and speed
     print ('Bench for {0} is {1}'.format(engine['name'], bench[0]))
-    print ('NPS   for {0} is {1}\n'.format(engine['name'], int(avg)))
+    print ('NPS   for {0} is {1}'.format(engine['name'], int(avg)))
     return (bench[0], avg)
 
 def reportWrongBench(data, engine):
@@ -304,12 +306,8 @@ def reportResults(data, wins, losses, draws, crashes, timeloss):
 
 def completeWorkload(data):
 
-    # Download engines and opening book
+    # Download and verify bench of dev engine
     getEngine(data['test']['dev'])
-    getEngine(data['test']['base'])
-    getFile(data['test']['booksource'], data['test']['bookname'])
-
-    # Verify the bench of the dev engine
     devbench, devnps = getBenchSignature(data['test']['dev'])
     if devbench != int(data['test']['dev']['bench']):
         print ('<ERROR> Invalid Bench. Got {0} Expected {1}'.format(
@@ -317,7 +315,8 @@ def completeWorkload(data):
         reportWrongBench(data, data['test']['dev'])
         return
 
-    # Verify the bench of the base engine
+    # Download and verify bench of base engine
+    getEngine(data['test']['base'])
     basebench, basenps = getBenchSignature(data['test']['base'])
     if basebench != int(data['test']['base']['bench']):
         print ('<ERROR> Invalid Bench. Got {0} Expected {1}'.format(
@@ -325,11 +324,23 @@ def completeWorkload(data):
         reportWrongBench(data, data['test']['base'])
         return
 
+    # Download and verify sha of the opening book
+    print('\nVERIFYING OPENING BOOK')
+    if not os.path.isfile(data['test']['book']['name']):
+        getFile(data['test']['book']['source'], data['test']['book']['name'])
+    with open(data['test']['book']['name']) as fin:
+        digest = hashlib.sha256(fin.read().encode('utf-8')).hexdigest()
+    print ('Correct SHA : {0}'.format(digest.upper()))
+    print ('MY Book SHA : {0}'.format(data['test']['book']['sha'].upper()))
+    if (digest != data['test']['book']['sha']):
+        print ('<ERROR> Invalid SHA for {0}'.format(data['test']['book']['name']))
+        sys.exit()
+
     # Compute and report CPU scaling factor
     avgnps = (devnps + basenps) / 2.0
     reportNPS(data, avgnps)
     scalefactor = 2650000 / avgnps
-    print ('FACTOR    : {0}'.format(round(1 / scalefactor, 2)))
+    print ('\nFACTOR    : {0}'.format(round(1 / scalefactor, 2)))
 
     # Compute and report cutechess-cli string
     command = getCutechessCommand(data, scalefactor)

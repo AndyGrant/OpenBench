@@ -33,8 +33,12 @@
         </br>
         <label> Opening Book </label>
         <select name="bookname">
-        {% for book in config.books %}
-            <option value="{{book}}">{{book}}</option>
+        {% for name, data in config.books.items %}
+            {% if data.default %}
+                <option selected value="{{name}}">{{data.name}}</option>
+            {% else %}
+                <option value="{{name}}">{{data.name}}</option>
+            {% endif %}
         {% endfor %}
         </select>
         </br>
