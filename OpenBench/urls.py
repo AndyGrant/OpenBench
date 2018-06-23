@@ -32,4 +32,6 @@ urlpatterns = [
     path(r'wrongBench/', OpenBench.views.wrongBench),
     path(r'submitNPS/', OpenBench.views.submitNPS),
     path(r'submitResults/', OpenBench.views.submitResults),
+
+    path(r'', OpenBench.views.index),
 ]
