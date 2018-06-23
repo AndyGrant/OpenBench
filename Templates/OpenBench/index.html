@@ -8,6 +8,7 @@
         <tr>
             <th>Creation</th>
             <th>Author</th>
+            <th>Engine</th>
             <th>Test</th>
             <th>Diff</th>
             <th>P</th>
@@ -19,6 +20,7 @@
         <tr>
             <td>{{test.creation|date:'Y-m-d'}}</td>
             <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
+            <td>{{test.engine}}</td>
             <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
             <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
             <td>{{test.priority}}</td>
@@ -31,6 +33,7 @@
         <tr>
             <th>Creation</th>
             <th>Author</th>
+            <th>Engine</th>
             <th>Test</th>
             <th>Diff</th>
             <th>P</th>
@@ -42,6 +45,7 @@
         <tr class="{{test|testResultColour}}">
             <td>{{test.creation|date:'Y-m-d'}}</td>
             <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
+            <td>{{test.engine}}</td>
             <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
             <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
             <td>{{test.priority}}</td>
@@ -55,6 +59,7 @@
     <tr>
         <th>Creation</th>
         <th>Author</th>
+        <th>Engine</th>
         <th>Test</th>
         <th>Diff</th>
         <th>P</th>
@@ -66,6 +71,7 @@
     <tr class="{{test|testResultColour}}">
         <td>{{test.creation|date:'Y-m-d'}}</td>
         <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
+        <td>{{test.engine}}</td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
         <td>{{test.priority}}</td>
