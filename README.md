@@ -3,19 +3,15 @@
 ## Windows
 ```
 1) Obtain a working python3 installation
-2) pip3 install requests
-3) git clone https://github.com/AndyGrant/OpenBench.git
-   OR simply download the repo from git (Harder to update!)
-
+2) download https://github.com/AndyGrant/OpenBench/blob/master/Client/OpenBench.py
+3) Move OpenBench.py to its own directory
 ```
 
 ## Linux
 ```
 1) sudo apt-get install python3
-2) pip3 install requests
-3) git clone https://github.com/AndyGrant/OpenBench.git
+2) git clone https://github.com/AndyGrant/OpenBench.git
 ```
-
 
 # Running the Client
 ```
@@ -37,7 +33,7 @@ compatibility issues, and many more are anticipated
 
 ```
 1) Obtain a working python3 installing
-2) pip install Django=2.0.6
+2) pip3 install Django=2.0.6
 3) Run the ./cleanup.sh script
 4) python3 manage.py createsuperuser
 5) Run the ./run.sh script
@@ -47,18 +43,8 @@ compatibility issues, and many more are anticipated
 
 # Configuing OpenBench to use your Engine
 ```
-1) In Client/OpenBench.py, adjust the NPS factor in completeWorkload()
-   This value should be the NPS for a bench, on the desired scaling machine.
-   I suggest that you scale this to match Fishtest's scaling
-2) If your repo structure is not similar to Ethereal's, you will have to either
-   change that, or modify the paths in getEngine() and buildEngine(). Additionally,
-   if your makefile does not support CC=, you must change or modify this
-3) In order to do scaling, your engine must support a bench command. OpenBench
-   is currently configured to assume bench may be passed as a command line argument.
-   The engine will run, report the final node count and nps, and then exit. You may
-   need to update singleCoreBench() to handle the correct parsing of that output
-4) Likely more steps to come. I plan to test with other engines once I am up and
-   running at full capacity for Ethereal
+In OpenBench/config.py, add your Engine to the engines list. Follow the defined
+template, which explains how to determine the NPS factor for your engine
 ```
 
 ## Things to avoid using, doing or modifying 
