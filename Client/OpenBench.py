@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 import ast, argparse, time, sys, platform, multiprocessing, hashlib
 import shutil, subprocess, requests, zipfile, os, math, json
 
@@ -188,7 +190,7 @@ def getCutechessCommand(data, scalefactor):
         ' -srand ' + str(int(time.time())) +
         ' -resign movecount=3 score=400'
         ' -draw movenumber=40 movecount=8 score=10'
-        ' -concurrency ' + str(math.floor(THREADS / max(devthreads, basethreads))) +
+        ' -concurrency ' + str(int(math.floor(THREADS / max(devthreads, basethreads)))) +
         ' -games 1000'
         ' -recover'
         ' -wait 10'
