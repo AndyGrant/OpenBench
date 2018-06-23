@@ -74,7 +74,7 @@ def longStatBlock(test):
     return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
          + 'SPRT  | {0}s Threads={1} Hash={2}MB\n'.format(test.timecontrol, threads, hash) \
          + 'LLR   | {0} ({1}, {2}) [{3}, {4}]\n'.format(currentllr, lowerllr, upperllr, elolower, eloupper) \
-         + 'Games | {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws) \
+         + 'Games | N: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws) \
 
 def testResultColour(test):
 
