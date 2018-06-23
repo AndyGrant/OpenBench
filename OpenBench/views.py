@@ -12,6 +12,7 @@ from django.utils.timezone import utc
 from OpenBench.config import *
 from OpenBench.models import LogEvent, Engine, Profile
 from OpenBench.models import Machine, Result, Test
+from OpenBench.utils import pagingContext
 
 import OpenBench.utils, datetime
 
@@ -106,7 +107,7 @@ def editProfile(request):
     # Send back to see the changes
     return HttpResponseRedirect('/viewProfile/')
 
-def index(request, page=0, username=None, error=''):
+def index(request, page=0, pageLength=50, username=None, error=''):
 
     # Get tests pending approval
     pending = Test.objects.filter(approved=False)
@@ -130,13 +131,25 @@ def index(request, page=0, username=None, error=''):
         pending   = pending.filter(author=username)
         active    = active.filter(author=username)
         completed = completed.filter(author=username)
+        source    = "viewUser/{0}".format(username)
+    else:
+        source    = "index"
+
+    # Choose tests within the given page, if any
+    items  = len(completed)
+    start  = page * pageLength
+    end    = start + pageLength
+    start  = max(0, min(start, items))
+    end    = max(0, min(end, items))
+    paging = pagingContext(page, pageLength, items, source)
 
     # Build context dictionary for index template
     data = {
         'pending'   : pending,
         'active'    : active,
-        'completed' : completed[:50],
+        'completed' : completed[start:end],
         'error'     : error,
+        'paging'    : paging,
     }
 
     return render(request, 'index.html', data)
@@ -147,10 +160,10 @@ def users(request):
     data = {'profiles' : Profile.objects.order_by('games')}
     return render(request, 'users.html', data)
 
-def viewUser(request, username):
+def viewUser(request, username, page=0):
 
     # Index but with only username's tests
-    return index(request, username=username)
+    return index(request, page, username=username)
 
 def machines(request):
 
@@ -159,10 +172,23 @@ def machines(request):
     data = {'machines' : Machine.objects.filter(updated__gte=target)}
     return render(request, 'machines.html', data)
 
-def eventLog(request):
+def eventLog(request, page=0, pageLength=50):
+
+    # Choose events within the given page, if any
+    events = LogEvent.objects.all()
+    items  = len(events)
+    start  = page * pageLength
+    end    = start + pageLength
+    start  = max(0, min(start, items))
+    end    = max(0, min(end, items))
+    paging = pagingContext(page, pageLength, items, 'eventLog')
 
     # Build context dictionary for event log template
-    data = {'events': LogEvent.objects.all().order_by('-id')[:50]}
+    data = {
+        'events': events[start:end],
+        'paging': paging
+    }
+
     return render(request, 'eventLog.html', data)
 
 @login_required(login_url='/login/')

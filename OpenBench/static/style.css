@@ -188,6 +188,23 @@ body {
     font-weight: bold;
 }
 
+#content #pagebrowse {
+    text-align: center;
+    margin-top: 16px;
+}
+
+#content .page {
+    border-style: solid;
+    border-width: 1px;
+    border-color: black;
+    border-radius: 16px;
+    text-align: center;
+    display: inline-block;
+    padding-top : 8px;
+    padding-bottom: 8px;
+    width: 5%;
+}
+
 #error {
     background-color: #ED7676;
     padding: 8px;

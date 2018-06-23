@@ -2,52 +2,54 @@
 {% load mytags %}
 {% block content %}
 <table class="datatable">
-    <tr><td class="embedded"><h2>Pending</h2></td></tr>
-    {% if pending %}
-    <tr>
-        <th>Creation</th>
-        <th>Author</th>
-        <th>Test</th>
-        <th>Diff</th>
-        <th>P</th>
-        <th>Time</th>
-        <th>Stats</th>
-    </tr>
+    {% if paging.page == 0 %}
+        <tr><td class="embedded"><h2>Pending</h2></td></tr>
+        {% if pending %}
+        <tr>
+            <th>Creation</th>
+            <th>Author</th>
+            <th>Test</th>
+            <th>Diff</th>
+            <th>P</th>
+            <th>Time</th>
+            <th>Stats</th>
+        </tr>
+        {% endif %}
+        {% for test in pending %}
+        <tr>
+            <td>{{test.creation|date:'Y-m-d'}}</td>
+            <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
+            <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
+            <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
+            <td>{{test.priority}}</td>
+            <td>{{test.timecontrol}}</td>
+            <td class="statblock"><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
+        </tr>
+        {% endfor %}
+        <tr><td class="embedded"><h2>Active</h2></td></tr>
+        {% if active %}
+        <tr>
+            <th>Creation</th>
+            <th>Author</th>
+            <th>Test</th>
+            <th>Diff</th>
+            <th>P</th>
+            <th>Time</th>
+            <th>Stats</th>
+        </tr>
+        {% endif %}
+        {% for test in active %}
+        <tr class="{{test|testResultColour}}">
+            <td>{{test.creation|date:'Y-m-d'}}</td>
+            <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
+            <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
+            <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
+            <td>{{test.priority}}</td>
+            <td>{{test.timecontrol}}</td>
+            <td class="statblock"><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
+        </tr>
+        {% endfor %}
     {% endif %}
-    {% for test in pending %}
-    <tr>
-        <td>{{test.creation|date:'Y-m-d'}}</td>
-        <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
-        <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
-        <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
-        <td>{{test.priority}}</td>
-        <td>{{test.timecontrol}}</td>
-        <td class="statblock"><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
-    </tr>
-    {% endfor %}
-    <tr><td class="embedded"><h2>Active</h2></td></tr>
-    {% if active %}
-    <tr>
-        <th>Creation</th>
-        <th>Author</th>
-        <th>Test</th>
-        <th>Diff</th>
-        <th>P</th>
-        <th>Time</th>
-        <th>Stats</th>
-    </tr>
-    {% endif %}
-    {% for test in active %}
-    <tr class="{{test|testResultColour}}">
-        <td>{{test.creation|date:'Y-m-d'}}</td>
-        <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
-        <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
-        <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
-        <td>{{test.priority}}</td>
-        <td>{{test.timecontrol}}</td>
-        <td class="statblock"><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
-    </tr>
-    {% endfor %}
     <tr><td class="embedded"><h2>Finished</h2></td></tr>
     {% if completed %}
     <tr>
@@ -72,4 +74,17 @@
     </tr>
     {% endfor %}
 </table>
+<div id="pagebrowse">
+    {% if paging.prev != paging.next %}
+        <a class="page" href="/{{paging.url}}/{{paging.prev}}">&lt;--</a>
+        {% for page in paging.pages %}
+            {% if page != "..." %}
+                <a class="page" href="/{{paging.url}}/{{page}}">{{page}}</a>
+            {% else %}
+                <a class="page"> {{page}} </a>
+            {% endif %}
+        {% endfor %}
+        <a class="page" href="/{{paging.url}}/{{paging.next}}">--&gt;</a>
+    {% endif %}
+</div>
 {% endblock %}

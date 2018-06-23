@@ -14,8 +14,10 @@ urlpatterns = [
     path(r'index/<int:page>/', OpenBench.views.index),
     path(r'users/', OpenBench.views.users),
     path(r'viewUser/<str:username>/', OpenBench.views.viewUser),
+    path(r'viewUser/<str:username>/<int:page>/', OpenBench.views.viewUser),
     path(r'machines/', OpenBench.views.machines),
     path(r'eventLog/', OpenBench.views.eventLog),
+    path(r'eventLog/<int:page>/', OpenBench.views.eventLog),
 
     path(r'newTest/', OpenBench.views.newTest),
     path(r'viewTest/<int:id>/', OpenBench.views.viewTest),

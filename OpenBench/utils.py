@@ -7,6 +7,36 @@ from django.contrib.auth import authenticate
 from OpenBench.config import *
 from OpenBench.models import Engine, Profile, Machine, Result, Test
 
+def pagingContext(page, pageLength, items, url):
+
+    # Tests within the given page
+    start   = page * pageLength
+    end     = min(start + pageLength, items)
+
+    # Get page numbers near the current page
+    pagenum = math.ceil(items / pageLength)
+    temp = list(range(0, min(3, pagenum)))
+    temp.extend(range(pagenum-1, pagenum-4, -1))
+    temp.extend(range(max(0, page-2), min(pagenum-1, page+3)))
+    temp = list(set(temp))
+    temp.sort()
+
+    # Fill in gaps with an ellipsis, throw out negatives
+    pages = []
+    for f in range(len(temp)):
+        if temp[f] < 0: continue
+        pages.append(temp[f])
+        if f < len(temp) - 1 and temp[f] != temp[f+1] - 1:
+            pages.append("...")
+
+    # Create context dictionary for paging setup
+    return {
+        "url"   : url,
+        "page"  : page,
+        "pages" : pages,
+        "prev"  : max(0, page - 1),
+        "next"  : max(0, min(page + 1, pagenum - 1)),
+    }
 
 def getSourceLocation(branch, repo):
 
