@@ -28,12 +28,12 @@ FRAMEWORK_DEFAULTS = {
         # in order to match the time controls used here, do the following.
         # Average a few bench runs for the latest version of Ethereal. Now
         # take a few bench runs for the latest version of the new engine.
-        # Scale your NPS to match Ethereal's NPS of 2,500,000
+        # Scale your NPS to match Ethereal's NPS of 1,750,000
         'engines'     : {
             'Ethereal' : {
                 'name'    : 'Ethereal',
                 'source'  : 'https://github.com/AndyGrant/Ethereal',
-                'nps'     : 2500000,
+                'nps'     : 1750000,
                 'default' : True,
             },
 
