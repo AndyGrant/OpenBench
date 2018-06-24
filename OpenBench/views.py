@@ -175,7 +175,7 @@ def machines(request):
 def eventLog(request, page=0, pageLength=50):
 
     # Choose events within the given page, if any
-    events = LogEvent.objects.all()
+    events = LogEvent.objects.all().order_by('-id')
     items  = len(events)
     start  = page * pageLength
     end    = start + pageLength
