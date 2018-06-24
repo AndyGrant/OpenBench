@@ -357,8 +357,7 @@ def completeWorkload(data):
 
     # Spawn cutechess process
     process = subprocess.Popen(
-        command,
-        shell=not IS_WINDOWS,
+        command.split(),
         stdout=subprocess.PIPE
     )
 
