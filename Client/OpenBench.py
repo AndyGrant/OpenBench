@@ -40,9 +40,16 @@ except:
     MACHINE_ID = None
     print('<Warning> Machine unregistered, will register with Server')
 
+# Solution taken from Fishtest
 def killProcess(process):
-    if not IS_WINDOWS : os.system('pkill -TERM -P {0}'.format(process.pid))
-    else : subprocess.call(['taskkill', '/F', '/T', '/PID', str(process.pid)])
+    try:
+        # process.kill doesn't kill subprocesses on Windows
+        if IS_WINDOWS: subprocess.call(['taskkill', '/F', '/T', '/PID', str(process.pid)])
+        else: process.kill()
+        process.wait()
+        process.stdout.close()
+    except:
+        pass
 
 def getNameAsExe(program):
     if IS_WINDOWS: return program + '.exe'
