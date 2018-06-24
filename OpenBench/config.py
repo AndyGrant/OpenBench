@@ -16,13 +16,13 @@ FRAMEWORK_DEFAULTS = {
         'threads'     : 1,
         'hash'        : 8,
         'threads'     : 1,
-        'timecontrol' : '5.0+0.05',
+        'timecontrol' : '10.0+0.1',
 
         # SPRT bounds and confidence values
         'elolower'    : 0.0,
         'eloupper'    : 5.0,
-        'alpha'       : 0.10,
-        'beta'        : 0.10,
+        'alpha'       : 0.05,
+        'beta'        : 0.05,
 
         # Configured engines for the framework. To scale NPS for your engine,
         # in order to match the time controls used here, do the following.
@@ -37,12 +37,12 @@ FRAMEWORK_DEFAULTS = {
                 'default' : True,
             },
 
-            'Laser' : {
-                'name'    : 'Laser',
-                'source'  : 'https://github.com/jeffreyan11/uci-chess-engine',
-                'nps'     : 875000,
-                'default' : False,
-            },
+            # 'Laser' : {
+            #     'name'    : 'Laser',
+            #     'source'  : 'https://github.com/jeffreyan11/uci-chess-engine',
+            #     'nps'     : 875000,
+            #     'default' : False,
+            # },
         },
 
         # Book confgiruation. When addding a book, follow the provided template.
