@@ -81,6 +81,8 @@ def getCoreFiles():
         if not os.path.isfile('cutechess'):
             getFile(location + 'cutechess-linux', 'cutechess')
             os.system('chmod 777 cutechess')
+        if not os.path.isfile('libcutechess.so.1'):
+            getFile(location + 'libcutechess.so.1', 'libcutechess.so.1')
 
 def getEngine(data):
 
