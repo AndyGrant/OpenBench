@@ -231,17 +231,21 @@ def getCutechessCommand(data, scalefactor):
 
 def singleCoreBench(name, outqueue):
 
-    # Format file path because of Windows ....
-    dir = os.path.join('Engines', getNameAsExe(name))
+    try:
+        # Format file path because of Windows ....
+        dir = os.path.join('Engines', getNameAsExe(name))
 
-    # Last two lines should hold node count and NPS
-    data = os.popen('{0} bench'.format(dir)).read()
-    data = data.strip().split('\n')
+        # Last two lines should hold node count and NPS
+        data = os.popen('{0} bench'.format(dir)).read()
+        data = data.strip().split('\n')
 
-    # Parse and dump results into queue
-    bench = int(data[-2].split(':')[1])
-    nps   = int(data[-1].split(':')[1])
-    outqueue.put((bench, nps))
+        # Parse and dump results into queue
+        bench = int(data[-2].split(':')[1])
+        nps   = int(data[-1].split(':')[1])
+        outqueue.put((bench, nps))
+
+    # Bad compile or bad output, force an error
+    except: outqueue.put((0, 0))
 
 def getBenchSignature(engine):
 
