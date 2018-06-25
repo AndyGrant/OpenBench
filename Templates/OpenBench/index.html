@@ -6,9 +6,8 @@
         <tr><td class="embedded"><h2>Pending</h2></td></tr>
         {% if pending %}
         <tr>
-            <th>Creation</th>
-            <th>Author</th>
             <th>Engine</th>
+            <th>Author</th>
             <th>Test</th>
             <th>Diff</th>
             <th>P</th>
@@ -18,9 +17,8 @@
         {% endif %}
         {% for test in pending %}
         <tr>
-            <td>{{test.creation|date:'Y-m-d'}}</td>
-            <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
             <td>{{test.engine}}</td>
+            <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
             <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
             <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
             <td>{{test.priority}}</td>
@@ -31,9 +29,8 @@
         <tr><td class="embedded"><h2>Active</h2></td></tr>
         {% if active %}
         <tr>
-            <th>Creation</th>
-            <th>Author</th>
             <th>Engine</th>
+            <th>Author</th>
             <th>Test</th>
             <th>Diff</th>
             <th>P</th>
@@ -42,10 +39,9 @@
         </tr>
         {% endif %}
         {% for test in active %}
-        <tr class="{{test|testResultColour}}">
-            <td>{{test.creation|date:'Y-m-d'}}</td>
-            <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
+        <tr>
             <td>{{test.engine}}</td>
+            <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
             <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
             <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
             <td>{{test.priority}}</td>
@@ -57,9 +53,8 @@
     <tr><td class="embedded"><h2>Finished</h2></td></tr>
     {% if completed %}
     <tr>
-        <th>Creation</th>
-        <th>Author</th>
         <th>Engine</th>
+        <th>Author</th>
         <th>Test</th>
         <th>Diff</th>
         <th>P</th>
@@ -68,15 +63,14 @@
     </tr>
     {% endif %}
     {% for test in completed %}
-    <tr class="{{test|testResultColour}}">
-        <td>{{test.creation|date:'Y-m-d'}}</td>
-        <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
+    <tr>
         <td>{{test.engine}}</td>
+        <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
         <td>{{test.priority}}</td>
         <td>{{test.timecontrol}}</td>
-        <td class="statblock"><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
+        <td class='statblock {{test|testResultColour}}'><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
     </tr>
     {% endfor %}
 </table>
