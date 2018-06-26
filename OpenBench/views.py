@@ -126,6 +126,19 @@ def index(request, page=0, pageLength=50, username=None, error=''):
     completed = completed.exclude(deleted=True)
     completed = completed.order_by('-updated')
 
+    # Pull data from active machines
+    target   = datetime.datetime.utcnow().replace(tzinfo=utc) - datetime.timedelta(minutes=10)
+    machines = Machine.objects.filter(updated__gte=target)
+    if username != None: machines.filter(owner=username)
+
+    # Extract stat information from workers
+    machineCount = len(machines)
+    threadCount  = sum(machine.threads for machine in machines)
+    npsTotal     = sum(machine.threads * machine.mnps for machine in machines)
+    workerData   = "{0} Machines {1} Threads {2} MNPS".format(
+        machineCount, threadCount, round(npsTotal, 2)
+    )
+
     # Index is wrapped just to view one user
     if username != None:
         pending   = pending.filter(author=username)
@@ -145,10 +158,11 @@ def index(request, page=0, pageLength=50, username=None, error=''):
 
     # Build context dictionary for index template
     data = {
+        'error'     : error,
         'pending'   : pending,
         'active'    : active,
         'completed' : completed[start:end],
-        'error'     : error,
+        'status'    : workerData,
         'paging'    : paging,
     }
 
@@ -168,7 +182,7 @@ def viewUser(request, username, page=0):
 def machines(request):
 
     # Build context dictionary for machine template with machines updated recently
-    target = datetime.datetime.utcnow().replace(tzinfo=utc) - datetime.timedelta(minutes=20)
+    target = datetime.datetime.utcnow().replace(tzinfo=utc) - datetime.timedelta(minutes=10)
     data = {'machines' : Machine.objects.filter(updated__gte=target)}
     return render(request, 'machines.html', data)
 

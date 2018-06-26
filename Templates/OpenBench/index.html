@@ -3,7 +3,7 @@
 {% block content %}
 <table class="datatable">
     {% if paging.page == 0 %}
-        <tr><td class="embedded" colspan='5'><h2>Pending</h2></td></tr>
+        <tr><td class="embedded" colspan='7'><h2>Pending</h2></td></tr>
         {% if pending %}
         <tr>
             <th>Engine</th>
@@ -26,7 +26,7 @@
             <td class="statblock"><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
         </tr>
         {% endfor %}
-        <tr><td class="embedded" colspan='5'><h2>Active</h2></td></tr>
+        <tr><td class="embedded" colspan='7'><h2>Active - {{status}}</h2></td></tr>
         {% if active %}
         <tr>
             <th>Engine</th>
@@ -50,7 +50,7 @@
         </tr>
         {% endfor %}
     {% endif %}
-    <tr><td class="embedded" colspan='5'><h2>Finished</h2></td></tr>
+    <tr><td class="embedded" colspan='7'><h2>Finished</h2></td></tr>
     {% if completed %}
     <tr>
         <th>Engine</th>
