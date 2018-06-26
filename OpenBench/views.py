@@ -107,7 +107,7 @@ def editProfile(request):
     # Send back to see the changes
     return HttpResponseRedirect('/viewProfile/')
 
-def index(request, page=0, pageLength=50, username=None, error=''):
+def index(request, page=0, pageLength=25, username=None, error=''):
 
     # Get tests pending approval
     pending = Test.objects.filter(approved=False)
@@ -129,7 +129,7 @@ def index(request, page=0, pageLength=50, username=None, error=''):
     # Pull data from active machines
     target   = datetime.datetime.utcnow().replace(tzinfo=utc) - datetime.timedelta(minutes=10)
     machines = Machine.objects.filter(updated__gte=target)
-    if username != None: machines.filter(owner=username)
+    if username != None: machines = machines.filter(owner=username)
 
     # Extract stat information from workers
     machineCount = len(machines)
