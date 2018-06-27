@@ -107,7 +107,7 @@ def editProfile(request):
     # Send back to see the changes
     return HttpResponseRedirect('/viewProfile/')
 
-def index(request, page=0, pageLength=25, username=None, error=''):
+def index(request, page=0, pageLength=25, greens=False, username=None, error=''):
 
     # Get tests pending approval
     pending = Test.objects.filter(approved=False)
@@ -139,12 +139,20 @@ def index(request, page=0, pageLength=25, username=None, error=''):
         machineCount, threadCount, round(npsTotal, 2)
     )
 
+    # Index is wrapped for just viewing passed tests
+    if greens == True:
+        pending   = active = []
+        completed = completed.filter(passed=True)
+        source    = 'greens'
+
     # Index is wrapped just to view one user
-    if username != None:
+    elif username != None:
         pending   = pending.filter(author=username)
         active    = active.filter(author=username)
         completed = completed.filter(author=username)
         source    = "viewUser/{0}".format(username)
+
+    # Index is normal, not wrapped for any views
     else:
         source    = "index"
 
@@ -163,21 +171,27 @@ def index(request, page=0, pageLength=25, username=None, error=''):
         'active'    : active,
         'completed' : completed[start:end],
         'status'    : workerData,
+        'greens'    : greens,
         'paging'    : paging,
     }
 
     return render(request, 'index.html', data)
+
+def greens(request, page=0):
+
+    # Index but with only passed tests
+    return index(request, page, greens=True)
+
+def viewUser(request, username, page=0):
+
+    # Index but with only username's tests
+    return index(request, page, username=username)
 
 def users(request):
 
     # Build context dictionary for template
     data = {'profiles' : Profile.objects.order_by('-games')}
     return render(request, 'users.html', data)
-
-def viewUser(request, username, page=0):
-
-    # Index but with only username's tests
-    return index(request, page, username=username)
 
 def machines(request):
 

@@ -2,7 +2,7 @@
 {% load mytags %}
 {% block content %}
 <table class="datatable">
-    {% if paging.page == 0 %}
+    {% if paging.page == 0 and greens == False %}
         <tr><td class="embedded" colspan='7'><h2>Pending</h2></td></tr>
         {% if pending %}
         <tr>
