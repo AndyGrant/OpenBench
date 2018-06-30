@@ -37,12 +37,12 @@ FRAMEWORK_DEFAULTS = {
                 'default' : True,
             },
 
-            # 'Laser' : {
-            #     'name'    : 'Laser',
-            #     'source'  : 'https://github.com/jeffreyan11/uci-chess-engine',
-            #     'nps'     : 875000,
-            #     'default' : False,
-            # },
+            'Laser' : {
+                'name'    : 'Laser',
+                'source'  : 'https://github.com/jeffreyan11/uci-chess-engine',
+                'nps'     : 625000,
+                'default' : False,
+            },
         },
 
         # Book confgiruation. When addding a book, follow the provided template.
