@@ -6,14 +6,12 @@ import shutil, subprocess, requests, zipfile, os, math, json
 # Run from any location ...
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
-# Argument Parsing ... <Server> <Threads> <?Compiler> <?UsePGO>
+# Argument Parsing ... <Username> <Password> <Server> <Threads>
 parser = argparse.ArgumentParser()
 parser.add_argument('-U', '--username', help='Username', required=True)
 parser.add_argument('-P', '--password', help='Password', required=True)
 parser.add_argument('-S', '--server', help='Server Address', required=True)
 parser.add_argument('-T', '--threads', help='# of Threads', required=True)
-parser.add_argument('-C', '--compiler', help='Compiler Name', required=True)
-parser.add_argument('-O', '--profile', help='Use PGO Builds', required=False, default=False)
 arguments = parser.parse_args()
 
 # Client Parameters
@@ -21,8 +19,6 @@ USERNAME = arguments.username
 PASSWORD = arguments.password
 SERVER   = arguments.server
 THREADS  = int(arguments.threads)
-COMPILER = arguments.compiler
-PROFILE  = arguments.profile
 
 # Windows treated seperatly from Linux
 IS_WINDOWS = platform.system() == 'Windows'
@@ -108,7 +104,9 @@ def getEngine(data):
     os.remove(name + '.zip')
 
     # Build Engine using provided gcc and PGO flags
-    buildEngine(exe, unzipname)
+    subprocess.Popen(
+        ['make', 'EXE={0}'.format(exe)],
+        cwd='tmp/{0}/src/'.format(unzipname)).wait()
 
     # Create the Engines directory if it does not exist
     if not os.path.isdir('Engines'):
@@ -123,32 +121,6 @@ def getEngine(data):
 
     # Cleanup the unzipped zip file
     shutil.rmtree('tmp')
-
-def buildEngine(exe, unzipname):
-
-    # Build a standard non-PGO binary
-    if not PROFILE:
-        subprocess.Popen(
-            ['make', 'CC={0}'.format(COMPILER), 'EXE={0}'.format(exe)],
-            cwd='tmp/{0}/src/'.format(unzipname)).wait()
-        return
-
-    # Build a profiled binary
-    subprocess.Popen(
-        ['make', 'CC={0} -fprofile-generate'.format(COMPILER), 'EXE={0}'.format(exe)],
-        cwd='tmp/{0}/src/'.format(unzipname)).wait()
-
-    # Run a bench to generate profiler data
-    subprocess.Popen(
-        ['tmp/{0}/src/{1}'.format(unzipname, exe), 'bench'],
-        stdin=subprocess.PIPE,
-        universal_newlines=True
-    ).wait()
-
-    # Build the final binary using the PGO data
-    subprocess.Popen(
-        ['make', 'CC={0} -fprofile-use'.format(COMPILER), 'EXE={0}'.format(exe)],
-        cwd='tmp/{0}/src'.format(unzipname)).wait()
 
 def getCutechessCommand(data, scalefactor):
 
