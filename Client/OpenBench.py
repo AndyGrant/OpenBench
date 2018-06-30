@@ -204,12 +204,18 @@ def getCutechessCommand(data, scalefactor):
 def singleCoreBench(name, outqueue):
 
     try:
-        # Format file path because of Windows ....
+        # Format file path because of Windows ...
         dir = os.path.join('Engines', getNameAsExe(name))
 
-        # Last two lines should hold node count and NPS
-        data = os.popen('{0} bench'.format(dir)).read()
-        data = data.strip().split('\n')
+        # Run bench from CMD, pipe stderr into stdout
+        data, empty = subprocess.Popen(
+            '{0} bench'.format(dir).split(),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        ).communicate()
+
+        # Split line by line after decoding
+        data = data.decode('ascii').strip().split('\n')
 
         # Parse and dump results into queue
         bench = int(data[-2].split(':')[1])
