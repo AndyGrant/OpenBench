@@ -299,6 +299,8 @@ def approveTest(request, id):
 
         # Approve the provided test
         test = Test.objects.get(id=id)
+        if test.approved:
+            return HttpResponseRedirect('/index/')
         test.approved = True
         test.save()
 
@@ -326,8 +328,8 @@ def restartTest(request, id):
 
         # Restart the provided test
         test = Test.objects.get(id=id)
-        if test.passed or test.failed:
-            raise Exception('Test Already Finished via SPRT')
+        if not test.finished:
+            return HttpResponseRedirect('/index/')
         test.finished = False
         test.save()
 
@@ -355,6 +357,8 @@ def stopTest(request, id):
 
         # Stop the provided test
         test = Test.objects.get(id=id)
+        if test.finished:
+            return HttpResponseRedirect('/index/')
         test.finished = True
         test.save()
 
@@ -382,6 +386,8 @@ def deleteTest(request, id):
 
         # Delete the provided test
         test = Test.objects.get(id=id)
+        if test.deleted:
+            return HttpResponseRedirect('/index/')
         test.deleted = True
         test.save()
 
