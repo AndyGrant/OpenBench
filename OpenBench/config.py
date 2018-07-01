@@ -33,7 +33,7 @@ FRAMEWORK_DEFAULTS = {
             'Ethereal' : {
                 'name'    : 'Ethereal',
                 'source'  : 'https://github.com/AndyGrant/Ethereal',
-                'nps'     : 1750000,
+                'nps'     : 1550000,
                 'default' : True,
             },
 
