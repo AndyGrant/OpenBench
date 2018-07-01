@@ -9,6 +9,7 @@
 {% block content %}
 <table class="datatable">
     <tr>
+        <th>ID</th>
         <th>User</th>
         <th>System</th>
         <th>Updated</th>
@@ -17,11 +18,12 @@
     </tr>
     {% for machine in machines %}
     <tr>
-        <td>{{machine.owner}}</th>
-        <td>{{machine.osname}}</th>
-        <td>{{machine.updated|date:'Y-m-d H:i'}}</th>
-        <td class="numeric">{{machine.threads}}</th>
-        <td class="numeric">{{machine.mnps|twoDigitPrecision}}</th>
+        <td class="numeric">{{machine.id}}</td>
+        <td>{{machine.owner}}</td>
+        <td>{{machine.osname}}</td>
+        <td>{{machine.updated|date:'Y-m-d H:i'}}</td>
+        <td class="numeric">{{machine.threads}}</td>
+        <td class="numeric">{{machine.mnps|twoDigitPrecision}}</td>
     </tr>
     {% endfor %}
 </table>
