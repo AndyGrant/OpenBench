@@ -26,6 +26,9 @@ IS_WINDOWS = platform.system() == 'Windows'
 # Server wants to identify different machines
 OS_NAME = platform.system() + ' ' + platform.release()
 
+# Timeout for .get and .post requests (in seconds)
+HTTP_TIMEOUT = 30
+
 # Server tracks machines by IDs, which are saved
 # locally once assigned. Regesitering a machine is
 # not a problem, but creates junk in the database
@@ -55,7 +58,7 @@ def getFile(source, outname):
 
     # Read a file from the given source and save it locally
     print('Downloading : {0}'.format(source))
-    request = requests.get(url=source, stream=True)
+    request = requests.get(url=source, stream=True, timeout=HTTP_TIMEOUT)
     with open(outname, 'wb') as fout:
         for chunk in request.iter_content(chunk_size=1024):
             if chunk: fout.write(chunk)
@@ -64,7 +67,7 @@ def getFile(source, outname):
 def getCoreFiles():
 
     # Ask the server where the core files are saved
-    request = requests.get(SERVER + '/getFiles/')
+    request = requests.get(SERVER + '/getFiles/', timeout=HTTP_TIMEOUT)
     location = request.content.decode('utf-8')
 
     # Download the proper cutechess program, and a dll if needed
@@ -265,7 +268,7 @@ def reportWrongBench(data, engine):
         'password'  : PASSWORD,
         'engineid'  : engine['id'],
         'testid'    : data['test']['id']}
-    return requests.post('{0}/wrongBench/'.format(SERVER), data=postdata).text
+    return requests.post('{0}/wrongBench/'.format(SERVER), data=postdata, timeout=HTTP_TIMEOUT).text
 
 def reportNPS(data, nps):
 
@@ -276,7 +279,7 @@ def reportNPS(data, nps):
             'username'  : USERNAME,
             'password'  : PASSWORD,
             'machineid' : data['machine']['id']}
-        return requests.post('{0}/submitNPS/'.format(SERVER), data=postdata).text
+        return requests.post('{0}/submitNPS/'.format(SERVER), data=postdata, timeout=HTTP_TIMEOUT).text
     except: print ('<Warning> Unable to reach server')
 
 def reportResults(data, wins, losses, draws, crashes, timeloss):
@@ -294,7 +297,7 @@ def reportResults(data, wins, losses, draws, crashes, timeloss):
             'machineid' : data['machine']['id'],
             'resultid'  : data['result']['id'],
             'testid'    : data['test']['id']}
-        return requests.post('{0}/submitResults/'.format(SERVER), data=postdata).text
+        return requests.post('{0}/submitResults/'.format(SERVER), data=postdata, timeout=HTTP_TIMEOUT).text
     except: print ('<Warning> Unable to reach server')
 
 def completeWorkload(data):
@@ -409,7 +412,7 @@ if __name__ == '__main__':
 
         try:
             # Request the information for the next workload
-            request = requests.post('{0}/getWorkload/'.format(SERVER), data=postdata)
+            request = requests.post('{0}/getWorkload/'.format(SERVER), data=postdata, timeout=HTTP_TIMEOUT)
 
             # Response is a dictionary of information, 'None', or an erro
             data = request.content.decode('utf-8')
@@ -437,9 +440,6 @@ if __name__ == '__main__':
             postdata['machineid'] = data['machine']['id']
             with open('machine.txt', 'w') as fout:
                 fout.write(str(postdata['machineid']))
-
-            # Update machine id in case ours was bad
-            postdata['machineid'] = data['machine']['id']
 
             # Begin working on the games to be played
             completeWorkload(data)
