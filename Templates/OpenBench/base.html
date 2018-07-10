@@ -6,6 +6,10 @@
 <head>
     <link rel="stylesheet" href="{% static 'style.css' %}">
     <title>OpenBench</title>
+    <script>
+    {% block scripts %}
+    {% endblock %}
+    </script>
 </head>
 <body>
     {% if error %}

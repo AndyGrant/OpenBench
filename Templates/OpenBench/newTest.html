@@ -1,80 +1,94 @@
 {% extends "OpenBench/base.html" %}
 
+{% block scripts %}
+    function setupSTC() {
+        document.getElementById("devoptions").value  = "Threads={{config.stc.threads}} Hash={{config.stc.hash}}";
+        document.getElementById("baseoptions").value = "Threads={{config.stc.threads}} Hash={{config.stc.hash}}";
+        document.getElementById("timecontrol").value = "{{config.stc.timecontrol}}"
+    }
+
+    function setupLTC() {
+        document.getElementById("devoptions").value  = "Threads={{config.ltc.threads}} Hash={{config.ltc.hash}}";
+        document.getElementById("baseoptions").value = "Threads={{config.ltc.threads}} Hash={{config.ltc.hash}}";
+        document.getElementById("timecontrol").value = "{{config.ltc.timecontrol}}"
+    }
+{% endblock %}
+
 {% block content %}
 <form method="POST" action="/newTest/">
     {% csrf_token %}
-    <div>
-        <label> Engine Name </label>
-        <select name="enginename">
-        {% for name, data in config.engines.items %}
-            {% if data.default %}
-                <option selected value="{{name}}">{{data.name}}</option>
-            {% else %}
-                <option value="{{name}}">{{data.name}}</option>
-            {% endif %}
-        {% endfor %}
-        </select>
-        <br>
-        <label> Dev Branch </label>
-        <input name="devbranch" autofocus>
-        </br>
-        <label> Dev Bench </label>
-        <input name="devbench">
-        </br>
-        <label> Dev Options </label>
-        <input value="Threads={{config.threads}} Hash={{config.hash}}" name="devoptions">
-        </br>
-        <label> Dev Protocol </label>
-        <input value="{{config.protocol}}" name="devprotocol">
-        </br>
-        <label> Base Branch </label>
-        <input value="master" name="basebranch">
-        </br>
-        <label> Base Bench </label>
-        <input name="basebench">
-        </br>
-        <label> Base Options </label>
-        <input value="Threads={{config.threads}} Hash={{config.hash}}" name="baseoptions">
-        </br>
-        <label> Base Protocol </label>
-        <input value="{{config.protocol}}" name="baseprotocol">
-        </br>
-        <label> Source </label>
-        <input value="{{profile.repo}}" name="source">
-        </br>
-        <label> Opening Book </label>
-        <select name="bookname">
-        {% for name, data in config.books.items %}
-            {% if data.default %}
-                <option selected value="{{name}}">{{data.name}}</option>
-            {% else %}
-                <option value="{{name}}">{{data.name}}</option>
-            {% endif %}
-        {% endfor %}
-        </select>
-        </br>
-        <label> Time Control </label>
-        <input value="{{config.timecontrol}}" name="timecontrol">
-        </br>
-        <label> Priority </label>
-        <input value="0" name="priority">
-        </br>
-        <label> Throughput </label>
-        <input value="1000" name="throughput">
-        </br>
-        <label> Lower Bound </label>
-        <input value="{{config.elolower}}" name="elolower">
-        </br>
-        <label> Upper Bound </label>
-        <input value="{{config.eloupper}}" name="eloupper">
-        </br>
-        <label> Alpha </label>
-        <input value="{{config.alpha}}" name="alpha">
-        </br>
-        <label> Beta </label>
-        <input value="{{config.beta}}" name="beta">
-        </br>
-        <input type="submit" name="submit" value="Create Engine Test">
-    </div>
+    <label> Engine Name </label>
+    <select name="enginename">
+    {% for name, data in config.engines.items %}
+        {% if data.default %}
+            <option selected value="{{name}}">{{data.name}}</option>
+        {% else %}
+            <option value="{{name}}">{{data.name}}</option>
+        {% endif %}
+    {% endfor %}
+    </select>
+    <br>
+    <label> Dev Branch </label>
+    <input name="devbranch" autofocus>
+    </br>
+    <label> Dev Bench </label>
+    <input name="devbench">
+    </br>
+    <label> Dev Options </label>
+    <input id="devoptions" value="Threads={{config.stc.threads}} Hash={{config.stc.hash}}" name="devoptions">
+    </br>
+    <label> Dev Protocol </label>
+    <input value="{{config.protocol}}" name="devprotocol">
+    </br>
+    <label> Base Branch </label>
+    <input value="master" name="basebranch">
+    </br>
+    <label> Base Bench </label>
+    <input name="basebench">
+    </br>
+    <label> Base Options </label>
+    <input id="baseoptions" value="Threads={{config.stc.threads}} Hash={{config.stc.hash}}" name="baseoptions">
+    </br>
+    <label> Base Protocol </label>
+    <input value="{{config.protocol}}" name="baseprotocol">
+    </br>
+    <label> Source </label>
+    <input value="{{profile.repo}}" name="source">
+    </br>
+    <label> Opening Book </label>
+    <select name="bookname">
+    {% for name, data in config.books.items %}
+        {% if data.default %}
+            <option selected value="{{name}}">{{data.name}}</option>
+        {% else %}
+            <option value="{{name}}">{{data.name}}</option>
+        {% endif %}
+    {% endfor %}
+    </select>
+    </br>
+    <label> Time Control </label>
+    <input id="timecontrol" value="{{config.stc.timecontrol}}" name="timecontrol">
+    </br>
+    <label> Priority </label>
+    <input value="0" name="priority">
+    </br>
+    <label> Throughput </label>
+    <input value="1000" name="throughput">
+    </br>
+    <label> Lower Bound </label>
+    <input value="{{config.elolower}}" name="elolower">
+    </br>
+    <label> Upper Bound </label>
+    <input value="{{config.eloupper}}" name="eloupper">
+    </br>
+    <label> Alpha </label>
+    <input value="{{config.alpha}}" name="alpha">
+    </br>
+    <label> Beta </label>
+    <input value="{{config.beta}}" name="beta">
+    </br>
+    <input type="submit" name="submit" value="Create Engine Test">
 </form>
+<button onClick="setupSTC()">Setup STC</button>
+<button onClick="setupLTC()">Setup LTC</button>
 {% endblock %}

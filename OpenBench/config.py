@@ -11,12 +11,22 @@ FRAMEWORK_DEFAULTS = {
         'source'      : 'http://github.com/AndyGrant/EtherealDev/',
         'homepage'    : 'http://github.com/AndyGrant/Ethereal',
 
-        # Default engine test options
+        # Default to uci since everyone uses it
         'protocol'    : 'uci',
-        'threads'     : 1,
-        'hash'        : 8,
-        'threads'     : 1,
-        'timecontrol' : '10.0+0.1',
+
+        # Defaults for Short Time Control tests (default on newTest)
+        'stc'         : {
+            'threads'     : 1,
+            'hash'        : 8,
+            'timecontrol' : '10.0+0.1',
+        },
+
+        # Defaults for Long Time Control tests (ease of submitting LTC)
+        'ltc'         : {
+            'threads'     : 1,
+            'hash'        : 64,
+            'timecontrol' : '60.0+0.6',
+        },
 
         # SPRT bounds and confidence values
         'elolower'    : 0.0,

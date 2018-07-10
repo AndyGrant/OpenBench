@@ -44,6 +44,24 @@ body {
     -webkit-box-sizing: border-box;
 }
 
+#content button {
+    padding: 8px 0px;
+    margin: 2px 0px;
+    display: inline-block;
+    vertical-align: middle;
+    width: 290px;
+    background-color: #A7D691;
+    color: black;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#content button:hover {
+    background-color: #6AC63F;
+}
+
 #content input[type=submit] {
     background-color: #15A049;
     color: white;
