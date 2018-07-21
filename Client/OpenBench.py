@@ -3,6 +3,12 @@ from __future__ import print_function
 import ast, argparse, time, sys, platform, multiprocessing, hashlib
 import shutil, subprocess, requests, zipfile, os, math, json
 
+
+## Configuration
+HTTP_TIMEOUT   = 30  # Timeout in seconds for web requests
+GAMES_PER_TASK = 250 # Games to complete for each workload
+
+
 # Run from any location ...
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
@@ -25,9 +31,6 @@ IS_WINDOWS = platform.system() == 'Windows'
 
 # Server wants to identify different machines
 OS_NAME = platform.system() + ' ' + platform.release()
-
-# Timeout for .get and .post requests (in seconds)
-HTTP_TIMEOUT = 30
 
 # Solution taken from Fishtest
 def killProcess(process):
@@ -165,7 +168,7 @@ def getCutechessCommand(data, scalefactor):
         ' -resign movecount=3 score=400'
         ' -draw movenumber=40 movecount=8 score=10'
         ' -concurrency ' + str(int(math.floor(THREADS / max(devthreads, basethreads)))) +
-        ' -games 1000'
+        ' -games ' + str(GAMES_PER_TASK) +
         ' -recover'
         ' -wait 10'
     )
