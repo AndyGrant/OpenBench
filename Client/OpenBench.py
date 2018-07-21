@@ -29,16 +29,6 @@ OS_NAME = platform.system() + ' ' + platform.release()
 # Timeout for .get and .post requests (in seconds)
 HTTP_TIMEOUT = 30
 
-# Server tracks machines by IDs, which are saved
-# locally once assigned. Regesitering a machine is
-# not a problem, but creates junk in the database
-try:
-    with open('machine.txt') as fin:
-        MACHINE_ID = int(fin.readlines()[0])
-except:
-    MACHINE_ID = None
-    print('<Warning> Machine unregistered, will register with Server')
-
 # Solution taken from Fishtest
 def killProcess(process):
     try:
@@ -396,6 +386,14 @@ def completeWorkload(data):
 
 if __name__ == '__main__':
 
+    # Machine ID numbers are tracked by the server, and saved locally
+    try:
+        with open('machine.txt') as fin:
+            machineid = fin.readlines()[0]
+    except:
+        machineid = 'None'
+        print('<Warning> Machine unregistered, will register with Server')
+
     # Download cutechess and any .dlls needed
     getCoreFiles()
 
@@ -405,7 +403,7 @@ if __name__ == '__main__':
         'password'  : PASSWORD,
         'threads'   : THREADS,
         'osname'    : OS_NAME,
-        'machineid' : str(MACHINE_ID),
+        'machineid' : machineid,
     }
 
     while True:
@@ -414,7 +412,7 @@ if __name__ == '__main__':
             # Request the information for the next workload
             request = requests.post('{0}/getWorkload/'.format(SERVER), data=postdata, timeout=HTTP_TIMEOUT)
 
-            # Response is a dictionary of information, 'None', or an erro
+            # Response is a dictionary of information, 'None', or an error string
             data = request.content.decode('utf-8')
 
             # Server has nothing to run, ask again later
@@ -428,10 +426,13 @@ if __name__ == '__main__':
                 print ('<ERROR> Invalid Login Credentials')
                 sys.exit()
 
-            # Server might reject our Machine ID
+            # Server might reject our Machine ID, in which case
+            # we register again, but without an ID number. Server
+            # will send us a new ID, and we can save that locally
             if data == 'Bad Machine':
-                print ('<ERROR> Bad Machine. Delete machine.txt')
-                sys.exit()
+                print ('<ERROR> Bad Machine, Registering again')
+                postdata['machineid'] = 'None'
+                continue
 
             # Convert response into a data dictionary
             data = ast.literal_eval(data)
