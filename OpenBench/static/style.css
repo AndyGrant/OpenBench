@@ -90,11 +90,16 @@ body {
 }
 
 #content .rawtable td {
-    padding-right: 30px;
+    padding-right: 20px;
 }
 
 #content .rawtable th {
+    padding-right: 20px;
     text-align: left;
+}
+
+#content .rawtable .numeric {
+    text-align: right;
 }
 
 #content #actions {
