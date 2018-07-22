@@ -434,8 +434,12 @@ def getWorkload(request):
     except: return HttpResponse('Bad Machine')
 
     # Find an active Test to work on
-    try: test = OpenBench.utils.getWorkload(machine)
-    except: return HttpResponse('None')
+    try:
+        test = OpenBench.utils.getWorkload(machine)
+        machine.workload = test
+        machine.save()
+    except:
+        return HttpResponse('None')
 
     # Create or fetch the Results
     try: result = OpenBench.utils.getResult(machine, test)

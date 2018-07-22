@@ -13,6 +13,7 @@
         <th>User</th>
         <th>System</th>
         <th>Updated</th>
+        <th>Workload</th>
         <th>Threads</th>
         <th>MNPS</th>
     </tr>
@@ -22,6 +23,7 @@
         <td>{{machine.owner}}</td>
         <td>{{machine.osname}}</td>
         <td>{{machine.updated|date:'Y-m-d H:i'}}</td>
+        <td> <a href="viewTest/{{machine.workload.id}}">{{machine.workload.dev.name}}</a></td>
         <td class="numeric">{{machine.threads}}</td>
         <td class="numeric">{{machine.mnps|twoDigitPrecision}}</td>
     </tr>
