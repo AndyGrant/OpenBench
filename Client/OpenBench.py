@@ -6,8 +6,8 @@ import shutil, subprocess, requests, zipfile, os, math, json
 
 ## Configuration
 HTTP_TIMEOUT   = 30  # Timeout in seconds for web requests
-GAMES_PER_TASK = 250 # Games to complete for each workload
-
+GAMES_PER_TASK = 250 # Total games to complete for each workload
+REPORT_RATE    = 10  # Games per upload. Must divide GAMES_PER_TASK
 
 # Run from any location ...
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -291,7 +291,10 @@ def reportResults(data, wins, losses, draws, crashes, timeloss):
             'resultid'  : data['result']['id'],
             'testid'    : data['test']['id']}
         return requests.post('{0}/submitResults/'.format(SERVER), data=postdata, timeout=HTTP_TIMEOUT).text
-    except: print ('<Warning> Unable to reach server')
+    except:
+        print ('<Warning> Unable to reach server')
+        return "Unable"
+
 
 def completeWorkload(data):
 
@@ -370,22 +373,26 @@ def completeWorkload(data):
         if 'on time' in line:
             timeloss += 1
 
-        # Batch result updates
-        if (sum(score) - sum(sent)) % 25 == 0 and score != sent:
+        # Report back results in batches
+        if line.startswith('Score of') and (sum(score) - sum(sent)) % REPORT_RATE == 0:
+
+            # Compute scoreline differences
             wins   = score[0] - sent[0]
             losses = score[1] - sent[1]
             draws  = score[2] - sent[2]
-            if reportResults(data, wins, losses, draws, crashes, timeloss) == 'Stop':
+
+            # Send results to server
+            status = reportResults(data, wins, losses, draws, crashes, timeloss)
+
+            # Task ended, deleted, ..., exit back for new task
+            if status == "Stop":
                 killProcess(process)
                 break
-            crashes = timeloss = 0
-            sent = score[::]
 
-    # One final result send before we exit just in case
-    wins   = score[0] - sent[0]
-    losses = score[1] - sent[1]
-    draws  = score[2] - sent[2]
-    reportResults(data, wins, losses, draws, crashes, timeloss)
+            # Only reset tracking when the server was reached
+            if status != "Unable":
+                crashes = timeloss = 0
+                sent = score[::]
 
 if __name__ == '__main__':
 
