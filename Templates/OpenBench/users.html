@@ -8,12 +8,10 @@
 <table class="datatable">
     <tr>
         <th>Username</th>
-        <th>Last Seen</th>
+        <th>Last Seen On</th>
         <th>Games</th>
         <th>Tests</th>
         <th>Repo</th>
-        <th>Enabled</th>
-        <th>Approver</th>
     </tr>
     {% for profile in profiles %}
     <tr>
@@ -22,8 +20,6 @@
         <td class="numeric">{{profile.games}}</td>
         <td class="numeric">{{profile.tests}}</td>
         <td><a href="{{profile.repo}}">{{profile.repo}}</a></td>
-        <td>{{profile.enabled}}</td>
-        <td>{{profile.approver}}</td>
     </tr>
     {% endfor %}
 <table>
