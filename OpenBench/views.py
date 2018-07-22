@@ -391,6 +391,12 @@ def deleteTest(request, id):
         test.deleted = True
         test.save()
 
+        # Reduce the test count for the test author
+        user = User.objects.get(username=test.author)
+        profile = Profile.objects.get(user=user)
+        profile.tests -= 1
+        profile.save()
+
         # Log the test deltion
         LogEvent.objects.create(
             data='Deleted Test',
