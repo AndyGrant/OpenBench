@@ -182,6 +182,50 @@ def greens(request, page=0):
     # Index but with only passed tests
     return index(request, page, greens=True)
 
+def search(request):
+
+    # First time viewing the page
+    if request.method == 'GET':
+        return render(request, 'search.html', {'tests' : []})
+
+    # Base starting point with all tests
+    tests = Test.objects.all()
+
+    # Only show tests for selected engine (default is all engines)
+    if request.POST['engine'] != '':
+        tests = tests.filter(engine=request.POST['engine'])
+
+    # Only show tests from a selected author (default is all authors)
+    if request.POST['author'] != '':
+        tests = tests.filter(author=request.POST['author'])
+
+    # Don't show tests that have passed (Default is False)
+    if request.POST['showpassed'] != 'True':
+        tests = tests.exclude(passed=True)
+
+    # Don't show tests that have failed (Default is False)
+    if request.POST['showfailed'] != 'True':
+        tests = tests.exclude(failed=True)
+
+    # Don't show tests that have been deleted (Default is True)
+    if request.POST['showdeleted'] != 'False':
+        tests = tests.exclude(deleted=False)
+
+    # If there are no keywords, we are done searching
+    keywords = request.POST['keywords'].split()
+    if keywords == []:
+        return render(request, 'search.html', {'tests' : tests.order_by('-updated')})
+
+    # Only grab tests which contain at least one keyword
+    filtered = []
+    for test in tests.order_by('-updated'):
+        for keyword in keywords:
+            if keyword in test.dev.name:
+                filtered.append(test)
+                break
+    return render(request, 'search.html', {'tests' : filtered})
+
+
 def viewUser(request, username, page=0):
 
     # Index but with only username's tests
