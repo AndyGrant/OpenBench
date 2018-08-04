@@ -220,11 +220,10 @@ def search(request):
     filtered = []
     for test in tests.order_by('-updated'):
         for keyword in keywords:
-            if keyword in test.dev.name:
+            if keyword.upper() in test.dev.name.upper():
                 filtered.append(test)
                 break
     return render(request, 'search.html', {'tests' : filtered})
-
 
 def viewUser(request, username, page=0):
 
