@@ -177,14 +177,16 @@ def getCutechessCommand(data, scalefactor):
         '-engine'
         ' cmd=Engines/' + getNameAsExe(data['test']['dev']['sha']) +
         ' proto=' + data['test']['dev']['protocol'] +
-        ' tc=' + timecontrol + devoptions
+        ' tc=' + timecontrol + devoptions +
+        ' name=test'
     )
 
     baseflags = (
         '-engine'
         ' cmd=Engines/' + getNameAsExe(data['test']['base']['sha']) +
         ' proto=' + data['test']['base']['protocol'] +
-        ' tc=' + timecontrol + baseoptions
+        ' tc=' + timecontrol + baseoptions +
+        ' name=base'
     )
 
     bookflags = (
