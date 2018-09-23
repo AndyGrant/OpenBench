@@ -10,18 +10,32 @@ FRAMEWORK_DEFAULTS = {
         # Default to uci since everyone uses it
         'protocol'    : 'uci',
 
-        # Defaults for Short Time Control tests (default on newTest)
+        # Defaults for Short Time Control tests
         'stc'         : {
             'threads'     : 1,
             'hash'        : 8,
             'timecontrol' : '10.0+0.1',
         },
 
-        # Defaults for Long Time Control tests (ease of submitting LTC)
+        # Defaults for Long Time Control tests
         'ltc'         : {
             'threads'     : 1,
             'hash'        : 64,
             'timecontrol' : '60.0+0.6',
+        },
+
+        # Defaults for Short Time Control tests with SMP
+        'smpstc'      : {
+            'threads'     : 8,
+            'hash'        : 64,
+            'timecontrol' : '5.0+0.05',
+        },
+
+        # Defaults for Long Time Control tests with SMP
+        'smpltc'      : {
+            'threads'     : 8,
+            'hash'        : 256,
+            'timecontrol' : '20.0+0.2',
         },
 
         # SPRT bounds and confidence values

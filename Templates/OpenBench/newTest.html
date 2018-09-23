@@ -12,6 +12,18 @@
         document.getElementById("baseoptions").value = "Threads={{config.ltc.threads}} Hash={{config.ltc.hash}}";
         document.getElementById("timecontrol").value = "{{config.ltc.timecontrol}}"
     }
+
+    function setupSMPSTC() {
+        document.getElementById("devoptions").value  = "Threads={{config.smpstc.threads}} Hash={{config.smpstc.hash}}";
+        document.getElementById("baseoptions").value = "Threads={{config.smpstc.threads}} Hash={{config.smpstc.hash}}";
+        document.getElementById("timecontrol").value = "{{config.smpstc.timecontrol}}"
+    }
+
+    function setupSMPLTC() {
+        document.getElementById("devoptions").value  = "Threads={{config.smpltc.threads}} Hash={{config.smpltc.hash}}";
+        document.getElementById("baseoptions").value = "Threads={{config.smpltc.threads}} Hash={{config.smpltc.hash}}";
+        document.getElementById("timecontrol").value = "{{config.smpltc.timecontrol}}"
+    }
 {% endblock %}
 
 {% block content %}
@@ -91,4 +103,7 @@
 </form>
 <button onClick="setupSTC()">Setup STC</button>
 <button onClick="setupLTC()">Setup LTC</button>
+<br>
+<button onClick="setupSMPSTC()">Setup SMP STC</button>
+<button onClick="setupSMPLTC()">Setup SMP LTC</button>
 {% endblock %}
