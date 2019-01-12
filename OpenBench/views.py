@@ -1,3 +1,4 @@
+from django.db.models import F
 from django.shortcuts import render as djangoRender
 from django.http import HttpResponse, HttpResponseRedirect
 from django.contrib.auth import authenticate
@@ -199,17 +200,25 @@ def search(request):
     if request.POST['author'] != '':
         tests = tests.filter(author=request.POST['author'])
 
-    # Don't show tests that have passed (Default is False)
-    if request.POST['showpassed'] != 'True':
+    # Don't show tests that have passed
+    if request.POST['showgreens'] == 'False':
         tests = tests.exclude(passed=True)
 
-    # Don't show tests that have failed (Default is False)
-    if request.POST['showfailed'] != 'True':
-        tests = tests.exclude(failed=True)
+    # Don't show tests that have failed yellow
+    if request.POST['showyellows'] == 'False':
+        tests = tests.exclude(failed=True,wins__gte=F('losses'))
 
-    # Don't show tests that have been deleted (Default is True)
-    if request.POST['showdeleted'] != 'False':
-        tests = tests.exclude(deleted=False)
+    # Don't show tests that have failed red
+    if request.POST['showreds']  == 'False':
+        tests = tests.exclude(failed=True,wins__lt=F('losses'))
+
+    # Don't show tests that are unfinished
+    if request.POST['showunfinished'] == 'False':
+        tests = tests.exclude(passed=False,failed=False)
+
+    # Don't show tests that have been deleted
+    if request.POST['showdeleted'] == 'False':
+        tests = tests.exclude(deleted=True)
 
     # If there are no keywords, we are done searching
     keywords = request.POST['keywords'].split()
