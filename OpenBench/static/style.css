@@ -1,6 +1,7 @@
 body {
     font-family: "Courier New";
     font-size: 16px;
+    background: #2A2A2A;
 }
 
 #sidebar {
@@ -15,7 +16,7 @@ body {
 
 #sidebar .header {
     font-weight: bold;
-    color: grey;
+    color: #AAAAAA;
 }
 
 #sidebar li {
@@ -25,6 +26,7 @@ body {
 #content {
     float: left;
     padding: 20px 0px;
+    color: #EAEAEA;
 }
 
 #content label {
@@ -141,7 +143,7 @@ body {
 }
 
 #content .datatable th {
-    color: white;
+    color: #EAEAEA;
     font-size: 20px;
     padding: 6px 12px;
     background-color: #15A049;
@@ -149,7 +151,6 @@ body {
 
 #content .datatable td {
     padding: 6px 12px;
-
 }
 
 #content .datatable .numeric {
@@ -157,23 +158,30 @@ body {
 }
 
 #content .datatable tr {
-    background-color: #DBDBDB;
+    background-color: #212121;
 }
 
 #content .datatable .embedded {
-    background-color: white;
-    text-align: left;
     border: none;
+    text-align: left;
     padding-left: 0px;
+    background: #2A2A2A;
 }
 
 #content .datatable .embedded h2 {
     margin: 16px 0px 0px 0px;
     pading: 0px;
+    color: #FFFFFF;
+}
+
+#content .datatable .statblock {
+    line-height: 70%;
+    color: black;
+    background-color: #AAAAAA;
 }
 
 #content .datatable .green {
-    background-color: #7DF779
+    background-color: #9DF779
 }
 
 #content .datatable .yellow {
@@ -181,11 +189,7 @@ body {
 }
 
 #content .datatable .red {
-    background-color: #FAA5A5
-}
-
-#content .datatable .statblock {
-    line-height: 70%;
+    background-color: #FA8E8E
 }
 
 #content #results {
@@ -221,7 +225,7 @@ body {
     display: inline-block;
     padding: 8px 0px;
     width: 5%;
-    background-color: #DBDBDB;
+    background-color: #424242;
 }
 
 #content .page:hover {
@@ -238,5 +242,5 @@ body {
 
 a:link, a:visited, a:hover, a:active {
     text-decoration: none;
-    color: blue;
+    color: #FFFFFF;
 }
