@@ -157,6 +157,13 @@ def getCutechessCommand(data, scalefactor):
     basethreads = int(tokens[0].split('=')[1])
     baseoptions = ' option.'.join(['']+tokens)
 
+    # Check for an FRC/Chess960 opening book
+    variant = 'standard'
+    if "FRC" in data['test']['book']['name'].upper():
+        variant = 'fischerandom'
+    if "960" in data['test']['book']['name'].upper():
+        variant = 'fischerandom'
+
     # Finally, output the time control for the user
     print ('ORIGINAL  :', data['test']['timecontrol'])
     print ('SCALED    :', timecontrol)
@@ -167,6 +174,7 @@ def getCutechessCommand(data, scalefactor):
         ' -srand ' + str(int(time.time())) +
         ' -resign movecount=3 score=400'
         ' -draw movenumber=40 movecount=8 score=10'
+        ' -variant ' + variant +
         ' -concurrency ' + str(int(math.floor(THREADS / max(devthreads, basethreads)))) +
         ' -games ' + str(GAMES_PER_TASK) +
         ' -recover'
