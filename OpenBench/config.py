@@ -48,7 +48,8 @@ FRAMEWORK_DEFAULTS = {
         # in order to match the time controls used here, do the following.
         # Average a few bench runs for the latest version of Ethereal. Now
         # take a few bench runs for the latest version of the new engine.
-        # Scale your NPS to match Ethereal's NPS of 1,750,000
+        # Scale your NPS to match Ethereal's NPS of 1,500,000
+
         'engines'     : {
             'Ethereal' : {
                 'name'    : 'Ethereal',
@@ -68,6 +69,7 @@ FRAMEWORK_DEFAULTS = {
         # Book confgiruation. When addding a book, follow the provided template.
         # The SHA is defined by hashlib.sha256(book).hexdigest(). OpenBench.py
         # (Client File) has an example to show you how to find a hash digest
+
         'books' : {
             '2moves_v1.pgn' : {
                 'name'    : '2moves_v1.pgn',
@@ -81,7 +83,14 @@ FRAMEWORK_DEFAULTS = {
                 'sha'     : '04fcce1488a94f3b7795cef6f74d89016eb278328897c1018e6162c5967273f5',
                 'source'  : FRAMEWORK_REPO_URL + 'raw/master/Books/8moves_v3.pgn',
                 'default' : False,
-            }
+            },
+
+            '3moves_FRC.pgn' : {
+                'name'    : '3moves_FRC.pgn',
+                'sha'     : '4c801140e3a52d3a306cb226ccd6225c47789409c5f2d0e1d7cf86152ea1f973',
+                'source'  : FRAMEWORK_REPO_URL + 'raw/master/Books/3moves_FRC.pgn',
+                'default' : False,
+            },
         },
     }
 }
