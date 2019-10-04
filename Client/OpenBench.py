@@ -5,9 +5,9 @@ import shutil, subprocess, requests, zipfile, os, math, json
 
 
 ## Configuration
-HTTP_TIMEOUT   = 30  # Timeout in seconds for web requests
-GAMES_PER_TASK = 250 # Total games to complete for each workload
-REPORT_RATE    = 10  # Games per upload. Must divide GAMES_PER_TASK
+HTTP_TIMEOUT   = 30   # Timeout in seconds for web requests
+GAMES_PER_TASK = 1000 # Total games to complete for each workload
+REPORT_RATE    = 25   # Games per upload. Must divide GAMES_PER_TASK
 
 # Run from any location ...
 os.chdir(os.path.dirname(os.path.abspath(__file__)))
