@@ -305,7 +305,6 @@ def reportResults(data, wins, losses, draws, crashes, timeloss):
         print ('<Warning> Unable to reach server')
         return "Unable"
 
-
 def completeWorkload(data):
 
     # Download and verify bench of dev engine
@@ -363,6 +362,7 @@ def completeWorkload(data):
         # Grab the next line of cutechess output
         line = process.stdout.readline().strip().decode('ascii')
         if line != '': print(line)
+        else: process.wait(); break
 
         # Update the current score line
         if line.startswith('Score of'):
