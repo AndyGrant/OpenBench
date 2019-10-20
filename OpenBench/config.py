@@ -64,6 +64,13 @@ FRAMEWORK_DEFAULTS = {
                 'nps'     : 625000,
                 'default' : False,
             },
+
+            'Weiss' : {
+                'name'    : 'Weiss',
+                'source'  : 'https://github.com/TerjeKir/weiss',
+                'nps'     : 4000000,
+                'default' : False,
+            },
         },
 
         # Book confgiruation. When addding a book, follow the provided template.
