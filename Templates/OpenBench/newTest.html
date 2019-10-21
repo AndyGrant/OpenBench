@@ -1,36 +1,64 @@
 {% extends "OpenBench/base.html" %}
-
 {% block scripts %}
-    function setupSTC() {
-        document.getElementById("devoptions").value  = "Threads={{config.stc.threads}} Hash={{config.stc.hash}}";
-        document.getElementById("baseoptions").value = "Threads={{config.stc.threads}} Hash={{config.stc.hash}}";
-        document.getElementById("timecontrol").value = "{{config.stc.timecontrol}}"
-    }
 
-    function setupLTC() {
-        document.getElementById("devoptions").value  = "Threads={{config.ltc.threads}} Hash={{config.ltc.hash}}";
-        document.getElementById("baseoptions").value = "Threads={{config.ltc.threads}} Hash={{config.ltc.hash}}";
-        document.getElementById("timecontrol").value = "{{config.ltc.timecontrol}}"
-    }
+    var testMode = "stc";
 
-    function setupSMPSTC() {
-        document.getElementById("devoptions").value  = "Threads={{config.smpstc.threads}} Hash={{config.smpstc.hash}}";
-        document.getElementById("baseoptions").value = "Threads={{config.smpstc.threads}} Hash={{config.smpstc.hash}}";
-        document.getElementById("timecontrol").value = "{{config.smpstc.timecontrol}}"
-    }
+    var configurations = {
+        {% for name, data in config.engines.items %}
+        '{{name}}' : {
+            'proto'  : "{{data.proto}}",
+            'stc'    : {
+                "threads"     : "{{data.stc.threads}}",
+                "hash"        : "{{data.stc.hash}}",
+                "timecontrol" : "{{data.stc.timecontrol}}"
+            },
+            'ltc'    : {
+                "threads"     : "{{data.ltc.threads}}",
+                "hash"        : "{{data.ltc.hash}}",
+                "timecontrol" : "{{data.ltc.timecontrol}}"
+            },
+            'smpstc' : {
+                "threads"     : "{{data.smpstc.threads}}",
+                "hash"        : "{{data.smpstc.hash}}",
+                "timecontrol" : "{{data.smpstc.timecontrol}}"
+            },
+            'smpltc' : {
+                "threads"     : "{{data.smpltc.threads}}",
+                "hash"        : "{{data.smpltc.hash}}",
+                "timecontrol" : "{{data.smpltc.timecontrol}}"
+            },
+        },
+        {% endfor %}
+    };
 
-    function setupSMPLTC() {
-        document.getElementById("devoptions").value  = "Threads={{config.smpltc.threads}} Hash={{config.smpltc.hash}}";
-        document.getElementById("baseoptions").value = "Threads={{config.smpltc.threads}} Hash={{config.smpltc.hash}}";
-        document.getElementById("timecontrol").value = "{{config.smpltc.timecontrol}}"
+    function configure(mode) {
+
+        // Update global test mode
+        testMode = mode;
+
+        // Find the selected engine
+        var selection = document.getElementById("enginename");
+        var engine = selection.options[selection.selectedIndex].value;
+
+        // Parse out the needed configuration settings
+        var threads     = configurations[engine][mode]["threads"];
+        var hash        = configurations[engine][mode]["hash"];
+        var timecontrol = configurations[engine][mode]["timecontrol"];
+        var protocol    = configurations[engine]["proto"];
+
+        // Adjust all the fields to auto-fill the settings
+        document.getElementById("devoptions").value   = "Threads=" + threads + " Hash=" + hash;
+        document.getElementById("baseoptions").value  = "Threads=" + threads + " Hash=" + hash;
+        document.getElementById("timecontrol").value  = timecontrol;
+        document.getElementById("devprotocol").value  = protocol;
+        document.getElementById("baseprotocol").value = protocol;
     }
 {% endblock %}
-
 {% block content %}
 <form method="POST" action="/newTest/">
     {% csrf_token %}
     <label> Engine Name </label>
-    <select name="enginename">
+    <select id="enginename" name="enginename" onchange="configure(testMode)">
     {% for name, data in config.engines.items %}
         {% if data.default %}
             <option selected value="{{name}}">{{data.name}}</option>
@@ -38,35 +66,25 @@
             <option value="{{name}}">{{data.name}}</option>
         {% endif %}
     {% endfor %}
-    </select>
-    <br>
+    </select><br>
     <label> Dev Branch </label>
-    <input name="devbranch" autofocus>
-    </br>
+    <input name="devbranch" autofocus></br>
     <label> Dev Bench </label>
-    <input name="devbench">
-    </br>
+    <input name="devbench"></br>
     <label> Dev Options </label>
-    <input id="devoptions" value="Threads={{config.stc.threads}} Hash={{config.stc.hash}}" name="devoptions">
-    </br>
+    <input id="devoptions" name="devoptions"></br>
     <label> Dev Protocol </label>
-    <input value="{{config.protocol}}" name="devprotocol">
-    </br>
+    <input id="devprotocol" name="devprotocol"></br>
     <label> Base Branch </label>
-    <input value="master" name="basebranch">
-    </br>
+    <input value="master" name="basebranch"></br>
     <label> Base Bench </label>
-    <input name="basebench">
-    </br>
+    <input name="basebench"></br>
     <label> Base Options </label>
-    <input id="baseoptions" value="Threads={{config.stc.threads}} Hash={{config.stc.hash}}" name="baseoptions">
-    </br>
+    <input id="baseoptions" name="baseoptions"></br>
     <label> Base Protocol </label>
-    <input value="{{config.protocol}}" name="baseprotocol">
-    </br>
+    <input id="baseprotocol" name="baseprotocol"></br>
     <label> Source </label>
-    <input value="{{profile.repo}}" name="source">
-    </br>
+    <input value="{{profile.repo}}" name="source"></br>
     <label> Opening Book </label>
     <select name="bookname">
     {% for name, data in config.books.items %}
@@ -76,34 +94,25 @@
             <option value="{{name}}">{{data.name}}</option>
         {% endif %}
     {% endfor %}
-    </select>
-    </br>
+    </select></br>
     <label> Time Control </label>
-    <input id="timecontrol" value="{{config.stc.timecontrol}}" name="timecontrol">
-    </br>
+    <input id="timecontrol" name="timecontrol"></br>
     <label> Priority </label>
-    <input value="0" name="priority">
-    </br>
+    <input value="0" name="priority"></br>
     <label> Throughput </label>
-    <input value="1000" name="throughput">
-    </br>
+    <input value="1000" name="throughput"></br>
     <label> Lower Bound </label>
-    <input value="{{config.elolower}}" name="elolower">
-    </br>
+    <input value="{{config.sprt.elolower}}" name="elolower"></br>
     <label> Upper Bound </label>
-    <input value="{{config.eloupper}}" name="eloupper">
-    </br>
+    <input value="{{config.sprt.eloupper}}" name="eloupper"></br>
     <label> Alpha </label>
-    <input value="{{config.alpha}}" name="alpha">
-    </br>
+    <input value="{{config.sprt.alpha}}" name="alpha"></br>
     <label> Beta </label>
-    <input value="{{config.beta}}" name="beta">
-    </br>
+    <input value="{{config.sprt.beta}}" name="beta"></br>
     <input type="submit" name="submit" value="Create Engine Test">
 </form>
-<button onClick="setupSTC()">Setup STC</button>
-<button onClick="setupLTC()">Setup LTC</button>
-<br>
-<button onClick="setupSMPSTC()">Setup SMP STC</button>
-<button onClick="setupSMPLTC()">Setup SMP LTC</button>
+<button onClick="configure('stc')">Setup STC</button>
+<button onClick="configure('ltc')">Setup LTC</button><br>
+<button onClick="configure('smpstc')">Setup SMP STC</button>
+<button onClick="configure('smpltc')">Setup SMP LTC</button>
 {% endblock %}

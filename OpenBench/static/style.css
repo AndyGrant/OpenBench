@@ -4,6 +4,11 @@ body {
     background: #2A2A2A;
 }
 
+a:link, a:visited, a:hover, a:active {
+    text-decoration: none;
+    color: #FFFFFF;
+}
+
 #sidebar {
     float: left;
     margin: 20px;
@@ -14,13 +19,14 @@ body {
     padding: 0px;
 }
 
-#sidebar .header {
-    font-weight: bold;
-    color: #AAAAAA;
+#sidebar li a {
+    font-size: 18px;
+    color: #A2A2A2;
 }
 
-#sidebar li {
-    font-size: 18px;
+#sidebar .header {
+    font-weight: bold;
+    color: #008888;
 }
 
 #content {
@@ -36,6 +42,7 @@ body {
 }
 
 #content input, #content select {
+    background-color: #BBBBBB;
     padding: 8px;
     margin: 2px 0px;
     display: inline-block;
@@ -238,9 +245,4 @@ body {
     text-align: center;
     font-weight: bold;
     font-size: 20px;
-}
-
-a:link, a:visited, a:hover, a:active {
-    text-decoration: none;
-    color: #FFFFFF;
 }

@@ -1,74 +1,61 @@
+
+# Workers will use FRAMEWORK_REPO_URL to determine the location
+# for the Cutechess binary and DLLs, as well as any of the books
+# which are being used in the testing framework. The main OpenBench
+# repo should suffice, but new books require this to be redirected.
 FRAMEWORK_REPO_URL = 'http://github.com/AndyGrant/OpenBench/'
 
 FRAMEWORK_DEFAULTS = {
 
     'config' : {
 
-        # Framework source, must be changed for your instance
-        'framework'   : 'http://github.com/AndyGrant/OpenBench/',
+        # Controls the Link on the sidebar
+        'framework'   : FRAMEWORK_REPO_URL,
 
-        # Default to uci since everyone uses it
-        'protocol'    : 'uci',
-
-        # Defaults for Short Time Control tests
-        'stc'         : {
-            'threads'     : 1,
-            'hash'        : 8,
-            'timecontrol' : '10.0+0.1',
+        # SPRT Elo bounds and type I/II errors
+        'sprt' : {
+            'elolower' : 0.00, 'eloupper' : 5.00,
+            'alpha'    : 0.05, 'beta'     : 0.05,
         },
 
-        # Defaults for Long Time Control tests
-        'ltc'         : {
-            'threads'     : 1,
-            'hash'        : 64,
-            'timecontrol' : '60.0+0.6',
-        },
-
-        # Defaults for Short Time Control tests with SMP
-        'smpstc'      : {
-            'threads'     : 8,
-            'hash'        : 64,
-            'timecontrol' : '5.0+0.05',
-        },
-
-        # Defaults for Long Time Control tests with SMP
-        'smpltc'      : {
-            'threads'     : 8,
-            'hash'        : 256,
-            'timecontrol' : '20.0+0.2',
-        },
-
-        # SPRT bounds and confidence values
-        'elolower'    : 0.0,
-        'eloupper'    : 5.0,
-        'alpha'       : 0.05,
-        'beta'        : 0.05,
-
-        # Configured engines for the framework. To scale NPS for your engine,
-        # in order to match the time controls used here, do the following.
-        # Average a few bench runs for the latest version of Ethereal. Now
-        # take a few bench runs for the latest version of the new engine.
-        # Scale your NPS to match Ethereal's NPS of 1,500,000
+        # Engine Configuration. All engines must have a name, a source repo,
+        # a set of paramaters for each standard test type, as well as a scaled
+        # NPS value, which is used to normalize speed across all workers.
 
         'engines'     : {
             'Ethereal' : {
                 'name'    : 'Ethereal',
                 'source'  : 'https://github.com/AndyGrant/Ethereal',
+                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
+                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
+                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
                 'nps'     : 1500000,
+                'proto'   : 'uci',
                 'default' : True,
             },
 
             'Laser' : {
                 'name'    : 'Laser',
                 'source'  : 'https://github.com/jeffreyan11/uci-chess-engine',
+                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
+                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
+                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
                 'nps'     : 625000,
+                'proto'   : 'uci',
                 'default' : False,
             },
 
             'Weiss' : {
                 'name'    : 'Weiss',
                 'source'  : 'https://github.com/TerjeKir/weiss',
+                'stc'     : { 'threads' : 1, 'hash' :  32, 'timecontrol' : '10.0+0.1' },
+                'ltc'     : { 'threads' : 1, 'hash' : 128, 'timecontrol' : '60.0+0.6' },
+                'smpstc'  : { 'threads' : 8, 'hash' : 128, 'timecontrol' : '5.0+0.05' },
+                'smpltc'  : { 'threads' : 8, 'hash' : 512, 'timecontrol' : '20.0+0.2' },
                 'nps'     : 4000000,
+                'proto'   : 'uci',
                 'default' : False,
             },
         },
