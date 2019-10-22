@@ -84,7 +84,7 @@
     </div>
     <div id="right-settings">
         <h3> Game Settings </h3>
-        <label> Opening Book </label>
+        <label> Book </label>
         <select name="bookname">
         {% for name, data in config.books.items %}
             {% if data.default %}
@@ -94,13 +94,8 @@
             {% endif %}
         {% endfor %}
         </select></br>
-        <label> Time Control </label>
+        <label> Time </label>
         <input id="timecontrol" name="timecontrol"></br>
-        <h3> Test Settings </h3>
-        <label> Priority </label>
-        <input value="0" name="priority"></br>
-        <label> Throughput </label>
-        <input value="1000" name="throughput"></br>
         <h3> SPRT Settings </h3>
         <label> Lower </label>
         <input value="{{config.sprt.elolower}}" name="elolower"></br>
@@ -110,6 +105,11 @@
         <input value="{{config.sprt.alpha}}" name="alpha"></br>
         <label> Beta </label>
         <input value="{{config.sprt.beta}}" name="beta"></br>
+        <h3> Test Settings </h3>
+        <label> Priority </label>
+        <input value="0" name="priority"></br>
+        <label> Throughput </label>
+        <input value="1000" name="throughput"></br>
     </div>
     <br><input type="submit" name="submit" value="Create Engine Test"><br>
 </form>

@@ -242,7 +242,7 @@ def viewUser(request, username, page=0):
 def users(request):
 
     # Build context dictionary for template
-    data = {'profiles' : Profile.objects.order_by('-games')}
+    data = {'profiles' : Profile.objects.order_by('-games', '-tests', '-enabled')}
     return render(request, 'users.html', data)
 
 def machines(request):

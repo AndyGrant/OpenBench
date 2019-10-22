@@ -36,7 +36,7 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #content label {
-    width: 150px;
+    width: 120px;
     font-weight:bold;
     text-align: right;
     display: inline-block;
@@ -249,7 +249,7 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #content form h3 {
-    margin-left: 160px;
+    margin-left: 130px;
     margin-bottom: 0px;
     color: #00CCFF;
 }
@@ -262,7 +262,6 @@ a:link, a:visited, a:hover, a:active {
 #content form #right-settings {
     float: left;
     padding-bottom: 4px;
-    padding-left: 32px;
 }
 
 #content #test-mode-buttons button {
