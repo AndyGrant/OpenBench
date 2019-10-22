@@ -26,7 +26,7 @@ a:link, a:visited, a:hover, a:active {
 
 #sidebar .header {
     font-weight: bold;
-    color: #008888;
+    color: #00CCFF;
 }
 
 #content {
@@ -36,8 +36,9 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #content label {
-    width: 180px;
+    width: 150px;
     font-weight:bold;
+    text-align: right;
     display: inline-block;
 }
 
@@ -47,7 +48,7 @@ a:link, a:visited, a:hover, a:active {
     margin: 2px 0px;
     display: inline-block;
     vertical-align: middle;
-    width: 400px;
+    width: 320px;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
@@ -245,4 +246,33 @@ a:link, a:visited, a:hover, a:active {
     text-align: center;
     font-weight: bold;
     font-size: 20px;
+}
+
+#content form h3 {
+    margin-left: 160px;
+    margin-bottom: 0px;
+    color: #00CCFF;
+}
+
+#content form #left-settings {
+    float: left;
+    padding-bottom: 4px;
+}
+
+#content form #right-settings {
+    float: left;
+    padding-bottom: 4px;
+    padding-left: 32px;
+}
+
+#content #test-mode-buttons button {
+    width: 49.8%;
+}
+
+#content #test-mode-buttons .left-floated {
+    float: left;
+}
+
+#content #test-mode-buttons .right-floated {
+    float: right;
 }
