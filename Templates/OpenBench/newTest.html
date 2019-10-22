@@ -55,7 +55,7 @@
     {% csrf_token %}
     <div id="left-settings">
         <h3> Engine </h3>
-        <label> Engine Name </label>
+        <label> Name </label>
         <select id="enginename" name="enginename" onchange="configure(testMode)">
         {% for name, data in config.engines.items %}
             {% if data.default %}
@@ -67,23 +67,23 @@
         </select><br>
         <label> Source </label>
         <input value="{{profile.repo}}" name="source"></br>
-        <h3> DEV SETTINGS </h3>
-        <label> Dev Branch </label>
-        <input name="devbranch" autofocus></br>
-        <label> Dev Bench </label>
+        <h3> Dev Settings </h3>
+        <label> Bench </label>
         <input name="devbench"></br>
-        <label> Dev Options </label>
+        <label> Branch </label>
+        <input name="devbranch" autofocus></br>
+        <label> Options </label>
         <input id="devoptions" name="devoptions"></br>
-        <h3> BASE SETTINGS </h3>
-        <label> Base Branch </label>
-        <input value="master" name="basebranch"></br>
-        <label> Base Bench </label>
+        <h3> Base Settings </h3>
+        <label> Bench </label>
         <input name="basebench"></br>
-        <label> Base Options </label>
+        <label> Branch </label>
+        <input value="master" name="basebranch"></br>
+        <label> Options </label>
         <input id="baseoptions" name="baseoptions"></br>
     </div>
     <div id="right-settings">
-        <h3> GAME SETTINGS </h3>
+        <h3> Game Settings </h3>
         <label> Opening Book </label>
         <select name="bookname">
         {% for name, data in config.books.items %}
@@ -96,15 +96,15 @@
         </select></br>
         <label> Time Control </label>
         <input id="timecontrol" name="timecontrol"></br>
-        <h3> TEST SETTINGS </h3>
+        <h3> Test Settings </h3>
         <label> Priority </label>
         <input value="0" name="priority"></br>
         <label> Throughput </label>
         <input value="1000" name="throughput"></br>
-        <h3> SPRT SETTINGS </h3>
-        <label> Lower Bound </label>
+        <h3> SPRT Settings </h3>
+        <label> Lower </label>
         <input value="{{config.sprt.elolower}}" name="elolower"></br>
-        <label> Upper Bound </label>
+        <label> Upper </label>
         <input value="{{config.sprt.eloupper}}" name="eloupper"></br>
         <label> Alpha </label>
         <input value="{{config.sprt.alpha}}" name="alpha"></br>
