@@ -6,7 +6,6 @@
     var configurations = {
         {% for name, data in config.engines.items %}
         '{{name}}' : {
-            'proto'  : "{{data.proto}}",
             'stc'    : {
                 "threads"     : "{{data.stc.threads}}",
                 "hash"        : "{{data.stc.hash}}",
@@ -44,14 +43,11 @@
         var threads     = configurations[engine][mode]["threads"];
         var hash        = configurations[engine][mode]["hash"];
         var timecontrol = configurations[engine][mode]["timecontrol"];
-        var protocol    = configurations[engine]["proto"];
 
         // Adjust all the fields to auto-fill the settings
         document.getElementById("devoptions").value   = "Threads=" + threads + " Hash=" + hash;
         document.getElementById("baseoptions").value  = "Threads=" + threads + " Hash=" + hash;
         document.getElementById("timecontrol").value  = timecontrol;
-        document.getElementById("devprotocol").value  = protocol;
-        document.getElementById("baseprotocol").value = protocol;
     }
 {% endblock %}
 {% block content %}
@@ -73,16 +69,12 @@
     <input name="devbench"></br>
     <label> Dev Options </label>
     <input id="devoptions" name="devoptions"></br>
-    <label> Dev Protocol </label>
-    <input id="devprotocol" name="devprotocol"></br>
     <label> Base Branch </label>
     <input value="master" name="basebranch"></br>
     <label> Base Bench </label>
     <input name="basebench"></br>
     <label> Base Options </label>
     <input id="baseoptions" name="baseoptions"></br>
-    <label> Base Protocol </label>
-    <input id="baseprotocol" name="baseprotocol"></br>
     <label> Source </label>
     <input value="{{profile.repo}}" name="source"></br>
     <label> Opening Book </label>

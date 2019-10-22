@@ -53,19 +53,20 @@ def getSourceLocation(branch, repo):
 
 def newTest(request):
 
-    test = Test() # New Test, saved only after parsing
+    # New Test saved after parsing
+    test = Test()
     test.author = request.user.username
     test.engine = request.POST['enginename']
 
     # Extract Development Fields
     devname     = request.POST['devbranch']
     devbench    = int(request.POST['devbench'])
-    devprotocol = request.POST['devprotocol']
+    devprotocol = FRAMEWORK_DEFAULTS['config']['engines'][test.engine]['proto']
 
     # Extract Base Fields
     basename     = request.POST['basebranch']
     basebench    = int(request.POST['basebench'])
-    baseprotocol = request.POST['baseprotocol']
+    baseprotocol = FRAMEWORK_DEFAULTS['config']['engines'][test.engine]['proto']
 
     # Extract test configuration
     test.source      = request.POST['source']
@@ -92,7 +93,7 @@ def newTest(request):
     basesha, basesource = getSourceLocation(basename, test.source)
     test.base = getEngine(basename, basesource, baseprotocol, basesha, basebench)
 
-    # Track # of tests by this user
+    # Track number of tests by this user
     profile = Profile.objects.get(user=request.user)
     profile.tests += 1
     profile.save()
