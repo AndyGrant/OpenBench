@@ -5,69 +5,50 @@
 <form method="POST" action="/search/">
     {% csrf_token %}
     <label> Keywords </label>
-    <input name="keywords">
-    </br>
+    <input name="keywords"></br>
     <label> Author </label>
-    <input name="author">
-    </br>
+    <input name="author"></br>
     <label> Engine </label>
     <select name="engine">
         <option selected value="">ALL</option>
         {% for name, data in config.engines.items %}
         <option value="{{name}}">{{data.name}}</option>
         {% endfor %}
-    </select>
-    <br>
+    </select><br>
     <label> Show Passed </label>
     <select name="showgreens">
         <option selected value="True">True</option>
         <option value="False">False</option>
-    </select>
-    <br>
+    </select><br>
     <label> Show Failed </label>
     <select name="showyellows">
         <option selected value="True">True</option>
         <option value="False">False</option>
-    </select>
-    <br>
+    </select><br>
     <label> Show Neutral </label>
     <select name="showreds">
         <option selected value="True">True</option>
         <option value="False">False</option>
-    </select>
-    <br>
+    </select><br>
     <label> Show Stopped </label>
     <select name="showunfinished">
         <option value="True">True</option>
         <option selected value="False">False</option>
-    </select>
-    <br>
+    </select><br>
     <label> Show Deleted </label>
     <select name="showdeleted">
         <option value="True">True</option>
         <option selected value="False">False</option>
-    </select>
-    <br>
+    </select><br>
     <input type="submit" name="submit" value="Search Tests">
 </form>
 {% endif %}
 <table class="datatable">
-    {% if tests %}
-    <tr>
-        <th>Date</th>
-        <th>Engine</th>
-        <th>User</th>
-        <th>Test</th>
-        <th>Diff</th>
-        <th>Time</th>
-        <th>Stats</th>
-    </tr>
-    {% endif %}
     {% for test in tests %}
     <tr>
         <td>{{test.creation|date:"y-m-d"}}</td>
-        <td>{{test.engine}}</td>
-        <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
+        <td class="numeric"><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
+        <td class="numeric">{{test.engine}}</td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
         <td>{{test.timecontrol}}</td>
