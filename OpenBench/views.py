@@ -113,7 +113,7 @@ def editProfile(request):
     # Send back to see the changes
     return HttpResponseRedirect('/viewProfile/')
 
-def index(request, page=0, pageLength=25, greens=False, username=None, error=''):
+def index(request, page=1, pageLength=24, greens=False, username=None, error=''):
 
     # Get tests pending approval
     pending = Test.objects.filter(approved=False)
@@ -164,8 +164,8 @@ def index(request, page=0, pageLength=25, greens=False, username=None, error='')
 
     # Choose tests within the given page, if any
     items  = len(completed)
-    start  = page * pageLength
-    end    = start + pageLength
+    start  = (page - 1) * pageLength
+    end    = page * pageLength
     start  = max(0, min(start, items))
     end    = max(0, min(end, items))
     paging = pagingContext(page, pageLength, items, source)

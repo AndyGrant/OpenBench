@@ -243,16 +243,16 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #content .page {
-    border: none;
     text-align: center;
     display: inline-block;
     padding: 8px 0px;
     width: 5%;
-    background-color: #424242;
+    background-color: #212121;
+    border-radius: 8px;
 }
 
 #content .page:hover {
-    background-color: #888888;
+    background-color: #AAAAAA;
 }
 
 #error {

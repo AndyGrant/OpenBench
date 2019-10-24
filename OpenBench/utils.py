@@ -14,8 +14,8 @@ def pagingContext(page, pageLength, items, url):
     end     = min(start + pageLength, items)
 
     # Get page numbers near the current page
-    pagenum = math.ceil(items / pageLength)
-    temp = list(range(0, min(3, pagenum)))
+    pagenum = 1 + math.ceil(items / pageLength)
+    temp = list(range(1, min(4, pagenum)))
     temp.extend(range(pagenum-1, pagenum-4, -1))
     temp.extend(range(max(0, page-2), min(pagenum-1, page+3)))
     temp = list(set(temp))
@@ -24,7 +24,7 @@ def pagingContext(page, pageLength, items, url):
     # Fill in gaps with an ellipsis, throw out negatives
     pages = []
     for f in range(len(temp)):
-        if temp[f] < 0: continue
+        if temp[f] < 1: continue
         pages.append(temp[f])
         if f < len(temp) - 1 and temp[f] != temp[f+1] - 1:
             pages.append("...")
@@ -34,8 +34,8 @@ def pagingContext(page, pageLength, items, url):
         "url"   : url,
         "page"  : page,
         "pages" : pages,
-        "prev"  : max(0, page - 1),
-        "next"  : max(0, min(page + 1, pagenum - 1)),
+        "prev"  : max(1, page - 1),
+        "next"  : max(1, min(page + 1, pagenum - 1)),
     }
 
 def getSourceLocation(branch, repo):

@@ -8,7 +8,7 @@
         {% for test in pending %}
         <tr>
             <td class="numeric"><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
-            <td>{{test.engine}}</td>
+            <td class="numeric">{{test.engine}}</td>
             <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
             <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
             <td>{{test.timecontrol}}</td>
@@ -21,7 +21,7 @@
         {% for test in active %}
         <tr>
             <td class="numeric"><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
-            <td>{{test.engine}}</td>
+            <td class="numeric">{{test.engine}}</td>
             <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
             <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
             <td>{{test.timecontrol}}</td>
@@ -33,7 +33,7 @@
     {% for test in completed %}
     <tr>
         <td class="numeric"><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
-        <td>{{test.engine}}</td>
+        <td class="numeric">{{test.engine}}</td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
         <td>{{test.timecontrol}}</td>
