@@ -3,7 +3,7 @@
 {% block content %}
 
 <table class="datatable">
-    {% if paging.page == 0 and greens == False %}
+    {% if paging.page == 1 and greens == False %}
         <tr><td class="embedded" colspan='7'><h2>Pending</h2></td></tr>
         {% for test in pending %}
         <tr>

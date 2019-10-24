@@ -88,7 +88,7 @@ def logout(request):
 def viewProfile(request):
 
     # render() gets the profile data for us
-    return render(request, 'viewProfile.html', data)
+    return render(request, 'viewProfile.html', {})
 
 @login_required(login_url='/login/')
 def editProfile(request):
@@ -183,7 +183,7 @@ def index(request, page=1, pageLength=24, greens=False, username=None, error='')
 
     return render(request, 'index.html', data)
 
-def greens(request, page=0):
+def greens(request, page=1):
 
     # Index but with only passed tests
     return index(request, page, greens=True)
