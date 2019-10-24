@@ -1,37 +1,36 @@
 {% extends "OpenBench/base.html" %}
 
+{% load mytags %}
+
 {% block style %}
 {% load static %}
 {% endblock %}
 
 {% block content %}
+<table class="summarytable">
+    <tr>
+        <th class="numeric"> OVERALL </th>
+        <th class="numeric">| USERS {{ profiles|length }} </th>
+        <th class="numeric">| TESTS {{ profiles|sumAttributes:"tests"|insertCommas }}</th>
+        <th class="numeric">| GAMES {{ profiles|sumAttributes:"games"|insertCommas }}</th>
+    </tr>
+</table>
+<br>
 <table class="rawtable">
     <tr>
         <th>Username</th>
-        <th>Last Seen On</th>
+        <th>Last Seen</th>
         <th class="numeric">Games</th>
         <th class="numeric">Tests</th>
-        <th>Enabled</th>
-        <th>Approver</th>
         <th>Engine</th>
-        <th>Repo</th>
+        <th>Source Repository</th>
     </tr>
     {% for profile in profiles %}
     <tr>
         <td><a href="/viewUser/{{profile.user.username}}">{{profile.user.username}}</a></td>
-        <td>{{profile.updated|date:'Y-m-d H:i'}}</td>
+        <td>{{profile.updated|date:'Y-m-d'}}</td>
         <td class="numeric">{{profile.games}}</td>
         <td class="numeric">{{profile.tests}}</td>
-        {% if profile.enabled %}
-            <td class="numeric">X</td>
-        {% else %}
-            <td class="numeric"></td>
-        {% endif %}
-        {% if profile.approver %}
-            <td class="numeric">X</td>
-        {% else %}
-            <td class="numeric"></td>
-        {% endif %}
         <td>{{profile.engine}}</td>
         <td><a href="{{profile.repo}}">{{profile.repo}}</a></td>
     </tr>

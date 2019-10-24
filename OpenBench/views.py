@@ -309,6 +309,7 @@ def viewTest(request, id):
         # Build context dictionary for test template
         test = Test.objects.get(id=id)
         results = Result.objects.all().filter(test=test)
+        results = results.order_by('machine_id')
         data = {'test' : test, 'results' : results}
         return render(request, 'viewTest.html', data)
 

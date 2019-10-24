@@ -53,7 +53,7 @@
 {% block content %}
 <form method="POST" action="/newTest/">
     {% csrf_token %}
-    <div id="left-settings">
+    <div class="settings-column">
         <h3> Engine </h3>
         <label> Name </label>
         <select id="enginename" name="enginename" onchange="configure(testMode)">
@@ -83,7 +83,7 @@
         <label> Options </label>
         <input id="baseoptions" name="baseoptions"></br>
     </div>
-    <div id="right-settings">
+    <div class="settings-column">
         <h3> Game Settings </h3>
         <label> Book </label>
         <select name="bookname">

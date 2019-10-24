@@ -1,48 +1,27 @@
 {% extends "OpenBench/base.html" %}
 {% load mytags %}
 {% block content %}
+
 <table class="datatable">
     {% if paging.page == 0 and greens == False %}
         <tr><td class="embedded" colspan='7'><h2>Pending</h2></td></tr>
-        {% if pending %}
-        <tr>
-            <th>DATE</th>
-            <th>ENGINE</th>
-            <th>USER</th>
-            <th>TEST</th>
-            <th>DIFF</th>
-            <th>TIME</th>
-            <th>STATS</th>
-        </tr>
-        {% endif %}
         {% for test in pending %}
         <tr>
-            <td>{{test.creation|date:"y-m-d"}}</td>
+            <td class="numeric"><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
             <td>{{test.engine}}</td>
-            <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
             <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
             <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
             <td>{{test.timecontrol}}</td>
             <td class="statblock"><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
         </tr>
         {% endfor %}
-        <tr><td class="embedded" colspan='7'><h2>Active - {{status}}</h2></td></tr>
         {% if active %}
-        <tr>
-            <th>DATE</th>
-            <th>ENGINE</th>
-            <th>USER</th>
-            <th>TEST</th>
-            <th>DIFF</th>
-            <th>TIME</th>
-            <th>STATS</th>
-        </tr>
+        <tr><td class="embedded" colspan='7'><h2>Active {{status}}</h2></td></tr>
         {% endif %}
         {% for test in active %}
         <tr>
-            <td>{{test.creation|date:"y-m-d"}}</td>
+            <td class="numeric"><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
             <td>{{test.engine}}</td>
-            <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
             <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
             <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
             <td>{{test.timecontrol}}</td>
@@ -51,22 +30,10 @@
         {% endfor %}
     {% endif %}
     <tr><td class="embedded" colspan='7'><h2>Finished</h2></td></tr>
-    {% if completed %}
-    <tr>
-        <th>DATE</th>
-        <th>ENGINE</th>
-        <th>USER</th>
-        <th>TEST</th>
-        <th>DIFF</th>
-        <th>TIME</th>
-        <th>STATS</th>
-    </tr>
-    {% endif %}
     {% for test in completed %}
     <tr>
-        <td>{{test.creation|date:"y-m-d"}}</td>
+        <td class="numeric"><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td>{{test.engine}}</td>
-        <td><a href="/viewUser/{{test.author}}">{{test.author}}</a></td>
         <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
         <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
         <td>{{test.timecontrol}}</td>
@@ -74,6 +41,7 @@
     </tr>
     {% endfor %}
 </table>
+
 <div id="pagebrowse">
     {% if paging.prev != paging.next %}
         <a class="page" href="/{{paging.url}}/{{paging.prev}}">&lt;--</a>

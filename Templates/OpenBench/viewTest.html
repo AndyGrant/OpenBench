@@ -144,30 +144,31 @@
     </form>
 </div>
 <br>
+
 <div id="results">
     <table class="datatable">
         <tr>
-            <th>User</th>
-            <th>Machine</th>
-            <th>Updated</th>
+            <th>ID</th>
+            <th>Owner</th>
+            <th>Last Updated</th>
             <th>Games</th>
-            <th>Win</th>
-            <th>Loss</th>
-            <th>Draw</th>
-            <th>Crash</th>
-            <th>Time</th>
+            <th style="width: 60px">Win</th>
+            <th style="width: 60px">Loss</th>
+            <th style="width: 60px">Draw</th>
+            <th style="width: 60px">Time</th>
+            <th style="width: 60px">Crash</th>
         </tr>
         {% for result in results %}
             <tr>
+                <td>{{result.machine.id}}</td>
                 <td>{{result.machine.owner}}</td>
-                <td>{{result.machine.osname}}</td>
                 <td>{{result.updated|date:'Y-m-d H:i'}}</td>
                 <td class="numeric">{{result.games}}</td>
                 <td class="numeric">{{result.wins}}</td>
                 <td class="numeric">{{result.losses}}</td>
                 <td class="numeric">{{result.draws}}</td>
-                <td class="numeric">{{result.crashes}}</td>
                 <td class="numeric">{{result.timeloss}}</td>
+                <td class="numeric">{{result.crashes}}</td>
             </tr>
         {% endfor %}
     </table>

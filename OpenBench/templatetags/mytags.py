@@ -84,6 +84,13 @@ def testResultColour(test):
         return 'red'
     return ''
 
+def sumAttributes(iterable, attribute):
+    try: return sum([getattr(f, attribute) for f in iterable])
+    except: return 0
+
+def insertCommas(value):
+    return '{:,}'.format(int(value))
+
 register = template.Library()
 register.filter('oneDigitPrecision', oneDigitPrecision)
 register.filter('twoDigitPrecision', twoDigitPrecision)
@@ -91,4 +98,6 @@ register.filter('gitDiffLink', gitDiffLink)
 register.filter('shortStatBlock', shortStatBlock)
 register.filter('longStatBlock', longStatBlock)
 register.filter('testResultColour', testResultColour)
+register.filter('sumAttributes', sumAttributes)
+register.filter('insertCommas', insertCommas)
 
