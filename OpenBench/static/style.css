@@ -142,8 +142,13 @@ a:link, a:visited, a:hover, a:active {
     background-color: #FA8E8E;
 }
 
+#content #actions .deadbutton {
+    background-color: #808080;
+    pointer-events: none;
+}
+
 #content #actions input {
-    width: 240px;
+    width: 260px;
 }
 
 #content #actions input[type=submit] {

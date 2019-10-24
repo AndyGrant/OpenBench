@@ -306,7 +306,8 @@ def viewTest(request, id):
         # Build context dictionary for test template
         test = Test.objects.get(id=id)
         results = Result.objects.all().filter(test=test)
-        data = {'test' : test, 'results' : results}
+        profile = Profile.objects.get(user=request.user) if request.user.is_authenticated else None
+        data = {'test' : test, 'results' : results, 'profile' : profile}
         return render(request, 'viewTest.html', data)
 
     # Unable to find test
