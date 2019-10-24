@@ -12,11 +12,21 @@
     </script>
 </head>
 <body>
+
+
     {% if error %}
-     <div id="error">
-         <strong>{{error}}</strong>
-     </div>
+        <div id="error">
+            <strong>{{error}}</strong>
+        </div>
     {% endif %}
+
+    {% if request.user.is_authenticated and not profile.enabled %}
+        <div id="error">
+            <strong>{{profile.user.username}}! Your account is not enabled.</strong>
+            <strong>Contact the Admin ( {{config.serveradmin}} )</strong>
+        </div>
+    {% endif %}
+
     <div id="sidebar">
         {% block sidebar %}
         <ul>

@@ -111,6 +111,10 @@ def editProfile(request):
 
 def index(request, page=0, pageLength=25, greens=False, username=None, error=''):
 
+    # Get information about the logged in user
+    if not request.user.is_authenticated: profile = None
+    else: profile = Profile.objects.get(user=request.user)
+
     # Get tests pending approval
     pending = Test.objects.filter(approved=False)
     pending = pending.exclude(finished=True)
@@ -169,6 +173,7 @@ def index(request, page=0, pageLength=25, greens=False, username=None, error='')
     # Build context dictionary for index template
     data = {
         'error'     : error,
+        'profile'   : profile,
         'pending'   : pending,
         'active'    : active,
         'completed' : completed[start:end],

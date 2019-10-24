@@ -12,6 +12,9 @@ FRAMEWORK_DEFAULTS = {
         # Controls the Link on the sidebar
         'framework'   : FRAMEWORK_REPO_URL,
 
+        # Email of OpenBench instance owner
+        'serveradmin' : 'andrew@grantnet.us',
+
         # SPRT Elo bounds and type I/II errors
         'sprt' : {
             'elolower' : 0.00, 'eloupper' : 5.00,
