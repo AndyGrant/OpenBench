@@ -20,6 +20,7 @@ class Profile(Model):
     games    = IntegerField(default=0)
     tests    = IntegerField(default=0)
     repo     = CharField(max_length=256, blank=True)
+    engine   = CharField(max_length=128, blank=True)
     enabled  = BooleanField(default=False)
     approver = BooleanField(default=False)
     updated  = DateTimeField(auto_now=True)

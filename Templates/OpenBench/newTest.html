@@ -57,13 +57,14 @@
         <h3> Engine </h3>
         <label> Name </label>
         <select id="enginename" name="enginename" onchange="configure(testMode)">
-        {% for name, data in config.engines.items %}
-            {% if data.default %}
-                <option selected value="{{name}}">{{data.name}}</option>
+        {% for engine in config.engines %}
+            {% if engine == profile.engine %}
+                <option selected value="{{engine}}">{{engine}}</option>
             {% else %}
-                <option value="{{name}}">{{data.name}}</option>
+                <option value="{{engine}}">{{engine}}</option>
             {% endif %}
         {% endfor %}
+        <option value="{{engine}}">{{engine}}</option>
         </select><br>
         <label> Source </label>
         <input value="{{profile.repo}}" name="source"></br>

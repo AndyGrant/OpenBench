@@ -89,9 +89,10 @@ def viewProfile(request):
 @login_required(login_url='/login/')
 def editProfile(request):
 
-    # Update Email & Source Repo
+    # Update Email, Source Repo, and Default Engine
     profile = Profile.objects.get(user=request.user)
     profile.user.email = request.POST['email']
+    profile.engine = request.POST['enginename']
     profile.repo = request.POST['repo']
     profile.save()
 

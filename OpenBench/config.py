@@ -32,7 +32,6 @@ FRAMEWORK_DEFAULTS = {
                 'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
                 'nps'     : 1500000,
                 'proto'   : 'uci',
-                'default' : True,
             },
 
             'Laser' : {
@@ -44,7 +43,6 @@ FRAMEWORK_DEFAULTS = {
                 'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
                 'nps'     : 625000,
                 'proto'   : 'uci',
-                'default' : False,
             },
 
             'Weiss' : {
@@ -56,7 +54,6 @@ FRAMEWORK_DEFAULTS = {
                 'smpltc'  : { 'threads' : 8, 'hash' : 512, 'timecontrol' : '20.0+0.2' },
                 'nps'     : 4000000,
                 'proto'   : 'uci',
-                'default' : False,
             },
         },
 

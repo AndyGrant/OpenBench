@@ -13,6 +13,8 @@
         <th class="numeric">Tests</th>
         <th>Enabled</th>
         <th>Approver</th>
+        <th>Engine</th>
+        <th>Repo</th>
     </tr>
     {% for profile in profiles %}
     <tr>
@@ -22,10 +24,16 @@
         <td class="numeric">{{profile.tests}}</td>
         {% if profile.enabled %}
             <td class="numeric">X</td>
+        {% else %}
+            <td class="numeric"></td>
         {% endif %}
         {% if profile.approver %}
             <td class="numeric">X</td>
+        {% else %}
+            <td class="numeric"></td>
         {% endif %}
+        <td>{{profile.engine}}</td>
+        <td><a href="{{profile.repo}}">{{profile.repo}}</a></td>
     </tr>
     {% endfor %}
 <table>
