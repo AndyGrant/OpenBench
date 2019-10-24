@@ -44,6 +44,7 @@ a:link, a:visited, a:hover, a:active {
 
 #content input, #content select {
     background-color: #BBBBBB;
+    color: #000000;
     padding: 8px;
     margin: 2px 0px;
     display: inline-block;
