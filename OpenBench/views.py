@@ -17,10 +17,16 @@ from OpenBench.utils import pagingContext
 
 import OpenBench.utils, datetime
 
-
-# Wrap django.shortcuts.render to add framework settings
 def render(request, template, data):
+
+    # Always provde the Configuration
     data.update(FRAMEWORK_DEFAULTS)
+
+    # Send User data when logged in
+    if request.user.is_authenticated:
+        data.update({'profile' : Profile.objects.get(user=request.user)})
+
+    # Final wrap of Django's rendering funtion
     return djangoRender(request, 'OpenBench/{0}'.format(template), data)
 
 def register(request):
@@ -81,9 +87,7 @@ def logout(request):
 @login_required(login_url='/login/')
 def viewProfile(request):
 
-    # Build context dictionary for profile template
-    profile = Profile.objects.get(user=request.user)
-    data = {'profile' : profile}
+    # render() gets the profile data for us
     return render(request, 'viewProfile.html', data)
 
 @login_required(login_url='/login/')
@@ -110,10 +114,6 @@ def editProfile(request):
     return HttpResponseRedirect('/viewProfile/')
 
 def index(request, page=0, pageLength=25, greens=False, username=None, error=''):
-
-    # Get information about the logged in user
-    if not request.user.is_authenticated: profile = None
-    else: profile = Profile.objects.get(user=request.user)
 
     # Get tests pending approval
     pending = Test.objects.filter(approved=False)
@@ -173,7 +173,6 @@ def index(request, page=0, pageLength=25, greens=False, username=None, error='')
     # Build context dictionary for index template
     data = {
         'error'     : error,
-        'profile'   : profile,
         'pending'   : pending,
         'active'    : active,
         'completed' : completed[start:end],
@@ -282,8 +281,7 @@ def newTest(request):
 
     # User trying to view the new test page
     if request.method == 'GET':
-        profile = Profile.objects.get(user=request.user)
-        return render(request, 'newTest.html', {'profile' : profile})
+        return render(request, 'newTest.html', {})
 
     try:
         # Throw out non-approved / disabled users
@@ -311,8 +309,7 @@ def viewTest(request, id):
         # Build context dictionary for test template
         test = Test.objects.get(id=id)
         results = Result.objects.all().filter(test=test)
-        profile = Profile.objects.get(user=request.user) if request.user.is_authenticated else None
-        data = {'test' : test, 'results' : results, 'profile' : profile}
+        data = {'test' : test, 'results' : results}
         return render(request, 'viewTest.html', data)
 
     # Unable to find test

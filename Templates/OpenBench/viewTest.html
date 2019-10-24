@@ -89,7 +89,7 @@
     <h2>Actions</h2>
 
     <!-- Approve Button: For Admins, or Cross-approvers -->
-    {% if not test.approved and profile.approver and profile.user.username is not test.author %}
+    {% if not test.approved and profile.approver and profile.user.username != test.author %}
     <a class="anchorbutton" id="approvebutton" href="/approveTest/{{test.id}}/">Approve</a>
     {% elif not test.approved and request.user.is_superuser %}
     <a class="anchorbutton" id="approvebutton" href="/approveTest/{{test.id}}/">Approve</a>
@@ -100,7 +100,7 @@
     <!-- Restart Button: For Approvers or Test Authors of finished tests -->
     {% if test.finished and profile.approver %}
     <a class="anchorbutton" id="stopbutton" href="/restartTest/{{test.id}}/">Restart</a>
-    {% elif test.finished and profile.user.username is test.author %}
+    {% elif test.finished and profile.user.username == test.author %}
     <a class="anchorbutton" id="stopbutton" href="/restartTest/{{test.id}}/">Restart</a>
     {% elif test.finished %}
     <a class="anchorbutton deadbutton">Restart</a>
@@ -109,14 +109,14 @@
     <!-- Stop Button: For Approvers or Test Authors of active tests -->
     {% if not test.finished and profile.approver %}
     <a class="anchorbutton" id="restartbutton" href="/stopTest/{{test.id}}/">Stop</a>
-    {% elif not test.finished and profile.user.username is test.author %}
+    {% elif not test.finished and profile.user.username == test.author %}
     <a class="anchorbutton" id="restartbutton" href="/stopTest/{{test.id}}/">Stop</a>
     {% elif not test.finished %}
     <a class="anchorbutton deadbutton">Stop</a>
     {% endif %}
 
     <!-- Delete Button: For Approvers or Test Authors -->
-    {% if profile.approver or profile.user.username is test.author %}
+    {% if profile.approver or profile.user.username == test.author %}
     <a class="anchorbutton" id="deletebutton" href="/deleteTest/{{test.id}}/">Delete</a>
     {% else %}
     <a class="anchorbutton deadbutton">Delete</a>
@@ -136,7 +136,7 @@
         <input value="{{test.priority}}" name="priority"></br>
         <label>Throughput</label>
         <input value="{{test.throughput}}" name="throughput"></br>
-        {% if profile.approver or profile.user.username is test.author %}
+        {% if profile.approver or profile.user.username == test.author %}
         <input type="submit" name="submit" value="Modify">
         {% else %}
         <input class="deadbutton" type="submit" name="submit" value="Modify">
