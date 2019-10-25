@@ -224,8 +224,8 @@ def singleCoreBench(name, outqueue):
         data = data.decode('ascii').strip().split('\n')
 
         # Parse and dump results into queue
-        bench = int(data[-2].split(':')[1])
-        nps   = int(data[-1].split(':')[1])
+        bench = int(data[-2].split()[-1])
+        nps   = int(data[-1].split()[-1])
         outqueue.put((bench, nps))
 
     # Bad compile or bad output, force an error
