@@ -1,33 +1,33 @@
 {% extends "OpenBench/base.html" %}
 
-{% load mytags %}
-
-{% block style %}
-{% load static %}
-{% endblock %}
+{% load mytags %} <!-- For twoDigitPrecision() -->
 
 {% block content %}
-<table class="rawtable">
-    <tr>
-        <th>ID</th>
-        <th>User</th>
-        <th>System</th>
-        <th>Updated</th>
-        <th>Workload</th>
-        <th>Threads</th>
-        <th>MNPS</th>
-    </tr>
-    {% for machine in machines %}
-    <tr>
-        <td class="numeric">{{machine.id}}</td>
-        <td>{{machine.owner}}</td>
-        <td>{{machine.osname}}</td>
-        <td>{{machine.updated|date:'Y-m-d H:i'}}</td>
-        <td> <a href="/viewTest/{{machine.workload.id}}">{{machine.workload.dev.name}}</a></td>
-        <td class="numeric">{{machine.threads}}</td>
-        <td class="numeric">{{machine.mnps|twoDigitPrecision}}</td>
-    </tr>
-    {% endfor %}
-</table>
+
+    <table class="rawtable">
+
+        <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>System</th>
+            <th>Updated</th>
+            <th>Workload</th>
+            <th>Threads</th>
+            <th>MNPS</th>
+        </tr>
+
+        {% for machine in machines %}
+            <tr>
+                <td class="numeric">{{machine.id}}</td>
+                <td>{{machine.owner}}</td>
+                <td>{{machine.osname}}</td>
+                <td>{{machine.updated|date:'Y-m-d H:i'}}</td>
+                <td> <a href="/viewTest/{{machine.workload.id}}">{{machine.workload.dev.name}}</a></td>
+                <td class="numeric">{{machine.threads}}</td>
+                <td class="numeric">{{machine.mnps|twoDigitPrecision}}</td>
+            </tr>
+        {% endfor %}
+
+    </table>
 
 {% endblock %}

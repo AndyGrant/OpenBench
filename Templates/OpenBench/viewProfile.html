@@ -1,35 +1,33 @@
 {% extends "OpenBench/base.html" %}
 
-{% block style %}
-{% load static %}
-{% endblock %}
-
 {% block content %}
-<form method="POST" action="/editProfile/">
-    {% csrf_token %}
-    <label>Username</label>
-    <input readonly value="{{profile.user.username}}" name="username"></br>
-    <label>Email</label>
-    <input value="{{profile.user.email}}" name="email"></br>
-    <label>New Password</label>
-    <input type="password" name="password1"></br>
-    <label>New Password</label>
-    <input type="password" name="password2"></br>
-    <label>Source Repo</label>
-    <input value="{{profile.repo}}" name="repo"></br>
-    <label>Engine</label>
-    <select id="enginename" name="enginename" onchange="configure(testMode)">
-    {% for engine in config.engines %}
-        {% if profile.engine == engine %}
-            <option selected value="{{engine}}">{{engine}}</option>
-        {% else %}
-            <option value="{{engine}}">{{engine}}</option>
-        {% endif %}
-    {% endfor %}
-    {% if not profile.engine %}
-    <option selected value=""></option>
-    {% endif %}
-    </select><br>
-    <input type="submit" name="submit" value="Update Profile">
-</form>
+
+    <form method="POST" action="/editProfile/">
+        {% csrf_token %}
+
+        <!-- User definition. Everything may be changed but the Username -->
+        <label>Username    </label> <input readonly value="{{profile.user.username}}" name="username"><br>
+        <label>Email       </label> <input value="{{profile.user.email}}" name="email"><br>
+        <label>Source Repo </label> <input value="{{profile.repo}}" name="repo"><br>
+        <label>New Password</label> <input type="password" name="password1"><br>
+        <label>New Password</label> <input type="password" name="password2"><br>
+
+        <!-- User's have a default engine. Select the default, otherwise show an empty line -->
+        <label>Engine</label> <select id="enginename" name="enginename" onchange="configure(testMode)">
+            {% for engine in config.engines %}
+                {% if profile.engine == engine %}
+                    <option selected value="{{engine}}">{{engine}}</option>
+                {% else %}
+                    <option value="{{engine}}">{{engine}}</option>
+                {% endif %}
+            {% endfor %}
+            {% if not profile.engine %}
+                <option selected value=""></option>
+            {% endif %}
+        </select><br>
+
+        <input type="submit" name="submit" value="Update Profile">
+
+    </form>
+
 {% endblock %}

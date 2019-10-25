@@ -1,37 +1,27 @@
 {% extends "OpenBench/base.html" %}
 
-{% block style %}
-{% load static %}
-{% endblock %}
-
 {% block content %}
-<table class="rawtable">
-    <tr>
-        <th>Date</th>
-        <th>User</th>
-        <th>Test</th>
-        <th>Action</th>
-    </tr>
-    {% for event in events %}
-    <tr>
-        <td>{{event.creation|date:'Y-m-d H:i:s'}}</td>
-        <td>{{event.author}}</td>
-        <td><a href="/viewTest/{{event.test.id}}">{{event.test.dev.name}}</a></td>
-        <td>{{event.data}}</td>
-    </tr>
-    {% endfor %}
-<table>
-<div id="pagebrowse">
-    {% if paging.prev != paging.next %}
-        <a class="page" href="/{{paging.url}}/{{paging.prev}}">&lt;--</a>
-        {% for page in paging.pages %}
-            {% if page != "..." %}
-                <a class="page" href="/{{paging.url}}/{{page}}">{{page}}</a>
-            {% else %}
-                <a class="page"> {{page}} </a>
-            {% endif %}
+
+    <table class="rawtable">
+
+        <tr>
+            <th>Date</th>
+            <th>User</th>
+            <th>Test</th>
+            <th>Action</th>
+        </tr>
+
+        {% for event in events %}
+            <tr>
+                <td>{{event.creation|date:'Y-m-d H:i:s'}}</td>
+                <td>{{event.author}}</td>
+                <td><a href="/viewTest/{{event.test.id}}">{{event.test.dev.name}}</a></td>
+                <td>{{event.data}}</td>
+            </tr>
         {% endfor %}
-        <a class="page" href="/{{paging.url}}/{{paging.next}}">--&gt;</a>
-    {% endif %}
-</div>
+
+    <table>
+
+    {% include "OpenBench/Blocks/pagebrowser.html" %}
+
 {% endblock %}

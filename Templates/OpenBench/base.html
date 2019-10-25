@@ -1,69 +1,77 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
-{% load static %}
+    {% load static %}
 
-<head>
-    <link rel="stylesheet" href="{% static 'style.css' %}">
-    <title>OpenBench</title>
-    <script>
-    {% block scripts %}
-    {% endblock %}
-    </script>
-</head>
-<body>
+    <head>
+        <link rel="stylesheet" href="{% static 'style.css' %}">
+        <title>OpenBench</title>
+        <script>
+            {% block scripts %}
+            {% endblock %}
+        </script>
+    </head>
 
+    <body>
 
-    {% if error %}
-        <div id="error">
-            <strong>{{error}}</strong>
+        <!-- Views may return an error message -->
+        {% if error %}
+            <div id="error">
+                <strong>{{error}}</strong>
+            </div>
+        {% endif %}
+
+        <!-- Tell unauthenticated users to contact the Admin -->
+        {% if request.user.is_authenticated and not profile.enabled %}
+            <div id="error">
+                <strong>{{profile.user.username}}! Your account is not enabled.</strong>
+                <strong>Contact the Admin ( {{config.serveradmin}} )</strong>
+            </div>
+        {% endif %}
+
+        <div id="sidebar">
+
+            <ul>
+                <li class="header">ADMIN</li>
+                {% if user.is_authenticated %}
+                    <li><a href="/logout/">Logout</a></li>
+                    <li><a href="/viewProfile/">Profile</a></li>
+                {% else %}
+                    <li><a href="/login">Login </a></li>
+                    <li><a href="/register">Register</a></li>
+                {% endif %}
+            </ul>
+
+            <ul>
+                <li class="header">TESTS</li>
+                <li><a href="/index">Index</a></li>
+                <li><a href="/greens">Greens</a></li>
+                <li><a href="/search">Search</a></li>
+                <li><a href="/newTest">New Test</a></li>
+            </ul>
+
+            <ul>
+                <li class="header">INFO</li>
+                <li><a href="/users">Users</a></li>
+                <li><a href="/eventLog">Events</a></li>
+                <li><a href="/machines">Machines</a></li>
+                <li><a href="{{config.framework}}">OpenBench</a></li>
+            </ul>
+
+            <ul>
+                <li class="header">ENGINES</li>
+                {% for engine, data in config.engines.items|dictsort:"0.lower" %}
+                    <li><a href="{{data.source}}">{{data.name}}</a></li>
+                {% endfor %}
+            </ul>
+
         </div>
-    {% endif %}
 
-    {% if request.user.is_authenticated and not profile.enabled %}
-        <div id="error">
-            <strong>{{profile.user.username}}! Your account is not enabled.</strong>
-            <strong>Contact the Admin ( {{config.serveradmin}} )</strong>
+        <div id="content">
+            {% block content %}
+            {% endblock %}
         </div>
-    {% endif %}
 
-    <div id="sidebar">
-        {% block sidebar %}
-        <ul>
-            <li class="header">ADMIN</li>
-            {% if user.is_authenticated %}
-            <li><a href="/logout/">Logout</a></li>
-            <li><a href="/viewProfile/">Profile</a></li>
-            {% else %}
-            <li><a href="/login">Login </a></li>
-            <li><a href="/register">Register</a></li>
-            {% endif %}
-        </ul>
-        <ul>
-            <li class="header">TESTS</li>
-            <li><a href="/index">Index</a></li>
-            <li><a href="/greens">Greens</a></li>
-            <li><a href="/search">Search</a></li>
-            <li><a href="/newTest">New Test</a></li>
-        </ul>
-        <ul>
-            <li class="header">INFO</li>
-            <li><a href="/users">Users</a></li>
-            <li><a href="/eventLog">Events</a></li>
-            <li><a href="/machines">Machines</a></li>
-            <li><a href="{{config.framework}}">OpenBench</a></li>
-        </ul>
-        <ul>
-            <li class="header">ENGINES</li>
-            {% for engine, data in config.engines.items|dictsort:"0.lower" %}
-            <li><a href="{{data.source}}">{{data.name}}</a></li>
-            {% endfor %}
-        </ul>
-        {% endblock %}
-    </div>
-    <div id="content">
-        {% block content %}
-        {% endblock %}
-    </div>
-</body>
+    </body>
 </html>

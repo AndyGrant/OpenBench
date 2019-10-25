@@ -101,8 +101,10 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #content .summarytable th {
+    padding-top: 20px;
     padding-right: 10px;
-    font-size: 20px;
+    padding-bottom: 20px;
+    font-size: 16px;
     color: #00CCFF;
 }
 
@@ -120,7 +122,7 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #content #actions {
-    float: left;
+    float: right;
 }
 
 #content #actions .anchorbutton {

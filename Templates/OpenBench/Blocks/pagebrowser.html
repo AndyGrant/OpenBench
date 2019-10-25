@@ -1,0 +1,13 @@
+<div id="pagebrowse">
+    {% if paging.prev != paging.next %}
+        <a class="page" href="/{{paging.url}}/{{paging.prev}}">&lt;--</a>
+        {% for page in paging.pages %}
+            {% if page != "..." %}
+                <a class="page" href="/{{paging.url}}/{{page}}">{{page}}</a>
+            {% else %}
+                <a class="page"> {{page}} </a>
+            {% endif %}
+        {% endfor %}
+        <a class="page" href="/{{paging.url}}/{{paging.next}}">--&gt;</a>
+    {% endif %}
+</div>

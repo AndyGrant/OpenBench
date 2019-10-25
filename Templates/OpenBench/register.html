@@ -1,20 +1,14 @@
 {% extends "OpenBench/base.html" %}
 
-{% block style %}
-{% load static %}
-{% endblock %}
-
 {% block content %}
-<form id="registerForm" method="POST" action="/register/">
-    {% csrf_token %}
-    <label>Username</label>
-    <input name="username"></br>
-    <label>Password</label>
-    <input type="password" name="password1"></br>
-    <label>Password</label>
-    <input type="password" name="password2"></br>
-    <label>Email</label>
-    <input name="email"></br>
-    <input type="submit" name="submit" value="Create User">
-</form>
+
+    <form id="registerForm" method="POST" action="/register/">
+        {% csrf_token %}
+        <label>Username</label> <input name="username"><br>
+        <label>Password</label> <input type="password" name="password1"><br>
+        <label>Password</label> <input type="password" name="password2"><br>
+        <label>Email   </label> <input name="email"><br>
+        <input type="submit" name="submit" value="Create User">
+    </form>
+
 {% endblock %}

@@ -1,39 +1,25 @@
 {% extends "OpenBench/base.html" %}
+
 {% block scripts %}
 
-    var testMode = "stc";
+    // Take the settings from OpenBench/config.py for each engine
+    // and generate a new dictionary in javascript that can be used
 
     var configurations = {
         {% for name, data in config.engines.items %}
-        '{{name}}' : {
-            'stc'    : {
-                "threads"     : "{{data.stc.threads}}",
-                "hash"        : "{{data.stc.hash}}",
-                "timecontrol" : "{{data.stc.timecontrol}}"
+            '{{name}}' : {
+                {% for type, settings in data.testmodes.items %}
+                '{{type}}' : {
+                    "threads"     : "{{settings.threads}}",
+                    "hash"        : "{{settings.hash}}",
+                    "timecontrol" : "{{settings.timecontrol}}"
+                },
+                {% endfor %}
             },
-            'ltc'    : {
-                "threads"     : "{{data.ltc.threads}}",
-                "hash"        : "{{data.ltc.hash}}",
-                "timecontrol" : "{{data.ltc.timecontrol}}"
-            },
-            'smpstc' : {
-                "threads"     : "{{data.smpstc.threads}}",
-                "hash"        : "{{data.smpstc.hash}}",
-                "timecontrol" : "{{data.smpstc.timecontrol}}"
-            },
-            'smpltc' : {
-                "threads"     : "{{data.smpltc.threads}}",
-                "hash"        : "{{data.smpltc.hash}}",
-                "timecontrol" : "{{data.smpltc.timecontrol}}"
-            },
-        },
         {% endfor %}
     };
 
     function configure(mode) {
-
-        // Update global test mode
-        testMode = mode;
 
         // Find the selected engine
         var selection = document.getElementById("enginename");
@@ -49,76 +35,76 @@
         document.getElementById("baseoptions").value  = "Threads=" + threads + " Hash=" + hash;
         document.getElementById("timecontrol").value  = timecontrol;
     }
+
 {% endblock %}
+
 {% block content %}
-<form method="POST" action="/newTest/">
-    {% csrf_token %}
-    <div class="settings-column">
-        <h3> Engine </h3>
-        <label> Name </label>
-        <select id="enginename" name="enginename" onchange="configure(testMode)">
-        {% for engine in config.engines %}
-            {% if engine == profile.engine %}
-                <option selected value="{{engine}}">{{engine}}</option>
-            {% else %}
-                <option value="{{engine}}">{{engine}}</option>
-            {% endif %}
-        {% endfor %}
-        <option value="{{engine}}">{{engine}}</option>
-        </select><br>
-        <label> Source </label>
-        <input value="{{profile.repo}}" name="source"></br>
-        <h3> Dev Settings </h3>
-        <label> Bench </label>
-        <input name="devbench"></br>
-        <label> Branch </label>
-        <input name="devbranch" autofocus></br>
-        <label> Options </label>
-        <input id="devoptions" name="devoptions"></br>
-        <h3> Base Settings </h3>
-        <label> Bench </label>
-        <input name="basebench"></br>
-        <label> Branch </label>
-        <input value="master" name="basebranch"></br>
-        <label> Options </label>
-        <input id="baseoptions" name="baseoptions"></br>
+
+    <form method="POST" action="/newTest/">
+        {% csrf_token %}
+        <div class="settings-column">
+
+            <h3> Engine </h3>
+            <label> Name </label> <select id="enginename" name="enginename">
+            {% for engine in config.engines %}
+                {% if engine == profile.engine %}
+                    <option selected value="{{engine}}">{{engine}}</option>
+                {% else %}
+                    <option value="{{engine}}">{{engine}}</option>
+                {% endif %}
+            {% endfor %}
+            <option value="{{engine}}">{{engine}}</option>
+            </select><br>
+            <label> Source </label> <input value="{{profile.repo}}" name="source"><br>
+
+            <h3> Dev Settings </h3>
+            <label> Bench </label> <input name="devbench"><br>
+            <label> Branch </label> <input name="devbranch" autofocus><br>
+            <label> Options </label> <input id="devoptions" name="devoptions"><br>
+
+            <h3> Base Settings </h3>
+            <label> Bench </label> <input name="basebench"><br>
+            <label> Branch </label> <input value="master" name="basebranch"><br>
+            <label> Options </label> <input id="baseoptions" name="baseoptions"><br>
+
+        </div>
+
+        <div class="settings-column">
+
+            <h3> Game Settings </h3>
+            <label> Book </label> <select name="bookname">
+            {% for name, data in config.books.items %}
+                {% if data.default %}
+                    <option selected value="{{name}}">{{data.name}}</option>
+                {% else %}
+                    <option value="{{name}}">{{data.name}}</option>
+                {% endif %}
+            {% endfor %}
+            </select><br>
+            <label> Time </label> <input id="timecontrol" name="timecontrol"><br>
+
+            <h3> SPRT Settings </h3>
+            <label> Lower </label> <input value="{{config.sprt.elolower}}" name="elolower"><br>
+            <label> Upper </label> <input value="{{config.sprt.eloupper}}" name="eloupper"><br>
+            <label> Alpha </label> <input value="{{config.sprt.alpha}}" name="alpha"><br>
+            <label> Beta </label> <input value="{{config.sprt.beta}}" name="beta"><br>
+
+            <h3> Test Settings </h3>
+            <label> Priority </label> <input value="0" name="priority"><br>
+            <label> Throughput </label> <input value="1000" name="throughput"><br>
+
+        </div>
+
+        <br><input type="submit" name="submit" value="Create Engine Test">
+
+    </form>
+
+    <div id="test-mode-buttons">
+        <button class="left-floated" onClick="configure('stc')">Setup STC</button>
+        <button class="right-floated" onClick="configure('ltc')">Setup LTC</button><br>
+        <button class="left-floated" onClick="configure('smpstc')">Setup SMP STC</button>
+        <button class="right-floated" onClick="configure('smpltc')">Setup SMP LTC</button>
     </div>
-    <div class="settings-column">
-        <h3> Game Settings </h3>
-        <label> Book </label>
-        <select name="bookname">
-        {% for name, data in config.books.items %}
-            {% if data.default %}
-                <option selected value="{{name}}">{{data.name}}</option>
-            {% else %}
-                <option value="{{name}}">{{data.name}}</option>
-            {% endif %}
-        {% endfor %}
-        </select></br>
-        <label> Time </label>
-        <input id="timecontrol" name="timecontrol"></br>
-        <h3> SPRT Settings </h3>
-        <label> Lower </label>
-        <input value="{{config.sprt.elolower}}" name="elolower"></br>
-        <label> Upper </label>
-        <input value="{{config.sprt.eloupper}}" name="eloupper"></br>
-        <label> Alpha </label>
-        <input value="{{config.sprt.alpha}}" name="alpha"></br>
-        <label> Beta </label>
-        <input value="{{config.sprt.beta}}" name="beta"></br>
-        <h3> Test Settings </h3>
-        <label> Priority </label>
-        <input value="0" name="priority"></br>
-        <label> Throughput </label>
-        <input value="1000" name="throughput"></br>
-    </div>
-    <br><input type="submit" name="submit" value="Create Engine Test"><br>
-</form>
-<div id="test-mode-buttons">
-    <button class="left-floated"onClick="configure('stc')">Setup STC</button>
-    <button class="right-floated"onClick="configure('ltc')">Setup LTC</button><br>
-    <button class="left-floated"onClick="configure('smpstc')">Setup SMP STC</button>
-    <button class="right-floated"onClick="configure('smpltc')">Setup SMP LTC</button>
-</div>
+
 {% endblock %}
 

@@ -7,171 +7,128 @@
 {% endblock %}
 
 {% block content %}
-<div id="configuration">
-    <table class="rawtable">
-        <tr>
-            <td>Engine</td>
-            <td>{{test.engine}}</td>
-        </tr>
-        <tr>
-            <td>Dev Branch</td>
-            <td>{{test.dev.name}}</td>
-        </tr>
-        <tr>
-            <td>Dev Bench</td>
-            <td>{{test.dev.bench}}</td>
-        </tr>
-        <tr>
-            <td>Dev Options</td>
-            <td>{{test.devoptions}}</td>
-        </tr>
-        <tr>
-            <td>Dev Protocol</td>
-            <td>{{test.dev.protocol}}</td>
-        </tr>
-        <tr>
-            <td>Dev Sha</td>
-            <td>{{test.dev.sha}}</td>
-        </tr>
-        <tr>
-            <td>Base Branch</td>
-            <td>{{test.base.name}}</td>
-        </tr>
-        <tr>
-            <td>Base Bench</td>
-            <td>{{test.base.bench}}</td>
-        </tr>
-        <tr>
-            <td>Base Options</td>
-            <td>{{test.baseoptions}}</td>
-        </tr>
-        <tr>
-            <td>Base Protocol</td>
-            <td>{{test.base.protocol}}</td>
-        </tr>
-        <tr>
-            <td>Base Sha</td>
-            <td>{{test.base.sha}}</td>
-        </tr>
-        <tr>
-            <td>Source Repo</td>
-            <td>{{test.source}}</td>
-        </tr>
-        <tr>
-            <td>Opening Book</td>
-            <td>{{test.bookname}}</td>
-        </tr>
-        <tr>
-            <td>Time Control</td>
-            <td>{{test.timecontrol}}s</td>
-        </tr>
-        <tr>
-            <td>Elo Bounds</td>
-            <td>[{{test.elolower}}, {{test.eloupper}}]</td>
-        </tr>
-        <tr>
-            <td>SPRT Bounds</td>
-            <td>({{test.lowerllr|twoDigitPrecision}}, {{test.upperllr|twoDigitPrecision}})</td>
-        </tr>
-        <tr>
-            <td>Creation</td>
-            <td>{{test.creation|date:'Y-m-d H:i:s'}}</td>
-        </tr>
-        <tr>
-            <td>Author</td>
-            <td>{{test.author}}</td>
-        </tr>
-    </table>
-</div>
 
-<div id="actions">
+    <div id="configuration">
+        <table class="rawtable">
+            <tr><td>Engine</td><td>{{test.engine}}</td></tr>
+            <tr><td>Dev Branch</td><td>{{test.dev.name}}</td></tr>
+            <tr><td>Dev Bench</td><td>{{test.dev.bench}}</td></tr>
+            <tr><td>Dev Options</td><td>{{test.devoptions}}</td></tr>
+            <tr><td>Dev Protocol</td><td>{{test.dev.protocol}}</td></tr>
+            <tr><td>Dev Sha</td><td>{{test.dev.sha}}</td></tr>
+            <tr><td>Base Branch</td><td>{{test.base.name}}</td></tr>
+            <tr><td>Base Bench</td><td>{{test.base.bench}}</td></tr>
+            <tr><td>Base Options</td><td>{{test.baseoptions}}</td></tr>
+            <tr><td>Base Protocol</td><td>{{test.base.protocol}}</td></tr>
+            <tr><td>Base Sha</td><td>{{test.base.sha}}</td></tr>
+            <tr><td>Source Repo</td><td>{{test.source}}</td></tr>
+            <tr><td>Opening Book</td><td>{{test.bookname}}</td></tr>
+            <tr><td>Time Control</td><td>{{test.timecontrol}}s</td></tr>
+            <tr><td>Elo Bounds</td><td>[{{test.elolower}}, {{test.eloupper}}]</td></tr>
+            <tr><td>SPRT Bounds</td><td>({{test.lowerllr|twoDigitPrecision}}, {{test.upperllr|twoDigitPrecision}})</td></tr>
+            <tr><td>Creation</td><td>{{test.creation|date:'Y-m-d H:i:s'}}</td></tr>
+            <tr><td>Author</td><td>{{test.author}}</td></tr>
+        </table>
+    </div>
 
-    <h2>Actions</h2>
+    <div id="actions">
 
-    <!-- Approve Button: For Admins, or Cross-approvers -->
-    {% if not test.approved and profile.approver and profile.user.username != test.author %}
-    <a class="anchorbutton" id="approvebutton" href="/approveTest/{{test.id}}/">Approve</a>
-    {% elif not test.approved and request.user.is_superuser %}
-    <a class="anchorbutton" id="approvebutton" href="/approveTest/{{test.id}}/">Approve</a>
-    {% else %}
-    <a class="anchorbutton deadbutton">Approve</a>
-    {% endif %}
+        <h2>Actions</h2>
 
-    <!-- Restart Button: For Approvers or Test Authors of finished tests -->
-    {% if test.finished and profile.approver %}
-    <a class="anchorbutton" id="stopbutton" href="/restartTest/{{test.id}}/">Restart</a>
-    {% elif test.finished and profile.user.username == test.author %}
-    <a class="anchorbutton" id="stopbutton" href="/restartTest/{{test.id}}/">Restart</a>
-    {% elif test.finished %}
-    <a class="anchorbutton deadbutton">Restart</a>
-    {% endif %}
-
-    <!-- Stop Button: For Approvers or Test Authors of active tests -->
-    {% if not test.finished and profile.approver %}
-    <a class="anchorbutton" id="restartbutton" href="/stopTest/{{test.id}}/">Stop</a>
-    {% elif not test.finished and profile.user.username == test.author %}
-    <a class="anchorbutton" id="restartbutton" href="/stopTest/{{test.id}}/">Stop</a>
-    {% elif not test.finished %}
-    <a class="anchorbutton deadbutton">Stop</a>
-    {% endif %}
-
-    <!-- Delete Button: For Approvers or Test Authors -->
-    {% if profile.approver or profile.user.username == test.author %}
-    <a class="anchorbutton" id="deletebutton" href="/deleteTest/{{test.id}}/">Delete</a>
-    {% else %}
-    <a class="anchorbutton deadbutton">Delete</a>
-    {% endif %}
-
-    <!-- Dev vs Base [Git Diff Link] -->
-    <h4>{{test.dev.name}} vs {{test.base.name}}
-        <a href="{{test|gitDiffLink}}">DIFF</a>
-    </h4>
-
-    <!-- ELO, SPRT, LLR, Games -->
-    <pre>{{test|longStatBlock|linebreaksbr}}</pre>
-
-    <form method="POST" action="/editTest/{{test.id}}/">
-        {% csrf_token %}
-        <label>Priority</label>
-        <input value="{{test.priority}}" name="priority"></br>
-        <label>Throughput</label>
-        <input value="{{test.throughput}}" name="throughput"></br>
-        {% if profile.approver or profile.user.username == test.author %}
-        <input type="submit" name="submit" value="Modify">
+        <!-- Approve Button: For Admins, or Cross-approvers -->
+        {% if not test.approved and profile.approver and profile.user.username != test.author %}
+        <a class="anchorbutton" id="approvebutton" href="/approveTest/{{test.id}}/">Approve</a>
+        {% elif not test.approved and request.user.is_superuser %}
+        <a class="anchorbutton" id="approvebutton" href="/approveTest/{{test.id}}/">Approve</a>
         {% else %}
-        <input class="deadbutton" type="submit" name="submit" value="Modify">
+        <a class="anchorbutton deadbutton">Approve</a>
         {% endif %}
-    </form>
-</div>
-<br>
 
-<div id="results">
-    <table class="datatable">
-        <tr>
-            <th>ID</th>
-            <th>Owner</th>
-            <th>Last Updated</th>
-            <th>Games</th>
-            <th style="width: 60px">Win</th>
-            <th style="width: 60px">Loss</th>
-            <th style="width: 60px">Draw</th>
-            <th style="width: 60px">Time</th>
-            <th style="width: 60px">Crash</th>
-        </tr>
-        {% for result in results %}
+        <!-- Restart Button: For Approvers or Test Authors of finished tests -->
+        {% if test.finished and profile.approver %}
+        <a class="anchorbutton" id="stopbutton" href="/restartTest/{{test.id}}/">Restart</a>
+        {% elif test.finished and profile.user.username == test.author %}
+        <a class="anchorbutton" id="stopbutton" href="/restartTest/{{test.id}}/">Restart</a>
+        {% elif test.finished %}
+        <a class="anchorbutton deadbutton">Restart</a>
+        {% endif %}
+
+        <!-- Stop Button: For Approvers or Test Authors of active tests -->
+        {% if not test.finished and profile.approver %}
+        <a class="anchorbutton" id="restartbutton" href="/stopTest/{{test.id}}/">Stop</a>
+        {% elif not test.finished and profile.user.username == test.author %}
+        <a class="anchorbutton" id="restartbutton" href="/stopTest/{{test.id}}/">Stop</a>
+        {% elif not test.finished %}
+        <a class="anchorbutton deadbutton">Stop</a>
+        {% endif %}
+
+        <!-- Delete Button: For Approvers or Test Authors -->
+        {% if profile.approver or profile.user.username == test.author %}
+        <a class="anchorbutton" id="deletebutton" href="/deleteTest/{{test.id}}/">Delete</a>
+        {% else %}
+        <a class="anchorbutton deadbutton">Delete</a>
+        {% endif %}
+
+        <!-- Dev vs Base [Git Diff Link] -->
+        <h4>{{test.dev.name}} vs {{test.base.name}}
+            <a href="{{test|gitDiffLink}}">DIFF</a>
+        </h4>
+
+        <!-- ELO, SPRT, LLR, Games -->
+        <pre>{{test|longStatBlock|linebreaksbr}}</pre>
+
+        <form method="POST" action="/editTest/{{test.id}}/">
+            {% csrf_token %}
+
+            <label>Priority</label><input value="{{test.priority}}" name="priority"><br>
+            <label>Throughput</label><input value="{{test.throughput}}" name="throughput"><br>
+
+            {% if profile.approver or profile.user.username == test.author %}
+                <input type="submit" name="submit" value="Modify">
+            {% else %}
+                <input class="deadbutton" type="submit" name="submit" value="Modify">
+            {% endif %}
+
+        </form>
+
+    </div>
+
+    <br>
+
+    <div id="results">
+
+        <table class="datatable">
+
             <tr>
-                <td>{{result.machine.id}}</td>
-                <td>{{result.machine.owner}}</td>
-                <td>{{result.updated|date:'Y-m-d H:i'}}</td>
-                <td class="numeric">{{result.games}}</td>
-                <td class="numeric">{{result.wins}}</td>
-                <td class="numeric">{{result.losses}}</td>
-                <td class="numeric">{{result.draws}}</td>
-                <td class="numeric">{{result.timeloss}}</td>
-                <td class="numeric">{{result.crashes}}</td>
+                <th>ID</th>
+                <th>Owner</th>
+                <th>System</th>
+                <th>Last Updated</th>
+                <th style="width: 60px">Games</th>
+                <th style="width: 60px">Won</th>
+                <th style="width: 60px">Lost</th>
+                <th style="width: 60px">Drawn</th>
+                <th style="width: 60px">Time</th>
+                <th style="width: 60px">Crash</th>
             </tr>
-        {% endfor %}
-    </table>
-</div>
+
+            {% for result in results %}
+                <tr>
+                    <td>{{result.machine.id}}</td>
+                    <td>{{result.machine.owner}}</td>
+                    <td>{{result.machine.osname|truncatewords:1|slice:":-4"}}</td>
+                    <td>{{result.updated|date:'Y-m-d H:i'}}</td>
+                    <td class="numeric">{{result.games}}</td>
+                    <td class="numeric">{{result.wins}}</td>
+                    <td class="numeric">{{result.losses}}</td>
+                    <td class="numeric">{{result.draws}}</td>
+                    <td class="numeric">{{result.timeloss}}</td>
+                    <td class="numeric">{{result.crashes}}</td>
+                </tr>
+            {% endfor %}
+
+        </table>
+
+    </div>
 
 {% endblock %}

@@ -98,9 +98,10 @@ def editProfile(request):
     profile.user.email = request.POST['email']
     profile.engine = request.POST['enginename']
     profile.repo = request.POST['repo']
+    profile.user.save()
     profile.save()
 
-    # Change Passwords
+    # Change Passwords if requested
     password1 = request.POST['password1']
     password2 = request.POST['password2']
     if password1 != '' and password1 == password2:
@@ -110,8 +111,8 @@ def editProfile(request):
             username=request.user.username,
             password=password1))
 
-    # Send back to see the changes
-    return HttpResponseRedirect('/viewProfile/')
+    # Send back to see the homepage
+    return HttpResponseRedirect('/index/')
 
 def index(request, page=1, pageLength=24, greens=False, username=None, error=''):
 
@@ -257,15 +258,15 @@ def machines(request):
     data = {'machines' : Machine.objects.filter(updated__gte=target)}
     return render(request, 'machines.html', data)
 
-def eventLog(request, page=0, pageLength=50):
+def eventLog(request, page=1, pageLength=50):
 
     # Choose events within the given page, if any
     events = LogEvent.objects.all().order_by('-id')
     items  = len(events)
     start  = page * pageLength
     end    = start + pageLength
-    start  = max(0, min(start, items))
-    end    = max(0, min(end, items))
+    start  = max(1, min(start, items))
+    end    = max(1, min(end, items))
     paging = pagingContext(page, pageLength, items, 'eventLog')
 
     # Build context dictionary for event log template
