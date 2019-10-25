@@ -37,6 +37,7 @@ a:link, a:visited, a:hover, a:active {
 
 #content label {
     width: 120px;
+    padding-right: 10px;
     font-weight:bold;
     text-align: right;
     display: inline-block;
@@ -128,6 +129,7 @@ a:link, a:visited, a:hover, a:active {
 #content #actions .anchorbutton {
     color: #000000;
     padding: 8px 8px;
+    margin: 0px 8px;
     border-radius: 8px;
     font-weight: bold;
     text-align: center;
