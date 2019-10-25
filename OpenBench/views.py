@@ -9,6 +9,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import utc
+from htmlmin.decorators import not_minified_response
 
 from OpenBench.config import *
 from OpenBench.models import LogEvent, Engine, Profile
@@ -472,6 +473,7 @@ def deleteTest(request, id):
         return index(request, error=str(error))
 
 @csrf_exempt
+@not_minified_response
 def getFiles(request):
 
     # Core Files should be sitting in framework's repo
@@ -479,6 +481,7 @@ def getFiles(request):
     return HttpResponse(source)
 
 @csrf_exempt
+@not_minified_response
 def getWorkload(request):
 
     # Verify that we got a valid login
@@ -511,6 +514,7 @@ def getWorkload(request):
     return HttpResponse(str(OpenBench.utils.workloadDictionary(machine, result, test)))
 
 @csrf_exempt
+@not_minified_response
 def wrongBench(request):
 
     # Verify that we got a valid login
@@ -540,6 +544,7 @@ def wrongBench(request):
     return HttpResponse('None')
 
 @csrf_exempt
+@not_minified_response
 def submitNPS(request):
 
     # Verify that we got a valid login
@@ -558,6 +563,7 @@ def submitNPS(request):
     return HttpResponse('None')
 
 @csrf_exempt
+@not_minified_response
 def submitResults(request):
 
     # Verify that we got a valid login
