@@ -209,7 +209,7 @@ def workloadDictionary(machine, result, test):
             'nps'           : FRAMEWORK_DEFAULTS['config']['engines'][test.engine]['nps'],
             'book'          : FRAMEWORK_DEFAULTS['config']['books'][test.bookname],
             'timecontrol'   : test.timecontrol,
-            'engine',       : test.engine,
+            'engine'        : test.engine,
             'dev' : {
                 'id'        : test.dev.id,
                 'name'      : test.dev.name,
