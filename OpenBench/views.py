@@ -264,10 +264,10 @@ def eventLog(request, page=1, pageLength=50):
     # Choose events within the given page, if any
     events = LogEvent.objects.all().order_by('-id')
     items  = len(events)
-    start  = page * pageLength
-    end    = start + pageLength
-    start  = max(1, min(start, items))
-    end    = max(1, min(end, items))
+    start  = (page - 1) * pageLength
+    end    = page * pageLength
+    start  = max(0, min(start, items))
+    end    = max(0, min(end, items))
     paging = pagingContext(page, pageLength, items, 'eventLog')
 
     # Build context dictionary for event log template
