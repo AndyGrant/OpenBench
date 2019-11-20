@@ -8,12 +8,13 @@ HTTP_TIMEOUT     = 30  # Timeout in seconds for requests
 WORKLOAD_TIMEOUT = 60  # Timeout when there is no work
 ERROR_TIMEOUT    = 60  # Timeout when an error is thrown
 GAMES_PER_TASK   = 250 # Total games to play per workload
-REPORT_RATE      = 5  # Games played for each upload cycle
+REPORT_RATE      = 5   # Games played for each upload cycle
 
 COMPILATION_FLAGS = {
     'ETHEREAL' : [],   # Custom makefile flags for Ethereal
     'LASER'    : [],   # Custom makefile flags for Laser
     'WEISS'    : [],   # Custom makefile flags for Weiss
+    'DEMOLITO' : [],   # Custom makefile flags for Demolito
 };
 
 
@@ -21,6 +22,13 @@ COMPILATION_FLAGS = {
 IS_WINDOWS = platform.system() == 'Windows'
 IS_LINUX   = platform.system() != 'Windows'
 
+def urljoin(*args):
+
+    # Join a set of URL paths while maintaining the correct
+    # format of "/"'s between each part of the URL's pathway
+
+    args = [f.lstrip("/").rstrip("/") for f in args]
+    return "/".join(args) + "/"
 
 def killCutechess(cutechess):
 
@@ -66,7 +74,7 @@ def getCutechess(server):
 
     # Ask the server where the core files are saved
     source = requests.get(
-        '{0}/getFiles/'.format(server),
+        urljoin(server, 'getFiles'),
         timeout=HTTP_TIMEOUT).content.decode('utf-8')
 
     # Windows workers need the cutechess.exe and the Qt5Core dll.
@@ -74,17 +82,17 @@ def getCutechess(server):
     # Make sure Linux binaries are set to be executable.
 
     if IS_WINDOWS and not os.path.isfile('cutechess.exe'):
-        getFile('{0}cutechess-windows.exe'.format(source), 'cutechess.exe')
+        getFile(urljoin(source, 'cutechess-windows.exe'), 'cutechess.exe')
 
     if IS_WINDOWS and not os.path.isfile('Qt5Core.dll'):
-        getFile('{0}cutechess-qt5core.dll'.format(source), 'Qt5Core.dll')
+        getFile(urljoin(source, 'cutechess-qt5core.dll'), 'Qt5Core.dll')
 
     if IS_LINUX and not os.path.isfile('cutechess'):
-        getFile('{0}cutechess-linux'.format(source), 'cutechess')
+        getFile(urljoin(source, 'cutechess-linux'), 'cutechess')
         os.system('chmod 777 cutechess')
 
     if IS_LINUX and not os.path.isfile('libcutechess.so.1'):
-        getFile('{0}libcutechess.so.1'.format(source), 'libcutechess.so.1')
+        getFile(urljoin(source, 'libcutechess.so.1'), 'libcutechess.so.1')
 
 def getMachineID():
 
@@ -325,7 +333,7 @@ def reportWrongBenchmark(arguments, data, engine):
     }
 
     # Hit the server with information about wrong benchmark
-    url = '{0}/wrongBench/'.format(arguments.server)
+    url = urljoin(arguments.server, 'wrongBench')
     return requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
 
 def reportNodesPerSecond(arguments, data, nps):
@@ -340,7 +348,7 @@ def reportNodesPerSecond(arguments, data, nps):
     }
 
     # Hit the server with information about nps
-    url = '{0}/submitNPS/'.format(arguments.server)
+    url = urljoin(arguments.server, 'submitNPS')
     return requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
 
 def reportResults(arguments, data, wins, losses, draws, crashes, timelosses):
@@ -356,7 +364,7 @@ def reportResults(arguments, data, wins, losses, draws, crashes, timelosses):
     }
 
     # Hit the server with the updated test results
-    url = '{0}/submitResults/'.format(arguments.server)
+    url = urljoin(arguments.server, 'submitResults')
     try: return requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
     except: print('[NOTE] Unable To Reach Server'); return "Unable"
 
@@ -425,7 +433,7 @@ def completeWorkload(workRequestData, arguments):
 
     # Get the next workload
     data = requests.post(
-        '{0}/getWorkload/'.format(arguments.server),
+        urljoin(arguments.server, 'getWorkload'),
         data=workRequestData, timeout=HTTP_TIMEOUT).content.decode('utf-8')
 
     # Check for an empty workload
