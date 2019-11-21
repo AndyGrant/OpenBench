@@ -25,14 +25,16 @@
         </tr>
 
         {% for profile in profiles %}
-            <tr>
-                <td><a href="/viewUser/{{profile.user.username}}">{{profile.user.username}}</a></td>
-                <td>{{profile.updated|date:'Y-m-d'}}</td>
-                <td class="numeric">{{profile.games}}</td>
-                <td class="numeric">{{profile.tests}}</td>
-                <td>{{profile.engine}}</td>
-                <td><a href="{{profile.repo}}">{{profile.repo}}</a></td>
-            </tr>
+            {% if profile.enabled %}
+                <tr>
+                    <td><a href="/viewUser/{{profile.user.username}}">{{profile.user.username}}</a></td>
+                    <td>{{profile.updated|date:'Y-m-d'}}</td>
+                    <td class="numeric">{{profile.games}}</td>
+                    <td class="numeric">{{profile.tests}}</td>
+                    <td>{{profile.engine}}</td>
+                    <td><a href="{{profile.repo}}">{{profile.repo}}</a></td>
+                </tr>
+            {% endif %}
         {% endfor %}
 
     </table>
