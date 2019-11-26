@@ -10,11 +10,11 @@ ERROR_TIMEOUT    = 60  # Timeout when an error is thrown
 GAMES_PER_TASK   = 250 # Total games to play per workload
 REPORT_RATE      = 5   # Games played for each upload cycle
 
-COMPILATION_FLAGS = {
-    'ETHEREAL' : [],   # Custom makefile flags for Ethereal
-    'LASER'    : [],   # Custom makefile flags for Laser
-    'WEISS'    : [],   # Custom makefile flags for Weiss
-    'DEMOLITO' : [],   # Custom makefile flags for Demolito
+CUSTOM_SETTINGS = {
+    'ETHEREAL' : { 'path' : '/src/', 'args' : [] }, # Configuration for Ethereal
+    'LASER'    : { 'path' : '/src/', 'args' : [] }, # Configuration for Laser
+    'WEISS'    : { 'path' : '/src/', 'args' : [] }, # Configuration for Weiss
+    'DEMOLITO' : { 'path' : '/src/', 'args' : [] }, # Configuration for Demolito
 };
 
 
@@ -22,7 +22,8 @@ COMPILATION_FLAGS = {
 IS_WINDOWS = platform.system() == 'Windows'
 IS_LINUX   = platform.system() != 'Windows'
 
-def urljoin(*args):
+
+def pathjoin(*args):
 
     # Join a set of URL paths while maintaining the correct
     # format of "/"'s between each part of the URL's pathway
@@ -74,7 +75,7 @@ def getCutechess(server):
 
     # Ask the server where the core files are saved
     source = requests.get(
-        urljoin(server, 'getFiles'),
+        pathjoin(server, 'getFiles'),
         timeout=HTTP_TIMEOUT).content.decode('utf-8')
 
     # Windows workers need the cutechess.exe and the Qt5Core dll.
@@ -82,17 +83,17 @@ def getCutechess(server):
     # Make sure Linux binaries are set to be executable.
 
     if IS_WINDOWS and not os.path.isfile('cutechess.exe'):
-        getFile(urljoin(source, 'cutechess-windows.exe'), 'cutechess.exe')
+        getFile(pathjoin(source, 'cutechess-windows.exe'), 'cutechess.exe')
 
     if IS_WINDOWS and not os.path.isfile('Qt5Core.dll'):
-        getFile(urljoin(source, 'cutechess-qt5core.dll'), 'Qt5Core.dll')
+        getFile(pathjoin(source, 'cutechess-qt5core.dll'), 'Qt5Core.dll')
 
     if IS_LINUX and not os.path.isfile('cutechess'):
-        getFile(urljoin(source, 'cutechess-linux'), 'cutechess')
+        getFile(pathjoin(source, 'cutechess-linux'), 'cutechess')
         os.system('chmod 777 cutechess')
 
     if IS_LINUX and not os.path.isfile('libcutechess.so.1'):
-        getFile(urljoin(source, 'libcutechess.so.1'), 'libcutechess.so.1')
+        getFile(pathjoin(source, 'libcutechess.so.1'), 'libcutechess.so.1')
 
 def getMachineID():
 
@@ -108,32 +109,40 @@ def getMachineID():
 def getEngine(data, engine):
 
     # Log the fact that we are setting up a new engine
-    print('\nSetting Up Engine')
+    print('\nBuilding New Engine')
     print('Engine {0}'.format(engine['name']))
     print('Commit {0}'.format(engine['sha']))
     print('Source {0}'.format(engine['source']))
 
-    # Format: https://github.com/User/Engine/archive/SHA.zip
     # Extract the zipfile to /tmp/ for future processing
+    # Format: https://github.com/User/Engine/archive/SHA.zip
     tokens = engine['source'].split('/')
     unzipname = '{0}-{1}'.format(tokens[-3], tokens[-1].replace('.zip', ''))
     getAndUnzipFile(engine['source'], '{0}.zip'.format(engine['name']), 'tmp')
 
-    # Build the Engine. Include any custom makefile arguments
+    # By default, build at the root with a simple make
+    pathway = 'tmp/{0}/'.format(unzipname)
     command = ['make', 'EXE={0}'.format(engine['name'])]
-    if data['test']['engine'].upper() in COMPILATION_FLAGS:
-        command.extend(COMPILATION_FLAGS[data['test']['engine'].upper()])
-    subprocess.Popen(command, cwd='tmp/{0}/src/'.format(unzipname)).wait()
 
-    # Move the compiled engine ( check for a .exe extension )
-    if os.path.isfile('tmp/{0}/src/{1}.exe'.format(unzipname, engine['name'])):
-        os.rename('tmp/{0}/src/{1}.exe'.format(unzipname, engine['name']), 'Engines/{0}'.format(engine['sha']))
+    # Check CUSTOM_SETTINGS for a custom configuration
+    if data['test']['engine'].upper() in CUSTOM_SETTINGS:
+        config = CUSTOM_SETTINGS[data['test']['engine'].upper()]
+        pathway = pathjoin(pathway, config['path'])
+        command.extend(config['args'])
 
-    # Move the compiled engine ( check for no .exe extension )
-    elif os.path.isfile('tmp/{0}/src/{1}'.format(unzipname, engine['name'])):
-        os.rename('tmp/{0}/src/{1}'.format(unzipname, engine['name']), 'Engines/{0}'.format(engine['sha']))
+    # Build the engine. If something goes wrong with the
+    # compilation process, we will figure this out later on
+    subprocess.Popen(command, cwd=pathway).wait()
 
-    # Cleanup all downloaded source files
+    # Move the binary to the /Engines/ directory
+    output = '{0}{1}'.format(pathway, engine['name'])
+    destination = 'Engines/{0}'.format(engine['sha'])
+
+    # Check to see if the compiler included a file extension or not
+    if os.path.isfile(output): os.rename(output, destination)
+    if os.path.isfile(output + '.exe'): os.rename(output + '.exe', destination)
+
+    # Cleanup the zipfile directory
     shutil.rmtree('tmp')
 
 def getCutechessCommand(arguments, data, nps):
@@ -333,7 +342,7 @@ def reportWrongBenchmark(arguments, data, engine):
     }
 
     # Hit the server with information about wrong benchmark
-    url = urljoin(arguments.server, 'wrongBench')
+    url = pathjoin(arguments.server, 'wrongBench')
     return requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
 
 def reportNodesPerSecond(arguments, data, nps):
@@ -348,7 +357,7 @@ def reportNodesPerSecond(arguments, data, nps):
     }
 
     # Hit the server with information about nps
-    url = urljoin(arguments.server, 'submitNPS')
+    url = pathjoin(arguments.server, 'submitNPS')
     return requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
 
 def reportResults(arguments, data, wins, losses, draws, crashes, timelosses):
@@ -364,7 +373,7 @@ def reportResults(arguments, data, wins, losses, draws, crashes, timelosses):
     }
 
     # Hit the server with the updated test results
-    url = urljoin(arguments.server, 'submitResults')
+    url = pathjoin(arguments.server, 'submitResults')
     try: return requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
     except: print('[NOTE] Unable To Reach Server'); return "Unable"
 
@@ -433,7 +442,7 @@ def completeWorkload(workRequestData, arguments):
 
     # Get the next workload
     data = requests.post(
-        urljoin(arguments.server, 'getWorkload'),
+        pathjoin(arguments.server, 'getWorkload'),
         data=workRequestData, timeout=HTTP_TIMEOUT).content.decode('utf-8')
 
     # Check for an empty workload
