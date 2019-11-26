@@ -4,11 +4,10 @@ import argparse, ast, hashlib, json, math, multiprocessing, os
 import platform, requests, shutil, subprocess, sys, time, zipfile
 
 
-HTTP_TIMEOUT     = 30  # Timeout in seconds for requests
-WORKLOAD_TIMEOUT = 60  # Timeout when there is no work
-ERROR_TIMEOUT    = 60  # Timeout when an error is thrown
-GAMES_PER_TASK   = 250 # Total games to play per workload
-REPORT_RATE      = 5   # Games played for each upload cycle
+HTTP_TIMEOUT          = 30  # Timeout in seconds for requests
+WORKLOAD_TIMEOUT      = 60  # Timeout when there is no work
+ERROR_TIMEOUT         = 60  # Timeout when an error is thrown
+GAMES_PER_CONCURRENCY = 32  # Total games to play per concurrency
 
 CUSTOM_SETTINGS = {
     'ETHEREAL' : { 'path' : '/src/', 'args' : [] }, # Configuration for Ethereal
@@ -109,8 +108,8 @@ def getMachineID():
 def getEngine(data, engine):
 
     # Log the fact that we are setting up a new engine
-    print('\nBuilding New Engine')
-    print('Engine {0}'.format(engine['name']))
+    print('Engine {0}'.format(data['test']['engine']))
+    print('Branch {0}'.format(engine['name']))
     print('Commit {0}'.format(engine['sha']))
     print('Source {0}'.format(engine['source']))
 
@@ -133,6 +132,7 @@ def getEngine(data, engine):
     # Build the engine. If something goes wrong with the
     # compilation process, we will figure this out later on
     subprocess.Popen(command, cwd=pathway).wait()
+    print("") # Leave a new line to seperate output
 
     # Move the binary to the /Engines/ directory
     output = '{0}{1}'.format(pathway, engine['name'])
@@ -175,7 +175,7 @@ def getCutechessCommand(arguments, data, nps):
 
     # Options about tournament conditions
     setupflags = '-variant {0} -concurrency {1} -games {2}'.format(
-        variant, concurrency, GAMES_PER_TASK
+        variant, concurrency, concurrency * GAMES_PER_CONCURRENCY
     )
 
     # Options for the Dev Engine
@@ -197,8 +197,8 @@ def getCutechessCommand(arguments, data, nps):
 
     # Combine all flags and add the cutechess program callout
     options = ' '.join([generalflags, setupflags, devflags, baseflags, bookflags])
-    if IS_WINDOWS: return 'cutechess.exe {0}'.format(options)
-    if IS_LINUX: return './cutechess {0}'.format(options)
+    if IS_WINDOWS: return 'cutechess.exe {0}'.format(options), concurrency
+    if IS_LINUX: return './cutechess {0}'.format(options), concurrency
 
 
 def computeSingleThreadedBenchmark(engine, outqueue):
@@ -225,7 +225,7 @@ def computeSingleThreadedBenchmark(engine, outqueue):
 def computeMultiThreadedBenchmark(arguments, engine):
 
     # Log number of benchmarks being spawned for the given engine
-    print('\nRunning {0}x Benchmarks for {1}'.format(arguments.threads, engine['name']))
+    print('Running {0}x Benchmarks for {1}'.format(arguments.threads, engine['name']))
 
     # Each computeSingleThreadedBenchmark() reports to this Queue
     outqueue = multiprocessing.Queue()
@@ -257,7 +257,7 @@ def computeMultiThreadedBenchmark(arguments, engine):
 
     # Log and return computed bench and speed
     print ('Bench for {0} is {1}'.format(engine['name'], bench[0]))
-    print ('NPS   for {0} is {1}'.format(engine['name'], int(avg)))
+    print ('NPS   for {0} is {1}\n'.format(engine['name'], int(avg)))
     return (bench[0], avg)
 
 def computeAdjustedTimecontrol(arguments, data, nps):
@@ -293,6 +293,7 @@ def computeAdjustedTimecontrol(arguments, data, nps):
 def verifyOpeningBook(data):
 
     # Fetch the opening book if we don't have it
+    print('\nFetching and Verifying Opening Book')
     if not os.path.isfile(data['name']):
         source = '{0}.zip'.format(data['source'])
         name = '{0}.zip'.format(data['name'])
@@ -304,11 +305,10 @@ def verifyOpeningBook(data):
         sha = hashlib.sha256(content).hexdigest()
 
     # Log the SHA verification
-    print('\nVerifying Opening Book')
     print('Correct SHA {0}'.format(data['sha']))
-    print('Download SHA {0}'.format(sha))
+    print('Download SHA {0}\n'.format(sha))
 
-    # Signal for error when shas do not match
+    # Signal for error when SHAs do not match
     return data['sha'] == sha
 
 def verifyEngine(arguments, data, engine):
@@ -378,7 +378,7 @@ def reportResults(arguments, data, wins, losses, draws, crashes, timelosses):
     except: print('[NOTE] Unable To Reach Server'); return "Unable"
 
 
-def processCutechess(arguments, data, cutechess):
+def processCutechess(arguments, data, cutechess, concurrency):
 
     # Tracking for game results
     crashes = timelosses = 0
@@ -405,8 +405,8 @@ def processCutechess(arguments, data, cutechess):
             # Format: Score of test vs base: W - L - D  [0.XXX] N
             score = list(map(int, line.split(':')[1].split()[0:5:2]))
 
-            # After every REPORT_RATE results, update the server
-            if (sum(score) - sum(sent)) % REPORT_RATE == 0:
+            # After every `concurrency` results, update the server
+            if (sum(score) - sum(sent)) % concurrency == 0:
 
                 # Look only at the delta since last report
                 WLD = [score[f] - sent[f] for f in range(3)]
@@ -432,11 +432,13 @@ def processWorkload(arguments, data):
     # to obtain a valid bench for an engine, we exit this workload
     devnps = verifyEngine(arguments, data, data['test']['dev'])
     basenps = verifyEngine(arguments, data, data['test']['base'])
-    if devnps == None or basenps == None: return
 
-    command = getCutechessCommand(arguments, data, (devnps + basenps) / 2)
+    avgnps = (devnps + basenps) / 2
+    command, concurrency = getCutechessCommand(arguments, data, avgnps)
+    print("Launching Cutechess\n{0}\n".format(command))
+
     cutechess = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-    processCutechess(arguments, data, cutechess)
+    processCutechess(arguments, data, cutechess, concurrency)
 
 def completeWorkload(workRequestData, arguments):
 
