@@ -28,7 +28,7 @@ FRAMEWORK_DEFAULTS = {
         'engines'     : {
             'Ethereal' : {
                 'proto'     : 'uci',
-                'nps'       : 1500000,
+                'nps'       : 1275000,
                 'name'      : 'Ethereal',
                 'source'    : 'https://github.com/AndyGrant/Ethereal',
                 'testmodes' : {
@@ -41,7 +41,7 @@ FRAMEWORK_DEFAULTS = {
 
             'Laser' : {
                 'proto'   : 'uci',
-                'nps'     : 625000,
+                'nps'     : 710000,
                 'name'    : 'Laser',
                 'source'  : 'https://github.com/jeffreyan11/uci-chess-engine',
                 'testmodes' : {
@@ -54,7 +54,7 @@ FRAMEWORK_DEFAULTS = {
 
             'Weiss' : {
                 'proto'   : 'uci',
-                'nps'     : 4000000,
+                'nps'     : 2675000,
                 'name'    : 'Weiss',
                 'source'  : 'https://github.com/TerjeKir/weiss',
                 'testmodes' : {
@@ -67,7 +67,7 @@ FRAMEWORK_DEFAULTS = {
 
             'Demolito' : {
                 'proto'   : 'uci',
-                'nps'     : 1375000,
+                'nps'     : 1250000,
                 'name'    : 'Demolito',
                 'source'  : 'https://github.com/lucasart/Demolito',
                 'testmodes' : {
