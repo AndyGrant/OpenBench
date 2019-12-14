@@ -458,13 +458,21 @@ def completeWorkload(workRequestData, arguments):
         print('[ERROR] Invalid Login Credentials')
         sys.exit()
 
+
+    # Bad machines will be registered again
+    if data == 'Bad Machine':
+        workRequestData['machineid'] = 'None'
+        print('[NOTE] Invalid Machine ID')
+        return
+
     # Convert response into a dictionary
     data = ast.literal_eval(data)
 
     # Update machine ID in case we got registered
-    workRequestData['machineid'] = data['machine']['id']
-    with open('machine.txt', 'w') as fout:
-        fout.write(str(workRequestData['machineid']))
+    if workRequestData['machineid'] != data['machine']['id']:
+        workRequestData['machineid'] = data['machine']['id']
+        with open('machine.txt', 'w') as fout:
+            fout.write(str(workRequestData['machineid']))
 
     # Handle the actual workload's completion
     processWorkload(arguments, data)
