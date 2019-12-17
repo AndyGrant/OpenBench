@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import argparse, ast, hashlib, json, math, multiprocessing, os
-import platform, requests, shutil, subprocess, sys, time, zipfile
+import platform, re, requests, shutil, subprocess, sys, time, zipfile
 
 
 HTTP_TIMEOUT          = 30  # Timeout in seconds for requests
@@ -10,10 +10,11 @@ ERROR_TIMEOUT         = 60  # Timeout when an error is thrown
 GAMES_PER_CONCURRENCY = 32  # Total games to play per concurrency
 
 CUSTOM_SETTINGS = {
-    'ETHEREAL' : { 'path' : '/src/', 'args' : [] }, # Configuration for Ethereal
-    'LASER'    : { 'path' : '/src/', 'args' : [] }, # Configuration for Laser
-    'WEISS'    : { 'path' : '/src/', 'args' : [] }, # Configuration for Weiss
-    'DEMOLITO' : { 'path' : '/src/', 'args' : [] }, # Configuration for Demolito
+    'ETHEREAL'  : { 'path' : '/src/', 'args' : [] }, # Configuration for Ethereal
+    'LASER'     : { 'path' : '/src/', 'args' : [] }, # Configuration for Laser
+    'WEISS'     : { 'path' : '/src/', 'args' : [] }, # Configuration for Weiss
+    'DEMOLITO'  : { 'path' : '/src/', 'args' : [] }, # Configuration for Demolito
+    'RUBICHESS' : { 'path' : '/src/', 'args' : [] }, # Configuration for RubiChess
 };
 
 
@@ -201,6 +202,40 @@ def getCutechessCommand(arguments, data, nps):
     if IS_LINUX: return './cutechess {0}'.format(options), concurrency
 
 
+def parseStreamOutput(output):
+
+    # None unless found
+    bench = None; speed = None
+
+    # Split the output line by line and look backwards
+    for line in output.decode('ascii').strip().split('\n')[::-1]:
+
+        # Convert all non-alpha numerics to spaces
+        line = re.sub(r'[^a-zA-Z0-9 ]+', ' ', line)
+
+        # Search for node or speed counters
+        bench1 = re.search(r'[0-9]+ NODES', line.upper())
+        bench2 = re.search(r'NODES[ ]+[0-9]+', line.upper())
+        speed1 = re.search(r'[0-9]+ NPS'  , line.upper())
+        speed2 = re.search(r'NPS[ ]+[0-9]+'  , line.upper())
+
+        # A line with no parsable information was found
+        if not bench1 and not bench2 and not speed1 and not speed2:
+            break
+
+        # A Bench value was found
+        if not bench and (bench1 or bench2):
+            bench = bench1.group() if bench1 else bench2.group()
+
+        # A Speed value was found
+        if not speed and (speed1 or speed2):
+            speed = speed1.group() if speed1 else speed2.group()
+
+    # Parse out the integer portion from our matches
+    bench = int(re.search(r'[0-9]+', bench).group()) if bench else None
+    speed = int(re.search(r'[0-9]+', speed).group()) if speed else None
+    return (bench, speed)
+
 def computeSingleThreadedBenchmark(engine, outqueue):
 
     try:
@@ -209,12 +244,14 @@ def computeSingleThreadedBenchmark(engine, outqueue):
         stdout, stderr = subprocess.Popen(
             './{0} bench'.format(dir).split(),
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
+            stderr=subprocess.PIPE,
         ).communicate()
 
-        # Final two lines should be Bench and NPS
-        data = stdout.decode('ascii').strip().split('\n')
-        outqueue.put((int(data[-2].split()[-1]), int(data[-1].split()[-1])))
+        # Parse output streams for the benchmark data
+        bench, speed = parseStreamOutput(stdout)
+        if bench is None or speed is None:
+            bench, speed = parseStreamOutput(stderr)
+        outqueue.put((int(bench), int(speed)))
 
     # Missing file, unable to run, failed to compile, or some other
     # error. Force an exit by sending back a null bench and nps value
@@ -249,15 +286,15 @@ def computeMultiThreadedBenchmark(arguments, engine):
     # Extract the benches and nps counts from each worker
     data  = [outqueue.get() for f in range(int(arguments.threads))]
     bench = [int(f[0]) for f in data]
-    nps   = [int(f[1]) for f in data]
-    avg   = sum(nps) / len(nps)
+    speed = [int(f[1]) for f in data]
+    avg   = sum(speed) / len(speed)
 
     # Flag an error if there were different benches
     if (len(set(bench)) > 1): return (0, 0)
 
     # Log and return computed bench and speed
     print ('Bench for {0} is {1}'.format(engine['name'], bench[0]))
-    print ('NPS   for {0} is {1}\n'.format(engine['name'], int(avg)))
+    print ('speed for {0} is {1}\n'.format(engine['name'], int(avg)))
     return (bench[0], avg)
 
 def computeAdjustedTimecontrol(arguments, data, nps):
