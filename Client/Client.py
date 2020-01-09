@@ -354,7 +354,7 @@ def verifyEngine(arguments, data, engine):
     if not os.path.isfile('Engines/{0}'.format(engine['sha'])):
         getEngine(data, engine)
 
-    # Run a group of benchmarks in parrallal in order to better scale NPS
+    # Run a group of benchmarks in parallel in order to better scale NPS
     # values for this worker. We obtain a bench and average NPS value
     bench, nps = computeMultiThreadedBenchmark(arguments, engine)
 
