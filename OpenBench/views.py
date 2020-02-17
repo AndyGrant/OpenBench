@@ -140,7 +140,7 @@ def editProfile(request):
     if password1 != '' and password1 == password2:
         profile.user.set_password(password1)
         profile.user.save()
-        loginUser(request, authenticate(
+        loginUser(request, django.contrib.auth.authenticate(
             username=request.user.username,
             password=password1))
 
@@ -518,7 +518,7 @@ def getFiles(request):
 def getWorkload(request):
 
     # Verify that we got a valid login
-    user = authenticate(
+    user = django.contrib.auth.authenticate(
         username=request.POST['username'],
         password=request.POST['password'])
     if user == None: return HttpResponse('Bad Credentials')
@@ -551,7 +551,7 @@ def getWorkload(request):
 def wrongBench(request):
 
     # Verify that we got a valid login
-    user = authenticate(
+    user = django.contrib.auth.authenticate(
         username=request.POST['username'],
         password=request.POST['password'])
     if user == None: return HttpResponse('Bad Credentials')
@@ -581,7 +581,7 @@ def wrongBench(request):
 def submitNPS(request):
 
     # Verify that we got a valid login
-    user = authenticate(
+    user = django.contrib.auth.authenticate(
         username=request.POST['username'],
         password=request.POST['password'])
     if user == None: return HttpResponse('Bad Credentials')
@@ -600,7 +600,7 @@ def submitNPS(request):
 def submitResults(request):
 
     # Verify that we got a valid login
-    user = authenticate(
+    user = django.contrib.auth.authenticate(
         username=request.POST['username'],
         password=request.POST['password'])
     if user == None: return HttpResponse('Stop')
