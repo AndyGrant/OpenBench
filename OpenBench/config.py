@@ -36,18 +36,21 @@ OPENBENCH_CONFIG = {
     'books' : {
 
         '2moves_v1.pgn' : {
+            'name'    : '2moves_v1.pgn',
             'sha'     : '46aed7f2696618b2b914942032957b7a97a8f343bf54ba83e20a47818f0d42e0',
             'source'  : 'http://github.com/AndyGrant/OpenBench/raw/master/Books/2moves_v1.pgn',
             'default' : True,
         },
 
         '8moves_v3.pgn' : {
+            'name'    : '8moves_v3.pgn',
             'sha'     : '04fcce1488a94f3b7795cef6f74d89016eb278328897c1018e6162c5967273f5',
             'source'  : 'http://github.com/AndyGrant/OpenBench/raw/master/Books/8moves_v3.pgn',
             'default' : False,
         },
 
         '3moves_FRC.pgn' : {
+            'name'    : '3moves_FRC.pgn',
             'sha'     : '4c801140e3a52d3a306cb226ccd6225c47789409c5f2d0e1d7cf86152ea1f973',
             'source'  : 'http://github.com/AndyGrant/OpenBench/raw/master/Books/3moves_FRC.pgn',
             'default' : False,
