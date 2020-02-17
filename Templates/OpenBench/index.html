@@ -8,25 +8,27 @@
         {% if paging.page == 1 and greens == False %}
 
             <!-- Currently Pending tests (Waiting to be approved) -->
-            <tr><td class="embedded" colspan='6'><h2>Pending</h2></td></tr>
-            {% for test in pending %}
-                {% include "OpenBench/Blocks/testsummary.html" %}
-            {% endfor %}
-
-            <!-- Show Worker information when running a test -->
-            {% if active %}
-                <tr><td class="embedded" colspan='6'><h2>Active {{status}}</h2></td></tr>
+            {% if pending %}
+                <tr><th colspan='6'>Pending</th></tr>
+                {% for test in pending %}
+                    {% include "OpenBench/Blocks/testsummary.html" %}
+                {% endfor %}
+                <tr class="table-spacer"><th></th></tr>
             {% endif %}
 
             <!-- Currently Running tests (Waiting to be completed) -->
-            {% for test in active %}
-                {% include "OpenBench/Blocks/testsummary.html" %}
-            {% endfor %}
+            {% if active %}
+                <tr><th colspan='6'>Active {{status}}</th></tr>
+                {% for test in active %}
+                    {% include "OpenBench/Blocks/testsummary.html" %}
+                {% endfor %}
+                <tr class="table-spacer"><th></th></tr>
+            {% endif %}
 
         {% endif %}
 
         <!-- Tests which have already finished -->
-        <tr><td class="embedded" colspan='6'><h2>Finished</h2></td></tr>
+        <tr><th colspan='6'>Finished</th></tr>
         {% for test in completed %}
             {% include "OpenBench/Blocks/testsummary.html" %}
         {% endfor %}

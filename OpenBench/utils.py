@@ -1,3 +1,23 @@
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                             #
+#   OpenBench is a chess engine testing framework authored by Andrew Grant.   #
+#   <https://github.com/AndyGrant/OpenBench>           <andrew@grantnet.us>   #
+#                                                                             #
+#   OpenBench is free software: you can redistribute it and/or modify         #
+#   it under the terms of the GNU General Public License as published by      #
+#   the Free Software Foundation, either version 3 of the License, or         #
+#   (at your option) any later version.                                       #
+#                                                                             #
+#   OpenBench is distributed in the hope that it will be useful,              #
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of            #
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
+#   GNU General Public License for more details.                              #
+#                                                                             #
+#   You should have received a copy of the GNU General Public License         #
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.     #
+#                                                                             #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 import math, requests, random
 
 from django.utils import timezone
@@ -61,12 +81,12 @@ def newTest(request):
     # Extract Development Fields
     devname     = request.POST['devbranch']
     devbench    = int(request.POST['devbench'])
-    devprotocol = FRAMEWORK_DEFAULTS['config']['engines'][test.engine]['proto']
+    devprotocol = OPENBENCH_CONFIG['engines'][test.engine]['proto']
 
     # Extract Base Fields
     basename     = request.POST['basebranch']
     basebench    = int(request.POST['basebench'])
-    baseprotocol = FRAMEWORK_DEFAULTS['config']['engines'][test.engine]['proto']
+    baseprotocol = OPENBENCH_CONFIG['engines'][test.engine]['proto']
 
     # Extract test configuration
     test.source      = request.POST['source']
@@ -206,8 +226,8 @@ def workloadDictionary(machine, result, test):
         'result'  : { 'id'  : result.id, },
         'test' : {
             'id'            : test.id,
-            'nps'           : FRAMEWORK_DEFAULTS['config']['engines'][test.engine]['nps'],
-            'book'          : FRAMEWORK_DEFAULTS['config']['books'][test.bookname],
+            'nps'           : OPENBENCH_CONFIG['engines'][test.engine]['nps'],
+            'book'          : OPENBENCH_CONFIG['books'][test.bookname],
             'timecontrol'   : test.timecontrol,
             'engine'        : test.engine,
             'dev' : {

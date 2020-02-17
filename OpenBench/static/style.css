@@ -1,7 +1,7 @@
 body {
     font-family: "Courier New";
-    font-size: 16px;
-    background: #2A2A2A;
+    font-size: 18px;
+    background: #303030;
 }
 
 a:link, a:visited, a:hover, a:active {
@@ -11,36 +11,36 @@ a:link, a:visited, a:hover, a:active {
 
 #sidebar {
     float: left;
-    margin: 20px;
+    margin: 16px;
 }
 
 #sidebar ul {
     list-style-type: none;
-    padding: 0px;
+    padding: 0px 16px;
 }
 
 #sidebar li a {
-    font-size: 18px;
     color: #A2A2A2;
 }
 
 #sidebar .header {
-    font-weight: bold;
-    color: #00CCFF;
+    font-size: 16px;
+    color: #00AF00;
 }
 
 #content {
     float: left;
-    padding: 20px 0px;
+    margin-top: 32px;
     color: #EAEAEA;
 }
 
 #content label {
-    width: 120px;
+    width: 128px;
     padding-right: 10px;
-    font-weight:bold;
     text-align: right;
     display: inline-block;
+    color: #A2A2A2;
+    font-size: 16px;
 }
 
 #content input, #content select {
@@ -62,30 +62,26 @@ a:link, a:visited, a:hover, a:active {
     display: inline-block;
     vertical-align: middle;
     width: 290px;
-    background-color: #00CCFF;
+    background-color: #777777;
     color: black;
     border: none;
-    border-radius: 8px;
+    border-radius: 16px;
     cursor: pointer;
     font-weight: bold;
 }
 
 #content button:hover {
-    background-color: #FFFFFF;
+    background-color: #00AF00;
 }
 
 #content input[type=submit] {
-    background-color: #00CCFF;
+    background-color: #00AF00;
     color: #000000;
     border: none;
-    border-radius: 8px;
+    border-radius: 16px;
     cursor: pointer;
     width: 100%;
     font-weight: bold;
-}
-
-#content input[type=submit]:hover {
-    background-color: #FFFFFF;
 }
 
 #content input:read-only {
@@ -101,28 +97,8 @@ a:link, a:visited, a:hover, a:active {
     margin-top: 20px;
 }
 
-#content .summarytable th {
-    padding-top: 20px;
-    padding-right: 10px;
-    padding-bottom: 20px;
-    font-size: 16px;
-    color: #00CCFF;
-}
-
-#content .rawtable td {
-    padding-right: 20px;
-}
-
-#content .rawtable th {
-    padding-right: 20px;
-    text-align: left;
-}
-
-#content .rawtable .numeric {
-    text-align: right;
-}
-
 #content #actions {
+    margin-left: 32px;
     float: right;
 }
 
@@ -130,7 +106,7 @@ a:link, a:visited, a:hover, a:active {
     color: #000000;
     padding: 8px 8px;
     margin: 0px 8px;
-    border-radius: 8px;
+    border-radius: 16px;
     font-weight: bold;
     text-align: center;
     display: inline-block;
@@ -138,7 +114,7 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #content #actions .anchorbutton a:hover {
-    background-color: #FFFFFF;
+    background-color: #00AF00;
 }
 
 #content #actions #approvebutton {
@@ -170,59 +146,59 @@ a:link, a:visited, a:hover, a:active {
     width: 100%;
 }
 
-#content .datatable th {
-    color: #FFFFFF;
-    font-size: 20px;
-    padding: 6px 12px;
-    background-color: #2A2A2A;
+#content .left-align {
+    text-align: left;
 }
 
-#content .datatable td {
+#content tr:hover {
+    background-color: #00AF00;
+}
+
+#content th {
+    color: #00AF00;
+    font-size: 16px;
+    padding: 6px 12px;
+    background-color: #000000;
+}
+
+#content td {
     padding: 6px 12px;
 }
 
-#content .datatable .numeric {
+#content .numeric {
     text-align: right;
 }
 
-#content .datatable tr {
-    background-color: #212121;
+#content tr {
+    background-color: #1A1A1A;
 }
 
-#content .datatable .embedded {
-    border: none;
-    text-align: left;
-    padding-left: 0px;
-    background: #2A2A2A;
+#content .table-spacer th {
+    background: #303030;
+    height: 16px;
 }
 
-#content .datatable .embedded h2 {
-    margin: 16px 0px 0px 0px;
-    color: #00CCFF;
-}
-
-#content .datatable .statblock {
+#content .statblock {
     line-height: 70%;
     color: black;
-    background-color: #AAAAAA;
+    background-color: #CCCCCC;
     border-radius: 4px;
 }
 
-#content .datatable .green {
+#content .green {
     background-color: #9DF779
 }
 
-#content .datatable .yellow {
+#content .yellow {
     background-color: #EEF788
 }
 
-#content .datatable .red {
+#content .red {
     background-color: #FA8E8E
 }
 
 #content #results {
     display: inline-block;
-    margin-top: 50px;
     width: inherit;
 }
 
@@ -244,7 +220,7 @@ a:link, a:visited, a:hover, a:active {
 
 #content #pagebrowse {
     text-align: center;
-    margin-top: 16px;
+    margin: 16px 0px 16px 0px;
 }
 
 #content .page {
@@ -252,12 +228,12 @@ a:link, a:visited, a:hover, a:active {
     display: inline-block;
     padding: 8px 0px;
     width: 5%;
-    background-color: #212121;
+    background-color: #1A1A1A;
     border-radius: 8px;
 }
 
 #content .page:hover {
-    background-color: #AAAAAA;
+    background-color: #00AF00;
 }
 
 #error {
@@ -269,14 +245,15 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #content form h3 {
-    margin-left: 130px;
+    margin-left: 140px;
     margin-bottom: 0px;
-    color: #00CCFF;
+    font-size: 16px;
+    color: #00AF00;
 }
 
 #content form .settings-column {
     float: left;
-    padding-bottom: 4px;
+    padding-bottom: 16px;
 }
 
 #content #test-mode-buttons button {

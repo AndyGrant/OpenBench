@@ -75,9 +75,9 @@
             <label> Book </label> <select name="bookname">
             {% for name, data in config.books.items %}
                 {% if data.default %}
-                    <option selected value="{{name}}">{{data.name}}</option>
+                    <option selected value="{{name}}">{{name}}</option>
                 {% else %}
-                    <option value="{{name}}">{{data.name}}</option>
+                    <option value="{{name}}">{{name}}</option>
                 {% endif %}
             {% endfor %}
             </select><br>

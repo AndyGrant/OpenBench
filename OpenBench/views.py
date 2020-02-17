@@ -1,12 +1,32 @@
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                             #
+#   OpenBench is a chess engine testing framework authored by Andrew Grant.   #
+#   <https://github.com/AndyGrant/OpenBench>           <andrew@grantnet.us>   #
+#                                                                             #
+#   OpenBench is free software: you can redistribute it and/or modify         #
+#   it under the terms of the GNU General Public License as published by      #
+#   the Free Software Foundation, either version 3 of the License, or         #
+#   (at your option) any later version.                                       #
+#                                                                             #
+#   OpenBench is distributed in the hope that it will be useful,              #
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of            #
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
+#   GNU General Public License for more details.                              #
+#                                                                             #
+#   You should have received a copy of the GNU General Public License         #
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.     #
+#                                                                             #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+#from django.shortcuts import render as djangoRender
+
+import django.shortcuts
+import django.contrib.auth
+
 from django.db.models import F
-from django.shortcuts import render as djangoRender
 from django.http import HttpResponse, HttpResponseRedirect
-from django.contrib.auth import authenticate
-from django.contrib.auth import login as loginUser
-from django.contrib.auth import logout as logoutUser
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from django.contrib.admin.views.decorators import staff_member_required
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.timezone import utc
 from htmlmin.decorators import not_minified_response
@@ -18,71 +38,83 @@ from OpenBench.utils import pagingContext
 
 import OpenBench.utils, datetime
 
-def render(request, template, data):
+def render(request, template, data={}):
 
-    # Always provde the Configuration
-    data.update(FRAMEWORK_DEFAULTS)
-
-    # Send User data when logged in
+    # Provide Configuration & User information
+    data.update({'config' : OPENBENCH_CONFIG})
     if request.user.is_authenticated:
         data.update({'profile' : Profile.objects.get(user=request.user)})
 
-    # Final wrap of Django's rendering funtion
-    return djangoRender(request, 'OpenBench/{0}'.format(template), data)
+    # Wrapper to simplify django's rendering function
+    return django.shortcuts.render(request, 'OpenBench/{0}'.format(template), data)
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                            Administrative Views                             #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  :                                                                 #
+    #                                                                         #
+    #  POST :                                                                 #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def register(request):
 
-    # User trying to view the registration page
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Return the HTML template used for registering a new User        #
+    #                                                                         #
+    #  POST : Enforce matching alpha-numeric passwords, and then attempt to   #
+    #         generate a new User and Profile. Return to the homepage after   #
+    #         after logging the User in. Share any errors with the viewer     #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
     if request.method == 'GET':
-        return render(request, 'register.html', {})
+        return render(request, 'register.html')
 
-    try:
-        # Verify that the passwords are matching
-        if request.POST['password1'] != request.POST['password2']:
-            raise Exception('Passwords Do Not Match')
+    if request.POST['password1'] != request.POST['password2']:
+        return index(request, error='Passwords Do Not Match')
 
-        # Force alpha numeric usernames
-        if not request.POST['username'].isalnum():
-            raise Exception('Alpha Numeric Usernames Only')
+    if not request.POST['username'].isalnum():
+        return index(request, error='Alpha Numeric Usernames Only')
 
-        # Create new User and Profile
-        Profile.objects.create(
-            user=User.objects.create_user(
-                request.POST['username'],
-                request.POST['email'],
-                request.POST['password1']))
+    if User.objects.filter(username=request.POST['username']):
+        return index(request, error='That Username is taken')
 
-        # Log the User in now
-        loginUser(request, User.objects.get(username=request.POST['username']))
 
-        # Kick back to index
-        return HttpResponseRedirect('/index/')
+    email    = request.POST['email']
+    username = request.POST['username']
+    password = request.POST['password1']
 
-    # Bad data, kick back to index with error
-    except Exception as error:
-        return index(request, error=str(error))
+    user = User.objects.create_user(username, email, password)
+    Profile.objects.create(user=user)
+    django.contrib.auth.login(request, user)
+
+
+    return HttpResponseRedirect('/index/')
 
 def login(request):
 
-    # User trying to view the login page
     if request.method == 'GET':
-        return render(request, 'login.html', {})
+        return render(request, 'login.html')
 
     try:
-        # Attempt to login the user, and return to index
-        loginUser(request, authenticate(
-            username=request.POST['username'],
-            password=request.POST['password']))
+        django.contrib.auth.login(request,
+            django.contrib.auth.authenticate(
+                username=request.POST['username'],
+                password=request.POST['password']))
         return HttpResponseRedirect('/index/')
 
-    # Bad data, kick back to index with error
     except Exception as error:
-        return index(request, error='Invalid Login Credentials')
+        return index(request, error='Unable to Authenticate User')
 
 def logout(request):
 
-    # Logout the user and return to index
-    logoutUser(request)
+    django.contrib.auth.logout(request)
     return HttpResponseRedirect('/index/')
 
 @login_required(login_url='/login/')
@@ -114,6 +146,8 @@ def editProfile(request):
 
     # Send back to see the homepage
     return HttpResponseRedirect('/index/')
+
+
 
 def index(request, page=1, pageLength=24, greens=False, username=None, error=''):
 
@@ -259,7 +293,7 @@ def machines(request):
     data = {'machines' : Machine.objects.filter(updated__gte=target)}
     return render(request, 'machines.html', data)
 
-def eventLog(request, page=1, pageLength=50):
+def eventLog(request, page=1, pageLength=24):
 
     # Choose events within the given page, if any
     events = LogEvent.objects.all().order_by('-id')
@@ -477,8 +511,7 @@ def deleteTest(request, id):
 def getFiles(request):
 
     # Core Files should be sitting in framework's repo
-    source = FRAMEWORK_REPO_URL + 'raw/master/CoreFiles/'
-    return HttpResponse(source)
+    return HttpResponse(OPENBENCH_CONFIG['corefiles'])
 
 @csrf_exempt
 @not_minified_response

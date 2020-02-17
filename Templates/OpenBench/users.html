@@ -1,41 +1,37 @@
 {% extends "OpenBench/base.html" %}
 
-{% load mytags %} <!-- For sumAttributes() & insertCommas() -->
+{% load mytags %}
 
 {% block content %}
 
-    <table class="summarytable">
-        <tr>
-            <th class="numeric"> OVERALL </th>
-            <th class="numeric">| USERS {{ profiles|length }} </th>
-            <th class="numeric">| TESTS {{ profiles|sumAttributes:"tests"|insertCommas }}</th>
-            <th class="numeric">| GAMES {{ profiles|sumAttributes:"games"|insertCommas }}</th>
-        </tr>
-    </table>
-
-    <table class="rawtable">
+    <table>
 
         <tr>
-            <th>Username</th>
-            <th>Last Seen</th>
-            <th class="numeric">Games</th>
-            <th class="numeric">Tests</th>
-            <th>Engine</th>
-            <th>Source Repository</th>
+            <th>USERNAME</th>
+            <th>GAMES</th>
+            <th>TESTS</th>
+            <th>ENGINE</th>
+            <th>SOURCE REPOSITORY</th>
         </tr>
 
         {% for profile in profiles %}
             {% if profile.enabled %}
                 <tr>
                     <td><a href="/viewUser/{{profile.user.username}}">{{profile.user.username}}</a></td>
-                    <td>{{profile.updated|date:'Y-m-d'}}</td>
-                    <td class="numeric">{{profile.games}}</td>
-                    <td class="numeric">{{profile.tests}}</td>
+                    <td style="text-align: right">{{profile.games|insertCommas}}</td>
+                    <td style="text-align: right">{{profile.tests|insertCommas}}</td>
                     <td>{{profile.engine}}</td>
                     <td><a href="{{profile.repo}}">{{profile.repo}}</a></td>
                 </tr>
             {% endif %}
         {% endfor %}
+
+        <tr style="font-weight: bold">
+            <th>OVERALL</th>
+            <th>{{profiles|sumAttributes:"games"|insertCommas}}</th>
+            <th>{{profiles|sumAttributes:"tests"|insertCommas}}</th>
+            <th></th><th></th>
+        </tr>
 
     </table>
 

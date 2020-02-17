@@ -54,15 +54,15 @@
             <ul>
                 <li class="header">INFO</li>
                 <li><a href="/users">Users</a></li>
-                <li><a href="/eventLog">Events</a></li>
                 <li><a href="/machines">Machines</a></li>
+                <li><a href="/eventLog">EventLog</a></li>
                 <li><a href="{{config.framework}}">OpenBench</a></li>
             </ul>
 
             <ul>
                 <li class="header">ENGINES</li>
                 {% for engine, data in config.engines.items|dictsort:"0.lower" %}
-                    <li><a href="{{data.source}}">{{data.name}}</a></li>
+                    <li><a href="{{data.source}}">{{engine}}</a></li>
                 {% endfor %}
             </ul>
 
