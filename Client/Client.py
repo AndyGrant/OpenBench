@@ -30,11 +30,11 @@ ERROR_TIMEOUT         = 60  # Timeout when an error is thrown
 GAMES_PER_CONCURRENCY = 32  # Total games to play per concurrency
 
 CUSTOM_SETTINGS = {
-    'ETHEREAL'  : { 'path' : '/src/', 'args' : [] }, # Configuration for Ethereal
-    'LASER'     : { 'path' : '/src/', 'args' : [] }, # Configuration for Laser
-    'WEISS'     : { 'path' : '/src/', 'args' : [] }, # Configuration for Weiss
-    'DEMOLITO'  : { 'path' : '/src/', 'args' : [] }, # Configuration for Demolito
-    'RUBICHESS' : { 'path' : '/src/', 'args' : [] }, # Configuration for RubiChess
+    'ETHEREAL'  : { 'args' : [] }, # Configuration for Ethereal
+    'LASER'     : { 'args' : [] }, # Configuration for Laser
+    'WEISS'     : { 'args' : [] }, # Configuration for Weiss
+    'DEMOLITO'  : { 'args' : [] }, # Configuration for Demolito
+    'RUBICHESS' : { 'args' : [] }, # Configuration for RubiChess
 };
 
 
@@ -139,15 +139,12 @@ def getEngine(data, engine):
     tokens = engine['source'].split('/')
     unzipname = '{0}-{1}'.format(tokens[-3], tokens[-1].replace('.zip', ''))
     getAndUnzipFile(engine['source'], '{0}.zip'.format(engine['name']), 'tmp')
-
-    # By default, build at the root with a simple make
-    pathway = 'tmp/{0}/'.format(unzipname)
-    command = ['make', 'EXE={0}'.format(engine['name'])]
+    pathway = pathjoin('tmp/{0}/'.format(unzipname), data['test']['path'])
 
     # Check CUSTOM_SETTINGS for a custom configuration
+    command = ['make', 'EXE={0}'.format(engine['name'])]
     if data['test']['engine'].upper() in CUSTOM_SETTINGS:
         config = CUSTOM_SETTINGS[data['test']['engine'].upper()]
-        pathway = pathjoin(pathway, config['path'])
         command.extend(config['args'])
 
     # Build the engine. If something goes wrong with the
