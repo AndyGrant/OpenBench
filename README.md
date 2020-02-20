@@ -22,6 +22,8 @@ Download a copy of the [OpenBench Client File](https://github.com/AndyGrant/Open
 
 ``sudo apt-get install g++ or yum install g++``
 
+``sudo apt-get install libqtcore4 or yum install libqtcore4``
+
 Download a copy of the [OpenBench Client File](https://github.com/AndyGrant/OpenBench/blob/master/Client/OpenBench.py)
 
 # Running The Client
