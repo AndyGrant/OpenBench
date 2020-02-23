@@ -20,10 +20,15 @@
 
 OPENBENCH_CONFIG = {
 
-    # Sidebar link, location of resources, and contact information
+    'error' : {
+        'disabled' : 'Account has not been enabled. Contact andrew@grantnet.us',
+        'fakeuser' : 'This is not a real OpenBench User. Create an OpenBench account',
+    },
+
+
+    # Link to the repo on the sidebar, as well as the core files
     'framework'   : 'http://github.com/AndyGrant/OpenBench/',
     'corefiles'   : 'http://github.com/AndyGrant/OpenBench/raw/master/CoreFiles/',
-    'serveradmin' : 'andrew@grantnet.us',
 
     # SPRT Elo bounds and type I/II errors
     'sprt' : { 'elolower' : 0.00, 'eloupper' : 5.00, 'alpha' : 0.05, 'beta' : 0.05 },

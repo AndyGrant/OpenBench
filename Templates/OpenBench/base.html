@@ -22,14 +22,6 @@
             </div>
         {% endif %}
 
-        <!-- Tell unauthenticated users to contact the Admin -->
-        {% if request.user.is_authenticated and not profile.enabled %}
-            <div id="error">
-                <strong>{{profile.user.username}}! Your account is not enabled.</strong>
-                <strong>Contact the Admin ( {{config.serveradmin}} )</strong>
-            </div>
-        {% endif %}
-
         <div id="sidebar">
 
             <ul>

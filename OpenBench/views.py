@@ -41,10 +41,22 @@ import OpenBench.utils, datetime
 
 def render(request, template, data={}):
 
-    # Provide Configuration & User information
+    # Always provide the basic configuration
     data.update({'config' : OPENBENCH_CONFIG})
+
     if request.user.is_authenticated:
-        data.update({'profile' : Profile.objects.get(user=request.user)})
+
+        # Provide user information when possible
+        profile = Profile.objects.filter(user=request.user).first()
+        data.update({'config' : OPENBENCH_CONFIG, 'profile' : profile})
+
+        # Warn Users that they need to be enabled
+        if profile and not profile.enabled:
+            data.update({'error' : OPENBENCH_CONFIG['error']['disabled']})
+
+        # Warn any non-OpenBench users made by some means
+        if request.user.is_authenticated and not profile:
+            data.update({'error' : OPENBENCH_CONFIG['error']['fakeuser']})
 
     # Wrapper to simplify django's rendering function
     return django.shortcuts.render(request, 'OpenBench/{0}'.format(template), data)
