@@ -20,6 +20,7 @@
 
 #from django.shortcuts import render as djangoRender
 
+import django.http
 import django.shortcuts
 import django.contrib.auth
 
@@ -53,14 +54,6 @@ def render(request, template, data={}):
 #                            Administrative Views                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  :                                                                 #
-    #                                                                         #
-    #  POST :                                                                 #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
 def register(request):
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -85,69 +78,96 @@ def register(request):
     if User.objects.filter(username=request.POST['username']):
         return index(request, error='That Username is taken')
 
-
     email    = request.POST['email']
     username = request.POST['username']
     password = request.POST['password1']
 
     user = User.objects.create_user(username, email, password)
-    Profile.objects.create(user=user)
     django.contrib.auth.login(request, user)
+    Profile.objects.create(user=user)
 
-
-    return HttpResponseRedirect('/index/')
+    return django.http.HttpResponseRedirect('/index/')
 
 def login(request):
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Return the HTML template used for logging in a User             #
+    #                                                                         #
+    #  POST : Attempt to login the User and authenticate their credentials.   #
+    #         If their login is invalid, let them know. In all cases, return  #
+    #         the User back to the main page                                  #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     if request.method == 'GET':
         return render(request, 'login.html')
 
-    try:
-        django.contrib.auth.login(request,
-            django.contrib.auth.authenticate(
-                username=request.POST['username'],
-                password=request.POST['password']))
-        return HttpResponseRedirect('/index/')
+    user = django.contrib.auth.authenticate(
+        username=request.POST['username'],
+        password=request.POST['password'])
 
-    except Exception as error:
+    if user is None:
         return index(request, error='Unable to Authenticate User')
+
+    django.contrib.auth.login(request, user)
+    return django.http.HttpResponseRedirect('/index/')
 
 def logout(request):
 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Logout the User if they are logged in. Return to the main page  #
+    #                                                                         #
+    #  POST : Logout the User if they are logged in. Return to the main page  #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
     django.contrib.auth.logout(request)
-    return HttpResponseRedirect('/index/')
+    return django.http.HttpResponseRedirect('/index/')
 
-@login_required(login_url='/login/')
-def viewProfile(request):
+def profile(request):
 
-    # render() gets the profile data for us
-    return render(request, 'viewProfile.html', {})
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : If the User is logged in, return the HTML template which shows  #
+    #         all of the information about the User, and a form to change the #
+    #         email address, password, and default engine of the User. If the #
+    #         User is not logged in, return them to the main page             #
+    #                                                                         #
+    #  POST : Modify the User's email address and selected Engine, if the     #
+    #         User has requested this. Update the password for the User if    #
+    #         they have requested a change and provided a new set of matching #
+    #         passwords. Return the User to the main page                     #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-@login_required(login_url='/login/')
-def editProfile(request):
+    if not request.user.is_authenticated:
+        return django.http.HttpResponseRedirect('/index/')
 
-    # Update Email, Source Repo, and Default Engine
-    profile = Profile.objects.get(user=request.user)
-    profile.user.email = request.POST['email']
-    profile.engine = request.POST['enginename']
-    profile.repo = request.POST['repo']
-    profile.user.save()
-    profile.save()
+    if request.method == 'GET':
+        return render(request, 'profile.html', {})
 
-    # Change Passwords if requested
-    password1 = request.POST['password1']
-    password2 = request.POST['password2']
-    if password1 != '' and password1 == password2:
-        profile.user.set_password(password1)
-        profile.user.save()
-        loginUser(request, django.contrib.auth.authenticate(
-            username=request.user.username,
-            password=password1))
+    profile = Profile.objects.filter(user=request.user)
+    profile.update(engine=request.POST['engine'], repo=request.POST['repo'])
 
-    # Send back to see the homepage
-    return HttpResponseRedirect('/index/')
+    request.user.email = request.POST['email']
+    request.user.save()
+
+    if request.POST['password1'] != request.POST['password2']:
+        return index(request, error='Passwords Do Not Match')
+
+    if request.POST['password1'] != '':
+        request.user.set_password(request.POST['password1'])
+        django.contrib.auth.login(request, request.user)
+        request.user.save()
+
+    return django.http.HttpResponseRedirect('/index/')
 
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                               Test List Views                               #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def index(request, page=1, pageLength=24, greens=False, username=None, error=''):
 
