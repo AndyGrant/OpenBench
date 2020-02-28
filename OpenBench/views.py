@@ -181,136 +181,127 @@ def profile(request):
 #                               Test List Views                               #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def index(request, page=1, pageLength=24, greens=False, username=None, error=''):
+def index(request, page=1, error=''):
 
-    # Get tests pending approval
-    pending = Test.objects.filter(approved=False)
-    pending = pending.exclude(finished=True)
-    pending = pending.exclude(deleted=True)
-    pending = pending.order_by('-creation')
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Return all pending, active, and completed tests. Limit the      #
+    #         display of tests by the requested page number. Also display the #
+    #         status for connected machines.                                  #
+    #                                                                         #
+    #  POST : Return all pending, active, and completed tests. Limit the      #
+    #         display of tests by the requested page number. Also display the #
+    #         status for connected machines.                                  #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    # Get tests currently running
-    active = Test.objects.filter(approved=True)
-    active = active.exclude(finished=True)
-    active = active.exclude(deleted=True)
-    active = active.order_by('-priority', '-currentllr')
+    pending   = OpenBench.utils.getPendingTests()
+    active    = OpenBench.utils.getActiveTests()
+    completed = OpenBench.utils.getCompletedTests()
 
-    # Get the completed tests (sliced later)
-    completed = Test.objects.filter(finished=True)
-    completed = completed.exclude(deleted=True)
-    completed = completed.order_by('-updated')
+    completed, paging = OpenBench.utils.getPagedContent(
+        completed, page, 25, 'index'.format())
 
-    # Pull data from active machines
-    target   = datetime.datetime.utcnow().replace(tzinfo=utc) - datetime.timedelta(minutes=10)
-    machines = Machine.objects.filter(updated__gte=target)
-    if username != None: machines = machines.filter(owner=username)
-
-    # Extract stat information from workers
-    machineCount = len(machines)
-    threadCount  = sum(machine.threads for machine in machines)
-    npsTotal     = sum(machine.threads * machine.mnps for machine in machines)
-    workerData   = "{0} Machines {1} Threads {2} MNPS".format(
-        machineCount, threadCount, round(npsTotal, 2)
-    )
-
-    # Index is wrapped for just viewing passed tests
-    if greens == True:
-        pending   = active = []
-        completed = completed.filter(passed=True)
-        source    = 'greens'
-
-    # Index is wrapped just to view one user
-    elif username != None:
-        pending   = pending.filter(author=username)
-        active    = active.filter(author=username)
-        completed = completed.filter(author=username)
-        source    = "viewUser/{0}".format(username)
-
-    # Index is normal, not wrapped for any views
-    else:
-        source    = "index"
-
-    # Choose tests within the given page, if any
-    items  = len(completed)
-    start  = (page - 1) * pageLength
-    end    = page * pageLength
-    start  = max(0, min(start, items))
-    end    = max(0, min(end, items))
-    paging = pagingContext(page, pageLength, items, source)
-
-    # Build context dictionary for index template
     data = {
-        'error'     : error,
-        'pending'   : pending,
-        'active'    : active,
-        'completed' : completed[start:end],
-        'status'    : workerData,
-        'greens'    : greens,
-        'paging'    : paging,
+        'error'  : error,  'pending'   : pending,
+        'active' : active, 'completed' : completed,
+        'paging' : paging, 'status'    : OpenBench.utils.getMachineStatus(),
     }
 
     return render(request, 'index.html', data)
 
 def greens(request, page=1):
 
-    # Index but with only passed tests
-    return index(request, page, greens=True)
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Return all tests both passed and completed. Limit the display   #
+    #         of tests by the requested page number.                          #
+    #                                                                         #
+    #  POST : Return all tests both passed and completed. Limit the display   #
+    #         of tests by the requested page number.                          #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    completed = OpenBench.utils.getCompletedTests().filter(passed=True)
+    completed, paging = OpenBench.utils.getPagedContent(
+        completed, page, 25, 'greens'.format())
+
+    data = {'completed' : completed, 'paging' : paging}
+    return render(request, 'index.html', data)
 
 def search(request):
 
-    # First time viewing the page
-    if request.method == 'GET':
-        return render(request, 'search.html', {'tests' : []})
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Return the HTML template for searching tests on the framework.  #
+    #                                                                         #
+    #  POST : Filter the tests by the provided criteria, and return a display #
+    #         with the filtered results. Keywords are case insensitive        #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    # Base starting point with all tests
+    if request.method == 'GET':
+        return render(request, 'search.html', {})
+
     tests = Test.objects.all()
 
-    # Only show tests for selected engine (default is all engines)
     if request.POST['engine'] != '':
         tests = tests.filter(engine=request.POST['engine'])
 
-    # Only show tests from a selected author (default is all authors)
     if request.POST['author'] != '':
         tests = tests.filter(author=request.POST['author'])
 
-    # Don't show tests that have passed
     if request.POST['showgreens'] == 'False':
         tests = tests.exclude(passed=True)
 
-    # Don't show tests that have failed yellow
     if request.POST['showyellows'] == 'False':
-        tests = tests.exclude(failed=True,wins__gte=F('losses'))
+        tests = tests.exclude(failed=True, wins__gte=F('losses'))
 
-    # Don't show tests that have failed red
-    if request.POST['showreds']  == 'False':
-        tests = tests.exclude(failed=True,wins__lt=F('losses'))
+    if request.POST['showreds'] == 'False':
+        tests = tests.exclude(failed=True, wins__lt=F('losses'))
 
-    # Don't show tests that are unfinished
     if request.POST['showunfinished'] == 'False':
-        tests = tests.exclude(passed=False,failed=False)
+        tests = tests.exclude(passed=False, failed=False)
 
-    # Don't show tests that have been deleted
     if request.POST['showdeleted'] == 'False':
         tests = tests.exclude(deleted=True)
 
-    # If there are no keywords, we are done searching
-    keywords = request.POST['keywords'].split()
-    if keywords == []:
-        return render(request, 'search.html', {'tests' : tests.order_by('-updated')})
+    keywords = ['(?i)' + f.upper() for f in request.POST['keywords'].split()]
+    tests = tests.filter(dev__name__regex=r'{0}'.format('|'.join(keywords)))
+    return render(request, 'search.html', {'tests' : tests.order_by('-updated')})
 
-    # Only grab tests which contain at least one keyword
-    filtered = []
-    for test in tests.order_by('-updated'):
-        for keyword in keywords:
-            if keyword.upper() in test.dev.name.upper():
-                filtered.append(test)
-                break
-    return render(request, 'search.html', {'tests' : filtered})
+def user(request, username, page=1):
 
-def viewUser(request, username, page=0):
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Return all pending, active, and completed tests for the User    #
+    #         that has been requested. Limit the display of completed tests   #
+    #         by the requested page number. Also display the User's machines  #
+    #                                                                         #
+    #  POST : Return all pending, active, and completed tests for the User    #
+    #         that has been requested. Limit the display of completed tests   #
+    #         by the requested page number. Also display the User's machines  #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    # Index but with only username's tests
-    return index(request, page, username=username)
+    pending   = OpenBench.utils.getPendingTests().filter(author=username)
+    active    = OpenBench.utils.getActiveTests().filter(author=username)
+    completed = OpenBench.utils.getCompletedTests().filter(author=username)
+
+    completed, paging = OpenBench.utils.getPagedContent(
+        completed, page, 25, 'user/{0}'.format(username))
+
+    data = {
+        'pending'   : pending,   'active' : active,
+        'completed' : completed, 'paging' : paging,
+        'status'    : OpenBench.utils.getMachineStatus(username),
+    }
+
+    return render(request, 'index.html', data)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                             #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def users(request):
 

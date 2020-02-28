@@ -14,23 +14,23 @@
             <select name="engine">
                 <option selected value="">ALL</option>
                 {% for name, data in config.engines.items %}
-                    <option value="{{name}}">{{data.name}}</option>
+                    <option value="{{name}}">{{name}}</option>
                 {% endfor %}
             </select><br>
 
-            <label> Show Passed </label>
+            <label> Show Greens </label>
             <select name="showgreens">
                 <option selected value="True">True</option>
                 <option value="False">False</option>
             </select><br>
 
-            <label> Show Failed </label>
+            <label> Show Yellows </label>
             <select name="showyellows">
                 <option selected value="True">True</option>
                 <option value="False">False</option>
             </select><br>
 
-            <label> Show Neutral </label>
+            <label> Show Reds </label>
             <select name="showreds">
                 <option selected value="True">True</option>
                 <option value="False">False</option>

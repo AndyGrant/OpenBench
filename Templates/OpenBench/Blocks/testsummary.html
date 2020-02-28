@@ -1,6 +1,6 @@
 {% load mytags %}
 <tr>
-    <td><a href="/viewUser/{{test.author}}">{{test.author|slice:":6"}}</a></td>
+    <td><a href="/user/{{test.author}}">{{test.author|slice:":6"}}</a></td>
     <td>{{test.engine}}</td>
     <td><a href="/viewTest/{{test.id}}">{{test.dev.name}}</a></td>
     <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>

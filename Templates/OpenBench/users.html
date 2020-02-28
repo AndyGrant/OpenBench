@@ -17,7 +17,7 @@
         {% for profile in profiles %}
             {% if profile.enabled %}
                 <tr>
-                    <td><a href="/viewUser/{{profile.user.username}}">{{profile.user.username}}</a></td>
+                    <td><a href="/user/{{profile.user.username}}">{{profile.user.username}}</a></td>
                     <td style="text-align: right">{{profile.games|insertCommas}}</td>
                     <td style="text-align: right">{{profile.tests|insertCommas}}</td>
                     <td>{{profile.engine}}</td>

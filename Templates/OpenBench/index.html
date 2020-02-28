@@ -5,7 +5,7 @@
     <table class="datatable">
 
         <!-- Only show Pending tests for the front page of the Index -->
-        {% if paging.page == 1 and greens == False %}
+        {% if paging.page == 1 %}
 
             <!-- Currently Pending tests (Waiting to be approved) -->
             {% if pending %}

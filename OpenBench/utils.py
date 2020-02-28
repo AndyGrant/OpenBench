@@ -18,14 +18,79 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import math, requests, random
+import math, requests, random, datetime
+
+import OpenBench.models
 
 from django.utils import timezone
 from django.db.models import F
 from django.contrib.auth import authenticate
+from django.utils.timezone import utc
 
 from OpenBench.config import *
 from OpenBench.models import Engine, Profile, Machine, Result, Test
+
+
+def getPendingTests():
+    pending = OpenBench.models.Test.objects.filter(approved=False)
+    pending = pending.exclude(finished=True)
+    pending = pending.exclude(deleted=True)
+    return pending.order_by('-creation')
+
+def getActiveTests():
+    active = OpenBench.models.Test.objects.filter(approved=True)
+    active = active.exclude(finished=True)
+    active = active.exclude(deleted=True)
+    return active.order_by('-priority', '-currentllr')
+
+def getCompletedTests():
+    completed = OpenBench.models.Test.objects.filter(finished=True)
+    completed = completed.exclude(deleted=True)
+    return completed.order_by('-updated')
+
+def getMachineStatus(username=None):
+
+    # Filter for machines used in the last 10 minutes
+    target = datetime.datetime.utcnow().replace(tzinfo=utc) \
+           - datetime.timedelta(minutes=10)
+    machines = Machine.objects.filter(updated__gte=target)
+
+    # Filter for user specific views
+    if username != None: machines = machines.filter(owner=username)
+
+    # Extract stat information from workers
+    return "{0} Machines ".format(len(machines)) + \
+           "{0} Threads ".format(sum([f.threads for f in machines])) + \
+           "{0} MNPS ".format(sum([f.threads * f.mnps for f in machines]))
+
+def getPagedContent(content, page, pagelen, url):
+
+    start = max(0, pagelen * (page - 1))
+    end   = min(len(content), pagelen * page)
+    count = 1 + math.ceil(len(content) / pagelen)
+
+    part1 = list(range(1, min(4, count)))
+    part2 = list(range(page - 2, page + 1))
+    part3 = list(range(page + 1, page + 3))
+    part4 = list(range(count - 3, count + 1))
+
+    pages = part1 + part2 + part3 + part4
+    pages = [f for f in pages if f >= 1 and f <= count]
+    pages = list(set(pages))
+    pages.sort()
+
+    final = []
+    for f in range(len(pages) - 1):
+        final.append(pages[f])
+        if pages[f] != pages[f+1] - 1:
+            final.append('...')
+
+    context = {
+        "url" : url, "page" : page, "pages" : final,
+        "prev" : max(1, page - 1), "next" : max(1, min(page + 1, count - 1)),
+    }
+
+    return content[start:end], context
 
 def pagingContext(page, pageLength, items, url):
 
