@@ -61,7 +61,7 @@ def getMachineStatus(username=None):
     # Extract stat information from workers
     return "{0} Machines ".format(len(machines)) + \
            "{0} Threads ".format(sum([f.threads for f in machines])) + \
-           "{0} MNPS ".format(sum([f.threads * f.mnps for f in machines]))
+           "{0} MNPS ".format(round(sum([f.threads * f.mnps for f in machines]), 2))
 
 def getPagedContent(content, page, pagelen, url):
 
