@@ -35,34 +35,34 @@
 
         <!-- Approve Button: For Admins, or Cross-approvers -->
         {% if not test.approved and profile.approver and profile.user.username != test.author %}
-        <a class="anchorbutton" id="approvebutton" href="/approveTest/{{test.id}}/">Approve</a>
+        <a class="anchorbutton" id="approvebutton" href="/test/{{test.id}}/APPROVE">Approve</a>
         {% elif not test.approved and request.user.is_superuser %}
-        <a class="anchorbutton" id="approvebutton" href="/approveTest/{{test.id}}/">Approve</a>
+        <a class="anchorbutton" id="approvebutton" href="/test/{{test.id}}/APPROVE">Approve</a>
         {% else %}
         <a class="anchorbutton deadbutton">Approve</a>
         {% endif %}
 
         <!-- Restart Button: For Approvers or Test Authors of finished tests -->
         {% if test.finished and profile.approver %}
-        <a class="anchorbutton" id="stopbutton" href="/restartTest/{{test.id}}/">Restart</a>
+        <a class="anchorbutton" id="stopbutton" href="/test/{{test.id}}/RESTART">Restart</a>
         {% elif test.finished and profile.user.username == test.author %}
-        <a class="anchorbutton" id="stopbutton" href="/restartTest/{{test.id}}/">Restart</a>
+        <a class="anchorbutton" id="stopbutton" href="/test/{{test.id}}/RESTART">Restart</a>
         {% elif test.finished %}
         <a class="anchorbutton deadbutton">Restart</a>
         {% endif %}
 
         <!-- Stop Button: For Approvers or Test Authors of active tests -->
         {% if not test.finished and profile.approver %}
-        <a class="anchorbutton" id="restartbutton" href="/stopTest/{{test.id}}/">Stop</a>
+        <a class="anchorbutton" id="restartbutton" href="/test/{{test.id}}/STOP">Stop</a>
         {% elif not test.finished and profile.user.username == test.author %}
-        <a class="anchorbutton" id="restartbutton" href="/stopTest/{{test.id}}/">Stop</a>
+        <a class="anchorbutton" id="restartbutton" href="/test/{{test.id}}/STOP">Stop</a>
         {% elif not test.finished %}
         <a class="anchorbutton deadbutton">Stop</a>
         {% endif %}
 
         <!-- Delete Button: For Approvers or Test Authors -->
         {% if profile.approver or profile.user.username == test.author %}
-        <a class="anchorbutton" id="deletebutton" href="/deleteTest/{{test.id}}/">Delete</a>
+        <a class="anchorbutton" id="deletebutton" href="/test/{{test.id}}/DELETE">Delete</a>
         {% else %}
         <a class="anchorbutton deadbutton">Delete</a>
         {% endif %}
@@ -77,7 +77,7 @@
 
 
         <!-- Forum to modify the Priority or Throughput -->
-        <form method="POST" action="/editTest/{{test.id}}/">
+        <form method="POST" action="/test/{{test.id}}/MODIFY">
 
             {% csrf_token %}
 
@@ -105,7 +105,7 @@
                 <th>ID</th>
                 <th>USER</th>
                 <th>OS</th>
-                <th>Last Updated</th>
+                <th>UPDATED</th>
                 <th style="width: 60px">GAMES</th>
                 <th style="width: 60px">WON</th>
                 <th style="width: 60px">LOST</th>

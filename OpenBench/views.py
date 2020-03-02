@@ -362,172 +362,55 @@ def newTest(request):
     except Exception as error:
         return index(request, error=str(error))
 
-def viewTest(request, id):
+def test(request, id, action=None):
 
-    try:
-        # Build context dictionary for test template
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : The User is either trying to view the status of the selected    #
+    #         test, or adjust the running state of the test in some way. When #
+    #         viewing a test, collect the results and return an HTML template #
+    #         using that data. Otherwise, look to adjust the running state of #
+    #         the test. We throw out any invalid requests. Create a LogEvent  #
+    #         if the we attempt to modify the test's state in any way         #
+    #                                                                         #
+    #  POST : The only valid POST request is for the action MODIFY. Requests  #
+    #         to modify contain an updated Priority and Throughput parameter  #
+    #         for the selected test. Bound the updated values, and log the    #
+    #         modification of the test with the creation of a new LogEvent    #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    if not Test.objects.filter(id=id):
+        return django.http.HttpResponseRedirect('/index/')
+
+    if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'MODIFY']:
         test = Test.objects.get(id=id)
-        results = Result.objects.all().filter(test=test)
-        results = results.order_by('machine_id')
-        data = {'test' : test, 'results' : results}
-        return render(request, 'viewTest.html', data)
+        results = Result.objects.filter(test=test).order_by('machine_id')
+        return render(request, 'test.html', {'test' : test, 'results': results})
 
-    # Unable to find test
-    except Exception as error:
-        return index(request, error=str(error))
+    user = request.user
+    test = Test.objects.get(id=id)
+    profile = Profile.objects.get(user=user)
 
-@login_required(login_url='/login/')
-def editTest(request, id):
+    if not profile.approver and test.author != profile.user.username:
+        return django.http.HttpResponseRedirect('/index/')
 
-    try:
-        # Only let approvers or the test author edit a test
-        test = Test.objects.get(id=id)
-        profile = Profile.objects.get(user=request.user)
-        if not profile.approver and test.author != profile.user.username:
-            raise Exception('Only Admins Or Test Owners Can Edit A Test')
+    if action == 'APPROVE' and test.author == user.username and not user.is_superuser:
+        return django.http.HttpResponseRedirect('/index/')
 
-        # Edit the provided test
-        test = Test.objects.get(id=id)
+    if action == 'APPROVE': test.approved =  True; test.save()
+    if action == 'RESTART': test.finished = False; test.save()
+    if action == 'STOP'   : test.finished =  True; test.save()
+    if action == 'DELETE' : test.deleted  =  True; test.save()
+
+    if action == 'MODIFY':
         test.priority = int(request.POST['priority'])
-        test.throughput = max(0, int(request.POST['throughput']))
+        test.throughput = max(1, int(request.POST['throughput']))
         test.save()
 
-        # Log changes to the test settings
-        LogEvent.objects.create(
-            data='Edited Test P={0} TP={1}'.format(test.priority, test.throughput),
-            author=request.user.username,
-            test=test)
-
-        return HttpResponseRedirect('/index/')
-
-    # Bad test id, permissions, or other
-    except Exception as error:
-        return index(request, error=str(error))
-
-@login_required(login_url='/login/')
-def approveTest(request, id):
-
-    try:
-        # Throw out users without approver status
-        profile = Profile.objects.get(user=request.user)
-        if not profile.approver:
-            raise Exception('No Approver Permissions on Account')
-
-        # Ensure cross verification is used, except for the site admin
-        test = Test.objects.get(id=id)
-        if test.author == profile.user.username and not profile.user.is_superuser:
-            raise Exception('Cross Approval is Required')
-
-        # Approve the provided test
-        if test.approved:
-            return HttpResponseRedirect('/index/')
-        test.approved = True
-        test.save()
-
-        # Log the test approval
-        LogEvent.objects.create(
-            data='Approved Test',
-            author=request.user.username,
-            test=test)
-
-        return HttpResponseRedirect('/index/')
-
-    # Bad test id, permissions, or other
-    except Exception as error:
-        return index(request, error=str(error))
-
-@login_required(login_url='/login/')
-def restartTest(request, id):
-
-    try:
-        # Only let approvers or the author restart a test
-        test = Test.objects.get(id=id)
-        profile = Profile.objects.get(user=request.user)
-        if not profile.approver and test.author != profile.user.username:
-            raise Exception('Only Admins Or Test Owners Can Restart A Test')
-
-        # Restart the provided test
-        test = Test.objects.get(id=id)
-        if not test.finished:
-            return HttpResponseRedirect('/index/')
-        test.finished = False
-        test.save()
-
-        # Log the test stopping
-        LogEvent.objects.create(
-            data='Restarted Test',
-            author=request.user.username,
-            test=test)
-
-        return HttpResponseRedirect('/index/')
-
-    # Bad test id, permissions, or other
-    except Exception as error:
-        return index(request, error=str(error))
-
-@login_required(login_url='/login/')
-def stopTest(request, id):
-
-    try:
-        # Only let approvers or the author stop a test
-        test = Test.objects.get(id=id)
-        profile = Profile.objects.get(user=request.user)
-        if not profile.approver and test.author != profile.user.username:
-            raise Exception('Only Admins Or Test Owners Can Stop A Test')
-
-        # Stop the provided test
-        test = Test.objects.get(id=id)
-        if test.finished:
-            return HttpResponseRedirect('/index/')
-        test.finished = True
-        test.save()
-
-        # Log the test stopping
-        LogEvent.objects.create(
-            data='Stopped Test',
-            author=request.user.username,
-            test=test)
-
-        return HttpResponseRedirect('/index/')
-
-    # Bad test id, permissions, or other
-    except Exception as error:
-        return index(request, error=str(error))
-
-@login_required(login_url='/login/')
-def deleteTest(request, id):
-
-    try:
-        # Only let approvers or the author delete a test
-        test = Test.objects.get(id=id)
-        profile = Profile.objects.get(user=request.user)
-        if not profile.approver and test.author != profile.user.username:
-            raise Exception('Only Admins Or Test Owners Can Delete A Test')
-
-        # Delete the provided test
-        test = Test.objects.get(id=id)
-        if test.deleted:
-            return HttpResponseRedirect('/index/')
-        test.deleted = True
-        test.save()
-
-        # Reduce the test count for the test author
-        user = User.objects.get(username=test.author)
-        profile = Profile.objects.get(user=user)
-        profile.tests -= 1
-        profile.save()
-
-        # Log the test deltion
-        LogEvent.objects.create(
-            data='Deleted Test',
-            author=request.user.username,
-            test=test)
-
-        return HttpResponseRedirect('/index/')
-
-    # Bad test id, permissions, or other
-    except Exception as error:
-        return index(request, error=str(error))
+    action += " P={0} TP={1}".format(test.priority, test.throughput)
+    LogEvent.objects.create(data=action, author=user.username, test=test)
+    return django.http.HttpResponseRedirect('/index/')
 
 @csrf_exempt
 @not_minified_response

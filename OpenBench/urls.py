@@ -43,14 +43,11 @@ urlpatterns = [
     django.urls.path(r'eventLog/', OpenBench.views.eventLog),
     django.urls.path(r'eventLog/<int:page>/', OpenBench.views.eventLog),
 
-    # Links for viewing and managing tests
+    # Links for viewing and managing tests (maintain Legacy)
+    django.urls.path(r'test/<int:id>/', OpenBench.views.test),
+    django.urls.path(r'viewTest/<int:id>/', OpenBench.views.test),
+    django.urls.path(r'test/<int:id>/<str:action>', OpenBench.views.test),
     django.urls.path(r'newTest/', OpenBench.views.newTest),
-    django.urls.path(r'viewTest/<int:id>/', OpenBench.views.viewTest),
-    django.urls.path(r'editTest/<int:id>/', OpenBench.views.editTest),
-    django.urls.path(r'approveTest/<int:id>/', OpenBench.views.approveTest),
-    django.urls.path(r'restartTest/<int:id>/', OpenBench.views.restartTest),
-    django.urls.path(r'stopTest/<int:id>/', OpenBench.views.stopTest),
-    django.urls.path(r'deleteTest/<int:id>/', OpenBench.views.deleteTest),
 
     # Links for the Client to update the Server
     django.urls.path(r'getFiles/', OpenBench.views.getFiles),
