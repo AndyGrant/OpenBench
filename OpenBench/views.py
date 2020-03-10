@@ -18,52 +18,43 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-#from django.shortcuts import render as djangoRender
-
 import django.http
 import django.shortcuts
 import django.contrib.auth
 
-from django.db.models import F
-from django.http import HttpResponse, HttpResponseRedirect
+import OpenBench.config
+import OpenBench.utils
+
+from OpenBench.models import *
 from django.contrib.auth.models import User
-from django.contrib.auth.decorators import login_required
+
+from django.db.models import F
+from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.utils.timezone import utc
 from htmlmin.decorators import not_minified_response
-
-from OpenBench.config import *
-from OpenBench.models import LogEvent, Engine, Profile
-from OpenBench.models import Machine, Result, Test
-from OpenBench.utils import pagingContext
-
-import OpenBench.utils, datetime
 
 def render(request, template, data={}):
 
-    # Always provide the basic configuration
-    data.update({'config' : OPENBENCH_CONFIG})
+    template = 'OpenBench/{0}'.format(template)
+
+    data.update({'config' : OpenBench.config.OPENBENCH_CONFIG})
 
     if request.user.is_authenticated:
 
-        # Provide user information when possible
-        profile = Profile.objects.filter(user=request.user).first()
-        data.update({'config' : OPENBENCH_CONFIG, 'profile' : profile})
+        profile = Profile.objects.filter(user=request.user)
+        data.update({'profile' : profile.first()})
 
-        # Warn Users that they need to be enabled
-        if profile and not profile.enabled:
-            data.update({'error' : OPENBENCH_CONFIG['error']['disabled']})
+        if profile.first() and not profile.first().enabled:
+            data.update({'error' : data['config']['error']['disabled']})
 
-        # Warn any non-OpenBench users made by some means
-        if request.user.is_authenticated and not profile:
-            data.update({'error' : OPENBENCH_CONFIG['error']['fakeuser']})
+        if request.user.is_authenticated and not profile.first():
+            data.update({'error' : data['config']['error']['fakeuser']})
 
-    # Wrapper to simplify django's rendering function
-    return django.shortcuts.render(request, 'OpenBench/{0}'.format(template), data)
+    return django.shortcuts.render(request, template, data)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#                            Administrative Views                             #
+#                            ADMINISTRATIVE VIEWS                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def register(request):
@@ -155,10 +146,10 @@ def profile(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     if not request.user.is_authenticated:
-        return django.http.HttpResponseRedirect('/index/')
+        return django.http.HttpResponseRedirect('/login/')
 
     if request.method == 'GET':
-        return render(request, 'profile.html', {})
+        return render(request, 'profile.html')
 
     profile = Profile.objects.filter(user=request.user)
     profile.update(engine=request.POST['engine'], repo=request.POST['repo'])
@@ -178,7 +169,7 @@ def profile(request):
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#                               Test List Views                               #
+#                               TEST LIST VIEWS                               #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def index(request, page=1, error=''):
@@ -199,8 +190,7 @@ def index(request, page=1, error=''):
     active    = OpenBench.utils.getActiveTests()
     completed = OpenBench.utils.getCompletedTests()
 
-    completed, paging = OpenBench.utils.getPagedContent(
-        completed, page, 25, 'index'.format())
+    completed, paging = OpenBench.utils.getPaging(completed, page, 'index')
 
     data = {
         'error'  : error,  'pending'   : pending,
@@ -223,8 +213,7 @@ def greens(request, page=1):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     completed = OpenBench.utils.getCompletedTests().filter(passed=True)
-    completed, paging = OpenBench.utils.getPagedContent(
-        completed, page, 25, 'greens'.format())
+    completed, paging = OpenBench.utils.getPaging(completed, page, 'greens')
 
     data = {'completed' : completed, 'paging' : paging}
     return render(request, 'index.html', data)
@@ -243,7 +232,7 @@ def search(request):
     if request.method == 'GET':
         return render(request, 'search.html', {})
 
-    tests = Test.objects.all()
+    tests = Test.objects.all().order_by('-updated')
 
     if request.POST['engine'] != '':
         tests = tests.filter(engine=request.POST['engine'])
@@ -268,7 +257,7 @@ def search(request):
 
     keywords = ['(?i)' + f.upper() for f in request.POST['keywords'].split()]
     tests = tests.filter(dev__name__regex=r'{0}'.format('|'.join(keywords)))
-    return render(request, 'search.html', {'tests' : tests.order_by('-updated')})
+    return render(request, 'search.html', {'tests' : tests})
 
 def user(request, username, page=1):
 
@@ -288,8 +277,8 @@ def user(request, username, page=1):
     active    = OpenBench.utils.getActiveTests().filter(author=username)
     completed = OpenBench.utils.getCompletedTests().filter(author=username)
 
-    completed, paging = OpenBench.utils.getPagedContent(
-        completed, page, 25, 'user/{0}'.format(username))
+    url = 'user/{0}'.format(username)
+    completed, paging = OpenBench.utils.getPaging(completed, page, url)
 
     data = {
         'pending'   : pending,   'active' : active,
@@ -299,68 +288,65 @@ def user(request, username, page=1):
 
     return render(request, 'index.html', data)
 
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#                                                                             #
+#                           GENERAL DATA TABLE VIEWS                          #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def users(request):
 
-    # Build context dictionary for template
-    data = {'profiles' : Profile.objects.order_by('-games', '-tests', '-enabled')}
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Return information about all users on the Framework. Sort the   #
+    #         Users by games completed, tests created. The HTML template will #
+    #         filter out disabled users later.                                #
+    #                                                                         #
+    #  POST : Return information about all users on the Framework. Sort the   #
+    #         Users by games completed, tests created. The HTML template will #
+    #         filter out disabled users later.                                #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    data = {'profiles' : Profile.objects.order_by('-games', '-tests')}
     return render(request, 'users.html', data)
+
+def events(request, page=1):
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Return information about the events taken on the Framework.     #
+    #         Only show those events for the requested page.                  #
+    #                                                                         #
+    #  POST : Return information about the events taken on the Framework.     #
+    #         Only show those events for the requested page.                  #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    events = LogEvent.objects.all().order_by('-id')
+    events, paging = OpenBench.utils.getPaging(events, page, 'events')
+
+    data = {'events' : events, 'paging' : paging};
+    return render(request, 'events.html', data)
 
 def machines(request):
 
-    # Build context dictionary for machine template with machines updated recently
-    target = datetime.datetime.utcnow().replace(tzinfo=utc) - datetime.timedelta(minutes=10)
-    data = {'machines' : Machine.objects.filter(updated__gte=target)}
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Return information about all of the machines that have been     #
+    #         active on the Framework within the last fifteen minutes         #
+    #                                                                         #
+    #  POST : Return information about all of the machines that have been     #
+    #         active on the Framework within the last fifteen minutes         #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    data = {'machines' : OpenBench.utils.getRecentMachines()}
     return render(request, 'machines.html', data)
 
-def eventLog(request, page=1, pageLength=24):
 
-    # Choose events within the given page, if any
-    events = LogEvent.objects.all().order_by('-id')
-    items  = len(events)
-    start  = (page - 1) * pageLength
-    end    = page * pageLength
-    start  = max(0, min(start, items))
-    end    = max(0, min(end, items))
-    paging = pagingContext(page, pageLength, items, 'eventLog')
-
-    # Build context dictionary for event log template
-    data = {
-        'events': events[start:end],
-        'paging': paging
-    }
-
-    return render(request, 'eventLog.html', data)
-
-@login_required(login_url='/login/')
-def newTest(request):
-
-    # User trying to view the new test page
-    if request.method == 'GET':
-        return render(request, 'newTest.html', {})
-
-    try:
-        # Throw out non-approved / disabled users
-        if not Profile.objects.get(user=request.user).enabled:
-            raise Exception('Account not Enabled')
-
-        # Create test and verify fields
-        test = OpenBench.utils.newTest(request)
-
-        # Log the test creation
-        LogEvent.objects.create(
-            data='Created Test',
-            author=request.user.username,
-            test=test)
-
-        return HttpResponseRedirect('/index/')
-
-    # Bad data, kick back to index with error
-    except Exception as error:
-        return index(request, error=str(error))
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                            TEST MANAGEMENT VIEWS                            #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 def test(request, id, action=None):
 
@@ -386,7 +372,11 @@ def test(request, id, action=None):
     if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'MODIFY']:
         test = Test.objects.get(id=id)
         results = Result.objects.filter(test=test).order_by('machine_id')
-        return render(request, 'test.html', {'test' : test, 'results': results})
+        data = {'test' : test, 'results': results}
+        return render(request, 'test.html', data)
+
+    if not request.user.is_authenticated:
+        return django.http.HttpResponseRedirect('/login/')
 
     user = request.user
     test = Test.objects.get(id=id)
@@ -395,8 +385,9 @@ def test(request, id, action=None):
     if not profile.approver and test.author != profile.user.username:
         return django.http.HttpResponseRedirect('/index/')
 
-    if action == 'APPROVE' and test.author == user.username and not user.is_superuser:
-        return django.http.HttpResponseRedirect('/index/')
+    if action == 'APPROVE':
+        if test.author == user.username and not user.is_superuser:
+            return django.http.HttpResponseRedirect('/index/')
 
     if action == 'APPROVE': test.approved =  True; test.save()
     if action == 'RESTART': test.finished = False; test.save()
@@ -412,12 +403,52 @@ def test(request, id, action=None):
     LogEvent.objects.create(data=action, author=user.username, test=test)
     return django.http.HttpResponseRedirect('/index/')
 
+def newTest(request):
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Return the HTML template for creating a new test when the User  #
+    #         is both logged in, and enabled. Otherwise, we redirect those    #
+    #         requests to either login, or the index where they are told that #
+    #         their account has not yet been enabled                          #
+    #                                                                         #
+    #  POST : Enabled Users may create new tests. Fields are error checked.   #
+    #         If an error is found, the creation is aborted and the list of   #
+    #         errors is prestented back to the User on the homepage           #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    if not request.user.is_authenticated:
+        return django.http.HttpResponseRedirect('/login/')
+
+    if not Profile.objects.get(user=request.user).enabled:
+        return django.http.HttpResponseRedirect('/index/')
+
+    if request.method == 'GET':
+        return render(request, 'newTest.html')
+
+    test, errors = OpenBench.utils.createNewTest(request)
+    if errors != [] and errors != None:
+        errors = ["[{0}]: {1}".format(i, e) for i, e in enumerate(errors)]
+        longest = max([len(e) for e in errors])
+        errors = ["{0}{1}".format(e, ' ' * (longest-len(e))) for e in errors]
+        return index(request, error='\n'.join(errors))
+
+    username = request.user.username
+    LogEvent.objects.create(data="CREATE", author=username, test=test)
+    return django.http.HttpResponseRedirect('/index/')
+
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                              CLIENT HOOK VIEWS                              #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 @csrf_exempt
 @not_minified_response
 def getFiles(request):
 
     # Core Files should be sitting in framework's repo
-    return HttpResponse(OPENBENCH_CONFIG['corefiles'])
+    return HttpResponse(OpenBench.config.OPENBENCH_CONFIG['corefiles'])
 
 @csrf_exempt
 @not_minified_response

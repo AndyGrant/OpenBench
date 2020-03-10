@@ -18,7 +18,7 @@
         <!-- Views may return an error message -->
         {% if error %}
             <div id="error">
-                <strong>{{error}}</strong>
+                <pre>{{error}}</pre>
             </div>
         {% endif %}
 
@@ -46,8 +46,8 @@
             <ul>
                 <li class="header">INFO</li>
                 <li><a href="/users">Users</a></li>
+                <li><a href="/events">Events</a></li>
                 <li><a href="/machines">Machines</a></li>
-                <li><a href="/eventLog">EventLog</a></li>
                 <li><a href="{{config.framework}}">OpenBench</a></li>
             </ul>
 

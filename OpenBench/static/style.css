@@ -237,11 +237,9 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #error {
-    background-color: #ED7676;
+    background-color: #EE7676;
     padding: 8px;
     text-align: center;
-    font-weight: bold;
-    font-size: 20px;
 }
 
 #content form h3 {

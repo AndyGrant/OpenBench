@@ -39,9 +39,9 @@ urlpatterns = [
 
     # Links for viewing general information tables
     django.urls.path(r'users/', OpenBench.views.users),
+    django.urls.path(r'events/', OpenBench.views.events),
+    django.urls.path(r'events/<int:page>/', OpenBench.views.events),
     django.urls.path(r'machines/', OpenBench.views.machines),
-    django.urls.path(r'eventLog/', OpenBench.views.eventLog),
-    django.urls.path(r'eventLog/<int:page>/', OpenBench.views.eventLog),
 
     # Links for viewing and managing tests (maintain Legacy)
     django.urls.path(r'test/<int:id>/', OpenBench.views.test),

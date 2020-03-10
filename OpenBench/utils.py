@@ -18,17 +18,33 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import math, requests, random, datetime
+import math, re, requests, random, datetime
 
 import OpenBench.models
+
+import django.utils.timezone
 
 from django.utils import timezone
 from django.db.models import F
 from django.contrib.auth import authenticate
-from django.utils.timezone import utc
 
 from OpenBench.config import *
 from OpenBench.models import Engine, Profile, Machine, Result, Test
+
+
+def pathjoin(*args):
+    return "/".join([f.lstrip("/").rstrip("/") for f in args]) + "/"
+
+def extractOption(options, option):
+
+    match = re.search('(?<={0}=")[^"]*'.format(option), options)
+    if match: return match.group()
+
+    match = re.search('(?<={0}=\')[^\']*'.format(option), options)
+    if match: return match.group()
+
+    match = re.search('(?<={0}=)[^ ]*'.format(option), options)
+    if match: return match.group()
 
 
 def getPendingTests():
@@ -48,22 +64,24 @@ def getCompletedTests():
     completed = completed.exclude(deleted=True)
     return completed.order_by('-updated')
 
+def getRecentMachines(minutes=15):
+    target = datetime.datetime.utcnow()
+    target = target.replace(tzinfo=django.utils.timezone.utc)
+    target = target - datetime.timedelta(minutes=minutes)
+    return Machine.objects.filter(updated__gte=target)
+
 def getMachineStatus(username=None):
 
-    # Filter for machines used in the last 10 minutes
-    target = datetime.datetime.utcnow().replace(tzinfo=utc) \
-           - datetime.timedelta(minutes=10)
-    machines = Machine.objects.filter(updated__gte=target)
+    machines = getRecentMachines()
 
-    # Filter for user specific views
-    if username != None: machines = machines.filter(owner=username)
+    if username != None:
+        machines = machines.filter(owner=username)
 
-    # Extract stat information from workers
     return "{0} Machines ".format(len(machines)) + \
            "{0} Threads ".format(sum([f.threads for f in machines])) + \
            "{0} MNPS ".format(round(sum([f.threads * f.mnps for f in machines]), 2))
 
-def getPagedContent(content, page, pagelen, url):
+def getPaging(content, page, url, pagelen=25):
 
     start = max(0, pagelen * (page - 1))
     end   = min(len(content), pagelen * page)
@@ -92,68 +110,113 @@ def getPagedContent(content, page, pagelen, url):
 
     return content[start:end], context
 
-def pagingContext(page, pageLength, items, url):
 
-    # Tests within the given page
-    start   = page * pageLength
-    end     = min(start + pageLength, items)
+def getEngine(name, source, proto, sha, bench):
 
-    # Get page numbers near the current page
-    pagenum = 1 + math.ceil(items / pageLength)
-    temp = list(range(1, min(4, pagenum)))
-    temp.extend(range(pagenum-1, pagenum-4, -1))
-    temp.extend(range(max(0, page-2), min(pagenum-1, page+3)))
-    temp = list(set(temp))
-    temp.sort()
+    engine = Engine.objects.filter(
+        name=name, source=source,
+        protocol=proto, sha=sha, bench=bench)
 
-    # Fill in gaps with an ellipsis, throw out negatives
-    pages = []
-    for f in range(len(temp)):
-        if temp[f] < 1: continue
-        pages.append(temp[f])
-        if f < len(temp) - 1 and temp[f] != temp[f+1] - 1:
-            pages.append("...")
+    if engine.first() != None:
+        return engine.first()
 
-    # Create context dictionary for paging setup
-    return {
-        "url"   : url,
-        "page"  : page,
-        "pages" : pages,
-        "prev"  : max(1, page - 1),
-        "next"  : max(1, min(page + 1, pagenum - 1)),
-    }
+    return Engine.objects.create(
+        name=name, source=source,
+        protocol=proto, sha=sha, bench=bench)
 
-def getSourceLocation(branch, repo):
+def verifyNewTest(request):
+
+    errors = []
+
+    def verifyInteger(field, fieldName):
+        if not request.POST[field].isnumeric():
+            errors.append('{0} is not an Integer'.format(fieldName))
+
+    def verifyFloating(field, fieldName):
+        if not request.POST[field].replace('.','').isnumeric():
+            errors.append('{0} is not a Float'.format(fieldName))
+        elif request.POST[field].count('.') > 1:
+            errors.append('{0} is not a Float'.format(fieldName))
+
+    def verifyLessThan(field, fieldName, value, valueName):
+        if not float(request.POST[field]) < value:
+            errors.append('{0} is not less than {1}'.format(fieldName, valueName))
+
+    def verifyGreaterThan(field, fieldName, value, valueName):
+        if not float(request.POST[field]) > value:
+            errors.append('{0} is not greater than {1}'.format(fieldName, valueName))
+
+    def verifyOptions(field, option, fieldName):
+        if extractOption(request.POST[field], option) == None:
+            errors.append('{0} was not found as an option for {1}'.format(option, fieldName))
+        elif int(extractOption(request.POST[field], option)) < 1:
+            errors.append('{0} needs to be at least 1 for {1}'.format(option, fieldName))
+
+    def verifyConfiguration(field, fieldName, parent):
+        if request.POST[field] not in OpenBench.config.OPENBENCH_CONFIG[parent].keys():
+            errors.append('{0} was not found in the configuration'.format(fieldName))
+
+    verifications = [
+        (verifyInteger, 'devbench', 'Dev Bench'),
+        (verifyInteger, 'basebench', 'Base Bench'),
+        (verifyInteger, 'priority', 'Priority'),
+        (verifyInteger, 'throughput', 'Throughput'),
+        (verifyFloating, 'elolower', 'Elo Lower'),
+        (verifyFloating, 'eloupper', 'Elo Upper'),
+        (verifyFloating, 'alpha', 'Alpha'),
+        (verifyFloating, 'beta', 'Beta'),
+        (verifyLessThan, 'alpha', 'Alpha', 1.00, '1'),
+        (verifyLessThan, 'beta', 'Beta', 1.00, '1'),
+        (verifyGreaterThan, 'alpha', 'Alpha', 0.00, '0'),
+        (verifyGreaterThan, 'beta', 'beta', 0.00, '0'),
+        (verifyGreaterThan, 'throughput', 'Throughput', 0, '0'),
+        (verifyOptions, 'devoptions', 'Threads', 'Dev Options'),
+        (verifyOptions, 'devoptions', 'Hash', 'Dev Options'),
+        (verifyOptions, 'baseoptions', 'Threads', 'Base Options'),
+        (verifyOptions, 'baseoptions', 'Hash', 'Base Options'),
+        (verifyConfiguration, 'enginename', 'Engine', 'engines'),
+        (verifyConfiguration, 'bookname', 'Book', 'books'),
+    ]
+
+    for verification in verifications:
+        try: verification[0](*verification[1:])
+        except: pass
+
+    return errors
+
+def getBranchInformation(repo, branch, errors):
+
+    target = repo.replace('github.com', 'api.github.com/repos')
+    target = pathjoin(target, 'branches', branch)
 
     try:
-        target = repo.replace('github.com', 'api.github.com/repos')
-        target = target + 'branches/' + branch
-        data   = requests.get(target).json()
-        source = repo + 'archive/' + data['commit']['commit']['tree']['sha'] + '.zip'
-        sha    = data['commit']['sha']
-        return (sha, source)
+        data = requests.get(target.rstrip('/')).json()
+        treesha = data['commit']['commit']['tree']['sha']
+        return (data['commit']['sha'], pathjoin(repo, 'archive', treesha, '.zip'))
 
     except:
-        raise Exception('Unable to find branch ({0})'.format(branch))
+        errors.append("Branch {0} could not be found".format(branch))
+        return (None, None)
 
-def newTest(request):
+def createNewTest(request):
 
-    # New Test saved after parsing
+    errors = verifyNewTest(request)
+    if errors != []: return None, errors
+
+    devname   = request.POST['devbranch']
+    basename  = request.POST['basebranch']
+    devbench  = int(request.POST['devbench'])
+    basebench = int(request.POST['basebench'])
+    protocol  = OPENBENCH_CONFIG['engines'][request.POST['enginename']]['proto']
+
+    errors = []
+    devsha, devsource = getBranchInformation(request.POST['source'], devname, errors)
+    basesha, basesource = getBranchInformation(request.POST['source'], basename, errors)
+    if errors != []: return None, errors
+
     test = Test()
-    test.author = request.user.username
-    test.engine = request.POST['enginename']
-
-    # Extract Development Fields
-    devname     = request.POST['devbranch']
-    devbench    = int(request.POST['devbench'])
-    devprotocol = OPENBENCH_CONFIG['engines'][test.engine]['proto']
-
-    # Extract Base Fields
-    basename     = request.POST['basebranch']
-    basebench    = int(request.POST['basebench'])
-    baseprotocol = OPENBENCH_CONFIG['engines'][test.engine]['proto']
-
-    # Extract test configuration
+    test.author      = request.user.username
+    test.engine      = request.POST['enginename']
     test.source      = request.POST['source']
     test.devoptions  = request.POST['devoptions']
     test.baseoptions = request.POST['baseoptions']
@@ -165,38 +228,20 @@ def newTest(request):
     test.eloupper    = float(request.POST['eloupper'])
     test.alpha       = float(request.POST['alpha'])
     test.beta        = float(request.POST['beta'])
+    test.lowerllr    = math.log(test.beta / (1.0 - test.alpha))
+    test.upperllr    = math.log((1.0 - test.beta) / test.alpha)
+    test.dev         = getEngine(devname, devsource, protocol, devsha, devbench)
+    test.base        = getEngine(basename, basesource, protocol, basesha, basebench)
+    test.save()
 
-    # Compute LLR cutoffs
-    test.lowerllr = math.log(test.beta / (1.0 - test.alpha))
-    test.upperllr = math.log((1.0 - test.beta) / test.alpha)
-
-    # Build or fetch the Development version
-    devsha, devsource = getSourceLocation(devname, test.source)
-    test.dev = getEngine(devname, devsource, devprotocol, devsha, devbench)
-
-    # Build or fetch the Base version
-    basesha, basesource = getSourceLocation(basename, test.source)
-    test.base = getEngine(basename, basesource, baseprotocol, basesha, basebench)
-
-    # Track number of tests by this user
     profile = Profile.objects.get(user=request.user)
     profile.tests += 1
     profile.save()
 
-    # Nothing seems to have gone wrong
-    test.save()
-    return test
+    return test, None
 
-def getEngine(name, source, protocol, sha, bench):
 
-    # Engine may already exist, which is okay
-    try: return Engine.objects.get(name=name, source=source, protocol=protocol, sha=sha, bench=bench)
-    except: pass
 
-    # Build new Engine
-    return Engine.objects.create(
-            name=name, source=source,
-            protocol=protocol, sha=sha, bench=bench)
 
 def getMachine(machineid, username, osname, threads):
 
