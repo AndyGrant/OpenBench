@@ -192,7 +192,8 @@ def getBranchInformation(repo, branch, errors):
     try:
         data = requests.get(target.rstrip('/')).json()
         treesha = data['commit']['commit']['tree']['sha']
-        return (data['commit']['sha'], pathjoin(repo, 'archive', treesha, '.zip'))
+        source = pathjoin(repo, 'archive', treesha + '.zip').rstrip('/')
+        return (data['commit']['sha'], source)
 
     except:
         errors.append("Branch {0} could not be found".format(branch))
