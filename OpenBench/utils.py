@@ -129,14 +129,12 @@ def verifyNewTest(request):
     errors = []
 
     def verifyInteger(field, fieldName):
-        if not request.POST[field].isnumeric():
-            errors.append('{0} is not an Integer'.format(fieldName))
+        try: int(request.POST[field])
+        except: errors.append('{0} is not an Integer'.format(fieldName))
 
     def verifyFloating(field, fieldName):
-        if not request.POST[field].replace('.','').isnumeric():
-            errors.append('{0} is not a Float'.format(fieldName))
-        elif request.POST[field].count('.') > 1:
-            errors.append('{0} is not a Float'.format(fieldName))
+        try: float(request.POST[field])
+        except: errors.append('{0} is not a Floating Point'.format(fieldName))
 
     def verifyLessThan(field, fieldName, value, valueName):
         if not float(request.POST[field]) < value:
