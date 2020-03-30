@@ -184,17 +184,22 @@ def verifyNewTest(request):
 
 def getBranchInformation(repo, branch, errors):
 
+    bysha = bool(re.search('[0-9a-fA-F]{40}', branch))
+    url = 'commits' if bysha else 'branches'
+
     target = repo.replace('github.com', 'api.github.com/repos')
-    target = pathjoin(target, 'branches', branch)
+    target = pathjoin(target, url, branch).rstrip('/')
 
     try:
-        data = requests.get(target.rstrip('/')).json()
-        treesha = data['commit']['commit']['tree']['sha']
-        source = pathjoin(repo, 'archive', treesha + '.zip').rstrip('/')
-        return (data['commit']['sha'], source)
+        data = requests.get(target).json()
+        data = data if bysha else data['commit']
+
+        treeurl = data['commit']['tree']['sha'] + '.zip'
+        return (data['sha'], pathjoin(repo, 'archive', treeurl).rstrip('/'))
 
     except:
-        errors.append("Branch {0} could not be found".format(branch))
+        lookup = 'Commit Sha' if bysha else 'Branch'
+        errors.append('{0} {1} could not be found'.format(lookup, branch))
         return (None, None)
 
 def createNewTest(request):
