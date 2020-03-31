@@ -2,7 +2,7 @@
 
 OpenBench is an open-source sequential probability ratio testing framework designed for self-play testing by both UCI and xboard compliant engines written in C or C++. OpenBench provides a lightweight interface and client which allows machines to work together to test changes to the engine for performance, stability, or to just simply play a large number of games. OpenBench currently has support for [FRC/Chess960](https://en.wikipedia.org/wiki/Chess960), and uses this variant when presented with an opening book containing "FRC" or "960".
 
-OpenBench is the primary testing framework used for the development of [Ethereal.](https://github.com/AndyGrant/Ethereal) The primary instance of OpenBench can be found [here.](http://chess.grantnet.us/) This OpenBench instance currently supports development for [Ethereal](https://github.com/AndyGrant/Ethereal), as well as for [Laser](https://github.com/jeffreyan11/uci-chess-engine) and [Weiss](https://github.com/TerjeKir/weiss). Some engine authors are running their own public or private instances of OpenBench to support development for their engines. These other instances support engines of different origins, such as those written in Kotlin or Rust.
+OpenBench is the primary testing framework used for the development of [Ethereal.](https://github.com/AndyGrant/Ethereal) The primary instance of OpenBench can be found [here.](http://chess.grantnet.us/) This OpenBench instance currently supports development for [Ethereal](https://github.com/AndyGrant/Ethereal), as well as for [Demolito](https://github.com/lucasart/Demolito), [Laser](https://github.com/jeffreyan11/uci-chess-engine), [Rubi](https://github.com/Matthies/RubiChess) and [Weiss](https://github.com/TerjeKir/weiss). Some engine authors are running their own public or private instances of OpenBench to support development for their engines. These other instances support engines of different origins, such as those written in Kotlin or Rust.
 
 OpenBench is heavily inspired by [Fishtest](https://github.com/glinscott/fishtest). The project is powered by the [Django Web Framework](https://www.djangoproject.com/) and [Cutechess](https://github.com/cutechess/cutechess).
 
@@ -12,7 +12,7 @@ Install any version of [python3](https://www.python.org/downloads/)
 
 Install any POSIX compliant version of [MinGW](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/6.3.0/threads-posix/)
 
-Download a copy of the [OpenBench Client File](https://github.com/AndyGrant/OpenBench/blob/master/Client/OpenBench.py)
+Download a copy of the [OpenBench Client File](https://github.com/AndyGrant/OpenBench/blob/master/Client/Client.py)
 
 # Setting Up The Client For Linux
 
@@ -22,7 +22,7 @@ Download a copy of the [OpenBench Client File](https://github.com/AndyGrant/Open
 
 ``sudo apt-get install g++ or yum install g++``
 
-Download a copy of the [OpenBench Client File](https://github.com/AndyGrant/OpenBench/blob/master/Client/OpenBench.py)
+Download a copy of the [OpenBench Client File](https://github.com/AndyGrant/OpenBench/blob/master/Client/Client.py)
 
 # Running The Client
 The client takes four arguments: Username, Password, Server, Threads. First create an account via the instance's webpage. The instance will also be the Server provided to the client. Threads tells the Client how many games can be run in parallel. This should be no more than your CPU count minus one. For hyperthreaded machines, where hyperthreading support is strong, you may use all threads provided by CPU minus one cores. The following would connect to the main instance using 4 threads or CPUs.
