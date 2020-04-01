@@ -21,7 +21,11 @@
                 <td class="numeric">{{machine.id}}</td>
                 <td>{{machine.owner}}</td>
                 <td>{{machine.osname}}</td>
-                <td>{{machine.updated|date:'Y-m-d H:i'}}</td>
+                <td id="date-obj-{{forloop.counter}}">{{machine.updated|date:'Y-m-d H:i'}}</td>
+                <script>
+                    var dateobj = document.getElementById("date-obj-{{forloop.counter}}")
+                    dateobj.innerHTML = new Date(dateobj.innerHTML + "+00:00").toLocaleString();
+                </script>
                 <td> <a href="/test/{{machine.workload.id}}">{{machine.workload.dev.name}}</a></td>
                 <td class="numeric">{{machine.threads}}</td>
                 <td class="numeric">{{machine.mnps|twoDigitPrecision}}</td>
