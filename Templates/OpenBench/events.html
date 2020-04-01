@@ -14,7 +14,11 @@
 
         {% for event in events %}
             <tr>
-                <td>{{event.creation|date:'Y-m-d H:i:s'}}</td>
+                <td id="date-obj-{{forloop.counter}}">{{event.creation|date:'Y-m-d H:i:s'}}</td>
+                <script>
+                    var dateobj = document.getElementById("date-obj-{{forloop.counter}}")
+                    dateobj.innerHTML = new Date(dateobj.innerHTML + "+00:00").toLocaleString();
+                </script>
                 <td>{{event.author}}</td>
                 <td><a href="/test/{{event.test.id}}">{{event.test.dev.name}}</a></td>
                 <td>{{event.test.timecontrol}}</td>
