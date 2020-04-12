@@ -63,7 +63,7 @@ OPENBENCH_CONFIG = {
 
         '4moves_noob.pgn' : {
             'name'    : '4moves_noob.pgn',
-            'sha'     : '6e131eb4221af26e176d24ea8b38e417815b7cb45bf213c92d69d5c3955d9186',
+            'sha'     : '377c0eef1d4b291ece226da89d8f7e8000396ca836abcb84f733417c31916664',
             'source'  : 'http://github.com/AndyGrant/OpenBench/raw/master/Books/4moves_noob.pgn',
             'default' : True,
         },
