@@ -111,18 +111,52 @@ def getPaging(content, page, url, pagelen=25):
     return content[start:end], context
 
 
-def getEngine(name, source, proto, sha, bench):
+def getEngine(source, name, sha, bench, protocol):
 
     engine = Engine.objects.filter(
         name=name, source=source,
-        protocol=proto, sha=sha, bench=bench)
+        protocol=protocol, sha=sha, bench=bench)
 
     if engine.first() != None:
         return engine.first()
 
     return Engine.objects.create(
         name=name, source=source,
-        protocol=proto, sha=sha, bench=bench)
+        protocol=protocol, sha=sha, bench=bench)
+
+def getBranch(request, errors, name):
+
+    branch = request.POST['{0}branch'.format(name)]
+    bysha = bool(re.search('[0-9a-fA-F]{40}', branch))
+    url = 'commits' if bysha else 'branches'
+
+    repo = request.POST['source']
+    target = repo.replace('github.com', 'api.github.com/repos')
+    target = pathjoin(target, url, branch).rstrip('/')
+
+    try:
+        data = requests.get(target).json()
+        data = data if bysha else data['commit']
+
+    except:
+        lookup = 'Commit Sha' if bysha else 'Branch'
+        errors.append('{0} {1} could not be found'.format(lookup, branch))
+        return (None, None, None, None)
+
+    treeurl = data['commit']['tree']['sha'] + '.zip'
+    source = pathjoin(repo, 'archive', treeurl).rstrip('/')
+
+    try:
+        message = data['commit']['message'].replace(',', '').upper()
+        bench = re.search('BENCH[ :=]+[0-9]+', message)
+        if bench: bench = int(re.search('[0-9]+', bench.group()).group())
+        else: bench = int(request.POST['{0}bench'.format(name)])
+
+    except:
+        errors.append('Unable to parse a Bench for {0}'.format(branch))
+        return (None, None, None, None)
+
+    return (source, branch, data['sha'], bench)
 
 def verifyNewTest(request):
 
@@ -155,8 +189,6 @@ def verifyNewTest(request):
             errors.append('{0} was not found in the configuration'.format(fieldName))
 
     verifications = [
-        (verifyInteger, 'devbench', 'Dev Bench'),
-        (verifyInteger, 'basebench', 'Base Bench'),
         (verifyInteger, 'priority', 'Priority'),
         (verifyInteger, 'throughput', 'Throughput'),
         (verifyFloating, 'elolower', 'Elo Lower'),
@@ -182,40 +214,14 @@ def verifyNewTest(request):
 
     return errors
 
-def getBranchInformation(repo, branch, errors):
-
-    bysha = bool(re.search('[0-9a-fA-F]{40}', branch))
-    url = 'commits' if bysha else 'branches'
-
-    target = repo.replace('github.com', 'api.github.com/repos')
-    target = pathjoin(target, url, branch).rstrip('/')
-
-    try:
-        data = requests.get(target).json()
-        data = data if bysha else data['commit']
-
-        treeurl = data['commit']['tree']['sha'] + '.zip'
-        return (data['sha'], pathjoin(repo, 'archive', treeurl).rstrip('/'))
-
-    except:
-        lookup = 'Commit Sha' if bysha else 'Branch'
-        errors.append('{0} {1} could not be found'.format(lookup, branch))
-        return (None, None)
-
 def createNewTest(request):
 
     errors = verifyNewTest(request)
     if errors != []: return None, errors
 
-    devname   = request.POST['devbranch']
-    basename  = request.POST['basebranch']
-    devbench  = int(request.POST['devbench'])
-    basebench = int(request.POST['basebench'])
+    devinfo = getBranch(request, errors, 'dev')
+    baseinfo = getBranch(request, errors, 'base')
     protocol  = OPENBENCH_CONFIG['engines'][request.POST['enginename']]['proto']
-
-    errors = []
-    devsha, devsource = getBranchInformation(request.POST['source'], devname, errors)
-    basesha, basesource = getBranchInformation(request.POST['source'], basename, errors)
     if errors != []: return None, errors
 
     test = Test()
@@ -234,8 +240,8 @@ def createNewTest(request):
     test.beta        = float(request.POST['beta'])
     test.lowerllr    = math.log(test.beta / (1.0 - test.alpha))
     test.upperllr    = math.log((1.0 - test.beta) / test.alpha)
-    test.dev         = getEngine(devname, devsource, protocol, devsha, devbench)
-    test.base        = getEngine(basename, basesource, protocol, basesha, basebench)
+    test.dev         = getEngine(*devinfo, protocol)
+    test.base        = getEngine(*baseinfo, protocol)
     test.save()
 
     profile = Profile.objects.get(user=request.user)
@@ -243,8 +249,6 @@ def createNewTest(request):
     profile.save()
 
     return test, None
-
-
 
 
 def getMachine(machineid, username, osname, threads):
