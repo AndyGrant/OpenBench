@@ -148,7 +148,7 @@ def getBranch(request, errors, name):
 
     try:
         message = data['commit']['message'].replace(',', '').upper()
-        bench = re.search('BENCH[ :=]+[0-9]+', message)
+        bench = re.search('(BENCH|NODES)[ :=]+[0-9]+', message)
         if bench: bench = int(re.search('[0-9]+', bench.group()).group())
         else: bench = int(request.POST['{0}bench'.format(name)])
 
