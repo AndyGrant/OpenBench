@@ -11,11 +11,11 @@
     <div id="configuration">
         <table class="datatable left-align">
             <tr><th>Engine</th><td>{{test.engine}}</td></tr>
-            <tr><th>Dev Branch</th><td>{{test.dev.name}}</td></tr>
+            <tr><th>Dev Branch</th><td>{{test.dev.name|prettyName}}</td></tr>
             <tr><th>Dev Bench</th><td>{{test.dev.bench}}</td></tr>
             <tr><th>Dev Options</th><td>{{test.devoptions}}</td></tr>
             <tr><th>Dev Sha</th><td>{{test.dev.sha}}</td></tr>
-            <tr><th>Base Branch</th><td>{{test.base.name}}</td></tr>
+            <tr><th>Base Branch</th><td>{{test.base.name|prettyName}}</td></tr>
             <tr><th>Base Bench</th><td>{{test.base.bench}}</td></tr>
             <tr><th>Base Options</th><td>{{test.baseoptions}}</td></tr>
             <tr><th>Base Sha</th><td>{{test.base.sha}}</td></tr>
@@ -68,7 +68,7 @@
         {% endif %}
 
         <!-- Dev vs Base [Git Diff Link] -->
-        <h4>{{test.dev.name}} vs {{test.base.name}}
+        <h4>{{test.dev.name|prettyName}} vs {{test.base.name|prettyName}}
             <a href="{{test|gitDiffLink}}">DIFF</a>
         </h4>
 

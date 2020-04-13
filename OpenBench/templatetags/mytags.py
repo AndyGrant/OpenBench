@@ -18,6 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+import re
 import OpenBench.utils
 
 from django import template
@@ -113,6 +114,12 @@ def sumAttributes(iterable, attribute):
 def insertCommas(value):
     return '{:,}'.format(int(value))
 
+def prettyName(name):
+    if re.search('[0-9a-fA-F]{40}', name):
+        return name[:16].upper()
+    return name
+
+
 register = template.Library()
 register.filter('oneDigitPrecision', oneDigitPrecision)
 register.filter('twoDigitPrecision', twoDigitPrecision)
@@ -122,4 +129,5 @@ register.filter('longStatBlock', longStatBlock)
 register.filter('testResultColour', testResultColour)
 register.filter('sumAttributes', sumAttributes)
 register.filter('insertCommas', insertCommas)
+register.filter('prettyName', prettyName)
 

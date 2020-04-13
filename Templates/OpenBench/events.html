@@ -1,5 +1,7 @@
 {% extends "OpenBench/base.html" %}
 
+{% load mytags %}
+
 {% block content %}
 
     <table>
@@ -16,7 +18,7 @@
             <tr>
                 <td>{{event.creation|date:'Y-m-d H:i:s'}}</td>
                 <td>{{event.author}}</td>
-                <td><a href="/test/{{event.test.id}}">{{event.test.dev.name}}</a></td>
+                <td><a href="/test/{{event.test.id}}">{{event.test.dev.name|prettyName}}</a></td>
                 <td>{{event.test.timecontrol}}</td>
                 <td>{{event.data}}</td>
             </tr>
