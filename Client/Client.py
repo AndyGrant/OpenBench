@@ -197,13 +197,13 @@ def getCutechessCommand(arguments, data, nps):
     )
 
     # Options for the Dev Engine
-    devflags = '-engine cmd=./Engines/{0} proto={1} tc={2}{3} name={4}'.format(
+    devflags = '-engine dir=Engines/ cmd=./{0} proto={1} tc={2}{3} name={4}'.format(
         data['test']['dev']['sha'], data['test']['dev']['protocol'], timecontrol,
         devoptions, '{0}-{1}'.format(data['test']['engine'], data['test']['dev']['sha'][:8])
     )
 
     # Options for the Base Engine
-    baseflags = '-engine cmd=./Engines/{0} proto={1} tc={2}{3} name={4}'.format(
+    baseflags = '-engine dir=Engines/ cmd=./{0} proto={1} tc={2}{3} name={4}'.format(
         data['test']['base']['sha'], data['test']['base']['protocol'], timecontrol,
         baseoptions, '{0}-{1}'.format(data['test']['engine'], data['test']['base']['sha'][:8])
     )
