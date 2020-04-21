@@ -155,6 +155,7 @@ def getEngine(data, engine):
     # Move the binary to the /Engines/ directory
     output = '{0}{1}'.format(pathway, engine['name'])
     destination = 'Engines/{0}'.format(engine['sha'])
+    if IS_WINDOWS: destination += '.exe'
 
     # Check to see if the compiler included a file extension or not
     if os.path.isfile(output): os.rename(output, destination)
@@ -174,6 +175,12 @@ def getCutechessCommand(arguments, data, nps):
     tokens = data['test']['base']['options'].split(' ')
     basethreads = int(tokens[0].split('=')[1])
     baseoptions = ' option.'.join(['']+tokens)
+
+    # Ensure .exe extension on Windows
+    devCommand = data['test']['dev']['sha']
+    if IS_WINDOWS: devCommand += '.exe'
+    baseCommand = data['test']['base']['sha']
+    if IS_WINDOWS: baseCommand += '.exe'
 
     # Scale the time control for this machine's speed
     timecontrol = computeAdjustedTimecontrol(arguments, data, nps)
@@ -198,14 +205,14 @@ def getCutechessCommand(arguments, data, nps):
 
     # Options for the Dev Engine
     devflags = '-engine dir=Engines/ cmd=./{0} proto={1} tc={2}{3} name={4}'.format(
-        data['test']['dev']['sha'], data['test']['dev']['protocol'], timecontrol,
-        devoptions, '{0}-{1}'.format(data['test']['engine'], data['test']['dev']['sha'][:8])
+        devCommand, data['test']['dev']['protocol'], timecontrol, devoptions,
+        '{0}-{1}'.format(data['test']['engine'], data['test']['dev']['sha'][:8])
     )
 
     # Options for the Base Engine
     baseflags = '-engine dir=Engines/ cmd=./{0} proto={1} tc={2}{3} name={4}'.format(
-        data['test']['base']['sha'], data['test']['base']['protocol'], timecontrol,
-        baseoptions, '{0}-{1}'.format(data['test']['engine'], data['test']['base']['sha'][:8])
+        baseCommand, data['test']['base']['protocol'], timecontrol, baseoptions,
+        '{0}-{1}'.format(data['test']['engine'], data['test']['base']['sha'][:8])
     )
 
     # Options for opening selection
@@ -256,8 +263,12 @@ def parseStreamOutput(output):
 def computeSingleThreadedBenchmark(engine, outqueue):
 
     try:
-        # Launch the engine and run a benchmark
+
+        # Ensure .exe for Windows and correct path
+        if IS_WINDOWS: engine += '.exe'
         dir = os.path.join('Engines', engine)
+
+        # Launch the engine and run a benchmark
         stdout, stderr = subprocess.Popen(
             './{0} bench'.format(dir).split(),
             stdout=subprocess.PIPE,
