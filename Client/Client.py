@@ -42,6 +42,8 @@ CUSTOM_SETTINGS = {
 IS_WINDOWS = platform.system() == 'Windows'
 IS_LINUX   = platform.system() != 'Windows'
 
+def addExtension(name):
+    return name + ["", ".exe"][IS_WINDOWS]
 
 def pathjoin(*args):
 
@@ -154,8 +156,7 @@ def getEngine(data, engine):
 
     # Move the binary to the /Engines/ directory
     output = '{0}{1}'.format(pathway, engine['name'])
-    destination = 'Engines/{0}'.format(engine['sha'])
-    if IS_WINDOWS: destination += '.exe'
+    destination = addExtension(pathjoin('Engines', engine['sha']).rstrip('/'))
 
     # Check to see if the compiler included a file extension or not
     if os.path.isfile(output): os.rename(output, destination)
@@ -177,10 +178,8 @@ def getCutechessCommand(arguments, data, nps):
     baseoptions = ' option.'.join(['']+tokens)
 
     # Ensure .exe extension on Windows
-    devCommand = data['test']['dev']['sha']
-    if IS_WINDOWS: devCommand += '.exe'
-    baseCommand = data['test']['base']['sha']
-    if IS_WINDOWS: baseCommand += '.exe'
+    devCommand = addExtension(data['test']['dev']['sha'])
+    baseCommand = addExtension(data['test']['base']['sha'])
 
     # Scale the time control for this machine's speed
     timecontrol = computeAdjustedTimecontrol(arguments, data, nps)
@@ -264,13 +263,10 @@ def computeSingleThreadedBenchmark(engine, outqueue):
 
     try:
 
-        # Ensure .exe for Windows and correct path
-        if IS_WINDOWS: engine += '.exe'
-        dir = os.path.join('Engines', engine)
-
         # Launch the engine and run a benchmark
+        pathway = addExtension(os.path.join('Engines', engine).rstrip('/'))
         stdout, stderr = subprocess.Popen(
-            './{0} bench'.format(dir).split(),
+            './{0} bench'.format(pathway).split(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         ).communicate()
@@ -379,8 +375,8 @@ def verifyOpeningBook(data):
 def verifyEngine(arguments, data, engine):
 
     # Download the engine if we do not already have it
-    if not os.path.isfile('Engines/{0}'.format(engine['sha'])):
-        getEngine(data, engine)
+    pathway = addExtension(pathjoin('Engines', engine['sha']).rstrip('/'))
+    if not os.path.isfile(pathway): getEngine(data, engine)
 
     # Run a group of benchmarks in parallel in order to better scale NPS
     # values for this worker. We obtain a bench and average NPS value
@@ -490,8 +486,7 @@ def processCutechess(arguments, data, cutechess, concurrency):
 def processWorkload(arguments, data):
 
     # Verify and possibly download the opening book
-    if not verifyOpeningBook(data['test']['book']):
-        sys.exit()
+    if not verifyOpeningBook(data['test']['book']): sys.exit()
 
     # Download, Verify, and Benchmark each engine. If we are unable
     # to obtain a valid bench for an engine, we exit this workload
