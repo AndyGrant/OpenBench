@@ -50,9 +50,11 @@ urlpatterns = [
     django.urls.path(r'newTest/', OpenBench.views.newTest),
 
     # Links for the Client to work with the Server
-    django.urls.path(r'getFiles/', OpenBench.views.getFiles),
-    django.urls.path(r'getCompilers/', OpenBench.views.getCompilers),
-    django.urls.path(r'getWorkload/', OpenBench.views.getWorkload),
+    django.urls.path(r'clientGetFiles/', OpenBench.views.clientGetFiles),
+    django.urls.path(r'clientGetBuildInfo/', OpenBench.views.clientGetBuildInfo),
+    django.urls.path(r'clientGetWorkload/', OpenBench.views.clientGetWorkload),
+
+    # Links for the Client to work with the Server (DEAD)
     django.urls.path(r'wrongBench/', OpenBench.views.wrongBench),
     django.urls.path(r'submitNPS/', OpenBench.views.submitNPS),
     django.urls.path(r'submitResults/', OpenBench.views.submitResults),
