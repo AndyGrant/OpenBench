@@ -77,10 +77,12 @@ OPENBENCH_CONFIG = {
     'engines'     : {
 
         'Ethereal' : {
+
             'proto'     : 'uci',
             'nps'       : 1275000,
-            'path'      : '/src/',
+            'build'     : { 'path' : '/src/', 'command' : 'make', 'compilers' : ['gcc'] },
             'source'    : 'https://github.com/AndyGrant/Ethereal',
+
             'testmodes' : {
                 'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '12.0+0.12' },
                 'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
@@ -90,10 +92,12 @@ OPENBENCH_CONFIG = {
         },
 
         'Laser' : {
+
             'proto'     : 'uci',
             'nps'       : 710000,
-            'path'      : '/src/',
+            'build'     : { 'path' : '/src/', 'command' : 'make', 'compilers' : ['g++'] },
             'source'    : 'https://github.com/jeffreyan11/uci-chess-engine',
+
             'testmodes' : {
                 'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
                 'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
@@ -103,10 +107,12 @@ OPENBENCH_CONFIG = {
         },
 
         'Weiss' : {
+
             'proto'     : 'uci',
             'nps'       : 2675000,
-            'path'      : '/src/',
+            'build'     : { 'path' : '/src/', 'command' : 'make', 'compilers' : ['gcc'] },
             'source'    : 'https://github.com/TerjeKir/weiss',
+
             'testmodes' : {
                 'stc'     : { 'threads' : 1, 'hash' :  32, 'timecontrol' : '10.0+0.1' },
                 'ltc'     : { 'threads' : 1, 'hash' : 128, 'timecontrol' : '60.0+0.6' },
@@ -116,10 +122,12 @@ OPENBENCH_CONFIG = {
         },
 
         'Demolito' : {
+
             'proto'     : 'uci',
             'nps'       : 1250000,
-            'path'      : '/src/',
+            'build'     : { 'path' : '/src/', 'command' : 'make', 'compilers' : ['gcc', 'clang'] },
             'source'    : 'https://github.com/lucasart/Demolito',
+
             'testmodes' : {
                 'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
                 'ltc'     : { 'threads' : 1, 'hash' :  32, 'timecontrol' : '32.0+0.32'},
@@ -129,10 +137,12 @@ OPENBENCH_CONFIG = {
         },
 
         'RubiChess' : {
+
             'proto'     : 'uci',
             'nps'       : 1000000,
-            'path'      : '/src/',
+            'build'     : { 'path' : '/src/', 'command' : 'make', 'compilers' : ['g++'] },
             'source'    : 'https://github.com/Matthies/RubiChess',
+
             'testmodes' : {
                 'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
                 'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
@@ -140,5 +150,20 @@ OPENBENCH_CONFIG = {
                 'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
             },
         },
+
+        'FabChess' : {
+
+            'proto'     : 'uci',
+            'nps'       : 1000000,
+            'build'     : { 'path' : '/src/', 'command' : 'make', 'compilers' : ['cargo>=1.43.0'] },
+            'source'    : 'https://github.com/fabianvdW/FabChess',
+
+            'testmodes' : {
+                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
+                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
+                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
+            },
+        }
     },
 }

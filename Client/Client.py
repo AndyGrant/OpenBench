@@ -24,23 +24,29 @@ import argparse, ast, hashlib, json, math, multiprocessing, os
 import platform, re, requests, shutil, subprocess, sys, time, zipfile
 
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
 HTTP_TIMEOUT          = 30  # Timeout in seconds for requests
 WORKLOAD_TIMEOUT      = 60  # Timeout when there is no work
 ERROR_TIMEOUT         = 60  # Timeout when an error is thrown
 GAMES_PER_CONCURRENCY = 32  # Total games to play per concurrency
 
 CUSTOM_SETTINGS = {
-    'ETHEREAL'  : { 'args' : [] }, # Configuration for Ethereal
-    'LASER'     : { 'args' : [] }, # Configuration for Laser
-    'WEISS'     : { 'args' : [] }, # Configuration for Weiss
-    'DEMOLITO'  : { 'args' : [] }, # Configuration for Demolito
-    'RUBICHESS' : { 'args' : [] }, # Configuration for RubiChess
+    'Ethereal'  : { 'args' : [] }, # Configuration for Ethereal
+    'Laser'     : { 'args' : [] }, # Configuration for Laser
+    'Weiss'     : { 'args' : [] }, # Configuration for Weiss
+    'Demolito'  : { 'args' : [] }, # Configuration for Demolito
+    'Rubichess' : { 'args' : [] }, # Configuration for RubiChess
 };
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
 # Treat Windows and Linux systems differently
 IS_WINDOWS = platform.system() == 'Windows'
 IS_LINUX   = platform.system() != 'Windows'
+
+COMPILERS = {} # Mapping of Engines to Compilers
 
 def addExtension(name):
     return name + ["", ".exe"][IS_WINDOWS]
@@ -68,8 +74,55 @@ def killCutechess(cutechess):
             cutechess.wait()
             cutechess.stdout.close()
 
-    except Exception as error:
-        return
+    except KeyboardInterrupt: sys.exit()
+    except Exception as error: pass
+
+
+def getCompilationSettings(server):
+
+    # Get a dictionary of engine -> compilers
+    data = requests.get(
+        pathjoin(server, 'getCompilers'),
+        timeout=HTTP_TIMEOUT).content.decode('utf-8')
+    data = ast.literal_eval(data)
+
+    for engine, compilers in data.items():
+        for compiler in compilers:
+
+            # Compilers may require a specific version
+            if '>=' in compiler: command, version = compiler.split('>=')
+            else: command = compiler; version = (0, 0, 0)
+
+            # Try to execute the compiler from the command line
+            try: stdout, stderr = subprocess.Popen(
+                    [command, '--version'],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                ).communicate()
+            except OSError: continue
+
+            # Parse the version number reported by the compiler
+            stdout = stdout.decode('utf-8')
+            match = re.search(r'[0-9]+\.[0-9]+\.[0-9]+', stdout).group()
+            actual = tuple(map(int, match.split('.')))
+
+            # Compiler was not sufficient
+            if actual < version: continue
+
+            # Compiler was sufficient
+            COMPILERS[engine] = {
+                'command' : command, 'version' : match,
+                'default' : compiler == compilers[0]
+            }; break
+
+    # Report each engine configuration we can build for
+    for engine in [engine for engine in data.keys() if engine in COMPILERS]:
+        command, version = COMPILERS[engine]['command'], COMPILERS[engine]['version']
+        print("Found {0} {1} for {2}".format(command, version, engine))
+
+    # Report each engine configuration we cannot build for
+    for engine in [engine for engine in data.keys() if engine not in COMPILERS]:
+        print("Unable to find compiler for {0}".format(engine))
 
 def getFile(source, output):
 
@@ -130,7 +183,6 @@ def getMachineID():
 
 def getEngine(data, engine):
 
-    # Log the fact that we are setting up a new engine
     print('Engine {0}'.format(data['test']['engine']))
     print('Branch {0}'.format(engine['name']))
     print('Commit {0}'.format(engine['sha']))
@@ -141,18 +193,23 @@ def getEngine(data, engine):
     tokens = engine['source'].split('/')
     unzipname = '{0}-{1}'.format(tokens[-3], tokens[-1].replace('.zip', ''))
     getAndUnzipFile(engine['source'], '{0}.zip'.format(engine['name']), 'tmp')
-    pathway = pathjoin('tmp/{0}/'.format(unzipname), data['test']['path'])
+    pathway = pathjoin('tmp/{0}/'.format(unzipname), data['test']['build']['path'])
 
-    # Check CUSTOM_SETTINGS for a custom configuration
-    command = ['make', 'EXE={0}'.format(engine['name'])]
-    if data['test']['engine'].upper() in CUSTOM_SETTINGS:
-        config = CUSTOM_SETTINGS[data['test']['engine'].upper()]
-        command.extend(config['args'])
+    # Use base command and an EXE= hook
+    command = [data['test']['build']['command']]
+    command.append('EXE={0}'.format(engine['name']))
+
+    # Use a CC= hook if we are using the non-default compiler
+    if not COMPILERS[data['test']['engine']]['default']:
+        command.append('CC={0}'.format(COMPILERS[data['test']['engine']]['command']))
+
+    # Add any other custom compilation options if we have them
+    if data['test']['engine'] in CUSTOM_SETTINGS:
+        command.extend(CUSTOM_SETTINGS[data['test']['engine']]['args'])
 
     # Build the engine. If something goes wrong with the
     # compilation process, we will figure this out later on
-    subprocess.Popen(command, cwd=pathway).wait()
-    print("") # Leave a new line to seperate output
+    subprocess.Popen(command, cwd=pathway).wait(); print("")
 
     # Move the binary to the /Engines/ directory
     output = '{0}{1}'.format(pathway, engine['name'])
@@ -436,6 +493,7 @@ def reportResults(arguments, data, wins, losses, draws, crashes, timelosses):
     # Hit the server with the updated test results
     url = pathjoin(arguments.server, 'submitResults')
     try: return requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
+    except KeyboardInterrupt: sys.exit()
     except: print('[NOTE] Unable To Reach Server'); return "Unable"
 
 
@@ -518,7 +576,6 @@ def completeWorkload(workRequestData, arguments):
         print('[ERROR] Invalid Login Credentials')
         sys.exit()
 
-
     # Bad machines will be registered again
     if data == 'Bad Machine':
         workRequestData['machineid'] = 'None'
@@ -565,6 +622,10 @@ def main():
     # Make sure we have cutechess installed
     getCutechess(arguments.server)
 
+    # Determine how we will compile engines
+    print("\nChecking for installed Compilers",)
+    getCompilationSettings(arguments.server)
+
     # Create the Engines directory if it does not exist
     if not os.path.isdir('Engines'):
         os.mkdir('Engines')
@@ -572,9 +633,11 @@ def main():
     # Continually pull down and complete workloads
     while True:
         try: completeWorkload(workRequestData, arguments)
+        except KeyboardInterrupt: sys.exit()
         except Exception as error:
             print ('[ERROR] {0}'.format(str(error)))
             time.sleep(ERROR_TIMEOUT)
+
 
 if __name__ == '__main__':
     main()

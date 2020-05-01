@@ -49,8 +49,9 @@ urlpatterns = [
     django.urls.path(r'test/<int:id>/<str:action>', OpenBench.views.test),
     django.urls.path(r'newTest/', OpenBench.views.newTest),
 
-    # Links for the Client to update the Server
+    # Links for the Client to work with the Server
     django.urls.path(r'getFiles/', OpenBench.views.getFiles),
+    django.urls.path(r'getCompilers/', OpenBench.views.getCompilers),
     django.urls.path(r'getWorkload/', OpenBench.views.getWorkload),
     django.urls.path(r'wrongBench/', OpenBench.views.wrongBench),
     django.urls.path(r'submitNPS/', OpenBench.views.submitNPS),
