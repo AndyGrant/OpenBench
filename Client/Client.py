@@ -37,6 +37,7 @@ CUSTOM_SETTINGS = {
     'Weiss'     : { 'args' : [] }, # Configuration for Weiss
     'Demolito'  : { 'args' : [] }, # Configuration for Demolito
     'Rubichess' : { 'args' : [] }, # Configuration for RubiChess
+    'FabChess'  : { 'args' : [] }, # Configuration for FabChess
 };
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
