@@ -345,7 +345,7 @@ def workloadDictionary(machine, result, test):
         'test' : {
             'id'            : test.id,
             'nps'           : OPENBENCH_CONFIG['engines'][test.engine]['nps'],
-            'path'          : OPENBENCH_CONFIG['engines'][test.engine]['path'],
+            'build'         : OPENBENCH_CONFIG['engines'][test.engine]['build'],
             'book'          : OPENBENCH_CONFIG['books'][test.bookname],
             'timecontrol'   : test.timecontrol,
             'engine'        : test.engine,

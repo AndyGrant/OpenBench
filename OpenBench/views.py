@@ -452,6 +452,15 @@ def getFiles(request):
 
 @csrf_exempt
 @not_minified_response
+def getCompilers(request):
+
+    data = {} # Return all engine-compiler information
+    for engine, config in OpenBench.config.OPENBENCH_CONFIG['engines'].items():
+        data[engine] = config['build']['compilers']
+    return HttpResponse(str(data))
+
+@csrf_exempt
+@not_minified_response
 def getWorkload(request):
 
     # Verify that we got a valid login
