@@ -24,7 +24,7 @@ import argparse, ast, hashlib, json, math, multiprocessing, os
 import platform, re, requests, shutil, subprocess, sys, time, zipfile
 
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 HTTP_TIMEOUT          = 30  # Timeout in seconds for requests
 WORKLOAD_TIMEOUT      = 60  # Timeout when there is no work
@@ -40,7 +40,7 @@ CUSTOM_SETTINGS = {
     'FabChess'  : { 'args' : [] }, # Configuration for FabChess
 };
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 
 # Treat Windows and Linux systems differently
@@ -91,7 +91,9 @@ def getCompilationSettings(server):
         for compiler in compilers:
 
             # Compilers may require a specific version
-            if '>=' in compiler: compiler, version = compiler.split('>=')
+            if '>=' in compiler:
+                compiler, version = compiler.split('>=')
+                version = tuple(map(int, version.split('.')))
             else: compiler = compiler; version = (0, 0, 0)
 
             # Try to execute the compiler from the command line
