@@ -90,12 +90,12 @@ def getCompilationSettings(server):
         for compiler in compilers:
 
             # Compilers may require a specific version
-            if '>=' in compiler: command, version = compiler.split('>=')
-            else: command = compiler; version = (0, 0, 0)
+            if '>=' in compiler: compiler, version = compiler.split('>=')
+            else: compiler = compiler; version = (0, 0, 0)
 
             # Try to execute the compiler from the command line
             try: stdout, stderr = subprocess.Popen(
-                    [command, '--version'],
+                    [compiler, '--version'],
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
                 ).communicate()
@@ -111,14 +111,14 @@ def getCompilationSettings(server):
 
             # Compiler was sufficient
             COMPILERS[engine] = {
-                'command' : command, 'version' : match,
+                'compiler' : compiler, 'version' : match,
                 'default' : compiler == compilers[0]
             }; break
 
     # Report each engine configuration we can build for
     for engine in [engine for engine in data.keys() if engine in COMPILERS]:
-        command, version = COMPILERS[engine]['command'], COMPILERS[engine]['version']
-        print("Found {0} {1} for {2}".format(command, version, engine))
+        compiler, version = COMPILERS[engine]['compiler'], COMPILERS[engine]['version']
+        print("Found {0} {1} for {2}".format(compiler, version, engine))
 
     # Report each engine configuration we cannot build for
     for engine in [engine for engine in data.keys() if engine not in COMPILERS]:
@@ -195,13 +195,12 @@ def getEngine(data, engine):
     getAndUnzipFile(engine['source'], '{0}.zip'.format(engine['name']), 'tmp')
     pathway = pathjoin('tmp/{0}/'.format(unzipname), data['test']['build']['path'])
 
-    # Use base command and an EXE= hook
-    command = [data['test']['build']['command']]
-    command.append('EXE={0}'.format(engine['name']))
+    # Basic make assumption and an EXE= hook
+    command = ['make', 'EXE={0}'.format(engine['name'])]
 
     # Use a CC= hook if we are using the non-default compiler
     if not COMPILERS[data['test']['engine']]['default']:
-        command.append('CC={0}'.format(COMPILERS[data['test']['engine']]['command']))
+        command.append('CC={0}'.format(COMPILERS[data['test']['engine']]['compiler']))
 
     # Add any other custom compilation options if we have them
     if data['test']['engine'] in CUSTOM_SETTINGS:
