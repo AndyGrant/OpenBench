@@ -420,16 +420,28 @@ def newTest(request):
 #                              CLIENT HOOK VIEWS                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-@csrf_exempt
 @not_minified_response
-def getFiles(request):
+def clientGetFiles(request):
 
-    # Core Files should be sitting in framework's repo
-    return HttpResponse(OpenBench.config.OPENBENCH_CONFIG['corefiles'])
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Return a URL pointing to the location of Cutechess-cli, as well #
+    #         as any DLLs or Shared Object files needed for Cutechess-cli     #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-@csrf_exempt
+    data = OpenBench.config.OPENBENCH_CONFIG['corefiles']
+    return HttpResponse(str(data))
+
 @not_minified_response
-def getCompilers(request):
+def clientGetBuildInfo(request):
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Return a Dictionary of all of the Engines that are present in   #
+    #         config.py, as well as the required compilation tools for them   #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     data = {} # Return all engine-compiler information
     for engine, config in OpenBench.config.OPENBENCH_CONFIG['engines'].items():
@@ -438,36 +450,17 @@ def getCompilers(request):
 
 @csrf_exempt
 @not_minified_response
-def getWorkload(request):
+def clientGetWorkload(request):
 
-    # Verify that we got a valid login
+    # Verify the User's credentials
     user = django.contrib.auth.authenticate(
         username=request.POST['username'],
         password=request.POST['password'])
     if user == None: return HttpResponse('Bad Credentials')
 
-    # Create or fetch the Machine
-    try: machine = OpenBench.utils.getMachine(
-            request.POST['machineid'],
-            request.POST['username'],
-            request.POST['osname'],
-            request.POST['threads'])
-    except: return HttpResponse('Bad Machine')
+    # getWorkload() will verify the integrity of the request
+    return HttpResponse(OpenBench.utils.getWorkload(user, request))
 
-    # Find an active Test to work on
-    try:
-        test = OpenBench.utils.getWorkload(machine)
-        machine.workload = test
-        machine.save()
-    except:
-        return HttpResponse('None')
-
-    # Create or fetch the Results
-    try: result = OpenBench.utils.getResult(machine, test)
-    except: return HttpResponse('None')
-
-    # Send ID's and test information as a string dictionary
-    return HttpResponse(str(OpenBench.utils.workloadDictionary(machine, result, test)))
 
 @csrf_exempt
 @not_minified_response

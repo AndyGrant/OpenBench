@@ -49,6 +49,7 @@ IS_LINUX   = platform.system() != 'Windows'
 
 COMPILERS = {} # Mapping of Engines to Compilers
 
+
 def addExtension(name):
     return name + ["", ".exe"][IS_WINDOWS]
 
@@ -79,11 +80,35 @@ def killCutechess(cutechess):
     except Exception as error: pass
 
 
+def getCutechess(server):
+
+    # Ask the server where the core files are saved
+    source = requests.get(
+        pathjoin(server, 'clientGetFiles'),
+        timeout=HTTP_TIMEOUT).content.decode('utf-8')
+
+    # Windows workers need the cutechess.exe and the Qt5Core dll.
+    # Linux workers need cutechess and the libcutechess SO.
+    # Make sure Linux binaries are set to be executable.
+
+    if IS_WINDOWS and not os.path.isfile('cutechess.exe'):
+        getFile(pathjoin(source, 'cutechess-windows.exe'), 'cutechess.exe')
+
+    if IS_WINDOWS and not os.path.isfile('Qt5Core.dll'):
+        getFile(pathjoin(source, 'cutechess-qt5core.dll'), 'Qt5Core.dll')
+
+    if IS_LINUX and not os.path.isfile('cutechess'):
+        getFile(pathjoin(source, 'cutechess-linux'), 'cutechess')
+        os.system('chmod 777 cutechess')
+
+    if IS_LINUX and not os.path.isfile('libcutechess.so.1'):
+        getFile(pathjoin(source, 'libcutechess.so.1'), 'libcutechess.so.1')
+
 def getCompilationSettings(server):
 
     # Get a dictionary of engine -> compilers
     data = requests.get(
-        pathjoin(server, 'getCompilers'),
+        pathjoin(server, 'clientGetBuildInfo'),
         timeout=HTTP_TIMEOUT).content.decode('utf-8')
     data = ast.literal_eval(data)
 
@@ -127,6 +152,7 @@ def getCompilationSettings(server):
     for engine in [engine for engine in data.keys() if engine not in COMPILERS]:
         print("Unable to find compiler for {0}".format(engine))
 
+
 def getFile(source, output):
 
     # Download the source file
@@ -149,29 +175,6 @@ def getAndUnzipFile(source, name, output):
     # Cleanup by deleting the .zip
     os.remove(name)
 
-def getCutechess(server):
-
-    # Ask the server where the core files are saved
-    source = requests.get(
-        pathjoin(server, 'getFiles'),
-        timeout=HTTP_TIMEOUT).content.decode('utf-8')
-
-    # Windows workers need the cutechess.exe and the Qt5Core dll.
-    # Linux workers need cutechess and the libcutechess SO.
-    # Make sure Linux binaries are set to be executable.
-
-    if IS_WINDOWS and not os.path.isfile('cutechess.exe'):
-        getFile(pathjoin(source, 'cutechess-windows.exe'), 'cutechess.exe')
-
-    if IS_WINDOWS and not os.path.isfile('Qt5Core.dll'):
-        getFile(pathjoin(source, 'cutechess-qt5core.dll'), 'Qt5Core.dll')
-
-    if IS_LINUX and not os.path.isfile('cutechess'):
-        getFile(pathjoin(source, 'cutechess-linux'), 'cutechess')
-        os.system('chmod 777 cutechess')
-
-    if IS_LINUX and not os.path.isfile('libcutechess.so.1'):
-        getFile(pathjoin(source, 'libcutechess.so.1'), 'libcutechess.so.1')
 
 def getMachineID():
 
@@ -564,24 +567,24 @@ def completeWorkload(workRequestData, arguments):
 
     # Get the next workload
     data = requests.post(
-        pathjoin(arguments.server, 'getWorkload'),
+        pathjoin(arguments.server, 'clientGetWorkload'),
         data=workRequestData, timeout=HTTP_TIMEOUT).content.decode('utf-8')
 
     # Check for an empty workload
     if data == 'None':
-        print('[NOTE] Server Has No Work')
+        print('\n[NOTE] Server Has No Work')
         time.sleep(WORKLOAD_TIMEOUT)
         return
 
     # Kill process if unable to login
     if data == 'Bad Credentials':
-        print('[ERROR] Invalid Login Credentials')
+        print('\n[ERROR] Invalid Login Credentials')
         sys.exit()
 
     # Bad machines will be registered again
     if data == 'Bad Machine':
         workRequestData['machineid'] = 'None'
-        print('[NOTE] Invalid Machine ID')
+        print('\n[NOTE] Invalid Machine ID')
         return
 
     # Convert response into a dictionary
@@ -610,17 +613,6 @@ def main():
     p.add_argument('-T', '--threads', help='Number of Threads', required=True)
     arguments = p.parse_args()
 
-    # All workload requests must be tied to a user and a machine.
-    # We also pass a thread count to inform the server what tests this
-    # machine can handle. We pass the osname in order to register machines
-    workRequestData = {
-        'machineid' : getMachineID(),
-        'username'  : arguments.username,
-        'password'  : arguments.password,
-        'threads'   : arguments.threads,
-        'osname'    : '{0} {1}'.format(platform.system(), platform.release())
-    };
-
     # Make sure we have cutechess installed
     getCutechess(arguments.server)
 
@@ -631,6 +623,19 @@ def main():
     # Create the Engines directory if it does not exist
     if not os.path.isdir('Engines'):
         os.mkdir('Engines')
+
+    # All workload requests must be tied to a user and a machine.
+    # We also pass a thread count to inform the server what tests this
+    # machine can handle. We pass the osname in order to register machines.
+    # We pass a space seperated string of the engines we are able to compile.
+    workRequestData = {
+        'machineid' : getMachineID(),
+        'username'  : arguments.username,
+        'password'  : arguments.password,
+        'threads'   : arguments.threads,
+        'osname'    : '{0} {1}'.format(platform.system(), platform.release()),
+        'supported' : ' '.join(COMPILERS.keys()),
+    };
 
     # Continually pull down and complete workloads
     while True:

@@ -251,110 +251,125 @@ def createNewTest(request):
     return test, None
 
 
-def getMachine(machineid, username, osname, threads):
+def getMachine(machineid, owner, osname, threads):
 
-    # Client has no saved machine ID, make a new machine
-    if machineid == 'None':
-        machine = Machine()
-        machine.owner = username
-        machine.osname = osname
-        machine.threads = int(threads)
-        return machine
+    try: # Create a new or fetch an existing Machine
+        if machineid == 'None': machine = Machine()
+        else: machine = Machine.objects.get(id=int(machineid))
+    except: return 'Bad Machine'
 
-    # Fetch and verify the claimed machine ID
-    machine = Machine.objects.get(id=machineid)
-    assert machine.owner == username
-    assert machine.osname == osname
+    # Verify that the fetched Machine matches
+    if machineid != 'None':
+        if machine.owner != owner: return 'Bad Machine'
+        if machine.osname != osname: return 'Bad Machine'
 
-    # Update to reflect new worload
-    machine.threads = int(threads)
-    machine.mnps = 0.00
-    machine.save()
+    # Update the Machine's running status
+    machine.owner   = owner        ; machine.osname  = osname
+    machine.threads = int(threads) ; machine.mnps    = 0.00
     return machine
 
-def getWorkload(machine):
+def getResult(test, machine):
 
-    # Get a list of all active tests
-    tests = Test.objects.filter(finished=False)
-    tests = tests.filter(deleted=False)
-    tests = list(tests.filter(approved=True))
-
-    # No tests, error out and let views handle it
-    if len(tests) == 0: raise Exception('None')
-
-    options = [] # Highest priority with acceptable threads
-
-    # Find our options for workloads
-    for test in tests:
-
-        # Find Threads for the Dev Engine
-        tokens = test.devoptions.split(' ')
-        devthreads = int(tokens[0].split('=')[1])
-
-        # Find Threads for the Base Engine
-        tokens = test.baseoptions.split(' ')
-        basethreads = int(tokens[0].split('=')[1])
-
-        # Minimum threads to support Dev & Base
-        threadcnt = max(devthreads, basethreads)
-
-        # Empty list or higher priority found for workable test
-        if (options == [] or test.priority > highest) and threadcnt <= machine.threads:
-            highest = test.priority
-            options = [test]
-
-        # New workable test with the same priority
-        elif options != [] and test.priority == highest and threadcnt <= machine.threads:
-            options.append(test)
-
-    # Sum of throughputs, for weighted randomness
-    total = sum([test.throughput for test in options])
-    target = random.randrange(0, total)
-
-    # Finally, select our test with the weighted target
-    while True:
-
-        # Found test within the target throughput
-        if target < options[0].throughput:
-            return options[0]
-
-        # Drop the test from selection
-        target -= options[0].throughput
-        options = options[1:]
-
-def getResult(machine, test):
-
-    # Can find an existing result by test and machine
+    # Try to find an already existing Result
     results = Result.objects.filter(test=test)
     results = list(results.filter(machine=machine))
     if results != []: return results[0]
 
-    # Must make a new one for the machine
-    machine.save()
+    # Create a new Result if none is found
     return Result.objects.create(test=test, machine=machine)
 
-def workloadDictionary(machine, result, test):
+def getWorkload(user, request):
 
-    # Worker will send back the id of each model for ease of
-    # updating. Worker needs test information, as well as the
-    # specification for both engines. Group the dev and base
-    # options with the coressponding engine, for easy usage
+    # Extract worker information
+    machineid = request.POST['machineid']
+    owner     = request.POST['username' ]
+    osname    = request.POST['osname'   ]
+    threads   = request.POST['threads'  ]
+
+    # If we don't get a Machine back, there was an error
+    machine = getMachine(machineid, owner, osname, threads)
+    if type(machine) == str: return machine
+    machine.save()
+
+    # Compare supported Machines vs Existing
+    supported = request.POST['supported'].split()
+    existing  = OPENBENCH_CONFIG['engines'].keys()
+
+    # Filter only to active tests
+    tests = Test.objects.filter(finished=False).filter(deleted=False)
+    tests = tests.filter(deleted=False).filter(approved=True)
+
+    # Remove tests that this Machine cannot complete
+    for engine in existing:
+        if engine not in supported:
+            tests = tests.exclude(engine=engine)
+
+    # If we don't get a Test back, there was an error
+    test = selectWorkload(tests, machine)
+    if type(test) == str: return test
+
+    # If we don't get a Result back, there was an error
+    result = getResult(test, machine)
+    if type(result) == str: return result
+
+    # Success. Update the Machine's status
+    machine.workload = test; machine.save()
+    return str(workloadDictionary(test, result, machine))
+
+def selectWorkload(tests, machine):
+
+    options = [] # Tests which this Machine may complete
+
+    for test in tests:
+
+        # Skip tests which the Machine lacks the threads to complete
+        devthreads  = int(extractOption(test.devoptions, 'Threads'))
+        basethreads = int(extractOption(test.baseoptions, 'Threads'))
+        if max(devthreads, basethreads) > machine.threads: continue
+
+        # First Test or a higher priority Test
+        if options == [] or test.priority > highest:
+            highest = test.priority; options = [test]
+
+        # Another Test with an equal priority
+        elif options != [] and test.priority == highest:
+            options.append(test)
+
+    if options == []: return 'None'
+
+    target = random.randrange(sum([t.throughput for t in options]))
+    while True: # Select a random test used weighted randomness
+        if target < options[0].throughput: return options[0]
+        target -= options[0].throughput; options = options[1:]
+
+def workloadDictionary(test, result, machine):
+
+    # Convert the workload into a Dictionary to be used by the Client.
+    # The Client must know his Machine ID, his Result ID, and his Test
+    # ID. Also, all information about the Test and the associated engines
+
     return {
-        'machine' : { 'id'  : machine.id, },
-        'result'  : { 'id'  : result.id, },
+
+        'machine' : { 'id'  : machine.id },
+
+        'result'  : { 'id'  : result.id },
+
         'test' : {
+
             'id'            : test.id,
             'nps'           : OPENBENCH_CONFIG['engines'][test.engine]['nps'],
             'build'         : OPENBENCH_CONFIG['engines'][test.engine]['build'],
             'book'          : OPENBENCH_CONFIG['books'][test.bookname],
             'timecontrol'   : test.timecontrol,
             'engine'        : test.engine,
+
             'dev' : {
                 'id'        : test.dev.id,      'name'      : test.dev.name,
                 'source'    : test.dev.source,  'protocol'  : test.dev.protocol,
                 'sha'       : test.dev.sha,     'bench'     : test.dev.bench,
                 'options'   : test.devoptions,
             },
+
             'base' : {
                 'id'        : test.base.id,     'name'      : test.base.name,
                 'source'    : test.base.source, 'protocol'  : test.base.protocol,
@@ -363,6 +378,7 @@ def workloadDictionary(machine, result, test):
             },
         },
     }
+
 
 def update(request, user):
 
