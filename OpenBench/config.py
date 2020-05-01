@@ -80,7 +80,7 @@ OPENBENCH_CONFIG = {
 
             'proto'     : 'uci',
             'nps'       : 1275000,
-            'build'     : { 'path' : '/src/', 'command' : 'make', 'compilers' : ['gcc'] },
+            'build'     : { 'path' : '/src/', 'compilers' : ['gcc'] },
             'source'    : 'https://github.com/AndyGrant/Ethereal',
 
             'testmodes' : {
@@ -95,7 +95,7 @@ OPENBENCH_CONFIG = {
 
             'proto'     : 'uci',
             'nps'       : 710000,
-            'build'     : { 'path' : '/src/', 'command' : 'make', 'compilers' : ['g++'] },
+            'build'     : { 'path' : '/src/', 'compilers' : ['g++'] },
             'source'    : 'https://github.com/jeffreyan11/uci-chess-engine',
 
             'testmodes' : {
@@ -110,7 +110,7 @@ OPENBENCH_CONFIG = {
 
             'proto'     : 'uci',
             'nps'       : 2675000,
-            'build'     : { 'path' : '/src/', 'command' : 'make', 'compilers' : ['gcc'] },
+            'build'     : { 'path' : '/src/', 'compilers' : ['gcc'] },
             'source'    : 'https://github.com/TerjeKir/weiss',
 
             'testmodes' : {
@@ -125,7 +125,7 @@ OPENBENCH_CONFIG = {
 
             'proto'     : 'uci',
             'nps'       : 1250000,
-            'build'     : { 'path' : '/src/', 'command' : 'make', 'compilers' : ['gcc', 'clang'] },
+            'build'     : { 'path' : '/src/', 'compilers' : ['gcc', 'clang'] },
             'source'    : 'https://github.com/lucasart/Demolito',
 
             'testmodes' : {
@@ -140,7 +140,7 @@ OPENBENCH_CONFIG = {
 
             'proto'     : 'uci',
             'nps'       : 1000000,
-            'build'     : { 'path' : '/src/', 'command' : 'make', 'compilers' : ['g++'] },
+            'build'     : { 'path' : '/src/', 'compilers' : ['g++'] },
             'source'    : 'https://github.com/Matthies/RubiChess',
 
             'testmodes' : {
@@ -155,7 +155,7 @@ OPENBENCH_CONFIG = {
 
             'proto'     : 'uci',
             'nps'       : 1000000,
-            'build'     : { 'path' : '/src/', 'command' : 'make', 'compilers' : ['cargo>=1.43.0'] },
+            'build'     : { 'path' : '/src/', 'compilers' : ['cargo>=1.43.0'] },
             'source'    : 'https://github.com/fabianvdW/FabChess',
 
             'testmodes' : {
