@@ -122,8 +122,6 @@ def logout(request):
     #                                                                         #
     #  GET  : Logout the User if they are logged in. Return to the main page  #
     #                                                                         #
-    #  POST : Logout the User if they are logged in. Return to the main page  #
-    #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     django.contrib.auth.logout(request)
@@ -180,10 +178,6 @@ def index(request, page=1, error=''):
     #         display of tests by the requested page number. Also display the #
     #         status for connected machines.                                  #
     #                                                                         #
-    #  POST : Return all pending, active, and completed tests. Limit the      #
-    #         display of tests by the requested page number. Also display the #
-    #         status for connected machines.                                  #
-    #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     pending   = OpenBench.utils.getPendingTests()
@@ -205,9 +199,6 @@ def greens(request, page=1):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #                                                                         #
     #  GET  : Return all tests both passed and completed. Limit the display   #
-    #         of tests by the requested page number.                          #
-    #                                                                         #
-    #  POST : Return all tests both passed and completed. Limit the display   #
     #         of tests by the requested page number.                          #
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -267,10 +258,6 @@ def user(request, username, page=1):
     #         that has been requested. Limit the display of completed tests   #
     #         by the requested page number. Also display the User's machines  #
     #                                                                         #
-    #  POST : Return all pending, active, and completed tests for the User    #
-    #         that has been requested. Limit the display of completed tests   #
-    #         by the requested page number. Also display the User's machines  #
-    #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     pending   = OpenBench.utils.getPendingTests().filter(author=username)
@@ -301,10 +288,6 @@ def users(request):
     #         Users by games completed, tests created. The HTML template will #
     #         filter out disabled users later.                                #
     #                                                                         #
-    #  POST : Return information about all users on the Framework. Sort the   #
-    #         Users by games completed, tests created. The HTML template will #
-    #         filter out disabled users later.                                #
-    #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     data = {'profiles' : Profile.objects.order_by('-games', '-tests')}
@@ -315,9 +298,6 @@ def events(request, page=1):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #                                                                         #
     #  GET  : Return information about the events taken on the Framework.     #
-    #         Only show those events for the requested page.                  #
-    #                                                                         #
-    #  POST : Return information about the events taken on the Framework.     #
     #         Only show those events for the requested page.                  #
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -333,9 +313,6 @@ def machines(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #                                                                         #
     #  GET  : Return information about all of the machines that have been     #
-    #         active on the Framework within the last fifteen minutes         #
-    #                                                                         #
-    #  POST : Return information about all of the machines that have been     #
     #         active on the Framework within the last fifteen minutes         #
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
