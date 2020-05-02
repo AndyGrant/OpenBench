@@ -154,8 +154,8 @@ OPENBENCH_CONFIG = {
         'FabChess' : {
 
             'proto'     : 'uci',
-            'nps'       : 1000000,
-            'build'     : { 'path' : '/src/', 'compilers' : ['cargo>=1.43.0'] },
+            'nps'       : 640000,
+            'build'     : { 'path' : '', 'compilers' : ['cargo>=1.41.0'] },
             'source'    : 'https://github.com/fabianvdW/FabChess',
 
             'testmodes' : {
