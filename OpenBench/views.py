@@ -475,6 +475,14 @@ def clientGetWorkload(request):
 @not_minified_response
 def clientWrongBench(request):
 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  POST : Inform the server that an Engine reported an incorrect Bench    #
+    #         value during the init process for a Test. We stop the Test and  #
+    #         log an Error into the Events table to indicate what happened    #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
     # Verify the User's credentials
     user = django.contrib.auth.authenticate(
         username=request.POST['username'],
@@ -510,6 +518,13 @@ def clientWrongBench(request):
 @not_minified_response
 def clientSubmitNPS(request):
 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  POST : Report the speed of the engines in the currently running Test   #
+    #         for the User and his Machine. We save this value to display     #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
     # Verify the User's credentials
     user = django.contrib.auth.authenticate(
         username=request.POST['username'],
@@ -527,6 +542,14 @@ def clientSubmitNPS(request):
 @csrf_exempt
 @not_minified_response
 def clientSubmitError(request):
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  POST : Report en Engine error to the server. This could be a crash, a  #
+    #         timeloss, a disconnect, or an illegal move. Log the Error into  #
+    #         the Events table.                                                #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Verify the User's credentials
     user = django.contrib.auth.authenticate(
