@@ -125,7 +125,7 @@ OPENBENCH_CONFIG = {
 
             'proto'     : 'uci',
             'nps'       : 1250000,
-            'build'     : { 'path' : '/src/', 'compilers' : ['gcc', 'clang'] },
+            'build'     : { 'path' : '/src/', 'compilers' : ['clang', 'gcc'] },
             'source'    : 'https://github.com/lucasart/Demolito',
 
             'testmodes' : {
