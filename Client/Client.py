@@ -267,13 +267,13 @@ def getCutechessCommand(arguments, data, nps):
     # Options for the Dev Engine
     devflags = '-engine dir=Engines/ cmd=./{0} proto={1} tc={2}{3} name={4}'.format(
         devCommand, data['test']['dev']['protocol'], timecontrol, devoptions,
-        '{0}-{1}'.format(data['test']['engine'], data['test']['dev']['sha'][:8])
+        '{0}-{1}'.format(data['test']['engine'], data['test']['dev']['name'])
     )
 
     # Options for the Base Engine
     baseflags = '-engine dir=Engines/ cmd=./{0} proto={1} tc={2}{3} name={4}'.format(
         baseCommand, data['test']['base']['protocol'], timecontrol, baseoptions,
-        '{0}-{1}'.format(data['test']['engine'], data['test']['base']['sha'][:8])
+        '{0}-{1}'.format(data['test']['engine'], data['test']['base']['name'])
     )
 
     # Options for opening selection
@@ -446,47 +446,60 @@ def verifyEngine(arguments, data, engine):
 
     # Check for an invalid bench. Signal to the Client and the Server
     if bench != int(engine['bench']):
-        reportWrongBenchmark(arguments, data, engine)
-        print ('[ERROR] Invalid Bench. Got {0} Expected {1}'.format(bench, engine['bench']))
+        reportWrongBenchmark(arguments, data, engine, bench)
+        raise Exception('Invalid Bench. Got {0} Expected {1}'.format(bench, engine['bench']))
 
     # Return a valid bench or otherwise return None
     return nps if bench == int(engine['bench']) else None
 
 
-def reportWrongBenchmark(arguments, data, engine):
+def reportWrongBenchmark(arguments, data, engine, bench):
 
-    # Server wants user verification, and then information about
-    # the test that threw the error, and which engine did it
+
     data = {
-        'username' : arguments.username,
-        'password' : arguments.password,
-        'testid'   : data['test']['id'],
-        'engineid' : engine['id'],
+        'username' : arguments.username, 'testid' : data['test']['id'],
+        'password' : arguments.password, 'machineid' : data['machine']['id'],
+        'correct'  : engine['bench']   , 'wrong'  : bench,
+        'engine'   : engine['name'],
     }
 
-    # Hit the server with information about wrong benchmark
-    url = pathjoin(arguments.server, 'wrongBench')
-    return requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
+    url = pathjoin(arguments.server, 'clientWrongBench')
+    data = requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
+    if data == 'Bad Machine': raise Exception('Bad Machine')
 
 def reportNodesPerSecond(arguments, data, nps):
 
-    # Server wants user verification, and then information about
-    # nodes per second searched for a specific machine id value
+
     data = {
-        'username'  : arguments.username,
-        'password'  : arguments.password,
-        'machineid' : data['machine']['id'],
-        'nps'       : nps,
+        'username'  : arguments.username, 'machineid' : data['machine']['id'],
+        'password'  : arguments.password, 'nps'       : nps,
     }
 
-    # Hit the server with information about nps
-    url = pathjoin(arguments.server, 'submitNPS')
-    return requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
+    url = pathjoin(arguments.server, 'clientSubmitNPS')
+    data = requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
+    if data == 'Bad Machine': raise Exception('Bad Machine')
+
+def reportEngineError(arguments, data, line):
+
+    pairing = line.split('(')[1].split(')')[0]
+    white, black = pairing.split(' vs ')
+
+    error = line.split('{')[1].rstrip().rstrip('}')
+    error = error.replace('White', '-'.join(white.split('-')[1:]).rstrip())
+    error = error.replace('Black', '-'.join(black.split('-')[1:]).rstrip())
+
+    data = {
+        'username' : arguments.username, 'testid'    : data['test']['id'],
+        'password' : arguments.password, 'machineid' : data['machine']['id'],
+        'error'    : error,
+    }
+
+    url = pathjoin(arguments.server, 'clientSubmitError')
+    data = requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
+    if data == 'Bad Machine': raise Exception('Bad Machine')
 
 def reportResults(arguments, data, wins, losses, draws, crashes, timelosses):
 
-    # Server wants user verification, and then information about the machine,
-    # the result object, the test, and then the actual updated game results
     data = {
         'username'  : arguments.username,    'wins'      : wins,
         'password'  : arguments.password,    'losses'    : losses,
@@ -495,7 +508,6 @@ def reportResults(arguments, data, wins, losses, draws, crashes, timelosses):
         'testid'    : data['test']['id'],    'timeloss'  : timelosses,
     }
 
-    # Hit the server with the updated test results
     url = pathjoin(arguments.server, 'submitResults')
     try: return requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
     except KeyboardInterrupt: sys.exit()
@@ -507,6 +519,7 @@ def processCutechess(arguments, data, cutechess, concurrency):
     # Tracking for game results
     crashes = timelosses = 0
     score = [0, 0, 0]; sent = [0, 0, 0]
+    errors = ['on time', 'disconnects', 'connection stalls', 'illegal']
 
     while True:
 
@@ -515,13 +528,15 @@ def processCutechess(arguments, data, cutechess, concurrency):
         if line != '': print(line)
         else: cutechess.wait(); return
 
-        # Parse engine crashes
-        if 'disconnects' in line or 'connection stalls' in line:
-            crashes += 1
+        # Updated timeloss/crash counters
+        timelosses += 'on time' in line
+        crashes    += 'disconnects' in line
+        crashes    += 'connection stalls' in line
 
-        # Parse losses on time
-        if 'on time' in line:
-            timelosses += 1
+        # Report any engine errors to the server
+        for error in errors:
+            if error in line:
+                reportEngineError(arguments, data, line)
 
         # Parse updates to scores
         if line.startswith('Score of'):
