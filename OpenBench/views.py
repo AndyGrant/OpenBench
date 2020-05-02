@@ -452,6 +452,16 @@ def clientGetBuildInfo(request):
 @not_minified_response
 def clientGetWorkload(request):
 
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  POST : Return a Dictionary of data in order to complete a workload. If #
+    #         there are no tests for the User, 'None' will be returned. If we #
+    #         cannot authenticate the User, 'Bad Credentials' is returned. If #
+    #         the posted Machine does not belong the the User, 'Bad Machine'  #
+    #         is returned.                                                    #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
     # Verify the User's credentials
     user = django.contrib.auth.authenticate(
         username=request.POST['username'],
@@ -461,55 +471,82 @@ def clientGetWorkload(request):
     # getWorkload() will verify the integrity of the request
     return HttpResponse(OpenBench.utils.getWorkload(user, request))
 
-
 @csrf_exempt
 @not_minified_response
-def wrongBench(request):
+def clientWrongBench(request):
 
-    # Verify that we got a valid login
+    # Verify the User's credentials
     user = django.contrib.auth.authenticate(
         username=request.POST['username'],
         password=request.POST['password'])
     if user == None: return HttpResponse('Bad Credentials')
 
-    try:
-        # Find the engine with the bad bench
-        engineid = int(request.POST['engineid'])
-        engine = Engine.objects.get(id=engineid)
+    # Verify the Machine belongs to the User
+    machine = Machine.objects.get(id=int(request.POST['machineid']))
+    if machine.owner != user.username: return HttpResponse('Bad Machine')
 
-        # Find and stop the test with the bad bench
-        testid = int(request.POST['testid'])
-        test = Test.objects.get(id=testid)
-        test.finished = True
-        test.save()
+    # Find and stop the test with the bad bench
+    test = Test.objects.get(id=int(request.POST['testid']))
+    test.finished = True; test.save()
 
-        # Log the bad bench so we know why the test was stopped
-        LogEvent.objects.create(
-            data='Invalid Bench',
-            author=request.POST['username'],
-            test=test)
-    except: pass
+    # Collect information on the Error
+    wrong   = request.POST['wrong']
+    correct = request.POST['correct']
+    name    = request.POST['engine']
+
+    # Format a nice Error message
+    message = 'Got {0} Expected {1} for {2}'
+    message = message.format(wrong, correct, name)
+
+    # Log the error into the Events table
+    LogEvent.objects.create(
+        test   = test,
+        data   = message,
+        author = user.username)
 
     return HttpResponse('None')
 
 @csrf_exempt
 @not_minified_response
-def submitNPS(request):
+def clientSubmitNPS(request):
 
-    # Verify that we got a valid login
+    # Verify the User's credentials
     user = django.contrib.auth.authenticate(
         username=request.POST['username'],
         password=request.POST['password'])
     if user == None: return HttpResponse('Bad Credentials')
 
-    # Try to update the NPS for the machine
-    try:
-        machine = Machine.objects.get(id=int(request.POST['machineid']))
-        machine.mnps = float(request.POST['nps']) / 1e6
-        machine.save()
-    except: return HttpResponse('Bad Machine ID')
+    # Verify the Machine belongs to the User
+    machine = Machine.objects.get(id=int(request.POST['machineid']))
+    if machine.owner != user.username: return HttpResponse('Bad Machine')
+
+    # Update the NPS and return 'None' to signal no errors
+    machine.mnps = float(request.POST['nps']) / 1e6; machine.save()
+    return HttpResponse('None')
+
+@csrf_exempt
+@not_minified_response
+def clientSubmitError(request):
+
+    # Verify the User's credentials
+    user = django.contrib.auth.authenticate(
+        username=request.POST['username'],
+        password=request.POST['password'])
+    if user == None: return HttpResponse('Bad Credentials')
+
+    # Verify the Machine belongs to the User
+    machine = Machine.objects.get(id=int(request.POST['machineid']))
+    if machine.owner != user.username: return HttpResponse('Bad Machine')
+
+    # Log the Error into the Events table
+    LogEvent.objects.create(
+        author = user.username,
+        data   = request.POST['error'],
+        test   = Test.objects.get(id=int(request.POST['testid'])))
 
     return HttpResponse('None')
+
+
 
 @csrf_exempt
 @not_minified_response
