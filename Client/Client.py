@@ -26,10 +26,11 @@ import platform, re, requests, shutil, subprocess, sys, time, zipfile
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-HTTP_TIMEOUT          = 30  # Timeout in seconds for requests
-WORKLOAD_TIMEOUT      = 60  # Timeout when there is no work
-ERROR_TIMEOUT         = 60  # Timeout when an error is thrown
-GAMES_PER_CONCURRENCY = 32  # Total games to play per concurrency
+HTTP_TIMEOUT          = 30    # Timeout in seconds for requests
+WORKLOAD_TIMEOUT      = 60    # Timeout when there is no work
+ERROR_TIMEOUT         = 60    # Timeout when an error is thrown
+GAMES_PER_CONCURRENCY = 32    # Total games to play per concurrency
+SAVE_PGN_FILES        = False # Auto-save PGN output for engine pairings
 
 CUSTOM_SETTINGS = {
     'Ethereal'  : { 'args' : [] }, # Configuration for Ethereal
@@ -277,9 +278,14 @@ def getCutechessCommand(arguments, data, nps):
     )
 
     # Options for opening selection
-    bookflags = '-openings file={0} format={1} order=random plies=16'.format(
+    bookflags = '-openings file=Books/{0} format={1} order=random plies=16'.format(
         data['test']['book']['name'], data['test']['book']['name'].split('.')[-1]
     )
+
+    # Save PGN files if requested as Engine-Dev_vs_Engine-Base
+    if SAVE_PGN_FILES:
+        bookflags += ' -pgnout PGNs/{0}-{1}_vs_{0}-{2}'.format(
+            data['test']['engine'], data['test']['dev']['name'], data['test']['base']['name'])
 
     # Combine all flags and add the cutechess program callout
     options = ' '.join([generalflags, setupflags, devflags, baseflags, bookflags])
@@ -417,13 +423,13 @@ def verifyOpeningBook(data):
 
     # Fetch the opening book if we don't have it
     print('\nFetching and Verifying Opening Book')
-    if not os.path.isfile(data['name']):
+    if not os.path.isfile('Books/{0}'.format(data['name'])):
         source = '{0}.zip'.format(data['source'])
         name = '{0}.zip'.format(data['name'])
-        getAndUnzipFile(source, name, '')
+        getAndUnzipFile(source, name, 'Books/')
 
     # Verify data integrity with a hash
-    with open(data['name']) as fin:
+    with open('Books/{0}'.format(data['name'])) as fin:
         content = fin.read().encode('utf-8')
         sha = hashlib.sha256(content).hexdigest()
 
@@ -620,6 +626,11 @@ def main():
     # Use OpenBench.py's path as the base pathway
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
+    # Ensure we have our usual file folder structure
+    if not os.path.isdir('Engines'): os.mkdir('Engines')
+    if not os.path.isdir('Books'  ): os.mkdir('Books'  )
+    if not os.path.isdir('PGNs'   ): os.mkdir('PGNs'   )
+
     # Expect a Username, Password, Server, and Threads value
     p = argparse.ArgumentParser()
     p.add_argument('-U', '--username', help='Username', required=True)
@@ -634,10 +645,6 @@ def main():
     # Determine how we will compile engines
     print("\nChecking for installed Compilers",)
     getCompilationSettings(arguments.server)
-
-    # Create the Engines directory if it does not exist
-    if not os.path.isdir('Engines'):
-        os.mkdir('Engines')
 
     # All workload requests must be tied to a user and a machine.
     # We also pass a thread count to inform the server what tests this
