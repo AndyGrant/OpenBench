@@ -30,6 +30,7 @@ HTTP_TIMEOUT          = 30    # Timeout in seconds for requests
 WORKLOAD_TIMEOUT      = 60    # Timeout when there is no work
 ERROR_TIMEOUT         = 60    # Timeout when an error is thrown
 GAMES_PER_CONCURRENCY = 32    # Total games to play per concurrency
+
 SAVE_PGN_FILES        = False # Auto-save PGN output for engine pairings
 AUTO_DELETE_ENGINES   = True  # Delete Engines that are over 24hrs old
 
