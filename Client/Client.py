@@ -525,10 +525,9 @@ def reportResults(arguments, data, wins, losses, draws, crashes, timelosses):
         'testid'    : data['test']['id'],    'timeloss'  : timelosses,
     }
 
-    url = pathjoin(arguments.server, 'submitResults')
+    url = pathjoin(arguments.server, 'clientSubmitResults')
     try: return requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
-    except KeyboardInterrupt: sys.exit()
-    except: print('[NOTE] Unable To Reach Server'); return "Unable"
+    except: print('[NOTE] Unable To Reach Server'); return 'Unable'
 
 
 def processCutechess(arguments, data, cutechess, concurrency):

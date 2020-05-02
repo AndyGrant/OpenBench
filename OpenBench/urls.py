@@ -56,9 +56,7 @@ urlpatterns = [
     django.urls.path(r'clientWrongBench/', OpenBench.views.clientWrongBench),
     django.urls.path(r'clientSubmitNPS/', OpenBench.views.clientSubmitNPS),
     django.urls.path(r'clientSubmitError/', OpenBench.views.clientSubmitError),
-
-    # Links for the Client to work with the Server (DEAD)
-    django.urls.path(r'submitResults/', OpenBench.views.submitResults),
+    django.urls.path(r'clientSubmitResults/', OpenBench.views.clientSubmitResults),
 
     # Redirect anything else to the Index
     django.urls.path(r'', OpenBench.views.index),
