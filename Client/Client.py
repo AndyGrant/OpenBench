@@ -31,6 +31,7 @@ WORKLOAD_TIMEOUT      = 60    # Timeout when there is no work
 ERROR_TIMEOUT         = 60    # Timeout when an error is thrown
 GAMES_PER_CONCURRENCY = 32    # Total games to play per concurrency
 SAVE_PGN_FILES        = False # Auto-save PGN output for engine pairings
+AUTO_DELETE_ENGINES   = True  # Delete Engines that are over 24hrs old
 
 CUSTOM_SETTINGS = {
     'Ethereal'  : { 'args' : [] }, # Configuration for Ethereal
@@ -79,6 +80,15 @@ def killCutechess(cutechess):
 
     except KeyboardInterrupt: sys.exit()
     except Exception as error: pass
+
+def cleanupEnginesDirectory():
+
+    SECONDS_PER_DAY = 60 * 60 * 24;
+
+    for file in os.listdir('Engines/'):
+        if time.time() - os.path.getmtime('Engines/{0}'.format(file)) > SECONDS_PER_DAY:
+            os.remove('Engines/{0}'.format(file))
+            print ("[NOTE] Deleted old engine", file)
 
 
 def getCutechess(server):
@@ -661,6 +671,7 @@ def main():
 
     # Continually pull down and complete workloads
     while True:
+        if AUTO_DELETE_ENGINES: cleanupEnginesDirectory()
         try: completeWorkload(workRequestData, arguments)
         except KeyboardInterrupt: sys.exit()
         except Exception as error:
