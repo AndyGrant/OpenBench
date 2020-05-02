@@ -20,7 +20,7 @@
 
 import math, re, requests, random, datetime
 
-import OpenBench.models
+import OpenBench.models, OpenBench.stats
 
 import django.utils.timezone
 
@@ -380,9 +380,9 @@ def workloadDictionary(test, result, machine):
     }
 
 
-def update(request, user):
+def updateTest(request, user):
 
-    # Parse the data from the worker
+    # New results from the Worker
     wins     = int(request.POST['wins'])
     losses   = int(request.POST['losses'])
     draws    = int(request.POST['draws'])
@@ -390,129 +390,47 @@ def update(request, user):
     timeloss = int(request.POST['timeloss'])
     games    = wins + losses + draws
 
-    # Parse the various IDs sent back
+    # Worker knows where to save the results
     machineid = int(request.POST['machineid'])
     resultid  = int(request.POST['resultid'])
     testid    = int(request.POST['testid'])
 
-    # Don't update an finished, deleted, or unappoved test
+    # Prevent updating a finished test
     test = Test.objects.get(id=testid)
-    if test.finished or test.deleted or not test.approved:
-        raise Exception()
+    if test.finished or test.deleted:
+        return 'Stop'
 
-    # Updated stats for SPRT and ELO calculation
-    swins = test.wins + wins
+    # Compute a new LLR for the updated results
+    swins   = test.wins   + wins
     slosses = test.losses + losses
-    sdraws = test.draws + draws
+    sdraws  = test.draws  + draws
+    WLD     = (swins, slosses, sdraws)
+    sprt    = OpenBench.stats.SPRT(*WLD, test.elolower, test.eloupper)
 
-    # New stats for the test
-    sprt     = SPRT(swins, slosses, sdraws, test.elolower, test.eloupper)
+    # Check for an H0 or H1 being accepted
     passed   = sprt > test.upperllr
     failed   = sprt < test.lowerllr
     finished = passed or failed
 
-    # Updating times manually since .update() won't invoke
-    updated = timezone.now()
+    # Update total games played by the Player
+    Profile.objects.filter(user=user).update(games=F('games') + games)
+    Profile.objects.get(user=user).save()
 
-    # Update total # of games played for the User
-    Profile.objects.filter(user=user).update(
-        games=F('games') + games,
-        updated=updated
-    )
+    # Update the datetime in the Machine
+    Machine.objects.get(id=machineid).save()
 
-    # Update last time we saw a result
-    Machine.objects.filter(id=machineid).update(
-        updated=updated
-    )
-
-    # Update for the new results
+    # Update individual Result entry for the Player
     Result.objects.filter(id=resultid).update(
-        games=F('games') + games,
-        wins=F('wins') + wins,
-        losses=F('losses') + losses,
-        draws=F('draws') + draws,
-        crashes=F('crashes') + crashes,
-        timeloss=F('timeloss') + timeloss,
-        updated=updated
+        games   = F('games')   + games,   wins     = F('wins'    ) + wins,
+        losses  = F('losses')  + losses,  draws    = F('draws'   ) + draws,
+        crashes = F('crashes') + crashes, timeloss = F('timeloss') + timeloss,
     )
 
-    # Finally, update test data and flags
+    # Update the overall test with the new data
     Test.objects.filter(id=testid).update(
-        games=F('games') + games,
-        wins=F('wins') + wins,
-        losses=F('losses') + losses,
-        draws=F('draws') + draws,
-        currentllr=sprt,
-        passed=passed,
-        failed=failed,
-        finished=finished,
-        updated=updated
+        games  = F('games' ) + games,  wins  = F('wins' ) + wins,
+        losses = F('losses') + losses, draws = F('draws') + draws,
+        currentllr=sprt, passed=passed, failed=failed, finished=finished,
     )
 
-    # Signal to stop completed tests
-    if finished: raise Exception()
-
-def SPRT(wins, losses, draws, elo0, elo1):
-
-    # Estimate drawelo out of sample. Return LLR = 0.0 if there are not enough
-    # games played yet to compute an LLR. 0.0 will always be an active state
-    if wins > 0 and losses > 0 and draws > 0:
-        N = wins + losses + draws
-        elo, drawelo = proba_to_bayeselo(float(wins)/N, float(draws)/N, float(losses)/N)
-    else: return 0.00
-
-    # Probability laws under H0 and H1
-    p0win, p0draw, p0loss = bayeselo_to_proba(elo0, drawelo)
-    p1win, p1draw, p1loss = bayeselo_to_proba(elo1, drawelo)
-
-    # Log-Likelyhood Ratio
-    return    wins * math.log(p1win  /  p0win) \
-          + losses * math.log(p1loss / p0loss) \
-          +  draws * math.log(p1draw / p0draw)
-
-def bayeselo_to_proba(elo, drawelo):
-    pwin  = 1.0 / (1.0 + math.pow(10.0, (-elo + drawelo) / 400.0))
-    ploss = 1.0 / (1.0 + math.pow(10.0, ( elo + drawelo) / 400.0))
-    pdraw = 1.0 - pwin - ploss
-    return pwin, pdraw, ploss
-
-def proba_to_bayeselo(pwin, pdraw, ploss):
-    elo     = 200 * math.log10(pwin/ploss * (1-ploss)/(1-pwin))
-    drawelo = 200 * math.log10((1-ploss)/ploss * (1-pwin)/pwin)
-    return elo, drawelo
-
-def erf_inv(x):
-    a = 8*(math.pi-3)/(3*math.pi*(4-math.pi))
-    y = math.log(1-x*x)
-    z = 2/(math.pi*a) + y/2
-    return math.copysign(math.sqrt(math.sqrt(z*z - y/a) - z), x)
-
-def phi_inv(p):
-    # Quantile function for the standard Gaussian law: probability -> quantile
-    assert(0 <= p and p <= 1)
-    return math.sqrt(2)*erf_inv(2*p-1)
-
-def ELO(wins, losses, draws):
-
-    def _elo(x):
-        if x <= 0 or x >= 1: return 0.0
-        return -400*math.log10(1/x-1)
-
-    # win/loss/draw ratio
-    N = wins + losses + draws;
-    if N == 0: return (0, 0, 0)
-    w = float(wins)  / N
-    l = float(losses)/ N
-    d = float(draws) / N
-
-    # mu is the empirical mean of the variables (Xi), assumed i.i.d.
-    mu = w + d/2
-
-    # stdev is the empirical standard deviation of the random variable (X1+...+X_N)/N
-    stdev = math.sqrt(w*(1-mu)**2 + l*(0-mu)**2 + d*(0.5-mu)**2) / math.sqrt(N)
-
-    # 95% confidence interval for mu
-    mu_min = mu + phi_inv(0.025) * stdev
-    mu_max = mu + phi_inv(0.975) * stdev
-
-    return (_elo(mu_min), _elo(mu), _elo(mu_max))
+    return ['None', 'Stop'][finished]

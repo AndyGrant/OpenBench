@@ -18,13 +18,9 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import re
-import OpenBench.utils
+import re, django
+import OpenBench.utils, OpenBench.stats, OpenBench.models
 
-from django import template
-
-from OpenBench.models import Test
-from OpenBench.utils import ELO
 
 def oneDigitPrecision(value):
     try:
@@ -50,7 +46,7 @@ def twoDigitPrecision(value):
 
 def gitDiffLink(test):
 
-    if type(test) != Test:
+    if type(test) != OpenBench.models.Test:
         dev     = test['dev']['source']
         base    = test['base']['source']
         devsha  = test['dev']['sha']
@@ -83,7 +79,7 @@ def longStatBlock(test):
     threads = tokens[0].split('=')[1]
     hash = tokens[1].split('=')[1]
 
-    lower, elo, upper = ELO(test.wins, test.losses, test.draws)
+    lower, elo, upper = OpenBench.stats.ELO(test.wins, test.losses, test.draws)
     error = max(upper - elo, elo - lower)
 
     elo        = twoDigitPrecision(elo)
@@ -120,7 +116,7 @@ def prettyName(name):
     return name
 
 
-register = template.Library()
+register = django.template.Library()
 register.filter('oneDigitPrecision', oneDigitPrecision)
 register.filter('twoDigitPrecision', twoDigitPrecision)
 register.filter('gitDiffLink', gitDiffLink)

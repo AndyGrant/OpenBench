@@ -569,20 +569,19 @@ def clientSubmitError(request):
 
     return HttpResponse('None')
 
-
-
 @csrf_exempt
 @not_minified_response
-def submitResults(request):
+def clientSubmitResults(request):
 
-    # Verify that we got a valid login
+    # Verify the User's credentials
     user = django.contrib.auth.authenticate(
         username=request.POST['username'],
         password=request.POST['password'])
-    if user == None: return HttpResponse('Stop')
+    if user == None: return HttpResponse('Bad Credentials')
 
-    # Try to update each location
-    try: OpenBench.utils.update(request, user)
-    except: return HttpResponse('Stop')
+    # Verify the Machine belongs to the User
+    machine = Machine.objects.get(id=int(request.POST['machineid']))
+    if machine.owner != user.username: return HttpResponse('Bad Machine')
 
-    return HttpResponse('None')
+    # updateTest() will return 'None' or 'Stop'
+    return HttpResponse(OpenBench.utils.updateTest(request, user))
