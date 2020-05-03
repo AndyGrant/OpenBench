@@ -561,11 +561,15 @@ def clientSubmitError(request):
     machine = Machine.objects.get(id=int(request.POST['machineid']))
     if machine.user != user: return HttpResponse('Bad Machine')
 
+    # Flag the Test as having an error
+    test = Test.objects.get(id=int(request.POST['testid']))
+    test.error = True; test.save()
+
     # Log the Error into the Events table
     LogEvent.objects.create(
+        test   = test,
         author = user.username,
-        data   = request.POST['error'],
-        test   = Test.objects.get(id=int(request.POST['testid'])))
+        data   = request.POST['error'])
 
     return HttpResponse('None')
 

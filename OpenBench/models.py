@@ -106,6 +106,7 @@ class Test(Model):
     wins        = IntegerField(default=0)
     draws       = IntegerField(default=0)
     losses      = IntegerField(default=0)
+    error       = BooleanField(default=False)
 
     passed      = BooleanField(default=False)
     failed      = BooleanField(default=False)

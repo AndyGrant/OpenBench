@@ -49,7 +49,7 @@ Create a user through the website, then through the Admin interface  (found at /
 
 ```
 sudo apt-get install python3, pip3, git
-pip3 install Django==2.0.6
+pip3 install Django==3.0.5
 pip3 install django-htmlmin
 git clone https://github.com/AndyGrant/OpenBench
 cd OpenBench
