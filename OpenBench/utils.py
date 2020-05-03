@@ -75,7 +75,7 @@ def getMachineStatus(username=None):
     machines = getRecentMachines()
 
     if username != None:
-        machines = machines.filter(owner=username)
+        machines = machines.filter(user__username=username)
 
     return "{0} Machines ".format(len(machines)) + \
            "{0} Threads ".format(sum([f.threads for f in machines])) + \
@@ -251,7 +251,7 @@ def createNewTest(request):
     return test, None
 
 
-def getMachine(machineid, owner, osname, threads):
+def getMachine(machineid, user, osname, threads):
 
     try: # Create a new or fetch an existing Machine
         if machineid == 'None': machine = Machine()
@@ -260,11 +260,11 @@ def getMachine(machineid, owner, osname, threads):
 
     # Verify that the fetched Machine matches
     if machineid != 'None':
-        if machine.owner != owner: return 'Bad Machine'
+        if machine.user != user: return 'Bad Machine'
         if machine.osname != osname: return 'Bad Machine'
 
     # Update the Machine's running status
-    machine.owner   = owner        ; machine.osname  = osname
+    machine.user    = user         ; machine.osname  = osname
     machine.threads = int(threads) ; machine.mnps    = 0.00
     return machine
 
@@ -282,12 +282,11 @@ def getWorkload(user, request):
 
     # Extract worker information
     machineid = request.POST['machineid']
-    owner     = request.POST['username' ]
     osname    = request.POST['osname'   ]
     threads   = request.POST['threads'  ]
 
     # If we don't get a Machine back, there was an error
-    machine = getMachine(machineid, owner, osname, threads)
+    machine = getMachine(machineid, user, osname, threads)
     if type(machine) == str: return machine
     machine.save()
 

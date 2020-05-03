@@ -117,7 +117,7 @@
             {% for result in results %}
                 <tr>
                     <td>{{result.machine.id}}</td>
-                    <td>{{result.machine.owner|slice:"6"}}</td>
+                    <td>{{result.machine.user.username|slice:"6"}}</td>
                     <td>{{result.machine.osname|truncatewords:1|slice:":-4"}}</td>
                     <td>{{result.updated|date:'Y-m-d H:i'}}</td>
                     <td class="numeric">{{result.games}}</td>

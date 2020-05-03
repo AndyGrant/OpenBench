@@ -19,8 +19,8 @@
         {% for machine in machines %}
             <tr>
                 <td class="numeric">{{machine.id}}</td>
-                <td>{{machine.owner}}</td>
-                <td>{{machine.osname}}</td>
+                <td>{{machine.user.username}}</td>
+                <td>{{machine.osname|truncatewords:1|slice:":-4"}}</td>
                 <td>{{machine.updated|date:'Y-m-d H:i'}}</td>
                 <td> <a href="/test/{{machine.workload.id}}">{{machine.workload.dev.name|prettyName}}</a></td>
                 <td class="numeric">{{machine.threads}}</td>

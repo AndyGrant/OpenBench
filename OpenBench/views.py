@@ -491,7 +491,7 @@ def clientWrongBench(request):
 
     # Verify the Machine belongs to the User
     machine = Machine.objects.get(id=int(request.POST['machineid']))
-    if machine.owner != user.username: return HttpResponse('Bad Machine')
+    if machine.user != user: return HttpResponse('Bad Machine')
 
     # Find and stop the test with the bad bench
     test = Test.objects.get(id=int(request.POST['testid']))
@@ -533,7 +533,7 @@ def clientSubmitNPS(request):
 
     # Verify the Machine belongs to the User
     machine = Machine.objects.get(id=int(request.POST['machineid']))
-    if machine.owner != user.username: return HttpResponse('Bad Machine')
+    if machine.user != user: return HttpResponse('Bad Machine')
 
     # Update the NPS and return 'None' to signal no errors
     machine.mnps = float(request.POST['nps']) / 1e6; machine.save()
@@ -559,7 +559,7 @@ def clientSubmitError(request):
 
     # Verify the Machine belongs to the User
     machine = Machine.objects.get(id=int(request.POST['machineid']))
-    if machine.owner != user.username: return HttpResponse('Bad Machine')
+    if machine.user != user: return HttpResponse('Bad Machine')
 
     # Log the Error into the Events table
     LogEvent.objects.create(
@@ -581,7 +581,7 @@ def clientSubmitResults(request):
 
     # Verify the Machine belongs to the User
     machine = Machine.objects.get(id=int(request.POST['machineid']))
-    if machine.owner != user.username: return HttpResponse('Bad Machine')
+    if machine.user != user: return HttpResponse('Bad Machine')
 
     # updateTest() will return 'None' or 'Stop'
     return HttpResponse(OpenBench.utils.updateTest(request, user))
