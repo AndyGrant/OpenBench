@@ -1,8 +1,8 @@
 # OpenBench
 
-OpenBench is an open-source sequential probability ratio testing framework designed for self-play testing by both UCI and xboard compliant engines written in C or C++. OpenBench provides a lightweight interface and client which allows machines to work together to test changes to the engine for performance, stability, or to just simply play a large number of games. OpenBench currently has support for [FRC/Chess960](https://en.wikipedia.org/wiki/Chess960), and uses this variant when presented with an opening book containing "FRC" or "960".
+OpenBench is an open-source sequential probability ratio testing framework designed for self-play testing by both UCI and xboard compliant engines. OpenBench provides a lightweight interface and client which allows machines to work together to test changes to the engine for performance and stability. OpenBench currently has support for [FRC/Chess960](https://en.wikipedia.org/wiki/Chess960), and uses this variant when presented with an opening book containing with a name containing "FRC" or "960".
 
-OpenBench is the primary testing framework used for the development of [Ethereal.](https://github.com/AndyGrant/Ethereal) The primary instance of OpenBench can be found [here.](http://chess.grantnet.us/) This OpenBench instance currently supports development for [Ethereal](https://github.com/AndyGrant/Ethereal), as well as for [Demolito](https://github.com/lucasart/Demolito), [Laser](https://github.com/jeffreyan11/uci-chess-engine), [Rubi](https://github.com/Matthies/RubiChess) and [Weiss](https://github.com/TerjeKir/weiss). Some engine authors are running their own public or private instances of OpenBench to support development for their engines. These other instances support engines of different origins, such as those written in Kotlin or Rust.
+OpenBench is the primary testing framework used for the development of [Ethereal.](https://github.com/AndyGrant/Ethereal) The primary instance of OpenBench can be found [here.](http://chess.grantnet.us/) This OpenBench instance currently supports development for [Ethereal](https://github.com/AndyGrant/Ethereal), as well as for [Demolito](https://github.com/lucasart/Demolito), [Laser](https://github.com/jeffreyan11/uci-chess-engine), [Rubi](https://github.com/Matthies/RubiChess), [Weiss](https://github.com/TerjeKir/weiss), [FabChess](https://github.com/fabianvdW/FabChess), and [Igel](https://github.com/vshcherbyna/igel). Some engine authors are running their own public or private instances of OpenBench to support development for their engines.
 
 OpenBench is heavily inspired by [Fishtest](https://github.com/glinscott/fishtest). The project is powered by the [Django Web Framework](https://www.djangoproject.com/) and [Cutechess](https://github.com/cutechess/cutechess).
 
@@ -12,7 +12,7 @@ Install any version of [python3](https://www.python.org/downloads/)
 
 Install any POSIX compliant version of [MinGW](https://sourceforge.net/projects/mingw-w64/files/Toolchains%20targetting%20Win64/Personal%20Builds/mingw-builds/6.3.0/threads-posix/)
 
-Download a copy of the [OpenBench Client File](https://github.com/AndyGrant/OpenBench/blob/master/Client/Client.py)
+Download a copy of the OpenBench [Client](https://github.com/AndyGrant/OpenBench/blob/master/Client/Client.py) file
 
 # Setting Up The Client For Linux
 
@@ -22,28 +22,32 @@ Download a copy of the [OpenBench Client File](https://github.com/AndyGrant/Open
 
 ``sudo apt-get install g++ or yum install g++``
 
-Download a copy of the [OpenBench Client File](https://github.com/AndyGrant/OpenBench/blob/master/Client/Client.py)
+Download a copy of the OpenBench [Client](https://github.com/AndyGrant/OpenBench/blob/master/Client/Client.py) file
 
 # Running The Client
 The client takes four arguments: Username, Password, Server, Threads. First create an account via the instance's webpage. The instance will also be the Server provided to the client. Threads tells the Client how many games can be run in parallel. This should be no more than your CPU count minus one. For hyperthreaded machines, where hyperthreading support is strong, you may use all threads provided by CPU minus one cores. The following would connect to the main instance using 4 threads or CPUs.
 
 ``python3 OpenBench.py -U username -P password -S http://chess.grantnet.us/ -T 4``
 
+The client will create an ``Engines``, ``Books``, and ``PGNs`` directory. These are used to store compiled engines, downloaded opening books, and PGNs of the games played. By default, engine binaries that are 24 hours or older will be deleted, and recompiled if again needed. Additionally, PGNs are not saved by default. However, this is an option at the top of ``Client.py`` to enable this feature.
+
+The only other thing needed by Client's is access to ``make``. All engines are built using a ``make`` command. The Client will check for the compilers that may be needed, and only download workloads that it can compile. This allows a very minimal set of requirements to contribute CPU time.
+
 # Engine Compliance with OpenBench
 
-When ``./engine bench`` is run, the engine must provide a node count and nodes per second count after performing a search on some set of positions. The goal is that by making minor changes to the engine, the node count will vary. This acts as a hash for the engine. OpenBench assumes that the final two lines of output will be the node count, and the nodes per second count, respectively. Your engine should default to using a small amount of hash. This is because if a worker connects with 32 threads, it will run 32 benches in parallel.
+When ``./engine bench`` is run, the engine must provide a node count and nodes per second count after performing a search on some set of positions. The goal is that by making minor changes to the engine, the node count will vary. This acts as a hash for the engine. OpenBench performs a basic regex pattern to find the node count and nodes per second. Your engine should default to using a small amount of hash. This is because if a worker connects with 32 threads, it will run 32 benches in parallel.
 
-OpenBench assumes that your make file can be found in ``/src/``. The make file will have ``EXE=<sha256>`` passed as the only argument, specificying the name of the produced binary. Your makefile should support a trivial build.
+OpenBench assumes that your program can be made simply via ``make EXE=<sha256>``. Your makefile may be located anywhere, as that information is stored on the Server and sent to Clients. It is best for your makefile to default to a ``popcnt`` build, as not all workers are capable of using ``pext`` or ``bmi2`` compiles. An advanced User may modify their ``Client.py`` to supply additional arguments to ``make``.
 
-The options provided to the engines in all OpenBench tests must start with ``"Threads=X Hash=Y"``. Your engine should support a provided Hash value. If your engine does not support a variable number of Threads, [Cutechess](https://github.com/cutechess/cutechess) will simply not pass on the information.
+The options provided to the engines in all OpenBench tests must start with ``"Threads=X Hash=Y"``. Your engine should support a provided Hash value. If your engine does not support a variable number of Threads, [Cutechess](https://github.com/cutechess/cutechess) will simply not pass on the information, and will report a warning which can be ignored safely.
 
-Your engine should play nice when closed by error, by Cutechess, by python, or by any other means. This can be verified by checking for hanging processes. Generally this is not an issue, but poor code for reading input pipes can cause this to occur.
+Your engine should play nice when closed by error, by Cutechess, by python, or by any other means. This can be verified by checking for hanging processes. Generally this is not an issue, but poor code for reading input pipes can cause this to occur. This is crucial, as majority of machines connected to the main OpenBench instance are not constantly monitored.
 
 # Setting Up Your Own Instance
 
-Add your engine to ``OpenBench/config.py``, similar to [Ethereal's configuration.](https://github.com/AndyGrant/OpenBench/blob/1eb2dce5d5500df90a2ed85794cddf6cb509e299/OpenBench/config.py#L29-L40) The test modes are fairly standard, and are derived from those of [Fishtest.](https://github.com/glinscott/fishtest) the NPS value is provided in order to scale CPUs of different speeds. Ethereal's speed is scaled to match the speed used by [Stockfish](https://github.com/official-stockfish). It is recommend to follow this scaling, so that the time controls have meaning without association with a particular CPU.
+Add your engine to ``OpenBench/config.py``, similar to [Ethereal's configuration.](https://github.com/AndyGrant/OpenBench/blob/master/OpenBench/config.py#L77) The test modes are fairly standard, and are derived from those of [Fishtest.](https://github.com/glinscott/fishtest) the NPS value is provided in order to scale CPUs of different speeds. Ethereal's speed of a 32-thread Ryzen 1950x. It is recommend to follow this scaling, so that the time controls have meaning without association with a particular CPU.
 
-Create a user through the website, then through the Admin interface  (found at /admin from your server), enable your profile. You may also set yourself as an approver so that you may approve tests written by others. Additionally, to bypass the cross-approval mechanism, you may set yourself as a superuser.
+Create a user through the website, then through the Admin interface (found at /admin from your server), enable your profile. You may also set yourself as an approver so that you may approve tests written by others. Additionally, to bypass the cross-approval mechanism, you may set yourself as a superuser.
 
 # Running Your Own Instance
 
