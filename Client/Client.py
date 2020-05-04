@@ -41,6 +41,7 @@ CUSTOM_SETTINGS = {
     'Demolito'  : { 'args' : [] }, # Configuration for Demolito
     'Rubichess' : { 'args' : [] }, # Configuration for RubiChess
     'FabChess'  : { 'args' : [] }, # Configuration for FabChess
+    'Igel'      : { 'args' : [] }, # Configuration for Igel
 };
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
