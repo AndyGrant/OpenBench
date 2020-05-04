@@ -18,7 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import math, re, requests, random, datetime
+import math, re, requests, random, datetime, os
 
 import OpenBench.models, OpenBench.stats
 
@@ -135,7 +135,14 @@ def getBranch(request, errors, name):
     target = pathjoin(target, url, branch).rstrip('/')
 
     try:
-        data = requests.get(target).json()
+
+        if os.path.exists('credentials'):
+            with open('credentials') as fin:
+                user, token = fin.readlines()[0].rstrip().split()
+                auth = requests.auth.HTTPBasicAuth(user, token)
+        else: auth = None
+
+        data = requests.get(target, auth=auth).json()
         data = data if bysha else data['commit']
 
     except:

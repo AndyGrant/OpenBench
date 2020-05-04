@@ -4,3 +4,4 @@ Client/*
 !Client/Client.py
 !Client/cleanup.sh
 OpenBench/migrations/*
+credentials
