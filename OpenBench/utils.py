@@ -267,19 +267,20 @@ def createNewTest(request):
 
 def getMachine(machineid, user, osname, threads):
 
-    try: # Create a new or fetch an existing Machine
-        if machineid == 'None': machine = Machine()
-        else: machine = Machine.objects.get(id=int(machineid))
-    except: return 'Bad Machine'
+    # Create a new Machine if needed
+    if machineid == 'None':
+        return Machine.objects.create(
+            user=user, osname=osname, threads=threads)
 
-    # Verify that the fetched Machine matches
-    if machineid != 'None':
-        if machine.user != user: return 'Bad Machine'
-        if machine.osname != osname: return 'Bad Machine'
+    # Fetch and verify the requested Machine
+    try: machine = Machine.objects.get(id=int(machineid))
+    except: return 'Bad Machine'
+    if machine.user != user: return 'Bad Machine'
+    if machine.osname != osname: return 'Bad Machine'
 
     # Update the Machine's running status
-    machine.user    = user         ; machine.osname  = osname
-    machine.threads = int(threads) ; machine.mnps    = 0.00
+    machine.threads = threads
+    machine.mnps = 0.00
     return machine
 
 def getResult(test, machine):
@@ -300,17 +301,17 @@ def getWorkload(user, request):
     threads   = request.POST['threads'  ]
 
     # If we don't get a Machine back, there was an error
-    machine = getMachine(machineid, user, osname, threads)
+    machine = getMachine(machineid, user, osname, int(threads))
     if type(machine) == str: return machine
-    machine.save()
 
     # Compare supported Machines vs Existing
     supported = request.POST['supported'].split()
     existing  = OPENBENCH_CONFIG['engines'].keys()
 
     # Filter only to active tests
-    tests = Test.objects.filter(finished=False).filter(deleted=False)
-    tests = tests.filter(deleted=False).filter(approved=True)
+    tests = Test.objects.filter(finished=False)
+    tests = tests.filter(deleted=False)
+    tests = tests.filter(approved=True)
 
     # Remove tests that this Machine cannot complete
     for engine in existing:
@@ -341,14 +342,14 @@ def selectWorkload(tests, machine):
         if max(devthreads, basethreads) > machine.threads: continue
 
         # First Test or a higher priority Test
-        if options == [] or test.priority > highest:
+        if not options or test.priority > highest:
             highest = test.priority; options = [test]
 
         # Another Test with an equal priority
-        elif options != [] and test.priority == highest:
+        elif options and test.priority == highest:
             options.append(test)
 
-    if options == []: return 'None'
+    if not options: return 'None'
 
     target = random.randrange(sum([t.throughput for t in options]))
     while True: # Select a random test used weighted randomness

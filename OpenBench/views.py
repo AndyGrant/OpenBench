@@ -430,8 +430,7 @@ def clientGetFiles(request):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    data = OpenBench.config.OPENBENCH_CONFIG['corefiles']
-    return HttpResponse(str(data))
+    return HttpResponse(OpenBench.config.OPENBENCH_CONFIG['corefiles'])
 
 @not_minified_response
 def clientGetBuildInfo(request):
