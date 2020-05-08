@@ -184,11 +184,11 @@ def index(request, page=1, error=''):
     active    = OpenBench.utils.getActiveTests()
     completed = OpenBench.utils.getCompletedTests()
 
-    completed, paging = OpenBench.utils.getPaging(completed, page, 'index')
+    start, end, paging = OpenBench.utils.getPaging(completed, page, 'index')
 
     data = {
         'error'  : error,  'pending'   : pending,
-        'active' : active, 'completed' : completed,
+        'active' : active, 'completed' : completed[start:end],
         'paging' : paging, 'status'    : OpenBench.utils.getMachineStatus(),
     }
 
@@ -204,9 +204,9 @@ def greens(request, page=1):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     completed = OpenBench.utils.getCompletedTests().filter(passed=True)
-    completed, paging = OpenBench.utils.getPaging(completed, page, 'greens')
+    start, end, paging = OpenBench.utils.getPaging(completed, page, 'greens')
 
-    data = {'completed' : completed, 'paging' : paging}
+    data = {'completed' : completed[start:end], 'paging' : paging}
     return render(request, 'index.html', data)
 
 def search(request):
@@ -223,7 +223,7 @@ def search(request):
     if request.method == 'GET':
         return render(request, 'search.html', {})
 
-    tests = Test.objects.all().order_by('-updated')
+    tests = Test.objects.all()
 
     if request.POST['engine'] != '':
         tests = tests.filter(engine=request.POST['engine'])
@@ -246,8 +246,8 @@ def search(request):
     if request.POST['showdeleted'] == 'False':
         tests = tests.exclude(deleted=True)
 
-    keywords = ['(?i)' + f.upper() for f in request.POST['keywords'].split()]
-    tests = tests.filter(dev__name__regex=r'{0}'.format('|'.join(keywords)))
+    # keywords = ['(?i)' + f.upper() for f in request.POST['keywords'].split()]
+    # tests = tests.filter(dev__name__regex=r'{0}'.format('|'.join(keywords)))
     return render(request, 'search.html', {'tests' : tests})
 
 def user(request, username, page=1):
@@ -265,11 +265,11 @@ def user(request, username, page=1):
     completed = OpenBench.utils.getCompletedTests().filter(author=username)
 
     url = 'user/{0}'.format(username)
-    completed, paging = OpenBench.utils.getPaging(completed, page, url)
+    start, end, paging = OpenBench.utils.getPaging(completed, page, url)
 
     data = {
-        'pending'   : pending,   'active' : active,
-        'completed' : completed, 'paging' : paging,
+        'pending'   : pending,              'active' : active,
+        'completed' : completed[start:end], 'paging' : paging,
         'status'    : OpenBench.utils.getMachineStatus(username),
     }
 
@@ -303,9 +303,9 @@ def events(request, page=1):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     events = LogEvent.objects.all().order_by('-id')
-    events, paging = OpenBench.utils.getPaging(events, page, 'events')
+    start, end, paging = OpenBench.utils.getPaging(events, page, 'events')
 
-    data = {'events' : events, 'paging' : paging};
+    data = {'events' : events[start:end], 'paging' : paging};
     return render(request, 'events.html', data)
 
 def machines(request):

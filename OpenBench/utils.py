@@ -64,6 +64,7 @@ def getCompletedTests():
     completed = completed.exclude(deleted=True)
     return completed.order_by('-updated')
 
+
 def getRecentMachines(minutes=15):
     target = datetime.datetime.utcnow()
     target = target.replace(tzinfo=django.utils.timezone.utc)
@@ -84,8 +85,8 @@ def getMachineStatus(username=None):
 def getPaging(content, page, url, pagelen=25):
 
     start = max(0, pagelen * (page - 1))
-    end   = min(len(content), pagelen * page)
-    count = 1 + math.ceil(len(content) / pagelen)
+    end   = min(content.count(), pagelen * page)
+    count = 1 + math.ceil(content.count() / pagelen)
 
     part1 = list(range(1, min(4, count)))
     part2 = list(range(page - 2, page + 1))
@@ -108,7 +109,7 @@ def getPaging(content, page, url, pagelen=25):
         "prev" : max(1, page - 1), "next" : max(1, min(page + 1, count - 1)),
     }
 
-    return content[start:end], context
+    return start, end, context
 
 
 def getEngine(source, name, sha, bench, protocol):
