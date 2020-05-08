@@ -85,7 +85,7 @@ DATABASES = {
     #     'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
     # }
 
-    'default' { 'ENGINE' : 'djongo', 'NAME' : 'OpenBenchDB' }
+    'default' : { 'ENGINE' : 'djongo', 'NAME' : 'OpenBenchDB' }
 }
 
 
