@@ -246,8 +246,10 @@ def search(request):
     if request.POST['showdeleted'] == 'False':
         tests = tests.exclude(deleted=True)
 
-    # keywords = ['(?i)' + f.upper() for f in request.POST['keywords'].split()]
-    # tests = tests.filter(dev__name__regex=r'{0}'.format('|'.join(keywords)))
+    tests = tests.order_by('-updated')
+
+    keywords = ['(?i)' + f.upper() for f in request.POST['keywords'].split()]
+    tests = tests.filter(dev__name__regex=r'{0}'.format('|'.join(keywords)))
     return render(request, 'search.html', {'tests' : tests})
 
 def user(request, username, page=1):
