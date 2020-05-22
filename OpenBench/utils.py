@@ -448,4 +448,7 @@ def updateTest(request, user):
         currentllr=sprt, passed=passed, failed=failed, finished=finished,
     )
 
+    # Force a refresh of the updated field when finished
+    if finished: Test.objects.get(id=testid).save()
+
     return ['None', 'Stop'][finished]
