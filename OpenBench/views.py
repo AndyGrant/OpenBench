@@ -224,6 +224,7 @@ def search(request):
         return render(request, 'search.html', {})
 
     tests = Test.objects.all()
+    keywords = request.POST['keywords'].upper().split()
 
     if request.POST['engine'] != '':
         tests = tests.filter(engine=request.POST['engine'])
@@ -246,11 +247,12 @@ def search(request):
     if request.POST['showdeleted'] == 'False':
         tests = tests.exclude(deleted=True)
 
-    tests = tests.order_by('-updated')
+    filtered = [
+        test for test in tests.order_by('-updated') if
+        any(keyword in test.dev.name.upper() for keyword in keywords)
+    ]
 
-    keywords = ['(?i)' + f.upper() for f in request.POST['keywords'].split()]
-    tests = tests.filter(dev__name__regex=r'{0}'.format('|'.join(keywords)))
-    return render(request, 'search.html', {'tests' : tests})
+    return render(request, 'search.html', {'tests' : filtered})
 
 def user(request, username, page=1):
 
