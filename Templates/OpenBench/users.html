@@ -15,7 +15,7 @@
         </tr>
 
         {% for profile in profiles %}
-            {% if profile.enabled %}
+            {% if profile.games or profile.tests %}
                 <tr>
                     <td><a href="/user/{{profile.user.username}}">{{profile.user.username}}</a></td>
                     <td style="text-align: right">{{profile.games|insertCommas}}</td>
