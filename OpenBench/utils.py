@@ -270,8 +270,7 @@ def getMachine(machineid, user, osname, threads):
 
     # Create a new Machine if needed
     if machineid == 'None':
-        return Machine.objects.create(
-            user=user, osname=osname, threads=threads)
+        return Machine(user=user, osname=osname, threads=threads)
 
     # Fetch and verify the requested Machine
     try: machine = Machine.objects.get(id=int(machineid))
