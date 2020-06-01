@@ -291,7 +291,7 @@ def getResult(test, machine):
     if results != []: return results[0]
 
     # Create a new Result if none is found
-    return Result.objects.create(test=test, machine=machine)
+    return Result(test=test, machine=machine)
 
 def getWorkload(user, request):
 
@@ -326,8 +326,8 @@ def getWorkload(user, request):
     result = getResult(test, machine)
     if type(result) == str: return result
 
-    # Success. Update the Machine's status
-    machine.workload = test; machine.save()
+    # Success. Update the Machine's status and save everything
+    machine.workload = test; machine.save(); result.save()
     return str(workloadDictionary(test, result, machine))
 
 def selectWorkload(tests, machine):
