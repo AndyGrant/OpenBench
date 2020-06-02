@@ -497,8 +497,9 @@ def clientWrongBench(request):
     if machine.user != user: return HttpResponse('Bad Machine')
 
     # Find and stop the test with the bad bench
-    test = Test.objects.get(id=int(request.POST['testid']))
-    test.finished = True; test.save()
+    if int(request.POST['wrong']) != 0:
+        test = Test.objects.get(id=int(request.POST['testid']))
+        test.finished = True; test.save()
 
     # Collect information on the Error
     wrong   = request.POST['wrong']
