@@ -225,6 +225,7 @@ def search(request):
 
     tests = Test.objects.all()
     keywords = request.POST['keywords'].upper().split()
+    if not keywords: keywords = [""]
 
     if request.POST['engine'] != '':
         tests = tests.filter(engine=request.POST['engine'])
