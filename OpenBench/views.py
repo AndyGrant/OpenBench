@@ -396,7 +396,9 @@ def newTest(request):
     #                                                                         #
     #  POST : Enabled Users may create new tests. Fields are error checked.   #
     #         If an error is found, the creation is aborted and the list of   #
-    #         errors is prestented back to the User on the homepage           #
+    #         errors is prestented back to the User on the homepage. If both  #
+    #         versions of the Engine in the Test have been seen, then we will #
+    #         automatically approve the Test                                  #
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -418,6 +420,18 @@ def newTest(request):
 
     username = request.user.username
     LogEvent.objects.create(data="CREATE", author=username, test=test)
+
+    approved = Test.objects.filter(approved=True)
+    A = approved.filter( dev__sha=test.dev.sha).exists()
+    B = approved.filter(base__sha=test.dev.sha).exists()
+    C = approved.filter( dev__sha=test.base.sha).exists()
+    D = approved.filter(base__sha=test.base.sha).exists()
+
+    if (A or B) and (C or D):
+        test.approved = True; test.save()
+        action = "AUTOAPP P={0} TP={1}".format(test.priority, test.throughput)
+        LogEvent.objects.create(data=action, author=username, test=test)
+
     return django.http.HttpResponseRedirect('/index/')
 
 
