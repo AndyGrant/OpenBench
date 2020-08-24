@@ -42,6 +42,7 @@ CUSTOM_SETTINGS = {
     'Rubichess' : { 'args' : [] }, # Configuration for RubiChess
     'FabChess'  : { 'args' : [] }, # Configuration for FabChess
     'Igel'      : { 'args' : [] }, # Configuration for Igel
+    'Winter'    : { 'args' : [] }, # Configuration for Winter
 };
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
