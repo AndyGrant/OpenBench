@@ -257,6 +257,8 @@ def createNewTest(request):
     test.upperllr    = math.log((1.0 - test.beta) / test.alpha)
     test.dev         = getEngine(*devinfo, protocol)
     test.base        = getEngine(*baseinfo, protocol)
+    test.devnet      = request.POST['devnet']
+    test.basenet     = request.POST['basenet']
     test.save()
 
     profile = Profile.objects.get(user=request.user)
@@ -376,7 +378,6 @@ def workloadDictionary(test, result, machine):
             'book'          : OPENBENCH_CONFIG['books'][test.bookname],
             'timecontrol'   : test.timecontrol,
             'engine'        : test.engine,
-
             'dev' : {
                 'id'        : test.dev.id,      'name'      : test.dev.name,
                 'source'    : test.dev.source,  'protocol'  : test.dev.protocol,
@@ -390,6 +391,8 @@ def workloadDictionary(test, result, machine):
                 'sha'       : test.base.sha,    'bench'     : test.base.bench,
                 'options'   : test.baseoptions,
             },
+            'devnet'        : test.devnet,
+            'basenet'       : test.basenet,
         },
     }
 
