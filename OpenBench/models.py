@@ -116,8 +116,8 @@ class Test(Model):
 
     creation    = DateTimeField(auto_now_add=True)
     updated     = DateTimeField(auto_now=True)
-    devnet      = CharField(max_length=256)
-    basenet     = CharField(max_length=256)
+    devnetwork  = CharField(max_length=256)
+    basenetwork = CharField(max_length=256)
 
     def __str__(self):
         return '{0} vs {1} @ {2}'.format(self.dev.name, self.base.name, self.timecontrol)

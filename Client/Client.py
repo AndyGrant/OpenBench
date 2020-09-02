@@ -23,8 +23,6 @@ from __future__ import print_function
 import argparse, ast, hashlib, json, math, multiprocessing, os
 import platform, re, requests, shutil, subprocess, sys, time, zipfile
 
-from urllib.parse import urlparse
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 HTTP_TIMEOUT          = 30    # Timeout in seconds for requests
@@ -242,15 +240,17 @@ def getEngine(data, engine):
     # Cleanup the zipfile directory
     shutil.rmtree('tmp')
 
-def getNet(data, net):
+def getNetwork(data, net):
     targetnet = str(data['test'][net])
 
     if targetnet:
-        url = urlparse(targetnet)
-        getFile(targetnet, pathjoin('Engines', os.path.basename(url.path)).rstrip('/'))
-        targetnet = os.path.dirname(os.path.abspath(__file__)) + os.sep + 'Engines'
-        targetnet = targetnet + os.sep + os.path.basename(a.path).rstrip('/')
-        return targetnet
+        localnet = pathjoin('Engines', os.path.basename(targetnet)).rstrip('/')
+        # Check if a given network file is present in Engines directory
+        if os.path.isfile(localnet):
+            return os.path.basename(targetnet)
+        # Download network file
+        getFile(targetnet, localnet)
+        return os.path.basename(targetnet)
     
 def getCutechessCommand(arguments, data, nps):
 
@@ -268,9 +268,9 @@ def getCutechessCommand(arguments, data, nps):
     devCommand = addExtension(data['test']['dev']['sha'])
     baseCommand = addExtension(data['test']['base']['sha'])
 
-    # Download net files if specified
-    devnet  = getNet(data, 'devnet')
-    basenet = getNet(data, 'basenet')
+    # Download network file(s) if configured
+    devnetwork  = getNetwork(data, 'devnetwork')
+    basenetwork = getNetwork(data, 'basenetwork')
 
     # Scale the time control for this machine's speed
     timecontrol = computeAdjustedTimecontrol(arguments, data, nps)
@@ -299,9 +299,9 @@ def getCutechessCommand(arguments, data, nps):
         '{0}-{1}'.format(data['test']['engine'], data['test']['dev']['name'])
     )
 
-    # In case devnet is specified append EvalFile option
-    if devnet:
-        devflags = devflags + " option.EvalFile=" + devnet
+    # In case devnetwork is specified append EvalFile option
+    if devnetwork:
+        devflags = devflags + " option.EvalFile=" + devnetwork
 
     # Options for the Base Engine
     baseflags = '-engine dir=Engines/ cmd=./{0} proto={1} tc={2}{3} name={4}'.format(
@@ -309,9 +309,9 @@ def getCutechessCommand(arguments, data, nps):
         '{0}-{1}'.format(data['test']['engine'], data['test']['base']['name'])
     )
 
-    # In case basenet is specified append EvalFile option
-    if basenet:
-        baseflags = baseflags + " option.EvalFile=" + basenet
+    # In case basenetwork is specified append EvalFile option
+    if basenetwork:
+        baseflags = baseflags + " option.EvalFile=" + basenetwork
         
     # Options for opening selection
     bookflags = '-openings file=Books/{0} format={1} order=random plies=16'.format(

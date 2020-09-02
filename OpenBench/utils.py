@@ -257,8 +257,8 @@ def createNewTest(request):
     test.upperllr    = math.log((1.0 - test.beta) / test.alpha)
     test.dev         = getEngine(*devinfo, protocol)
     test.base        = getEngine(*baseinfo, protocol)
-    test.devnet      = request.POST['devnet']
-    test.basenet     = request.POST['basenet']
+    test.devnetwork  = request.POST['devnetwork']
+    test.basenetwork = request.POST['basenetwork']
     test.save()
 
     profile = Profile.objects.get(user=request.user)
@@ -391,8 +391,8 @@ def workloadDictionary(test, result, machine):
                 'sha'       : test.base.sha,    'bench'     : test.base.bench,
                 'options'   : test.baseoptions,
             },
-            'devnet'        : test.devnet,
-            'basenet'       : test.basenet,
+            'devnetwork'    : test.devnetwork,
+            'basenetwork'   : test.basenetwork,
         },
     }
 
