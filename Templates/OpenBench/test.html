@@ -31,8 +31,6 @@
 
     <div id="actions">
 
-        <h2>Actions</h2>
-
         <!-- Approve Button: For Admins, or Cross-approvers -->
         {% if not test.approved and profile.approver and profile.user.username != test.author %}
         <a class="anchorbutton" id="approvebutton" href="/test/{{test.id}}/APPROVE">Approve</a>
@@ -66,11 +64,6 @@
         {% else %}
         <a class="anchorbutton deadbutton">Delete</a>
         {% endif %}
-
-        <!-- Dev vs Base [Git Diff Link] -->
-        <h4>{{test.dev.name|prettyName}} vs {{test.base.name|prettyName}}
-            <a href="{{test|gitDiffLink}}">DIFF</a>
-        </h4>
 
         <!-- ELO, SPRT, LLR, Games -->
         <pre>{{test|longStatBlock|linebreaksbr}}</pre>
