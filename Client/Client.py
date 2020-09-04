@@ -23,7 +23,6 @@ from __future__ import print_function
 import argparse, ast, hashlib, json, math, multiprocessing, os
 import platform, re, requests, shutil, subprocess, sys, time, zipfile
 
-
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 HTTP_TIMEOUT          = 30    # Timeout in seconds for requests
@@ -241,6 +240,15 @@ def getEngine(data, engine):
     # Cleanup the zipfile directory
     shutil.rmtree('tmp')
 
+def getNetworkWeights(network):
+
+    if network:
+        fname = pathjoin('Engines', os.path.basename(network)).rstrip('/')
+        if not os.path.isfile(fname): getFile(network, fname)
+        return os.path.basename(network)
+
+    return None
+
 def getCutechessCommand(arguments, data, nps):
 
     # Parse options for Dev
@@ -256,6 +264,10 @@ def getCutechessCommand(arguments, data, nps):
     # Ensure .exe extension on Windows
     devCommand = addExtension(data['test']['dev']['sha'])
     baseCommand = addExtension(data['test']['base']['sha'])
+
+    # Download network file(s) if configured
+    devnetwork  = getNetworkWeights(data['test']['dev']['network'])
+    basenetwork = getNetworkWeights(data['test']['base']['network'])
 
     # Scale the time control for this machine's speed
     timecontrol = computeAdjustedTimecontrol(arguments, data, nps)
@@ -284,11 +296,19 @@ def getCutechessCommand(arguments, data, nps):
         '{0}-{1}'.format(data['test']['engine'], data['test']['dev']['name'])
     )
 
+    # Add evaluation weights for the Dev engine if specified
+    if devnetwork:
+        devflags = devflags + " option.EvalFile=" + devnetwork
+
     # Options for the Base Engine
     baseflags = '-engine dir=Engines/ cmd=./{0} proto={1} tc={2}{3} name={4}'.format(
         baseCommand, data['test']['base']['protocol'], timecontrol, baseoptions,
         '{0}-{1}'.format(data['test']['engine'], data['test']['base']['name'])
     )
+
+    # Add evaluation weights for the Base engine if specified
+    if basenetwork:
+        baseflags = baseflags + " option.EvalFile=" + basenetwork
 
     # Options for opening selection
     bookflags = '-openings file=Books/{0} format={1} order=random plies=16'.format(

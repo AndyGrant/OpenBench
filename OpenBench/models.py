@@ -87,6 +87,9 @@ class Test(Model):
     devoptions  = CharField(max_length=256)
     baseoptions = CharField(max_length=256)
 
+    devnetwork  = CharField(max_length=256)
+    basenetwork = CharField(max_length=256)
+
     bookname    = CharField(max_length=32)
     timecontrol = CharField(max_length=16)
 
