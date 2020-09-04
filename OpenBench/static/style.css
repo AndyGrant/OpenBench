@@ -1,7 +1,7 @@
 body {
     font-family: "Montserrat";
     font-size: 18px;
-    background: #404040;
+    background: #303030;
 }
 
 a:link, a:visited, a:hover, a:active {
@@ -12,16 +12,17 @@ a:link, a:visited, a:hover, a:active {
 #sidebar {
     float: left;
     margin: 16px;
+    margin-top: 60px;
 }
 
 #sidebar ul {
     list-style-type: none;
-    padding: 0px 16px;
+    padding: 0px 18px;
 }
 
 #sidebar li a {
     color: #A2A2A2;
-    font-size: 14px;
+    font-size: 15px;
 }
 
 #sidebar .header {
@@ -176,11 +177,11 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #content tr {
-    background-color: #2a2a2a;
+    background-color: #202020;
 }
 
 #content .table-spacer th {
-    background: #404040;
+    background: #303030;
     height: 16px;
 }
 
@@ -221,9 +222,9 @@ a:link, a:visited, a:hover, a:active {
     font-weight: bold;
 }
 
-#content a:not(.TitleLink) {
+#content a {
     font-weight: 100;
-    color: #8bbad6;
+	color: #8bbad6;
 }
 
 #content h1, h2, h3 {
