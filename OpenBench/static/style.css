@@ -222,9 +222,9 @@ a:link, a:visited, a:hover, a:active {
     font-weight: bold;
 }
 
-#content a {
+#content a:not(.TitleLink) {
     font-weight: 100;
-	color: #8bbad6;
+    color: #8bbad6;
 }
 
 #content h1, h2, h3 {
