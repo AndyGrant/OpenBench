@@ -384,20 +384,19 @@ def workloadDictionary(test, result, machine):
             'book'          : OPENBENCH_CONFIG['books'][test.bookname],
             'timecontrol'   : test.timecontrol,
             'engine'        : test.engine,
+
             'dev' : {
                 'id'        : test.dev.id,      'name'      : test.dev.name,
                 'source'    : test.dev.source,  'protocol'  : test.dev.protocol,
                 'sha'       : test.dev.sha,     'bench'     : test.dev.bench,
-                'options'   : test.devoptions,
-                'network'   : test.devnetwork,
+                'options'   : test.devoptions,  'network'   : test.devnetwork,
             },
 
             'base' : {
                 'id'        : test.base.id,     'name'      : test.base.name,
                 'source'    : test.base.source, 'protocol'  : test.base.protocol,
                 'sha'       : test.base.sha,    'bench'     : test.base.bench,
-                'options'   : test.baseoptions,
-                'network'   : test.basenetwork,
+                'options'   : test.baseoptions, 'network'   : test.basenetwork,
             },
         },
     }

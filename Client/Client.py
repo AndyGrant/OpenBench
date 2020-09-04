@@ -18,10 +18,12 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+
 from __future__ import print_function
 
 import argparse, ast, hashlib, json, math, multiprocessing, os
 import platform, re, requests, shutil, subprocess, sys, time, zipfile
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -419,7 +421,7 @@ def computeMultiThreadedBenchmark(arguments, engine):
 
     # Log and return computed bench and speed
     print ('Bench for {0} is {1}'.format(engine['name'], bench[0]))
-    print ('speed for {0} is {1}\n'.format(engine['name'], int(avg)))
+    print ('Speed for {0} is {1}\n'.format(engine['name'], int(avg)))
     return (bench[0], avg)
 
 def computeAdjustedTimecontrol(arguments, data, nps):
