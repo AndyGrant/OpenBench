@@ -78,8 +78,8 @@ def getMachineStatus(username=None):
     if username != None:
         machines = machines.filter(user__username=username)
 
-    return "{0} Machines ".format(len(machines)) + \
-           "{0} Threads ".format(sum([f.threads for f in machines])) + \
+    return ": {0} Machines / ".format(len(machines)) + \
+           "{0} Threads / ".format(sum([f.threads for f in machines])) + \
            "{0} MNPS ".format(round(sum([f.threads * f.mnps for f in machines]), 2))
 
 def getPaging(content, page, url, pagelen=25):

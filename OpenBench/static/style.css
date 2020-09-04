@@ -1,7 +1,7 @@
 body {
-    font-family: "Courier New";
+    font-family: "Montserrat";
     font-size: 18px;
-    background: #303030;
+    background: #404040;
 }
 
 a:link, a:visited, a:hover, a:active {
@@ -21,16 +21,17 @@ a:link, a:visited, a:hover, a:active {
 
 #sidebar li a {
     color: #A2A2A2;
+    font-size: 14px;
 }
 
 #sidebar .header {
-    font-size: 16px;
+    font-size: 12px;
     color: #00AF00;
 }
 
 #content {
     float: left;
-    margin-top: 32px;
+    margin-top: 0;
     color: #EAEAEA;
 }
 
@@ -40,7 +41,7 @@ a:link, a:visited, a:hover, a:active {
     text-align: right;
     display: inline-block;
     color: #A2A2A2;
-    font-size: 16px;
+    font-size: 12px;
 }
 
 #content input, #content select {
@@ -100,6 +101,7 @@ a:link, a:visited, a:hover, a:active {
 #content #actions {
     margin-left: 32px;
     float: right;
+    margin-top: 60px;
 }
 
 #content #actions .anchorbutton {
@@ -108,6 +110,7 @@ a:link, a:visited, a:hover, a:active {
     margin: 0px 8px;
     border-radius: 16px;
     font-weight: bold;
+    font-family: "Courier New";
     text-align: center;
     display: inline-block;
     width: 25%;
@@ -151,18 +154,21 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #content tr:hover {
-    background-color: #00AF00;
+    background-color: #666666;
 }
 
 #content th {
     color: #00AF00;
     font-size: 16px;
-    padding: 6px 12px;
+    font-family: "Courier New";
+    font-weight: 100;
+    padding: 7px 12px 5px 12px;
     background-color: #000000;
 }
 
 #content td {
-    padding: 6px 12px;
+    padding: 7px 12px 5px 12px;
+    font-family: "Courier New";
 }
 
 #content .numeric {
@@ -170,11 +176,11 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #content tr {
-    background-color: #1A1A1A;
+    background-color: #2a2a2a;
 }
 
 #content .table-spacer th {
-    background: #303030;
+    background: #404040;
     height: 16px;
 }
 
@@ -212,10 +218,17 @@ a:link, a:visited, a:hover, a:active {
 
 #content strong {
     font-size: 14px;
+    font-weight: bold;
 }
 
-#content a {
-    font-weight: bold;
+#content a:not(.TitleLink) {
+    font-weight: 100;
+    color: #8bbad6;
+}
+
+#content h1, h2, h3 {
+    color: #a7a7a7;
+    text-align: center;
 }
 
 #content #pagebrowse {
