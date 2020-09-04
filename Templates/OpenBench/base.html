@@ -6,6 +6,8 @@
 
     <head>
         <link rel="stylesheet" href="{% static 'style.css' %}">
+		<link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,400;1,100&amp;display=swap" rel="stylesheet">
         <title>OpenBench</title>
         <script>
             {% block scripts %}
@@ -61,6 +63,7 @@
         </div>
 
         <div id="content">
+			<h2> <a class = "TitleLink" href = "http://chess.grantnet.us/"> OpenBench Testing Framework </a> </h2>
             {% block content %}
             {% endblock %}
         </div>
