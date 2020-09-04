@@ -240,18 +240,15 @@ def getEngine(data, engine):
     # Cleanup the zipfile directory
     shutil.rmtree('tmp')
 
-def getNetwork(data, net):
-    targetnet = str(data['test'][net])
+def getNetworkWeights(network):
 
-    if targetnet:
-        localnet = pathjoin('Engines', os.path.basename(targetnet)).rstrip('/')
-        # Check if a given network file is present in Engines directory
-        if os.path.isfile(localnet):
-            return os.path.basename(targetnet)
-        # Download network file
-        getFile(targetnet, localnet)
-        return os.path.basename(targetnet)
-    
+    if network:
+        fname = pathjoin('Engines', os.path.basename(network)).rstrip('/')
+        if not os.path.isfile(fname): getFile(network, fname)
+        return os.path.basename(network)
+
+    return None
+
 def getCutechessCommand(arguments, data, nps):
 
     # Parse options for Dev
@@ -269,8 +266,8 @@ def getCutechessCommand(arguments, data, nps):
     baseCommand = addExtension(data['test']['base']['sha'])
 
     # Download network file(s) if configured
-    devnetwork  = getNetwork(data, 'devnetwork')
-    basenetwork = getNetwork(data, 'basenetwork')
+    devnetwork  = getNetworkWeights(data['test']['dev']['network'])
+    basenetwork = getNetworkWeights(data['test']['base']['network'])
 
     # Scale the time control for this machine's speed
     timecontrol = computeAdjustedTimecontrol(arguments, data, nps)
@@ -299,7 +296,7 @@ def getCutechessCommand(arguments, data, nps):
         '{0}-{1}'.format(data['test']['engine'], data['test']['dev']['name'])
     )
 
-    # In case devnetwork is specified append EvalFile option
+    # Add evaluation weights for the Dev engine if specified
     if devnetwork:
         devflags = devflags + " option.EvalFile=" + devnetwork
 
@@ -309,10 +306,10 @@ def getCutechessCommand(arguments, data, nps):
         '{0}-{1}'.format(data['test']['engine'], data['test']['base']['name'])
     )
 
-    # In case basenetwork is specified append EvalFile option
+    # Add evaluation weights for the Base engine if specified
     if basenetwork:
         baseflags = baseflags + " option.EvalFile=" + basenetwork
-        
+
     # Options for opening selection
     bookflags = '-openings file=Books/{0} format={1} order=random plies=16'.format(
         data['test']['book']['name'], data['test']['book']['name'].split('.')[-1]
