@@ -362,16 +362,12 @@ def computeSingleThreadedBenchmark(engine, outqueue, network):
 
     try:
 
-        # Launch the engine and run a benchmark
-        pathway = addExtension(os.path.join('Engines', engine).rstrip('/'))
-        cmdline = './{0} bench'
-        if network:
-            cmdline = cmdline + " option.EvalFile=" + os.path.join('Engines', network).rstrip('/')
-        stdout, stderr = subprocess.Popen(
-            cmdline.format(pathway).split(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ).communicate()
+        # Assume .exe extensions on Windows; Pass any Network files with the benchmark
+        cmdline = './{0} bench'.format(addExtension(os.path.join('Engines', engine).rstrip('/')))
+        if network: cmdline += " option.EvalFile=" + os.path.join('Engines', network).rstrip('/')
+
+        # Launch the engine and run it's benchmark
+        stdout, stderr = subprocess.Popen(cmdline.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
 
         # Parse output streams for the benchmark data
         bench, speed = parseStreamOutput(stdout)
