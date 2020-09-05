@@ -18,6 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+
 from __future__ import print_function
 
 import argparse, ast, hashlib, json, math, multiprocessing, os
@@ -241,7 +242,16 @@ def getEngine(data, engine):
     # Cleanup the zipfile directory
     shutil.rmtree('tmp')
 
-def getCutechessCommand(arguments, data, nps):
+def getNetworkWeights(network):
+
+    if network:
+        fname = pathjoin('Engines', os.path.basename(network)).rstrip('/')
+        if not os.path.isfile(fname): getFile(network, fname)
+        return os.path.basename(network)
+
+    return None
+
+def getCutechessCommand(arguments, data, nps, devnetwork, basenetwork):
 
     # Parse options for Dev
     tokens = data['test']['dev']['options'].split(' ')
@@ -284,11 +294,19 @@ def getCutechessCommand(arguments, data, nps):
         '{0}-{1}'.format(data['test']['engine'], data['test']['dev']['name'])
     )
 
+    # Add evaluation weights for the Dev engine if specified
+    if devnetwork:
+        devflags = devflags + " option.EvalFile=" + devnetwork
+
     # Options for the Base Engine
     baseflags = '-engine dir=Engines/ cmd=./{0} proto={1} tc={2}{3} name={4}'.format(
         baseCommand, data['test']['base']['protocol'], timecontrol, baseoptions,
         '{0}-{1}'.format(data['test']['engine'], data['test']['base']['name'])
     )
+
+    # Add evaluation weights for the Base engine if specified
+    if basenetwork:
+        baseflags = baseflags + " option.EvalFile=" + basenetwork
 
     # Options for opening selection
     bookflags = '-openings file=Books/{0} format={1} order=random plies=16'.format(
@@ -340,17 +358,16 @@ def parseStreamOutput(output):
     speed = int(re.search(r'[0-9]+', speed).group()) if speed else None
     return (bench, speed)
 
-def computeSingleThreadedBenchmark(engine, outqueue):
+def computeSingleThreadedBenchmark(engine, outqueue, network):
 
     try:
 
-        # Launch the engine and run a benchmark
-        pathway = addExtension(os.path.join('Engines', engine).rstrip('/'))
-        stdout, stderr = subprocess.Popen(
-            './{0} bench'.format(pathway).split(),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ).communicate()
+        # Assume .exe extensions on Windows; Pass any Network files with the benchmark
+        cmdline = './{0} bench'.format(addExtension(os.path.join('Engines', engine).rstrip('/')))
+        if network: cmdline += " option.EvalFile=" + os.path.join('Engines', network).rstrip('/')
+
+        # Launch the engine and run it's benchmark
+        stdout, stderr = subprocess.Popen(cmdline.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
 
         # Parse output streams for the benchmark data
         bench, speed = parseStreamOutput(stdout)
@@ -364,7 +381,7 @@ def computeSingleThreadedBenchmark(engine, outqueue):
         print("[ERROR] {0}".format(str(error)))
         outqueue.put((0, 0))
 
-def computeMultiThreadedBenchmark(arguments, engine):
+def computeMultiThreadedBenchmark(arguments, engine, network):
 
     # Log number of benchmarks being spawned for the given engine
     print('Running {0}x Benchmarks for {1}'.format(arguments.threads, engine['name']))
@@ -376,7 +393,7 @@ def computeMultiThreadedBenchmark(arguments, engine):
     processes = [
         multiprocessing.Process(
             target=computeSingleThreadedBenchmark,
-            args=(engine['sha'], outqueue,)
+            args=(engine['sha'], outqueue, network,)
         ) for f in range(int(arguments.threads))
     ]
 
@@ -399,7 +416,7 @@ def computeMultiThreadedBenchmark(arguments, engine):
 
     # Log and return computed bench and speed
     print ('Bench for {0} is {1}'.format(engine['name'], bench[0]))
-    print ('speed for {0} is {1}\n'.format(engine['name'], int(avg)))
+    print ('Speed for {0} is {1}\n'.format(engine['name'], int(avg)))
     return (bench[0], avg)
 
 def computeAdjustedTimecontrol(arguments, data, nps):
@@ -453,7 +470,7 @@ def verifyOpeningBook(data):
     # Signal for error when SHAs do not match
     return data['sha'] == sha
 
-def verifyEngine(arguments, data, engine):
+def verifyEngine(arguments, data, engine, network):
 
     # Download the engine if we do not already have it
     pathway = addExtension(pathjoin('Engines', engine['sha']).rstrip('/'))
@@ -461,7 +478,7 @@ def verifyEngine(arguments, data, engine):
 
     # Run a group of benchmarks in parallel in order to better scale NPS
     # values for this worker. We obtain a bench and average NPS value
-    bench, nps = computeMultiThreadedBenchmark(arguments, engine)
+    bench, nps = computeMultiThreadedBenchmark(arguments, engine, network)
 
     # Check for an invalid bench. Signal to the Client and the Server
     if bench != int(engine['bench']):
@@ -584,13 +601,17 @@ def processWorkload(arguments, data):
     # Verify and possibly download the opening book
     if not verifyOpeningBook(data['test']['book']): sys.exit()
 
+    # Download network file(s) if configured
+    devnetwork  = getNetworkWeights(data['test']['dev']['network'])
+    basenetwork = getNetworkWeights(data['test']['base']['network'])
+
     # Download, Verify, and Benchmark each engine. If we are unable
     # to obtain a valid bench for an engine, we exit this workload
-    devnps = verifyEngine(arguments, data, data['test']['dev'])
-    basenps = verifyEngine(arguments, data, data['test']['base'])
+    devnps = verifyEngine(arguments, data, data['test']['dev'], devnetwork)
+    basenps = verifyEngine(arguments, data, data['test']['base'], basenetwork)
 
     avgnps = (devnps + basenps) / 2
-    command, concurrency = getCutechessCommand(arguments, data, avgnps)
+    command, concurrency = getCutechessCommand(arguments, data, avgnps, devnetwork, basenetwork)
     print("Launching Cutechess\n{0}\n".format(command))
 
     cutechess = subprocess.Popen(command.split(), stdout=subprocess.PIPE)

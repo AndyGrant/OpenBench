@@ -15,10 +15,16 @@
             <tr><th>Dev Bench</th><td>{{test.dev.bench}}</td></tr>
             <tr><th>Dev Options</th><td>{{test.devoptions}}</td></tr>
             <tr><th>Dev Sha</th><td>{{test.dev.sha}}</td></tr>
+            {% if test.devnetwork %}
+            <tr><th>Dev Network</th><td>{{test.devnetwork}}</td></tr>
+            {% endif %}
             <tr><th>Base Branch</th><td>{{test.base.name|prettyName}}</td></tr>
             <tr><th>Base Bench</th><td>{{test.base.bench}}</td></tr>
             <tr><th>Base Options</th><td>{{test.baseoptions}}</td></tr>
             <tr><th>Base Sha</th><td>{{test.base.sha}}</td></tr>
+            {% if test.basenetwork %}
+            <tr><th>Base Network</th><td>{{test.basenetwork}}</td></tr>
+            {% endif %}
             <tr><th>Source Repo</th><td>{{test.source}}</td></tr>
             <tr><th>Opening Book</th><td>{{test.bookname}}</td></tr>
             <tr><th>Time Control</th><td>{{test.timecontrol}}s</td></tr>
@@ -30,8 +36,6 @@
     </div>
 
     <div id="actions">
-
-        <h2>Actions</h2>
 
         <!-- Approve Button: For Admins, or Cross-approvers -->
         {% if not test.approved and profile.approver and profile.user.username != test.author %}
@@ -66,11 +70,6 @@
         {% else %}
         <a class="anchorbutton deadbutton">Delete</a>
         {% endif %}
-
-        <!-- Dev vs Base [Git Diff Link] -->
-        <h4>{{test.dev.name|prettyName}} vs {{test.base.name|prettyName}}
-            <a href="{{test|gitDiffLink}}">DIFF</a>
-        </h4>
 
         <!-- ELO, SPRT, LLR, Games -->
         <pre>{{test|longStatBlock|linebreaksbr}}</pre>

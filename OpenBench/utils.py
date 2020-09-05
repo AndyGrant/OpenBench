@@ -203,6 +203,10 @@ def verifyNewTest(request):
         if request.POST[field] not in OpenBench.config.OPENBENCH_CONFIG[parent].keys():
             errors.append('{0} was not found in the configuration'.format(fieldName))
 
+    def verifySecureLink(field, fieldName):
+        if request.POST[field] and not request.POST[field].startswith('https://'):
+            errors.append('{0} must be located on a HTTPS URL'.format(fieldName))
+
     verifications = [
         (verifyInteger, 'priority', 'Priority'),
         (verifyInteger, 'throughput', 'Throughput'),
@@ -221,6 +225,8 @@ def verifyNewTest(request):
         (verifyOptions, 'baseoptions', 'Hash', 'Base Options'),
         (verifyConfiguration, 'enginename', 'Engine', 'engines'),
         (verifyConfiguration, 'bookname', 'Book', 'books'),
+        (verifySecureLink, 'devnetwork', 'Dev Network'),
+        (verifySecureLink, 'basenetwork', 'Base Network'),
     ]
 
     for verification in verifications:
@@ -245,6 +251,8 @@ def createNewTest(request):
     test.source      = request.POST['source']
     test.devoptions  = request.POST['devoptions']
     test.baseoptions = request.POST['baseoptions']
+    test.devnetwork  = request.POST['devnetwork']
+    test.basenetwork = request.POST['basenetwork']
     test.bookname    = request.POST['bookname']
     test.timecontrol = request.POST['timecontrol']
     test.priority    = int(request.POST['priority'])
@@ -381,14 +389,14 @@ def workloadDictionary(test, result, machine):
                 'id'        : test.dev.id,      'name'      : test.dev.name,
                 'source'    : test.dev.source,  'protocol'  : test.dev.protocol,
                 'sha'       : test.dev.sha,     'bench'     : test.dev.bench,
-                'options'   : test.devoptions,
+                'options'   : test.devoptions,  'network'   : test.devnetwork,
             },
 
             'base' : {
                 'id'        : test.base.id,     'name'      : test.base.name,
                 'source'    : test.base.source, 'protocol'  : test.base.protocol,
                 'sha'       : test.base.sha,    'bench'     : test.base.bench,
-                'options'   : test.baseoptions,
+                'options'   : test.baseoptions, 'network'   : test.basenetwork,
             },
         },
     }
