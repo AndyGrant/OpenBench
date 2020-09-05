@@ -169,7 +169,7 @@ OPENBENCH_CONFIG = {
         'Igel' : {
 
             'proto'     : 'uci',
-            'nps'       : 885000,
+            'nps'       : 475000,
             'build'     : { 'path' : '/src/', 'compilers' : ['g++'] },
             'source'    : 'https://github.com/vshcherbyna/igel',
 
