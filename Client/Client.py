@@ -116,6 +116,9 @@ def getCutechess(server):
         getFile(pathjoin(source, 'cutechess-linux'), 'cutechess')
         os.system('chmod 777 cutechess')
 
+    if IS_LINUX and not os.path.isfile('libcutechess.so.1'):
+        getFile(pathjoin(source, 'libcutechess.so.1'), 'libcutechess.so.1')
+
 def getCompilationSettings(server):
 
     # Get a dictionary of engine -> compilers
