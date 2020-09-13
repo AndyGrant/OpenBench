@@ -33,10 +33,11 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from htmlmin.decorators import not_minified_response
 
-def render(request, template, data={}):
+def render(request, template, content={}):
 
     template = 'OpenBench/{0}'.format(template)
 
+    data = content.copy()
     data.update({'config' : OpenBench.config.OPENBENCH_CONFIG})
 
     if request.user.is_authenticated:
