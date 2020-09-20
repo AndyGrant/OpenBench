@@ -64,13 +64,18 @@ def gitDiffLink(test):
 
 def shortStatBlock(test):
 
-    lowerllr   = twoDigitPrecision(test.lowerllr)
     currentllr = twoDigitPrecision(test.currentllr)
+    lowerllr   = twoDigitPrecision(test.lowerllr)
     upperllr   = twoDigitPrecision(test.upperllr)
     elolower   = twoDigitPrecision(test.elolower)
     eloupper   = twoDigitPrecision(test.eloupper)
 
-    return 'LLR: {0} ({1}, {2}) [{3}, {4}]\n'.format(currentllr, lowerllr, upperllr, elolower, eloupper) \
+    if upperllr != 2.94 or lowerllr != 2.94:
+        llrbounds = '({1}, {2}) '.format(lowerllr, upperllr)
+    else:
+        llrbounds = ''
+
+    return 'LLR: {0} {1}[{2}, {3}]\n'.format(currentllr, llrbounds, elolower, eloupper) \
          + 'Games: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
 
 def longStatBlock(test):
