@@ -79,7 +79,7 @@ OPENBENCH_CONFIG = {
         'Ethereal' : {
 
             'proto'     : 'uci',
-            'nps'       : 1175000,
+            'nps'       : 1075000,
             'build'     : { 'path' : '/src/', 'compilers' : ['gcc'] },
             'source'    : 'https://github.com/AndyGrant/Ethereal',
 
@@ -94,7 +94,7 @@ OPENBENCH_CONFIG = {
         'Laser' : {
 
             'proto'     : 'uci',
-            'nps'       : 710000,
+            'nps'       : 720000,
             'build'     : { 'path' : '/src/', 'compilers' : ['g++'] },
             'source'    : 'https://github.com/jeffreyan11/uci-chess-engine',
 
@@ -109,7 +109,7 @@ OPENBENCH_CONFIG = {
         'Weiss' : {
 
             'proto'     : 'uci',
-            'nps'       : 2675000,
+            'nps'       : 2400000,
             'build'     : { 'path' : '/src/', 'compilers' : ['gcc'] },
             'source'    : 'https://github.com/TerjeKir/weiss',
 
@@ -124,7 +124,7 @@ OPENBENCH_CONFIG = {
         'Demolito' : {
 
             'proto'     : 'uci',
-            'nps'       : 1250000,
+            'nps'       : 1075000,
             'build'     : { 'path' : '/src/', 'compilers' : ['clang', 'gcc'] },
             'source'    : 'https://github.com/lucasart/Demolito',
 
@@ -139,7 +139,7 @@ OPENBENCH_CONFIG = {
         'RubiChess' : {
 
             'proto'     : 'uci',
-            'nps'       : 1000000,
+            'nps'       : 1500000,
             'build'     : { 'path' : '/src/', 'compilers' : ['g++'] },
             'source'    : 'https://github.com/Matthies/RubiChess',
 
@@ -184,7 +184,7 @@ OPENBENCH_CONFIG = {
         'Winter' : {
 
             'proto'     : 'uci',
-            'nps'       : 370000,
+            'nps'       : 380000,
             'build'     : { 'path' : '/', 'compilers' : ['clang++', 'g++'] },
             'source'    : 'https://github.com/rosenthj/Winter',
 
