@@ -70,7 +70,7 @@ def shortStatBlock(test):
     elolower   = twoDigitPrecision(test.elolower)
     eloupper   = twoDigitPrecision(test.eloupper)
 
-    if upperllr != 2.94 or lowerllr != 2.94:
+    if upperllr != '2.94' or lowerllr != '2.94':
         llrbounds = '({1}, {2}) '.format(lowerllr, upperllr)
     else:
         llrbounds = ''
