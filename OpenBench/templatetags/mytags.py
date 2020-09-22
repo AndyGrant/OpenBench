@@ -70,10 +70,7 @@ def shortStatBlock(test):
     elolower   = twoDigitPrecision(test.elolower)
     eloupper   = twoDigitPrecision(test.eloupper)
 
-    if upperllr != '2.94' or lowerllr != '2.94':
-        llrbounds = '({1}, {2}) '.format(lowerllr, upperllr)
-    else:
-        llrbounds = ''
+    llrbounds = '({}, {}) '.format(lowerllr, upperllr)
 
     return 'LLR: {0} {1}[{2}, {3}]\n'.format(currentllr, llrbounds, elolower, eloupper) \
          + 'Games: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
