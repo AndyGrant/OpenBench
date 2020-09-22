@@ -1,4 +1,38 @@
-import multiprocessing, os, subprocess, sys, time
+import re, multiprocessing, os, subprocess, sys, time
+
+def parseStreamOutput(output):
+
+    # None unless found
+    bench = None; speed = None
+
+    # Split the output line by line and look backwards
+    for line in output.decode('ascii').strip().split('\n')[::-1]:
+
+        # Convert all non-alpha numerics to spaces
+        line = re.sub(r'[^a-zA-Z0-9 ]+', ' ', line)
+
+        # Search for node or speed counters
+        bench1 = re.search(r'[0-9]+ NODES', line.upper())
+        bench2 = re.search(r'NODES[ ]+[0-9]+', line.upper())
+        speed1 = re.search(r'[0-9]+ NPS'  , line.upper())
+        speed2 = re.search(r'NPS[ ]+[0-9]+'  , line.upper())
+
+        # A line with no parsable information was found
+        if not bench1 and not bench2 and not speed1 and not speed2:
+            break
+
+        # A Bench value was found
+        if not bench and (bench1 or bench2):
+            bench = bench1.group() if bench1 else bench2.group()
+
+        # A Speed value was found
+        if not speed and (speed1 or speed2):
+            speed = speed1.group() if speed1 else speed2.group()
+
+    # Parse out the integer portion from our matches
+    bench = int(re.search(r'[0-9]+', bench).group()) if bench else None
+    speed = int(re.search(r'[0-9]+', speed).group()) if speed else None
+    return (bench, speed)
 
 def singleCoreBench(engine, outqueue):
 
@@ -7,9 +41,11 @@ def singleCoreBench(engine, outqueue):
         "./{0} bench".format(engine).split(),
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
 
-    # Parse bench and speed. The final two lines, respectivly
-    data = stdout.decode("ascii").strip().split("\n")
-    outqueue.put((int(data[-2].split()[-1]), int(data[-1].split()[-1])))
+    # Parse output streams for the benchmark data
+    bench, speed = parseStreamOutput(stdout)
+    if bench is None or speed is None:
+        bench, speed = parseStreamOutput(stderr)
+    outqueue.put((int(bench), int(speed)))
 
 def multiCoreBench(engine, threads):
 
@@ -27,7 +63,7 @@ def multiCoreBench(engine, threads):
         ) for ii in range(threads)
     ]
 
-    # Launch eat singleCoreBench()
+    # Launch each singleCoreBench()
     for process in processes:
         process.start()
 
