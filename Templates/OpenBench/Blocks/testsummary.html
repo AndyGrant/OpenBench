@@ -3,7 +3,8 @@
     <td><a href="/user/{{test.author}}">{{test.author|slice:":6"}}</a></td>
     {% if test.error %} <td>{{test.engine}}<span style="color: red">*</span></td>
     {% else %} <td>{{test.engine}}</td> {% endif %}
-    <td><a href="/test/{{test.id}}">{{test.dev.name|prettyName}}</a></td>
+    {% if test|testIsFRC %} <td><a href="/test/{{test.id}}">{{test.dev.name|prettyName}}<span style="color: white">*</span></a></td>
+    {% else %} <td><a href="/test/{{test.id}}">{{test.dev.name|prettyName}}</a></td> {% endif %}
     <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
     <td>{{test.timecontrol}}</td>
     <td class='statblock {{test|testResultColour}}'><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>

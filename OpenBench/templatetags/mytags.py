@@ -117,6 +117,9 @@ def prettyName(name):
         return name[:16].upper()
     return name
 
+def testIsFRC(test):
+    return "FRC" in test.bookname.upper() or "960" in test.bookname.upper()
+
 
 register = django.template.Library()
 register.filter('oneDigitPrecision', oneDigitPrecision)
@@ -128,4 +131,5 @@ register.filter('testResultColour', testResultColour)
 register.filter('sumAttributes', sumAttributes)
 register.filter('insertCommas', insertCommas)
 register.filter('prettyName', prettyName)
+register.filter('testIsFRC', testIsFRC)
 
