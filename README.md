@@ -1,6 +1,8 @@
 # OpenBench
 
-OpenBench is an open-source sequential probability ratio testing framework designed for self-play testing by both UCI and xboard compliant engines. OpenBench provides a lightweight interface and client which allows machines to work together to test changes to the engine for performance and stability. OpenBench currently has support for [FRC/Chess960](https://en.wikipedia.org/wiki/Chess960), and uses this variant when presented with an opening book containing with a name containing "FRC" or "960".
+OpenBench is an open-source sequential probability ratio testing framework designed for self-play testing by both UCI and xboard compliant engines. OpenBench provides a lightweight interface and client which allows machines to work together to test changes to the engine for performance and stability. OpenBench currently has support for [Fischer Random Chess](https://en.wikipedia.org/wiki/Chess960). 
+
+You can join OpenBench's [Discord server](https://discord.gg/HNXsgfS) to join the discussion, see what developers are working on and talking about, or to find out how you can contribute to the project or become apart of it.
 
 OpenBench is the primary testing framework used for the development of [Ethereal.](https://github.com/AndyGrant/Ethereal) The primary instance of OpenBench can be found [here.](http://chess.grantnet.us/) This OpenBench instance currently supports development for [Ethereal](https://github.com/AndyGrant/Ethereal), as well as for [Demolito](https://github.com/lucasart/Demolito), [Laser](https://github.com/jeffreyan11/uci-chess-engine), [Rubi](https://github.com/Matthies/RubiChess), [Weiss](https://github.com/TerjeKir/weiss), [FabChess](https://github.com/fabianvdW/FabChess), [Igel](https://github.com/vshcherbyna/igel), and [Winter](https://github.com/rosenthj/Winter). Some engine authors are running their own public or private instances of OpenBench to support development for their engines.
 
