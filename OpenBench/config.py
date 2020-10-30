@@ -199,7 +199,7 @@ OPENBENCH_CONFIG = {
         'Halogen' : {
 
             'proto'     : 'uci',
-            'nps'       : 1050000,
+            'nps'       : 1350000,
             'build'     : { 'path' : '/Halogen/src/', 'compilers' : ['g++'] },
             'source'    : 'https://github.com/KierenP/Halogen',
 
