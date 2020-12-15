@@ -37,6 +37,11 @@
 
     <div id="actions">
 
+        <!-- Dev vs Base [Git Diff Link] -->
+        <a href="{{test|gitDiffLink}}">
+            <h4>{{test.dev.name|prettyName}} vs {{test.base.name|prettyName}}</h4>
+        </a>
+
         <!-- Approve Button: For Admins, or Cross-approvers -->
         {% if not test.approved and profile.approver and profile.user.username != test.author %}
         <a class="anchorbutton" id="approvebutton" href="/test/{{test.id}}/APPROVE">Approve</a>
@@ -73,7 +78,6 @@
 
         <!-- ELO, SPRT, LLR, Games -->
         <pre>{{test|longStatBlock|linebreaksbr}}</pre>
-
 
         <!-- Forum to modify the Priority or Throughput -->
         <form method="POST" action="/test/{{test.id}}/MODIFY">

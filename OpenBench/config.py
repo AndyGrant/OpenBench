@@ -18,13 +18,14 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+USE_CROSS_APPROVAL = False
+
 OPENBENCH_CONFIG = {
 
     'error' : {
         'disabled' : 'Account has not been enabled. Contact andrew@grantnet.us',
         'fakeuser' : 'This is not a real OpenBench User. Create an OpenBench account',
     },
-
 
     # Link to the repo on the sidebar, as well as the core files
     'framework'   : 'http://github.com/AndyGrant/OpenBench/',

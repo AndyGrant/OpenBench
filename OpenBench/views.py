@@ -420,6 +420,7 @@ def newTest(request):
         return index(request, error='\n'.join(errors))
 
     username = request.user.username
+    profile  = Profile.objects.get(user=request.user)
     LogEvent.objects.create(data="CREATE", author=username, test=test)
 
     approved = Test.objects.filter(approved=True)
@@ -431,6 +432,11 @@ def newTest(request):
     if (A or B) and (C or D):
         test.approved = True; test.save()
         action = "AUTOAPP P={0} TP={1}".format(test.priority, test.throughput)
+        LogEvent.objects.create(data=action, author=username, test=test)
+
+    elif not OpenBench.config.USE_CROSS_APPROVAL and profile.approver:
+        test.approved = True; test.save()
+        action = "APPROVE P={0} TP={1}".format(test.priority, test.throughput)
         LogEvent.objects.create(data=action, author=username, test=test)
 
     return django.http.HttpResponseRedirect('/index/')

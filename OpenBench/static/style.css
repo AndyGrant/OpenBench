@@ -102,7 +102,12 @@ a:link, a:visited, a:hover, a:active {
 #content #actions {
     margin-left: 32px;
     float: right;
-    margin-top: 60px;
+}
+
+#content #actions h4 {
+    color: #A2A2A2;
+    font-size: 15px;
+    font-weight: bold;
 }
 
 #content #actions .anchorbutton {
