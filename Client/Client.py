@@ -287,9 +287,12 @@ def getCutechessCommand(arguments, data, nps, devnetwork, basenetwork):
         int(time.time()), 'movecount=3 score=400', 'movenumber=40 movecount=8 score=10'
     )
 
-    # Options about tournament conditions
+    totalGames = concurrency * gamesPerThread
+
+    # Options about tournament conditions. Take care of using an even number of games
+    # to ensure each opening is played twice
     setupflags = '-variant {0} -concurrency {1} -games {2}'.format(
-        variant, concurrency, concurrency * gamesPerThread
+        variant, concurrency, totalGames + (totalGames % 2)
     )
 
     # Options for the Dev Engine
