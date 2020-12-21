@@ -19,7 +19,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 from django.db.models import CharField, IntegerField, BooleanField, FloatField
-from django.db.models import ForeignKey, DateTimeField, OneToOneField
+from django.db.models import ForeignKey, DateTimeField, OneToOneField, FileField
 from django.db.models import CASCADE, PROTECT, Model
 from django.contrib.auth.models import User
 
@@ -132,3 +132,15 @@ class LogEvent(Model):
 
     def __str__(self):
         return "{0} {1} {2}".format(self.author, str(self.test), self.data)
+
+class Network(Model):
+
+    downloads = IntegerField(default=0)
+    sha256    = CharField(max_length=8)
+    name      = CharField(max_length=64)
+    engine    = CharField(max_length=64)
+    author    = CharField(max_length=64)
+    created   = DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return '{}-{1} ({2})'.format(self.engine, self.name, self.sha256)

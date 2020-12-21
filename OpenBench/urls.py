@@ -42,12 +42,14 @@ urlpatterns = [
     django.urls.path(r'events/', OpenBench.views.events),
     django.urls.path(r'events/<int:page>/', OpenBench.views.events),
     django.urls.path(r'machines/', OpenBench.views.machines),
+    django.urls.path(r'networks/', OpenBench.views.networks),
 
     # Links for viewing and managing tests (maintain Legacy)
     django.urls.path(r'test/<int:id>/', OpenBench.views.test),
     django.urls.path(r'viewTest/<int:id>/', OpenBench.views.test),
     django.urls.path(r'test/<int:id>/<str:action>', OpenBench.views.test),
     django.urls.path(r'newTest/', OpenBench.views.newTest),
+    django.urls.path(r'newNetwork/', OpenBench.views.newNetwork),
 
     # Links for the Client to work with the Server
     django.urls.path(r'clientGetFiles/', OpenBench.views.clientGetFiles),

@@ -30,7 +30,10 @@ HTML_MINIFY = True
 SETTINGS_DIR  = os.path.dirname(__file__)
 PROJECT_PATH  = os.path.join(SETTINGS_DIR, os.pardir)
 PROJECT_PATH  = os.path.abspath(PROJECT_PATH)
-TEMPLATE_PATH = os.path.join(PROJECT_PATH,'Templates')
+TEMPLATE_PATH = os.path.join(PROJECT_PATH, 'Templates')
+
+MEDIA_URL  = '/Media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'Media')
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -68,6 +71,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'django.template.context_processors.media',
             ],
         },
     },

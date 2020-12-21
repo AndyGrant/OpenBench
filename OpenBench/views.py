@@ -18,6 +18,8 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+import os, hashlib
+
 import django.http
 import django.shortcuts
 import django.contrib.auth
@@ -26,11 +28,14 @@ import OpenBench.config
 import OpenBench.utils
 
 from OpenBench.models import *
+from OpenSite.settings import MEDIA_ROOT
+
 from django.contrib.auth.models import User
 
 from django.db.models import F
 from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import FileSystemStorage
 from htmlmin.decorators import not_minified_response
 
 def render(request, template, content={}):
@@ -326,6 +331,17 @@ def machines(request):
     data = {'machines' : OpenBench.utils.getRecentMachines()}
     return render(request, 'machines.html', data)
 
+def networks(request):
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : Return information about all of the Networks that have been     #
+    #         uploaded to the Framework at any point in time                  #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    networks = Network.objects.all().order_by('-id')
+    return render(request, 'networks.html', {'networks' : networks})
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                            TEST MANAGEMENT VIEWS                            #
@@ -441,6 +457,35 @@ def newTest(request):
 
     return django.http.HttpResponseRedirect('/index/')
 
+def newNetwork(request):
+
+    if not request.user.is_authenticated:
+        return django.http.HttpResponseRedirect('/login/')
+
+    if not Profile.objects.get(user=request.user).approver:
+        return django.http.HttpResponseRedirect('/index/')
+
+    if request.method == 'GET':
+        return render(request, 'uploadnet.html', {})
+
+    engine  = request.POST['engine']
+    netfile = request.FILES['netfile']
+    sha256  = hashlib.sha256(netfile.file.read()).hexdigest()[:8].upper()
+
+    if Network.objects.filter(sha256=sha256):
+        return index(request, error='Network with that hash already exists')
+
+    if engine not in OpenBench.utils.OPENBENCH_CONFIG['engines'].keys():
+        return index(request, error='No Engine found with matching name')
+
+    fsystem = FileSystemStorage()
+    fname   = fsystem.save(sha256, netfile)
+
+    Network.objects.create(
+        sha256=sha256, name=request.POST['name'],
+        engine=engine, author=request.user.username);
+
+    return index(request)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              CLIENT HOOK VIEWS                              #

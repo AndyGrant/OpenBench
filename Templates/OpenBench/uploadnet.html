@@ -1,0 +1,21 @@
+{% extends "OpenBench/base.html" %}
+
+{% block content %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <label>Name</label><input name="name"><br>
+        <label>Weights</label><input name="netfile" type="file"><br>
+
+        <label>Engine</label> <select id="engine" name="engine">
+            {% for engine in config.engines %}
+                <option value="{{engine}}">{{engine}}</option>
+            {% endfor %}
+            <option selected value=""></option>
+        </select><br>
+
+        <input type="submit" value="Upload">
+    <form>
+
+{% endblock %}
