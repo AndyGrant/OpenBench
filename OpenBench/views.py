@@ -18,7 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import os, hashlib
+import hashlib
 
 import django.http
 import django.shortcuts
@@ -28,8 +28,6 @@ import OpenBench.config
 import OpenBench.utils
 
 from OpenBench.models import *
-from OpenSite.settings import MEDIA_ROOT
-
 from django.contrib.auth.models import User
 
 from django.db.models import F

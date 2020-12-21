@@ -19,7 +19,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 from django.db.models import CharField, IntegerField, BooleanField, FloatField
-from django.db.models import ForeignKey, DateTimeField, OneToOneField, FileField
+from django.db.models import ForeignKey, DateTimeField, OneToOneField
 from django.db.models import CASCADE, PROTECT, Model
 from django.contrib.auth.models import User
 
