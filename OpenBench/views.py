@@ -18,7 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import hashlib
+import os, hashlib, mimetypes
 
 import django.http
 import django.shortcuts
@@ -29,9 +29,11 @@ import OpenBench.utils
 
 from OpenBench.models import *
 from django.contrib.auth.models import User
+from OpenSite.settings import MEDIA_ROOT
 
+from wsgiref.util import FileWrapper
 from django.db.models import F
-from django.http import HttpResponse
+from django.http import HttpResponse, FileResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
 from htmlmin.decorators import not_minified_response
@@ -484,6 +486,23 @@ def newNetwork(request):
         engine=engine, author=request.user.username);
 
     return index(request)
+
+def downloadNetwork(request, sha256):
+
+    if not Network.objects.filter(sha256=sha256):
+        return index(request, error='No Network found with matching SHA256')
+
+    netfile  = os.path.join(MEDIA_ROOT, sha256)
+    fwrapper = FileWrapper(open(netfile, 'rb'), 8192)
+    response = FileResponse(fwrapper, content_type='application/octet-stream')
+
+    network = Network.objects.get(sha256=sha256)
+    network.downloads = network.downloads + 1
+    network.save()
+
+    response['Content-Length'] = os.path.getsize(netfile)
+    response['Content-Disposition'] = 'attachment; filename=' + sha256
+    return response
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              CLIENT HOOK VIEWS                              #
