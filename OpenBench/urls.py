@@ -52,6 +52,7 @@ urlpatterns = [
 
     django.urls.path(r'newNetwork/', OpenBench.views.newNetwork),
     django.urls.path(r'networks/<str:sha256>', OpenBench.views.downloadNetwork),
+    django.urls.path(r'networks/<str:sha256>/download/', OpenBench.views.serveNetwork),
 
     # Links for the Client to work with the Server
     django.urls.path(r'clientGetFiles/', OpenBench.views.clientGetFiles),

@@ -492,14 +492,21 @@ def downloadNetwork(request, sha256):
     if not Network.objects.filter(sha256=sha256):
         return index(request, error='No Network found with matching SHA256')
 
+    network = Network.objects.get(sha256=sha256)
+    network.downloads = network.downloads + 1
+    network.save()
+    return django.http.HttpResponseRedirect('/networks/' + sha256 + '/download/')
+
+def serveNetwork(request, sha256):
+
+    if not Network.objects.filter(sha256=sha256):
+        return index(request, error='No Network found with matching SHA256')
+
     netfile  = os.path.join(MEDIA_ROOT, sha256)
     fwrapper = FileWrapper(open(netfile, 'rb'), 8192)
     response = FileResponse(fwrapper, content_type='application/octet-stream')
 
-    network = Network.objects.get(sha256=sha256)
-    network.downloads = network.downloads + 1
-    network.save()
-
+    response['Expires'] = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).ctime()
     response['Content-Length'] = os.path.getsize(netfile)
     response['Content-Disposition'] = 'attachment; filename=' + sha256
     return response
