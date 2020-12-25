@@ -99,22 +99,24 @@ def cleanupEnginesDirectory():
 
 def getCutechess(server):
 
-    # Ask the server where the core files are saved
-    source = requests.get(
-        pathjoin(server, 'clientGetFiles'),
-        timeout=HTTP_TIMEOUT).content.decode('utf-8')
-
-    # Windows workers need the cutechess.exe and the Qt5Core dll.
-    # Linux workers need cutechess and the libcutechess SO.
-    # Make sure Linux binaries are set to be executable.
-
     if IS_WINDOWS and not os.path.isfile('cutechess.exe'):
+
+        # Fetch the source location if we are missing the binary
+        source = requests.get(
+            pathjoin(server, 'clientGetFiles'),
+            timeout=HTTP_TIMEOUT).content.decode('utf-8')
+
+        # Windows workers simply need a static compile (64-bit)
         getFile(pathjoin(source, 'cutechess-windows.exe'), 'cutechess.exe')
 
-    if IS_WINDOWS and not os.path.isfile('Qt5Core.dll'):
-        getFile(pathjoin(source, 'cutechess-qt5core.dll'), 'Qt5Core.dll')
-
     if IS_LINUX and not os.path.isfile('cutechess'):
+
+        # Fetch the source location if we are missing the binary
+        source = requests.get(
+            pathjoin(server, 'clientGetFiles'),
+            timeout=HTTP_TIMEOUT).content.decode('utf-8')
+
+        # Linux workers need a static compile (64-bit) with execute permissions
         getFile(pathjoin(source, 'cutechess-linux'), 'cutechess')
         os.system('chmod 777 cutechess')
 
