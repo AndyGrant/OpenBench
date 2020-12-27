@@ -135,7 +135,7 @@ class LogEvent(Model):
 
 class Network(Model):
 
-    downloads = IntegerField(default=0)
+    default   = BooleanField(default=False)
     sha256    = CharField(max_length=8)
     name      = CharField(max_length=64)
     engine    = CharField(max_length=64)
@@ -143,4 +143,4 @@ class Network(Model):
     created   = DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return '{}-{1} ({2})'.format(self.engine, self.name, self.sha256)
+        return '[{}] {} ({})'.format(self.engine, self.name, self.sha256)

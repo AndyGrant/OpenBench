@@ -229,7 +229,15 @@ a:link, a:visited, a:hover, a:active {
 
 #content a:not(.TitleLink) {
     font-weight: 100;
-    color: #8bbad6;
+    color: #8BBAD6;
+}
+
+#content a:is(.redlink) {
+    color: #FF4D4D;
+}
+
+#content a:is(.unstarred) {
+    color: #808080;
 }
 
 #content h1, h2, h3 {

@@ -7,7 +7,9 @@
     <head>
         <link rel="stylesheet" href="{% static 'style.css' %}">
         <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
+        <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css ' rel='stylesheet'>
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,400;1,100&amp;display=swap" rel="stylesheet">
+
         <title>OpenBench</title>
         <script>
             {% block scripts %}
@@ -32,7 +34,7 @@
                     <li><a href="/logout/">Logout</a></li>
                     <li><a href="/profile/">Profile</a></li>
                 {% else %}
-                    <li><a href="/login">Login </a></li>
+                    <li><a href="/login">Login</a></li>
                     <li><a href="/register">Register</a></li>
                 {% endif %}
             </ul>
@@ -47,7 +49,7 @@
             <ul>
                 <li class="header">ACTIONS</li>
                 <li><a href="/newTest">Create Test</a></li>
-                <li><a href="/newNetwork">Upload Net</a></li>
+                <li><a href="/networks/upload">Upload Net</a></li>
             </ul>
 
             <ul>

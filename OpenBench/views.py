@@ -18,7 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import os, hashlib, mimetypes
+import os, hashlib, mimetypes, datetime
 
 import django.http
 import django.shortcuts
@@ -331,17 +331,6 @@ def machines(request):
     data = {'machines' : OpenBench.utils.getRecentMachines()}
     return render(request, 'machines.html', data)
 
-def networks(request):
-
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Return information about all of the Networks that have been     #
-    #         uploaded to the Framework at any point in time                  #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-    networks = Network.objects.all().order_by('-id')
-    return render(request, 'networks.html', {'networks' : networks})
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                            TEST MANAGEMENT VIEWS                            #
@@ -426,7 +415,8 @@ def newTest(request):
         return django.http.HttpResponseRedirect('/index/')
 
     if request.method == 'GET':
-        return render(request, 'newTest.html')
+        data = { 'networks' : Network.objects.all() }
+        return render(request, 'newTest.html', data)
 
     test, errors = OpenBench.utils.createNewTest(request)
     if errors != [] and errors != None:
@@ -457,7 +447,43 @@ def newTest(request):
 
     return django.http.HttpResponseRedirect('/index/')
 
-def newNetwork(request):
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                          NETWORK MANAGEMENT VIEWS                           #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+def networks(request, action=None, sha256=None):
+
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    #                                                                         #
+    #  GET  : There are three possible GET lookups. [1] Fetch a view of all   #
+    #         the Networks on the framework. [2] Fetch a template to upload a #
+    #         new Network to the framework. [3] Download the contents of a    #
+    #         Network that is already saved on the framework.                 #
+    #                                                                         #
+    # POST  : There are four possible POST lookups. Download, Upload, Default #
+    #         and Delete. Downloads are open, but all others are gated by the #
+    #         credentials of the User.                                        #
+    #                                                                         #
+    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    if action == None:
+        networks = Network.objects.all().order_by('-id')
+        return render(request, 'networks.html', {'networks' : networks})
+
+    if action.upper() == 'DOWNLOAD':
+
+        if not Network.objects.filter(sha256=sha256):
+            return index(request, error='No Network found with matching SHA256')
+
+        netfile  = os.path.join(MEDIA_ROOT, sha256)
+        fwrapper = FileWrapper(open(netfile, 'rb'), 8192)
+        response = FileResponse(fwrapper, content_type='application/octet-stream')
+
+        response['Expires'] = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).ctime()
+        response['Content-Length'] = os.path.getsize(netfile)
+        response['Content-Disposition'] = 'attachment; filename=' + sha256
+        return response
 
     if not request.user.is_authenticated:
         return django.http.HttpResponseRedirect('/login/')
@@ -465,44 +491,50 @@ def newNetwork(request):
     if not Profile.objects.get(user=request.user).approver:
         return django.http.HttpResponseRedirect('/index/')
 
-    if request.method == 'GET':
-        return render(request, 'uploadnet.html', {})
+    if action.upper() == 'UPLOAD':
 
-    engine  = request.POST['engine']
-    netfile = request.FILES['netfile']
-    sha256  = hashlib.sha256(netfile.file.read()).hexdigest()[:8].upper()
+        if request.method == 'GET':
+            return render(request, 'uploadnet.html', {})
 
-    if Network.objects.filter(sha256=sha256):
-        return index(request, error='Network with that hash already exists')
+        engine  = request.POST['engine']
+        netfile = request.FILES['netfile']
+        sha256  = hashlib.sha256(netfile.file.read()).hexdigest()[:8].upper()
 
-    if engine not in OpenBench.utils.OPENBENCH_CONFIG['engines'].keys():
-        return index(request, error='No Engine found with matching name')
+        if Network.objects.filter(sha256=sha256):
+            return index(request, error='Network with that hash already exists')
 
-    fsystem = FileSystemStorage()
-    fname   = fsystem.save(sha256, netfile)
+        if engine not in OpenBench.utils.OPENBENCH_CONFIG['engines'].keys():
+            return index(request, error='No Engine found with matching name')
 
-    Network.objects.create(
-        sha256=sha256, name=request.POST['name'],
-        engine=engine, author=request.user.username);
+        FileSystemStorage().save(sha256, netfile)
 
-    return index(request)
+        Network.objects.create(
+            sha256=sha256, name=request.POST['name'],
+            engine=engine, author=request.user.username);
 
-def downloadNetwork(request, sha256):
+        return index(request)
 
-    if not Network.objects.filter(sha256=sha256):
-        return index(request, error='No Network found with matching SHA256')
+    if action.upper() == 'DEFAULT':
 
-    netfile  = os.path.join(MEDIA_ROOT, sha256)
-    fwrapper = FileWrapper(open(netfile, 'rb'), 8192)
-    response = FileResponse(fwrapper, content_type='application/octet-stream')
+        if not Network.objects.filter(sha256=sha256):
+            return index(request, error='No Network found with matching SHA256')
 
-    network = Network.objects.get(sha256=sha256)
-    network.downloads = network.downloads + 1
-    network.save()
+        network = Network.objects.get(sha256=sha256)
+        Network.objects.filter(engine=network.engine).update(default=False)
+        network.default = True; network.save()
 
-    response['Content-Length'] = os.path.getsize(netfile)
-    response['Content-Disposition'] = 'attachment; filename=' + sha256
-    return response
+        return django.http.HttpResponseRedirect('/networks/')
+
+    if action.upper() == 'DELETE':
+
+        if not Network.objects.filter(sha256=sha256):
+            return index(request, error='No Network found with matching SHA256')
+
+        Network.objects.get(sha256=sha256).delete()
+        FileSystemStorage().delete(sha256)
+
+        return django.http.HttpResponseRedirect('/networks/')
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              CLIENT HOOK VIEWS                              #

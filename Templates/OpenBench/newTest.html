@@ -5,35 +5,74 @@
     // Take the settings from OpenBench/config.py for each engine
     // and generate a new dictionary in javascript that can be used
 
-    var configurations = {
-        {% for name, data in config.engines.items %}
-            '{{name}}' : {
-                {% for type, settings in data.testmodes.items %}
-                '{{type}}' : {
-                    "threads"     : "{{settings.threads}}",
-                    "hash"        : "{{settings.hash}}",
-                    "timecontrol" : "{{settings.timecontrol}}"
-                },
-                {% endfor %}
+    var Configurations = {
+    {% for name, data in config.engines.items %}
+        '{{name}}' : {
+            {% for type, settings in data.testmodes.items %}
+            '{{type}}' : {
+                "threads"     : "{{settings.threads}}",
+                "hash"        : "{{settings.hash}}",
+                "timecontrol" : "{{settings.timecontrol}}"
             },
-        {% endfor %}
+            {% endfor %}
+        },
+    {% endfor %}
     };
+
+    var Networks = [
+    {% for network in networks %}
+        {
+            "name" : "{{network.name}}",
+            "engine" : "{{network.engine}}",
+            "default" : "{{network.default}}",
+        },
+    {% endfor %}
+    ];
 
     function configure(mode) {
 
         // Find the selected engine
         var selection = document.getElementById("enginename");
-        var engine = selection.options[selection.selectedIndex].value;
+        var engine    = selection.options[selection.selectedIndex].value;
 
-        // Parse out the needed configuration settings
-        var threads     = configurations[engine][mode]["threads"];
-        var hash        = configurations[engine][mode]["hash"];
-        var timecontrol = configurations[engine][mode]["timecontrol"];
+        if (mode != null) {
 
-        // Adjust all the fields to auto-fill the settings
-        document.getElementById("devoptions").value   = "Threads=" + threads + " Hash=" + hash;
-        document.getElementById("baseoptions").value  = "Threads=" + threads + " Hash=" + hash;
-        document.getElementById("timecontrol").value  = timecontrol;
+            // Parse out the needed configuration settings
+            var threads     = Configurations[engine][mode]["threads"];
+            var hash        = Configurations[engine][mode]["hash"];
+            var timecontrol = Configurations[engine][mode]["timecontrol"];
+
+            // Adjust all the fields to auto-fill the settings
+            document.getElementById("devoptions").value   = "Threads=" + threads + " Hash=" + hash;
+            document.getElementById("baseoptions").value  = "Threads=" + threads + " Hash=" + hash;
+            document.getElementById("timecontrol").value  = timecontrol;
+        }
+
+        // Fetch each option selection for Dev & Base
+        devnet  = document.getElementById("devnetwork");
+        basenet = document.getElementById("basenetwork");
+
+        // Remove all options initially
+        while (devnet.length)  devnet.remove(0);
+        while (basenet.length) basenet.remove(0);
+
+        for (const network of Networks) {
+
+            if (network.engine !== engine)
+                continue;
+
+            // Create a new option for both fields
+            var devopt  = document.createElement("option");
+            var baseopt = document.createElement("option");
+
+            devopt.text  = devopt.value  = network.name;
+            baseopt.text = baseopt.value = network.name;
+
+            devopt.selected  = (network.default == "True");
+            baseopt.selected = (network.default == "True");
+
+            devnet.add(devopt); basenet.add(baseopt);
+        }
     }
 
     document.addEventListener('DOMContentLoaded', function () { configure('stc'); }, false);
@@ -50,9 +89,9 @@
             <label> Name </label> <select id="enginename" name="enginename">
             {% for engine in config.engines %}
                 {% if engine == profile.engine %}
-                    <option selected value="{{engine}}">{{engine}}</option>
+                    <option onClick="configure(null)" selected value="{{engine}}">{{engine}}</option>
                 {% else %}
-                    <option value="{{engine}}">{{engine}}</option>
+                    <option onClick="configure(null)" value="{{engine}}">{{engine}}</option>
                 {% endif %}
             {% endfor %}
             <option value="{{engine}}">{{engine}}</option>
@@ -63,13 +102,13 @@
             <label> Bench </label> <input name="devbench"><br>
             <label> Branch </label> <input name="devbranch" autofocus><br>
             <label> Options </label> <input id="devoptions" name="devoptions"><br>
-            <label> Network </label> <input name="devnetwork"><br>
+            <label> Network </label> <select id="devnetwork" name="devnetwork"></select><br>
 
             <h3> Base Settings </h3>
             <label> Bench </label> <input name="basebench"><br>
             <label> Branch </label> <input value="master" name="basebranch"><br>
             <label> Options </label> <input id="baseoptions" name="baseoptions"><br>
-            <label> Network </label> <input name="basenetwork"><br>
+            <label> Network </label> <select id="basenetwork" name="basenetwork"></select><br>
 
         </div>
 
@@ -91,7 +130,7 @@
             <label> Lower </label> <input value="{{config.sprt.elolower}}" name="elolower"><br>
             <label> Upper </label> <input value="{{config.sprt.eloupper}}" name="eloupper"><br>
             <label> Alpha </label> <input value="{{config.sprt.alpha}}" name="alpha"><br>
-            <label> Beta </label> <input value="{{config.sprt.beta}}" name="beta"><br>
+            <label> Beta  </label> <input value="{{config.sprt.beta}}" name="beta"><br>
 
             <h3> Test Settings </h3>
             <label> Priority </label> <input value="0" name="priority"><br>
@@ -104,9 +143,9 @@
     </form>
 
     <div id="test-mode-buttons">
-        <button class="left-floated" onClick="configure('stc')">Setup STC</button>
+        <button class="left-floated"  onClick="configure('stc')">Setup STC</button>
         <button class="right-floated" onClick="configure('ltc')">Setup LTC</button><br>
-        <button class="left-floated" onClick="configure('smpstc')">Setup SMP STC</button>
+        <button class="left-floated"  onClick="configure('smpstc')">Setup SMP STC</button>
         <button class="right-floated" onClick="configure('smpltc')">Setup SMP LTC</button>
     </div>
 
