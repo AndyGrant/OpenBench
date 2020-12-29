@@ -273,9 +273,9 @@ def getCutechessCommand(arguments, data, nps, devnetwork, basenetwork):
     # Find max concurrency for the given testing conditions
     concurrency = int(math.floor(int(arguments.threads) / max(devthreads, basethreads)))
 
-    # Compute needed games per thread to reach the workload time
+    # Compute needed games per concurrency to reach the workload time
     # Round it to the next integer to avoid potential "zero games" workloads with very long TCs
-    gamesPerThread = int(math.ceil(TIME_PER_WORKLOAD / avgGameDuration))
+    gamesPerConcurrency = int(math.ceil(TIME_PER_WORKLOAD / avgGameDuration))
 
     # Check for an FRC/Chess960 opening book
     if "FRC" in data['test']['book']['name'].upper(): variant = 'fischerandom'
@@ -287,7 +287,7 @@ def getCutechessCommand(arguments, data, nps, devnetwork, basenetwork):
         int(time.time()), 'movecount=3 score=400', 'movenumber=40 movecount=8 score=10'
     )
 
-    totalGames = concurrency * gamesPerThread
+    totalGames = concurrency * gamesPerConcurrency
 
     # Options about tournament conditions. Take care of using an even number of games
     # to ensure each opening is played twice
