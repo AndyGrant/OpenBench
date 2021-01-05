@@ -69,6 +69,15 @@ def pathjoin(*args):
     args = [f.lstrip("/").rstrip("/") for f in args]
     return "/".join(args) + "/"
 
+def savedEngineName(sha256, network256):
+    if network256 == None: return sha256
+    return "{0}-{1}".format(sha256, network256)
+
+def relativeNetworkPath(network256, makepath):
+    root = '../' * makepath.count('/')
+    path = os.path.join(root, 'Networks', network256)
+    return path.replace('\\', '/').rstrip('/').rstrip('\\')
+
 def killCutechess(cutechess):
 
     try:
@@ -203,12 +212,13 @@ def getMachineID():
     print('[NOTE] Machine Is Unregistered')
     return 'None'
 
-def getEngine(data, engine):
+def getEngine(data, engine, network):
 
-    print('Engine {0}'.format(data['test']['engine']))
-    print('Branch {0}'.format(engine['name']))
-    print('Commit {0}'.format(engine['sha']))
-    print('Source {0}'.format(engine['source']))
+    print('Engine  {0}'.format(data['test']['engine']))
+    print('Branch  {0}'.format(engine['name']))
+    print('Commit  {0}'.format(engine['sha']))
+    print('Source  {0}'.format(engine['source']))
+    print('')
 
     # Extract the zipfile to /tmp/ for future processing
     # Format: https://github.com/User/Engine/archive/SHA.zip
@@ -224,6 +234,10 @@ def getEngine(data, engine):
     if not COMPILERS[data['test']['engine']]['default']:
         command.append('CC={0}'.format(COMPILERS[data['test']['engine']]['compiler']))
 
+    # Use a EVALFILE= hook if we are using a NNUE Network File
+    if network != None:
+        command.append('EVALFILE={0}'.format(relativeNetworkPath(network, pathway)))
+
     # Add any other custom compilation options if we have them
     if data['test']['engine'] in CUSTOM_SETTINGS:
         command.extend(CUSTOM_SETTINGS[data['test']['engine']]['args'])
@@ -234,7 +248,7 @@ def getEngine(data, engine):
 
     # Move the binary to the /Engines/ directory
     output = '{0}{1}'.format(pathway, engine['name'])
-    destination = addExtension(pathjoin('Engines', engine['sha']).rstrip('/'))
+    destination = addExtension(pathjoin('Engines', savedEngineName(engine['sha'], network)).rstrip('/'))
 
     # Check to see if the compiler included a file extension or not
     if os.path.isfile(output): os.rename(output, destination)
@@ -243,16 +257,13 @@ def getEngine(data, engine):
     # Cleanup the zipfile directory
     shutil.rmtree('tmp')
 
-def getNetworkWeights(network):
+def getNetworkWeights(server, network):
+    if not network: return
+    fname = pathjoin('Networks', network).rstrip('/')
+    if not os.path.isfile(fname):
+        getFile('{}/networks/download/{}'.format(server, network), fname)
 
-    if network:
-        fname = pathjoin('Engines', os.path.basename(network)).rstrip('/')
-        if not os.path.isfile(fname): getFile(network, fname)
-        return os.path.basename(network)
-
-    return None
-
-def getCutechessCommand(arguments, data, nps, devnetwork, basenetwork):
+def getCutechessCommand(arguments, data, nps):
 
     # Parse options for Dev
     tokens = data['test']['dev']['options'].split(' ')
@@ -265,8 +276,8 @@ def getCutechessCommand(arguments, data, nps, devnetwork, basenetwork):
     baseoptions = ' option.'.join(['']+tokens)
 
     # Ensure .exe extension on Windows
-    devCommand = addExtension(data['test']['dev']['sha'])
-    baseCommand = addExtension(data['test']['base']['sha'])
+    devCommand  = addExtension(savedEngineName(data['test']['dev' ]['sha'], data['test']['dev' ]['network']))
+    baseCommand = addExtension(savedEngineName(data['test']['base']['sha'], data['test']['base']['network']))
 
     # Scale the time control for this machine's speed
     timecontrol = computeAdjustedTimecontrol(arguments, data, nps)
@@ -280,7 +291,7 @@ def getCutechessCommand(arguments, data, nps, devnetwork, basenetwork):
     else: variant = 'standard'
 
     # General Cutechess options
-    generalflags = '-repeat -recover -srand {0} -resign {1} -draw {2} -wait 10'.format(
+    generalflags = '-repeat -recover -srand {0} -resign {1} -draw {2}'.format(
         int(time.time()), 'movecount=3 score=400', 'movenumber=40 movecount=8 score=10'
     )
 
@@ -295,26 +306,18 @@ def getCutechessCommand(arguments, data, nps, devnetwork, basenetwork):
         '{0}-{1}'.format(data['test']['engine'], data['test']['dev']['name'])
     )
 
-    # Add evaluation weights for the Dev engine if specified
-    if devnetwork:
-        devflags = devflags + " option.EvalFile=" + devnetwork
-
     # Options for the Base Engine
     baseflags = '-engine dir=Engines/ cmd=./{0} proto={1} tc={2}{3} name={4}'.format(
         baseCommand, data['test']['base']['protocol'], timecontrol, baseoptions,
         '{0}-{1}'.format(data['test']['engine'], data['test']['base']['name'])
     )
 
-    # Add evaluation weights for the Base engine if specified
-    if basenetwork:
-        baseflags = baseflags + " option.EvalFile=" + basenetwork
-
     # Options for opening selection
     bookflags = '-openings file=Books/{0} format={1} order=random plies=16'.format(
         data['test']['book']['name'], data['test']['book']['name'].split('.')[-1]
     )
 
-    # Save PGN files if requested as Engine-Dev_vs_Engine-Base
+    # Save PGN files if requested, as Engine-Dev_vs_Engine-Base
     if SAVE_PGN_FILES:
         bookflags += ' -pgnout PGNs/{0}-{1}_vs_{0}-{2}'.format(
             data['test']['engine'], data['test']['dev']['name'], data['test']['base']['name'])
@@ -359,16 +362,19 @@ def parseStreamOutput(output):
     speed = int(re.search(r'[0-9]+', speed).group()) if speed else None
     return (bench, speed)
 
-def computeSingleThreadedBenchmark(engine, outqueue, network):
+def computeSingleThreadedBenchmark(filename, outqueue):
 
     try:
 
-        # Assume .exe extensions on Windows; Pass any Network files with the benchmark
-        cmdline = './{0} bench'.format(addExtension(os.path.join('Engines', engine).rstrip('/')))
-        if network: cmdline += " option.EvalFile=" + os.path.join('Engines', network).rstrip('/')
+        # Assume .exe extensions on Windows machines
+        pathway = addExtension(os.path.join('Engines', filename).rstrip('/'))
 
-        # Launch the engine and run it's benchmark
-        stdout, stderr = subprocess.Popen(cmdline.split(), stdout=subprocess.PIPE, stderr=subprocess.PIPE).communicate()
+        # Launch the engine and run a benchmark
+        stdout, stderr = subprocess.Popen(
+            ['./{0}'.format(pathway), 'bench'],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        ).communicate()
 
         # Parse output streams for the benchmark data
         bench, speed = parseStreamOutput(stdout)
@@ -394,7 +400,7 @@ def computeMultiThreadedBenchmark(arguments, engine, network):
     processes = [
         multiprocessing.Process(
             target=computeSingleThreadedBenchmark,
-            args=(engine['sha'], outqueue, network,)
+            args=(savedEngineName(engine['sha'], network), outqueue,)
         ) for f in range(int(arguments.threads))
     ]
 
@@ -465,7 +471,7 @@ def verifyOpeningBook(data):
         sha = hashlib.sha256(content).hexdigest()
 
     # Log the SHA verification
-    print('Correct SHA {0}'.format(data['sha']))
+    print('Correct  SHA {0}'.format(data['sha']))
     print('Download SHA {0}\n'.format(sha))
 
     # Signal for error when SHAs do not match
@@ -474,8 +480,9 @@ def verifyOpeningBook(data):
 def verifyEngine(arguments, data, engine, network):
 
     # Download the engine if we do not already have it
-    pathway = addExtension(pathjoin('Engines', engine['sha']).rstrip('/'))
-    if not os.path.isfile(pathway): getEngine(data, engine)
+    name = savedEngineName(engine['sha'], network)
+    pathway = addExtension(pathjoin('Engines', name).rstrip('/'))
+    if not os.path.isfile(pathway): getEngine(data, engine, network)
 
     # Run a group of benchmarks in parallel in order to better scale NPS
     # values for this worker. We obtain a bench and average NPS value
@@ -602,17 +609,16 @@ def processWorkload(arguments, data):
     # Verify and possibly download the opening book
     if not verifyOpeningBook(data['test']['book']): sys.exit()
 
-    # Download network file(s) if configured
-    devnetwork  = getNetworkWeights(data['test']['dev']['network'])
-    basenetwork = getNetworkWeights(data['test']['base']['network'])
+    # Download network file(s) ( if any are given )
+    getNetworkWeights(arguments.server, data['test']['dev' ]['network'])
+    getNetworkWeights(arguments.server, data['test']['base']['network'])
 
-    # Download, Verify, and Benchmark each engine. If we are unable
-    # to obtain a valid bench for an engine, we exit this workload
-    devnps = verifyEngine(arguments, data, data['test']['dev'], devnetwork)
-    basenps = verifyEngine(arguments, data, data['test']['base'], basenetwork)
+    # Download, Verify, and Benchmark each engine
+    devnps  = verifyEngine(arguments, data, data['test']['dev' ], data['test']['dev' ]['network'])
+    basenps = verifyEngine(arguments, data, data['test']['base'], data['test']['base']['network'])
+    avgnps  = (devnps + basenps) / 2
 
-    avgnps = (devnps + basenps) / 2
-    command, concurrency = getCutechessCommand(arguments, data, avgnps, devnetwork, basenetwork)
+    command, concurrency = getCutechessCommand(arguments, data, avgnps)
     print("Launching Cutechess\n{0}\n".format(command))
 
     cutechess = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
@@ -661,16 +667,17 @@ def main():
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     # Ensure we have our usual file folder structure
-    if not os.path.isdir('Engines'): os.mkdir('Engines')
-    if not os.path.isdir('Books'  ): os.mkdir('Books'  )
-    if not os.path.isdir('PGNs'   ): os.mkdir('PGNs'   )
+    if not os.path.isdir('Engines' ): os.mkdir('Engines' )
+    if not os.path.isdir('Networks'): os.mkdir('Networks')
+    if not os.path.isdir('Books'   ): os.mkdir('Books'   )
+    if not os.path.isdir('PGNs'    ): os.mkdir('PGNs'    )
 
     # Expect a Username, Password, Server, and Threads value
     p = argparse.ArgumentParser()
     p.add_argument('-U', '--username', help='Username', required=True)
     p.add_argument('-P', '--password', help='Password', required=True)
-    p.add_argument('-S', '--server', help='Server Address', required=True)
-    p.add_argument('-T', '--threads', help='Number of Threads', required=True)
+    p.add_argument('-S', '--server',   help='Server Address', required=True)
+    p.add_argument('-T', '--threads',  help='Number of Threads', required=True)
     arguments = p.parse_args()
 
     # Make sure we have cutechess installed
@@ -701,7 +708,6 @@ def main():
         except Exception as error:
             print ('[ERROR] {0}'.format(str(error)))
             time.sleep(ERROR_TIMEOUT)
-
 
 if __name__ == '__main__':
     main()

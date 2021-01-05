@@ -2,6 +2,7 @@
 
 rm -rf __pycache__/
 rm -rf Engines/
+rm -rf Networks/
 rm -rf Books/
 rm -rf PGNs/
 rm -rf tmp/

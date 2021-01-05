@@ -23,8 +23,10 @@
     {% for network in networks %}
         {
             "name" : "{{network.name}}",
+            "sha256" : "{{network.sha256}}",
             "engine" : "{{network.engine}}",
             "default" : "{{network.default}}",
+
         },
     {% endfor %}
     ];
@@ -49,8 +51,9 @@
         }
 
         // Fetch each option selection for Dev & Base
-        devnet  = document.getElementById("devnetwork");
-        basenet = document.getElementById("basenetwork");
+        var devnet  = document.getElementById("devnetwork");
+        var basenet = document.getElementById("basenetwork");
+        var exists  = false;
 
         // Remove all options initially
         while (devnet.length)  devnet.remove(0);
@@ -58,19 +61,27 @@
 
         for (const network of Networks) {
 
-            if (network.engine !== engine)
-                continue;
+            if (network.engine !== engine) continue;
 
-            // Create a new option for both fields
             var devopt  = document.createElement("option");
             var baseopt = document.createElement("option");
 
-            devopt.text  = devopt.value  = network.name;
-            baseopt.text = baseopt.value = network.name;
+            devopt.text  = baseopt.text  = network.name;
+            devopt.value = baseopt.value = network.sha256;
 
             devopt.selected  = (network.default == "True");
             baseopt.selected = (network.default == "True");
+            devnet.add(devopt); basenet.add(baseopt); exists = true;
+        }
 
+        {
+            var devopt  = document.createElement("option");
+            var baseopt = document.createElement("option");
+
+            devopt.text  = baseopt.text  = "";
+            devopt.value = baseopt.value = "";
+
+            devopt.selected = baseopt.selected = exists;
             devnet.add(devopt); basenet.add(baseopt);
         }
     }

@@ -16,17 +16,23 @@
             <tr><th>Dev Options</th><td>{{test.devoptions}}</td></tr>
             <tr><th>Dev Sha</th><td>{{test.dev.sha}}</td></tr>
             {% if test.devnetwork %}
-            <tr><th>Dev Network</th><td>{{test.devnetwork}}</td></tr>
+            <tr>
+                <th>Dev Network</th>
+                <td><a href="/networks/download/{{test.devnetwork}}">{{test.devnetwork|resolveNetworkSha}}</td>
+            </tr>
             {% endif %}
             <tr><th>Base Branch</th><td>{{test.base.name|prettyName}}</td></tr>
             <tr><th>Base Bench</th><td>{{test.base.bench}}</td></tr>
             <tr><th>Base Options</th><td>{{test.baseoptions}}</td></tr>
             <tr><th>Base Sha</th><td>{{test.base.sha}}</td></tr>
             {% if test.basenetwork %}
-            <tr><th>Base Network</th><td>{{test.basenetwork}}</td></tr>
+            <tr>
+                <th>Base Network</th>
+                <td><a href="/networks/download/{{test.basenetwork}}">{{test.basenetwork|resolveNetworkSha}}</td>
+            </tr>
             {% endif %}
-            <tr><th>Source Repo</th><td>{{test.source}}</td></tr>
-            <tr><th>Opening Book</th><td>{{test.bookname}}</td></tr>
+            <tr><th>Source Repo</th><td><a href="{{test.source}}">{{test.source}}</a></td></tr>
+            <tr><th>Opening Book</th><td><a href="{{config.framework}}/raw/master/Books/">{{test.bookname}}</a></td></tr>
             <tr><th>Time Control</th><td>{{test.timecontrol}}s</td></tr>
             <tr><th>Elo Bounds</th><td>[{{test.elolower}}, {{test.eloupper}}]</td></tr>
             <tr><th>SPRT Bounds</th><td>({{test.lowerllr|twoDigitPrecision}}, {{test.upperllr|twoDigitPrecision}})</td></tr>

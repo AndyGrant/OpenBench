@@ -203,10 +203,6 @@ def verifyNewTest(request):
         if request.POST[field] not in OpenBench.config.OPENBENCH_CONFIG[parent].keys():
             errors.append('{0} was not found in the configuration'.format(fieldName))
 
-    def verifySecureLink(field, fieldName):
-        if request.POST[field] and not request.POST[field].startswith('https://'):
-            errors.append('{0} must be located on a HTTPS URL'.format(fieldName))
-
     verifications = [
         (verifyInteger, 'priority', 'Priority'),
         (verifyInteger, 'throughput', 'Throughput'),
@@ -225,8 +221,6 @@ def verifyNewTest(request):
         (verifyOptions, 'baseoptions', 'Hash', 'Base Options'),
         (verifyConfiguration, 'enginename', 'Engine', 'engines'),
         (verifyConfiguration, 'bookname', 'Book', 'books'),
-        (verifySecureLink, 'devnetwork', 'Dev Network'),
-        (verifySecureLink, 'basenetwork', 'Base Network'),
     ]
 
     for verification in verifications:
