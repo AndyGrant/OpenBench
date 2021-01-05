@@ -22,9 +22,9 @@
     var Networks = [
     {% for network in networks %}
         {
-            "name" : "{{network.name}}",
-            "sha256" : "{{network.sha256}}",
-            "engine" : "{{network.engine}}",
+            "name"    : "{{network.name}}",
+            "sha256"  : "{{network.sha256}}",
+            "engine"  : "{{network.engine}}",
             "default" : "{{network.default}}",
 
         },
@@ -69,8 +69,8 @@
             devopt.text  = baseopt.text  = network.name;
             devopt.value = baseopt.value = network.sha256;
 
-            devopt.selected  = (network.default == "True");
-            baseopt.selected = (network.default == "True");
+            devopt.selected  = network.default == "True";
+            baseopt.selected = network.default == "True";
             devnet.add(devopt); basenet.add(baseopt); exists = true;
         }
 
@@ -81,8 +81,8 @@
             devopt.text  = baseopt.text  = "";
             devopt.value = baseopt.value = "";
 
-            devopt.selected = baseopt.selected = exists;
-            devnet.add(devopt); basenet.add(baseopt);
+            devopt.selected  = (exists == false); devnet.add(devopt);
+            baseopt.selected = (exists == false); basenet.add(baseopt);
         }
     }
 
