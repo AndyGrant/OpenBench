@@ -70,7 +70,7 @@ def pathjoin(*args):
     return "/".join(args) + "/"
 
 def savedEngineName(sha256, network256):
-    if network256 == None: return sha256
+    if not network256: return sha256
     return "{0}-{1}".format(sha256, network256)
 
 def relativeNetworkPath(network256, makepath):
