@@ -18,7 +18,7 @@
             {% if test.devnetwork %}
             <tr>
                 <th>Dev Network</th>
-                <td><a href="/networks/download/{{test.devnetwork}}">{{test.devnetwork|resolveNetworkSha}}</td>
+		<td><a href="{{test.devnetwork|resolveNetworkURL}}">{{test.devnetwork|resolveNetworkSha}}</td>
             </tr>
             {% endif %}
             <tr><th>Base Branch</th><td>{{test.base.name|prettyName}}</td></tr>
@@ -28,7 +28,7 @@
             {% if test.basenetwork %}
             <tr>
                 <th>Base Network</th>
-                <td><a href="/networks/download/{{test.basenetwork}}">{{test.basenetwork|resolveNetworkSha}}</td>
+		<td><a href="{{test.basenetwork|resolveNetworkURL}}">{{test.basenetwork|resolveNetworkSha}}</td>
             </tr>
             {% endif %}
             <tr><th>Source Repo</th><td><a href="{{test.source}}">{{test.source}}</a></td></tr>
