@@ -258,10 +258,23 @@ def getEngine(data, engine, network):
     shutil.rmtree('tmp')
 
 def getNetworkWeights(server, network):
-    if not network: return
+
+    if not network:
+        return
+
+    print ('Fetching and Verifying Network ({0})'.format(network))
     fname = pathjoin('Networks', network).rstrip('/')
     if not os.path.isfile(fname):
         getFile('{}/networks/download/{}'.format(server, network), fname)
+
+    with open(fname, 'rb') as weights:
+        sha256 = hashlib.sha256(weights.read()).hexdigest()[:8].upper()
+
+    if sha256 != network:
+        os.remove(fname)
+        raise Exception('Unable to verify Network Weights')
+
+    print ('')
 
 def getCutechessCommand(arguments, data, nps):
 
