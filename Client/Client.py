@@ -66,8 +66,7 @@ def pathjoin(*args):
     # Join a set of URL paths while maintaining the correct
     # format of "/"'s between each part of the URL's pathway
 
-    args = [f.lstrip("/").rstrip("/") for f in args]
-    return "/".join(args) + "/"
+    return '/'.join([f.lstrip('/').rstrip('/') for f in args]) + '/'
 
 def savedEngineName(sha256, network256):
     if not network256: return sha256
@@ -265,7 +264,7 @@ def getNetworkWeights(server, network):
     print ('Fetching and Verifying Network ({0})'.format(network))
     fname = pathjoin('Networks', network).rstrip('/')
     if not os.path.isfile(fname):
-        getFile('{}/networks/download/{}'.format(server, network), fname)
+        getFile(pathjoin(server, 'networks', 'download', network), fname)
 
     with open(fname, 'rb') as weights:
         sha256 = hashlib.sha256(weights.read()).hexdigest()[:8].upper()
