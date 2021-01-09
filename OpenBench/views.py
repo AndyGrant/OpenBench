@@ -623,8 +623,8 @@ def clientWrongBench(request):
     name    = request.POST['engine']
 
     # Format a nice Error message
-    message = 'Got {0} Expected {1} for {2}'
-    message = message.format(wrong, correct, name)
+    message = 'Got {0} Expected {1} for {2} [{3}]'
+    message = message.format(wrong, correct, name, int(request.POST['machineid']))
 
     # Log the error into the Events table
     LogEvent.objects.create(

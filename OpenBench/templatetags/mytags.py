@@ -121,7 +121,13 @@ def testIsFRC(test):
     return "FRC" in test.bookname.upper() or "960" in test.bookname.upper()
 
 def resolveNetworkSha(sha256):
-    return OpenBench.models.Network.objects.get(sha256=sha256).name
+    try: return OpenBench.models.Network.objects.get(sha256=sha256).name
+    except: return sha256 # Legacy Networks
+
+def resolveNetworkURL(sha256):
+    if OpenBench.models.Network.objects.filter(sha256=sha256):
+        return '/networks/download/{0}'.format(sha256)
+    return sha256 # Legacy Networks
 
 register = django.template.Library()
 register.filter('oneDigitPrecision', oneDigitPrecision)
@@ -135,4 +141,5 @@ register.filter('insertCommas', insertCommas)
 register.filter('prettyName', prettyName)
 register.filter('testIsFRC', testIsFRC)
 register.filter('resolveNetworkSha', resolveNetworkSha)
+register.filter('resolveNetworkURL', resolveNetworkURL)
 
