@@ -232,11 +232,11 @@ a:link, a:visited, a:hover, a:active {
     color: #8BBAD6;
 }
 
-#content a:is(.redlink) {
+#content a.redlink {
     color: #FF4D4D;
 }
 
-#content a:is(.unstarred) {
+#content a.unstarred {
     color: #808080;
 }
 
