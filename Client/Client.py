@@ -36,16 +36,16 @@ SAVE_PGN_FILES        = False # Auto-save PGN output for engine pairings
 AUTO_DELETE_ENGINES   = True  # Delete Engines that are over 24hrs old
 
 CUSTOM_SETTINGS = {
-    'Ethereal'  : { 'args' : [], 'mp_build': False }, # Configuration for Ethereal
-    'Laser'     : { 'args' : [], 'mp_build': True  }, # Configuration for Laser
-    'Weiss'     : { 'args' : [], 'mp_build': False }, # Configuration for Weiss
-    'Demolito'  : { 'args' : [], 'mp_build': False }, # Configuration for Demolito
-    'Rubichess' : { 'args' : [], 'mp_build': False }, # Configuration for RubiChess
-    'FabChess'  : { 'args' : [], 'mp_build': False }, # Configuration for FabChess
-    'Igel'      : { 'args' : [], 'mp_build': False }, # Configuration for Igel
-    'Winter'    : { 'args' : [], 'mp_build': True  }, # Configuration for Winter
-    'Halogen'   : { 'args' : [], 'mp_build': False }, # Configuration for Halogen
-    'Stash'     : { 'args' : [], 'mp_build': True  }, # Configuration for Stash
+    'Ethereal'  : { 'args' : [] }, # Configuration for Ethereal
+    'Laser'     : { 'args' : [] }, # Configuration for Laser
+    'Weiss'     : { 'args' : [] }, # Configuration for Weiss
+    'Demolito'  : { 'args' : [] }, # Configuration for Demolito
+    'Rubichess' : { 'args' : [] }, # Configuration for RubiChess
+    'FabChess'  : { 'args' : [] }, # Configuration for FabChess
+    'Igel'      : { 'args' : [] }, # Configuration for Igel
+    'Winter'    : { 'args' : [] }, # Configuration for Winter
+    'Halogen'   : { 'args' : [] }, # Configuration for Halogen
+    'Stash'     : { 'args' : [] }, # Configuration for Stash
 };
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -241,9 +241,8 @@ def getEngine(arguments, data, engine, network):
     if data['test']['engine'] in CUSTOM_SETTINGS:
         command.extend(CUSTOM_SETTINGS[data['test']['engine']]['args'])
 
-        # Use multiprocessed build if the engine supports it
-        if CUSTOM_SETTINGS[data['test']['engine']]['mp_build']:
-            command.append('-j' + arguments.threads)
+    # Allow for multiprocessed build up to the number of requested threads
+    command.append('-j' + arguments.threads)
 
     # Build the engine. If something goes wrong with the
     # compilation process, we will figure this out later on
