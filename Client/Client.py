@@ -158,14 +158,10 @@ def getCompilationSettings(server):
             match = re.search(r'[0-9]+\.[0-9]+\.[0-9]+', stdout).group()
             actual = tuple(map(int, match.split('.')))
 
-            # Compiler was not sufficient
-            if actual < version: continue
-
             # Compiler was sufficient
-            COMPILERS[engine] = {
-                'compiler' : compiler, 'version' : match,
-                'default' : compiler == compilers[0]
-            }; break
+            if actual >= version:
+                COMPILERS[engine] = { 'compiler' : compiler, 'version' : match }
+                break
 
     # Report each engine configuration we can build for
     for engine in [engine for engine in data.keys() if engine in COMPILERS]:
@@ -213,10 +209,10 @@ def getMachineID():
 
 def getEngine(arguments, data, engine, network):
 
-    print('Engine  {0}'.format(data['test']['engine']))
-    print('Branch  {0}'.format(engine['name']))
-    print('Commit  {0}'.format(engine['sha']))
-    print('Source  {0}'.format(engine['source']))
+    print('Engine {0}'.format(data['test']['engine']))
+    print('Branch {0}'.format(engine['name']))
+    print('Commit {0}'.format(engine['sha']))
+    print('Source {0}'.format(engine['source']))
     print('')
 
     # Extract the zipfile to /tmp/ for future processing
@@ -229,9 +225,11 @@ def getEngine(arguments, data, engine, network):
     # Basic make assumption and an EXE= hook
     command = ['make', 'EXE={0}'.format(engine['name'])]
 
-    # Use a CC= hook if we are using the non-default compiler
-    if not COMPILERS[data['test']['engine']]['default']:
-        command.append('CC={0}'.format(COMPILERS[data['test']['engine']]['compiler']))
+    # Allow for multiprocessed build up to the number of requested threads
+    command.append('-j' + arguments.threads)
+
+    # Use a CC= hook to select the compiler we found at start-up
+    command.append('CC={0}'.format(COMPILERS[data['test']['engine']]['compiler']))
 
     # Use a EVALFILE= hook if we are using a NNUE Network File
     if network != None:
@@ -240,9 +238,6 @@ def getEngine(arguments, data, engine, network):
     # Add any other custom compilation options if we have them
     if data['test']['engine'] in CUSTOM_SETTINGS:
         command.extend(CUSTOM_SETTINGS[data['test']['engine']]['args'])
-
-    # Allow for multiprocessed build up to the number of requested threads
-    command.append('-j' + arguments.threads)
 
     # Build the engine. If something goes wrong with the
     # compilation process, we will figure this out later on
