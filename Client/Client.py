@@ -211,7 +211,7 @@ def getMachineID():
     print('[NOTE] Machine Is Unregistered')
     return 'None'
 
-def getEngine(data, engine, network):
+def getEngine(arguments, data, engine, network):
 
     print('Engine  {0}'.format(data['test']['engine']))
     print('Branch  {0}'.format(engine['name']))
@@ -240,6 +240,9 @@ def getEngine(data, engine, network):
     # Add any other custom compilation options if we have them
     if data['test']['engine'] in CUSTOM_SETTINGS:
         command.extend(CUSTOM_SETTINGS[data['test']['engine']]['args'])
+
+    # Allow for multiprocessed build up to the number of requested threads
+    command.append('-j' + arguments.threads)
 
     # Build the engine. If something goes wrong with the
     # compilation process, we will figure this out later on
@@ -494,7 +497,7 @@ def verifyEngine(arguments, data, engine, network):
     # Download the engine if we do not already have it
     name = savedEngineName(engine['sha'], network)
     pathway = addExtension(pathjoin('Engines', name).rstrip('/'))
-    if not os.path.isfile(pathway): getEngine(data, engine, network)
+    if not os.path.isfile(pathway): getEngine(arguments, data, engine, network)
 
     # Run a group of benchmarks in parallel in order to better scale NPS
     # values for this worker. We obtain a bench and average NPS value
