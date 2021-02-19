@@ -30,7 +30,7 @@ import platform, re, requests, shutil, subprocess, sys, time, zipfile
 HTTP_TIMEOUT          = 30    # Timeout in seconds for requests
 WORKLOAD_TIMEOUT      = 60    # Timeout when there is no work
 ERROR_TIMEOUT         = 60    # Timeout when an error is thrown
-GAMES_PER_CONCURRENCY = 32    # Total games to play per concurrency
+TIME_PER_WORKLOAD     = 600   # Duration of a single workload
 
 SAVE_PGN_FILES        = False # Auto-save PGN output for engine pairings
 AUTO_DELETE_ENGINES   = True  # Delete Engines that are over 24hrs old
@@ -290,10 +290,14 @@ def getCutechessCommand(arguments, data, nps):
     baseCommand = addExtension(savedEngineName(data['test']['base']['sha'], data['test']['base']['network']))
 
     # Scale the time control for this machine's speed
-    timecontrol = computeAdjustedTimecontrol(arguments, data, nps)
+    timecontrol, avgGameDuration = computeAdjustedTimecontrol(arguments, data, nps)
 
     # Find max concurrency for the given testing conditions
     concurrency = int(math.floor(int(arguments.threads) / max(devthreads, basethreads)))
+
+    # Compute needed games per concurrency to reach the workload time
+    # Round it to the next integer to avoid potential "zero games" workloads with very long TCs
+    gamesPerConcurrency = int(math.ceil(TIME_PER_WORKLOAD / avgGameDuration))
 
     # Check for an FRC/Chess960 opening book
     if "FRC" in data['test']['book']['name'].upper(): variant = 'fischerandom'
@@ -305,9 +309,12 @@ def getCutechessCommand(arguments, data, nps):
         int(time.time()), 'movecount=3 score=400', 'movenumber=40 movecount=8 score=10'
     )
 
-    # Options about tournament conditions
+    totalGames = concurrency * gamesPerConcurrency
+
+    # Options about tournament conditions. Take care of using an even number of games
+    # to ensure each opening is played twice
     setupflags = '-variant {0} -concurrency {1} -games {2}'.format(
-        variant, concurrency, concurrency * GAMES_PER_CONCURRENCY
+        variant, concurrency, totalGames + (totalGames % 2)
     )
 
     # Options for the Dev Engine
@@ -443,27 +450,33 @@ def computeAdjustedTimecontrol(arguments, data, nps):
     timecontrol = data['test']['timecontrol'];
     reportNodesPerSecond(arguments, data, nps)
 
+    # Assume an average duration of 50 moves (100 plies) per game,
+    # and a complete usage of initial given time + increments
+
     # Parse X / Y + Z time controls
     if '/' in timecontrol and '+' in timecontrol:
         moves = timecontrol.split('/')[0]
         start, inc = map(float, timecontrol.split('/')[1].split('+'))
         start = round(start * factor, 2)
         inc = round(inc * factor, 2)
-        return moves + '/' + str(start) + '+' + str(inc)
+        avgGameDuration = (start / moves + inc) * 100.0
+        return moves + '/' + str(start) + '+' + str(inc), avgGameDuration
 
     # Parse X / Y time controls
     elif '/' in timecontrol:
         moves = timecontrol.split('/')[0]
         start = float(timecontrol.split('/')[1])
         start = round(start * factor, 2)
-        return moves + '/' + str(start)
+        avgGameDuration = start / moves * 100.0
+        return moves + '/' + str(start), avgGameDuration
 
     # Parse X + Z time controls
     else:
         start, inc = map(float, timecontrol.split('+'))
         start = round(start * factor, 2)
         inc = round(inc * factor, 2)
-        return str(start) + '+' + str(inc)
+        avgGameDuration = start * 2.0 + inc * 100.0
+        return str(start) + '+' + str(inc), avgGameDuration
 
 
 def verifyOpeningBook(data):
