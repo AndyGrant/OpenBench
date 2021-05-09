@@ -63,8 +63,15 @@ def addExtension(name):
 
 def pathjoin(*args):
 
-    # Join a set of URL paths while maintaining the correct
-    # format of "/"'s between each part of the URL's pathway
+    # Join a set of file paths while maintaining the correct
+    # format of "/"'s between each part of the file's pathway
+
+    return '/'.join([f.lstrip('/').rstrip('/') for f in args])
+
+def urljoin(*args):
+
+    # Join a set of file paths while maintaining the correct
+    # format of "/"'s between each part of the file's pathway
 
     return '/'.join([f.lstrip('/').rstrip('/') for f in args]) + '/'
 
@@ -95,6 +102,7 @@ def killCutechess(cutechess):
     except KeyboardInterrupt: sys.exit()
     except Exception as error: pass
 
+
 def cleanupEnginesDirectory():
 
     SECONDS_PER_DAY = 60 * 60 * 24;
@@ -102,7 +110,17 @@ def cleanupEnginesDirectory():
     for file in os.listdir('Engines/'):
         if time.time() - os.path.getmtime('Engines/{0}'.format(file)) > SECONDS_PER_DAY:
             os.remove('Engines/{0}'.format(file))
-            print ("[NOTE] Deleted old engine", file)
+            print ("[NOTE] Deleted Engine", file)
+
+def cleanupNetworksDirectory():
+
+    SECONDS_PER_MONTH = 60 * 60 * 24 * 30;
+
+    for file in os.listdir('Networks/'):
+        if time.time() - os.path.getmtime('Networks/{0}'.format(file)) > SECONDS_PER_MONTH:
+            os.remove('Networks/{0}'.format(file))
+            print ("[NOTE] Deleted Network", file)
+
 
 
 def getCutechess(server):
@@ -111,28 +129,28 @@ def getCutechess(server):
 
         # Fetch the source location if we are missing the binary
         source = requests.get(
-            pathjoin(server, 'clientGetFiles'),
+            urljoin(server, 'clientGetFiles'),
             timeout=HTTP_TIMEOUT).content.decode('utf-8')
 
         # Windows workers simply need a static compile (64-bit)
-        getFile(pathjoin(source, 'cutechess-windows.exe'), 'cutechess.exe')
+        getFile(urljoin(source, 'cutechess-windows.exe'), 'cutechess.exe')
 
     if IS_LINUX and not os.path.isfile('cutechess'):
 
         # Fetch the source location if we are missing the binary
         source = requests.get(
-            pathjoin(server, 'clientGetFiles'),
+            urljoin(server, 'clientGetFiles'),
             timeout=HTTP_TIMEOUT).content.decode('utf-8')
 
         # Linux workers need a static compile (64-bit) with execute permissions
-        getFile(pathjoin(source, 'cutechess-linux'), 'cutechess')
+        getFile(urljoin(source, 'cutechess-linux'), 'cutechess')
         os.system('chmod 777 cutechess')
 
 def getCompilationSettings(server):
 
     # Get a dictionary of engine -> compilers
     data = requests.get(
-        pathjoin(server, 'clientGetBuildInfo'),
+        urljoin(server, 'clientGetBuildInfo'),
         timeout=HTTP_TIMEOUT).content.decode('utf-8')
     data = ast.literal_eval(data)
 
@@ -173,7 +191,7 @@ def getCompilationSettings(server):
         print("Unable to find compiler for {0}".format(engine))
 
 
-def getFile(source, output):
+def getFile(source, output, post=None):
 
     # Download the source file
     print('Downloading {0}'.format(source))
@@ -245,7 +263,7 @@ def getEngine(arguments, data, engine, network):
 
     # Move the binary to the /Engines/ directory
     output = '{0}{1}'.format(pathway, engine['name'])
-    destination = addExtension(pathjoin('Engines', savedEngineName(engine['sha'], network)).rstrip('/'))
+    destination = addExtension(pathjoin('Engines', savedEngineName(engine['sha'], network)))
 
     # Check to see if the compiler included a file extension or not
     if os.path.isfile(output): os.rename(output, destination)
@@ -260,9 +278,9 @@ def getNetworkWeights(server, network):
         return
 
     print ('Fetching and Verifying Network ({0})'.format(network))
-    fname = pathjoin('Networks', network).rstrip('/')
+    fname = pathjoin('Networks', network)
     if not os.path.isfile(fname):
-        getFile(pathjoin(server, 'networks', 'download', network), fname)
+        getFile(urljoin(server, 'networks', 'download', network), fname)
 
     with open(fname, 'rb') as weights:
         sha256 = hashlib.sha256(weights.read()).hexdigest()[:8].upper()
@@ -491,7 +509,7 @@ def verifyEngine(arguments, data, engine, network):
 
     # Download the engine if we do not already have it
     name = savedEngineName(engine['sha'], network)
-    pathway = addExtension(pathjoin('Engines', name).rstrip('/'))
+    pathway = addExtension(pathjoin('Engines', name))
     if not os.path.isfile(pathway): getEngine(arguments, data, engine, network)
 
     # Run a group of benchmarks in parallel in order to better scale NPS
@@ -509,7 +527,6 @@ def verifyEngine(arguments, data, engine, network):
 
 def reportWrongBenchmark(arguments, data, engine, bench):
 
-
     data = {
         'username' : arguments.username, 'testid' : data['test']['id'],
         'password' : arguments.password, 'machineid' : data['machine']['id'],
@@ -517,19 +534,18 @@ def reportWrongBenchmark(arguments, data, engine, bench):
         'engine'   : engine['name'],
     }
 
-    url = pathjoin(arguments.server, 'clientWrongBench')
+    url = urljoin(arguments.server, 'clientWrongBench')
     data = requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
     if data == 'Bad Machine': raise Exception('Bad Machine')
 
 def reportNodesPerSecond(arguments, data, nps):
-
 
     data = {
         'username'  : arguments.username, 'machineid' : data['machine']['id'],
         'password'  : arguments.password, 'nps'       : nps,
     }
 
-    url = pathjoin(arguments.server, 'clientSubmitNPS')
+    url = urljoin(arguments.server, 'clientSubmitNPS')
     data = requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
     if data == 'Bad Machine': raise Exception('Bad Machine')
 
@@ -548,7 +564,7 @@ def reportEngineError(arguments, data, line):
         'error'    : error,
     }
 
-    url = pathjoin(arguments.server, 'clientSubmitError')
+    url = urljoin(arguments.server, 'clientSubmitError')
     data = requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
     if data == 'Bad Machine': raise Exception('Bad Machine')
 
@@ -562,9 +578,9 @@ def reportResults(arguments, data, wins, losses, draws, crashes, timelosses):
         'testid'    : data['test']['id'],    'timeloss'  : timelosses,
     }
 
-    url = pathjoin(arguments.server, 'clientSubmitResults')
+    url = urljoin(arguments.server, 'clientSubmitResults')
     try: return requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
-    except: print('[NOTE] Unable To Reach Server'); return 'Unable'
+    except Exception: print('[NOTE] Unable To Reach Server'); return 'Unable'
 
 
 def processCutechess(arguments, data, cutechess, concurrency):
@@ -638,7 +654,7 @@ def completeWorkload(workRequestData, arguments):
 
     # Get the next workload
     data = requests.post(
-        pathjoin(arguments.server, 'clientGetWorkload'),
+        urljoin(arguments.server, 'clientGetWorkload'),
         data=workRequestData, timeout=HTTP_TIMEOUT).content.decode('utf-8')
 
     # Check for an empty workload
