@@ -18,7 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import os, hashlib, mimetypes, datetime
+import os, hashlib, mimetypes, datetime, json
 
 import django.http
 import django.shortcuts
@@ -38,9 +38,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
 from htmlmin.decorators import not_minified_response
 
-def render(request, template, content={}):
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                              GENERAL UTILITIES                              #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    template = 'OpenBench/{0}'.format(template)
+class UnableToAuthenticate(Exception):
+    pass
+
+def render(request, template, content={}):
 
     data = content.copy()
     data.update({'config' : OpenBench.config.OPENBENCH_CONFIG})
@@ -56,8 +61,22 @@ def render(request, template, content={}):
         if request.user.is_authenticated and not profile.first():
             data.update({'error' : data['config']['error']['fakeuser']})
 
-    return django.shortcuts.render(request, template, data)
+    return django.shortcuts.render(request, 'OpenBench/{0}'.format(template), data)
 
+def authenticate(request):
+
+    try:
+        user = django.contrib.auth.authenticate(
+            username = request.POST['username'],
+            password = request.POST['password'])
+
+    except Exception:
+        raise UnableToAuthenticate()
+
+    if user is None:
+        raise UnableToAuthenticate()
+
+    return user
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                            ADMINISTRATIVE VIEWS                             #
@@ -103,24 +122,21 @@ def login(request):
     #                                                                         #
     #  GET  : Return the HTML template used for logging in a User             #
     #                                                                         #
-    #  POST : Attempt to login the User and authenticate their credentials.   #
-    #         If their login is invalid, let them know. In all cases, return  #
-    #         the User back to the main page                                  #
+    #  POST : Attempt to login the User. If their login is invalid, let them  #
+    #         know. In all cases, return the User back to the main page       #
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     if request.method == 'GET':
         return render(request, 'login.html')
 
-    user = django.contrib.auth.authenticate(
-        username=request.POST['username'],
-        password=request.POST['password'])
+    try:
+        user = authenticate(request)
+        django.contrib.auth.login(request, user)
+        return django.http.HttpResponseRedirect('/index/')
 
-    if user is None:
+    except UnableToAuthenticate:
         return index(request, error='Unable to Authenticate User')
-
-    django.contrib.auth.login(request, user)
-    return django.http.HttpResponseRedirect('/index/')
 
 def logout(request):
 
@@ -452,18 +468,19 @@ def newTest(request):
 #                          NETWORK MANAGEMENT VIEWS                           #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def networks(request, action=None, sha256=None):
+def networks(request, action=None, sha256=None, client=False):
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #                                                                         #
     #  GET  : There are three possible GET lookups. [1] Fetch a view of all   #
     #         the Networks on the framework. [2] Fetch a template to upload a #
     #         new Network to the framework. [3] Download the contents of a    #
-    #         Network that is already saved on the framework.                 #
+    #         Network that is already saved on the framework. Anyone may view #
+    #         the list of Network weights, but only some may interact         #
     #                                                                         #
-    # POST  : There are four possible POST lookups. Download, Upload, Default #
-    #         and Delete. Downloads are open, but all others are gated by the #
-    #         credentials of the User.                                        #
+    # POST  : There are three possible POST lookups. They are Upload, Default #
+    #         and Delete. All of these are placed behind a login and approver #
+    #         flag wall. This view is not meant to distribute Networks        #
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -471,24 +488,10 @@ def networks(request, action=None, sha256=None):
         networks = Network.objects.all().order_by('-id')
         return render(request, 'networks.html', {'networks' : networks})
 
-    if action.upper() == 'DOWNLOAD':
-
-        if not Network.objects.filter(sha256=sha256):
-            return index(request, error='No Network found with matching SHA256')
-
-        netfile  = os.path.join(MEDIA_ROOT, sha256)
-        fwrapper = FileWrapper(open(netfile, 'rb'), 8192)
-        response = FileResponse(fwrapper, content_type='application/octet-stream')
-
-        response['Expires'] = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).ctime()
-        response['Content-Length'] = os.path.getsize(netfile)
-        response['Content-Disposition'] = 'attachment; filename=' + sha256
-        return response
-
     if not request.user.is_authenticated:
         return django.http.HttpResponseRedirect('/login/')
 
-    if not Profile.objects.get(user=request.user).approver:
+    if not client and not Profile.objects.get(user=request.user).approver:
         return django.http.HttpResponseRedirect('/index/')
 
     if action.upper() == 'UPLOAD':
@@ -510,7 +513,7 @@ def networks(request, action=None, sha256=None):
 
         Network.objects.create(
             sha256=sha256, name=request.POST['name'],
-            engine=engine, author=request.user.username);
+            engine=engine, author=request.user.username)
 
         return index(request)
 
@@ -535,6 +538,20 @@ def networks(request, action=None, sha256=None):
 
         return django.http.HttpResponseRedirect('/networks/')
 
+    if action.upper() == 'DOWNLOAD':
+
+        if not Network.objects.filter(sha256=sha256):
+            return index(request, error='No Network found with matching SHA256')
+
+        netfile  = os.path.join(MEDIA_ROOT, sha256)
+        fwrapper = FileWrapper(open(netfile, 'rb'), 8192)
+        response = FileResponse(fwrapper, content_type='application/octet-stream')
+
+        response['Expires'] = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).ctime()
+        response['Content-Length'] = os.path.getsize(netfile)
+        response['Content-Disposition'] = 'attachment; filename=' + sha256
+        return response
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              CLIENT HOOK VIEWS                              #
@@ -545,8 +562,7 @@ def clientGetFiles(request):
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #                                                                         #
-    #  GET  : Return a URL pointing to the location of Cutechess-cli, as well #
-    #         as any DLLs or Shared Object files needed for Cutechess-cli     #
+    #  GET  : Return a URL to the location of Cutechess for Windows and Linux #
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -562,10 +578,10 @@ def clientGetBuildInfo(request):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    data = {} # Return all engine-compiler information
+    data = {}
     for engine, config in OpenBench.config.OPENBENCH_CONFIG['engines'].items():
-        data[engine] = config['build']['compilers']
-    return HttpResponse(str(data))
+        data[engine] = config['build']
+    return HttpResponse(json.dumps(data))
 
 @csrf_exempt
 @not_minified_response
@@ -582,13 +598,22 @@ def clientGetWorkload(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Verify the User's credentials
-    user = django.contrib.auth.authenticate(
-        username=request.POST['username'],
-        password=request.POST['password'])
-    if user == None: return HttpResponse('Bad Credentials')
+    try: user = authenticate(request)
+    except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
     # getWorkload() will verify the integrity of the request
     return HttpResponse(OpenBench.utils.getWorkload(user, request))
+
+@csrf_exempt
+@not_minified_response
+def clientGetNetwork(request, sha256):
+
+    # Verify the User's credentials
+    try: django.contrib.auth.login(request, authenticate(request))
+    except UnableToAuthenticate: return HttpResponse('Bad Credentials')
+
+    # Return the requested Neural Network file for the Client
+    return networks(request, action='DOWNLOAD', sha256=sha256, client=True)
 
 @csrf_exempt
 @not_minified_response
@@ -603,10 +628,8 @@ def clientWrongBench(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Verify the User's credentials
-    user = django.contrib.auth.authenticate(
-        username=request.POST['username'],
-        password=request.POST['password'])
-    if user == None: return HttpResponse('Bad Credentials')
+    try: user = authenticate(request)
+    except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
     # Verify the Machine belongs to the User
     machine = Machine.objects.get(id=int(request.POST['machineid']))
@@ -646,10 +669,8 @@ def clientSubmitNPS(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Verify the User's credentials
-    user = django.contrib.auth.authenticate(
-        username=request.POST['username'],
-        password=request.POST['password'])
-    if user == None: return HttpResponse('Bad Credentials')
+    try: user = authenticate(request)
+    except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
     # Verify the Machine belongs to the User
     machine = Machine.objects.get(id=int(request.POST['machineid']))
@@ -672,10 +693,8 @@ def clientSubmitError(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Verify the User's credentials
-    user = django.contrib.auth.authenticate(
-        username=request.POST['username'],
-        password=request.POST['password'])
-    if user == None: return HttpResponse('Bad Credentials')
+    try: user = authenticate(request)
+    except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
     # Verify the Machine belongs to the User
     machine = Machine.objects.get(id=int(request.POST['machineid']))
@@ -698,10 +717,8 @@ def clientSubmitError(request):
 def clientSubmitResults(request):
 
     # Verify the User's credentials
-    user = django.contrib.auth.authenticate(
-        username=request.POST['username'],
-        password=request.POST['password'])
-    if user == None: return HttpResponse('Bad Credentials')
+    try: user = authenticate(request)
+    except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
     # Verify the Machine belongs to the User
     machine = Machine.objects.get(id=int(request.POST['machineid']))

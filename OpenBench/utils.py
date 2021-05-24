@@ -18,7 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import math, re, requests, random, datetime, os
+import math, re, requests, random, datetime, os, json
 
 import OpenBench.models, OpenBench.stats
 
@@ -112,18 +112,11 @@ def getPaging(content, page, url, pagelen=25):
     return start, end, context
 
 
-def getEngine(source, name, sha, bench, protocol):
+def getEngine(source, name, sha, bench):
 
-    engine = Engine.objects.filter(
-        name=name, source=source,
-        protocol=protocol, sha=sha, bench=bench)
-
-    if engine.first() != None:
-        return engine.first()
-
-    return Engine.objects.create(
-        name=name, source=source,
-        protocol=protocol, sha=sha, bench=bench)
+    engine = Engine.objects.filter(name=name, source=source, sha=sha, bench=bench)
+    if engine.first() != None: return engine.first()
+    return Engine.objects.create(name=name, source=source, sha=sha, bench=bench)
 
 def getBranch(request, errors, name):
 
@@ -236,7 +229,6 @@ def createNewTest(request):
 
     devinfo = getBranch(request, errors, 'dev')
     baseinfo = getBranch(request, errors, 'base')
-    protocol  = OPENBENCH_CONFIG['engines'][request.POST['enginename']]['proto']
     if errors != []: return None, errors
 
     test = Test()
@@ -257,8 +249,8 @@ def createNewTest(request):
     test.beta        = float(request.POST['beta'])
     test.lowerllr    = math.log(test.beta / (1.0 - test.alpha))
     test.upperllr    = math.log((1.0 - test.beta) / test.alpha)
-    test.dev         = getEngine(*devinfo, protocol)
-    test.base        = getEngine(*baseinfo, protocol)
+    test.dev         = getEngine(*devinfo)
+    test.base        = getEngine(*baseinfo)
     test.save()
 
     profile = Profile.objects.get(user=request.user)
@@ -306,19 +298,25 @@ def getWorkload(user, request):
     machine = getMachine(machineid, user, osname, int(threads))
     if type(machine) == str: return machine
 
-    # Compare supported Machines vs Existing
-    supported = request.POST['supported'].split()
-    existing  = OPENBENCH_CONFIG['engines'].keys()
-
     # Filter only to active tests
     tests = Test.objects.filter(finished=False)
     tests = tests.filter(deleted=False)
     tests = tests.filter(approved=True)
 
-    # Remove tests that this Machine cannot complete
-    for engine in existing:
+    # Filter to compilable engines
+    supported = request.POST['supported'].split()
+    cpuflags  = request.POST['cpuflags'].split()
+
+    # Remove tests that this Machine cannot complete (Compile)
+    for engine in OPENBENCH_CONFIG['engines'].keys():
         if engine not in supported:
             tests = tests.exclude(engine=engine)
+
+    # Remove tests that this Machine cannot complete (Architecture)
+    for engine, data in OPENBENCH_CONFIG['engines'].items():
+        for flag in data['build']['cpuflags']:
+            if flag not in cpuflags:
+                tests = tests.exclude(engine=engine)
 
     # If we don't get a Test back, there was an error
     test = selectWorkload(tests, machine)
@@ -364,7 +362,7 @@ def workloadDictionary(test, result, machine):
     # The Client must know his Machine ID, his Result ID, and his Test
     # ID. Also, all information about the Test and the associated engines
 
-    return {
+    return json.dumps({
 
         'machine' : { 'id'  : machine.id },
 
@@ -381,19 +379,19 @@ def workloadDictionary(test, result, machine):
 
             'dev' : {
                 'id'        : test.dev.id,      'name'      : test.dev.name,
-                'source'    : test.dev.source,  'protocol'  : test.dev.protocol,
-                'sha'       : test.dev.sha,     'bench'     : test.dev.bench,
-                'options'   : test.devoptions,  'network'   : test.devnetwork,
+                'source'    : test.dev.source,  'sha'       : test.dev.sha,
+                'bench'     : test.dev.bench,   'options'   : test.devoptions,
+                'network'   : test.devnetwork,
             },
 
             'base' : {
                 'id'        : test.base.id,     'name'      : test.base.name,
-                'source'    : test.base.source, 'protocol'  : test.base.protocol,
-                'sha'       : test.base.sha,    'bench'     : test.base.bench,
-                'options'   : test.baseoptions, 'network'   : test.basenetwork,
+                'source'    : test.base.source, 'sha'       : test.base.sha,
+                'bench'     : test.base.bench,  'options'   : test.baseoptions,
+                'network'   : test.basenetwork,
             },
         },
-    }
+    })
 
 
 def updateTest(request, user):

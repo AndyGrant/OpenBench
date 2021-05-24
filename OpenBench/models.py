@@ -27,7 +27,6 @@ class Engine(Model):
 
     name     = CharField(max_length=128)
     source   = CharField(max_length=1024)
-    protocol = CharField(max_length=16)
     sha      = CharField(max_length=64)
     bench    = IntegerField(default=0)
 

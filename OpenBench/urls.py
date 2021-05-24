@@ -52,13 +52,13 @@ urlpatterns = [
     # Links for viewing and managing Networks
     django.urls.path(r'networks/', OpenBench.views.networks),
     django.urls.path(r'networks/<str:action>/', OpenBench.views.networks),
-    django.urls.path(r'networks/<str:action>/<str:sha256>', OpenBench.views.networks),
     django.urls.path(r'networks/<str:action>/<str:sha256>/', OpenBench.views.networks),
 
     # Links for the Client to work with the Server
     django.urls.path(r'clientGetFiles/', OpenBench.views.clientGetFiles),
     django.urls.path(r'clientGetBuildInfo/', OpenBench.views.clientGetBuildInfo),
     django.urls.path(r'clientGetWorkload/', OpenBench.views.clientGetWorkload),
+    django.urls.path(r'clientGetNetwork/<str:sha256>/', OpenBench.views.clientGetNetwork),
     django.urls.path(r'clientWrongBench/', OpenBench.views.clientWrongBench),
     django.urls.path(r'clientSubmitNPS/', OpenBench.views.clientSubmitNPS),
     django.urls.path(r'clientSubmitError/', OpenBench.views.clientSubmitError),
