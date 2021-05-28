@@ -237,7 +237,7 @@ def make_command(arguments, engine, network_path):
     if network_path != None:
         command += ' EVALFILE=%s' % (network_path.replace('\\', '/'))
 
-    return command
+    return command.split()
 
 def parse_bench_output(stream):
 
@@ -381,7 +381,7 @@ def server_configure_worker(arguments):
 
     # Use GCC -march=native to find CPU info
     stdout, stderr = Popen(
-        'echo | gcc -march=native -E -dM -'.split(),
+        'echo | gcc -march=native -E -dM -',
         stdout=PIPE, shell=True
     ).communicate()
 
