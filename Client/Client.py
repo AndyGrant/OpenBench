@@ -1,739 +1,814 @@
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#                                                                             #
-#   OpenBench is a chess engine testing framework authored by Andrew Grant.   #
-#   <https://github.com/AndyGrant/OpenBench>           <andrew@grantnet.us>   #
-#                                                                             #
-#   OpenBench is free software: you can redistribute it and/or modify         #
-#   it under the terms of the GNU General Public License as published by      #
-#   the Free Software Foundation, either version 3 of the License, or         #
-#   (at your option) any later version.                                       #
-#                                                                             #
-#   OpenBench is distributed in the hope that it will be useful,              #
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of            #
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the             #
-#   GNU General Public License for more details.                              #
-#                                                                             #
-#   You should have received a copy of the GNU General Public License         #
-#   along with this program.  If not, see <http://www.gnu.org/licenses/>.     #
-#                                                                             #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                           #
+#   OpenBench is a chess engine testing framework by Andrew Grant.          #
+#   <https://github.com/AndyGrant/OpenBench>  <andrew@grantnet.us>          #
+#                                                                           #
+#   OpenBench is free software: you can redistribute it and/or modify       #
+#   it under the terms of the GNU General Public License as published by    #
+#   the Free Software Foundation, either version 3 of the License, or       #
+#   (at your option) any later version.                                     #
+#                                                                           #
+#   OpenBench is distributed in the hope that it will be useful,            #
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of          #
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the           #
+#   GNU General Public License for more details.                            #
+#                                                                           #
+#   You should have received a copy of the GNU General Public License       #
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.   #
+#                                                                           #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+import argparse
+import hashlib
+import os
+import platform
+import re
+import requests
+import sys
+import time
+import traceback
+import zipfile
+import shutil
+import multiprocessing
 
-from __future__ import print_function
+from subprocess import PIPE, Popen
 
-import argparse, ast, hashlib, json, math, multiprocessing, os
-import platform, re, requests, shutil, subprocess, sys, time, zipfile
+from itertools import combinations_with_replacement
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                           #
+#   Configuration for the Client. To disable deleting old files, use the    #
+#   value None. If Syzygy Tablebases are not present, set to None.          #
+#                                                                           #
+#   Each engine allows a custom set of arguments. All engines will compile  #
+#   without any custom options. However you have the ability to add args    #
+#   in order to get better builds, like PGO or PEXT/BMI2.                   #
+#                                                                           #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+TIMEOUT_HTTP        = 30   # Timeout in seconds for HTTP requests
+TIMEOUT_ERROR       = 10   # Timeout in seconds when any errors are thrown
+TIMEOUT_WORKLOAD    = 60   # Timeout in seconds between workload requests
 
-HTTP_TIMEOUT          = 30    # Timeout in seconds for requests
-WORKLOAD_TIMEOUT      = 60    # Timeout when there is no work
-ERROR_TIMEOUT         = 60    # Timeout when an error is thrown
-GAMES_PER_CONCURRENCY = 32    # Total games to play per concurrency
-
-SAVE_PGN_FILES        = False # Auto-save PGN output for engine pairings
-AUTO_DELETE_ENGINES   = True  # Delete Engines that are over 24hrs old
+SYZYGY_WDL_PATH     = 'C:\\Users\\14438\\Desktop\\Syzygy\\' # Pathway to WDL Syzygy Tables
+SYZYGY_DTZ_PATH     = 'C:\\Users\\14438\\Desktop\\Syzygy\\' # Pathway to DTZ Syzygy Tables
+BASE_GAMES_PER_CORE = 32   # Typical games played per-thread
 
 CUSTOM_SETTINGS = {
-    'Ethereal'  : { 'args' : [] }, # Configuration for Ethereal
-    'Laser'     : { 'args' : [] }, # Configuration for Laser
-    'Weiss'     : { 'args' : [] }, # Configuration for Weiss
-    'Demolito'  : { 'args' : [] }, # Configuration for Demolito
-    'Rubichess' : { 'args' : [] }, # Configuration for RubiChess
-    'FabChess'  : { 'args' : [] }, # Configuration for FabChess
-    'Igel'      : { 'args' : [] }, # Configuration for Igel
-    'Winter'    : { 'args' : [] }, # Configuration for Winter
-    'Halogen'   : { 'args' : [] }, # Configuration for Halogen
-    'Stash'     : { 'args' : [] }, # Configuration for Stash
+    'Ethereal'  : [], 'Laser'     : [],
+    'Weiss'     : [], 'Demolito'  : [],
+    'Rubichess' : [], 'FabChess'  : [],
+    'Igel'      : [], 'Winter'    : [],
+    'Halogen'   : [], 'Stash'     : [],
 };
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+ERRORS = {
+    'cutechess'    : 'Unable to fetch Cutechess location and download it!',
+    'configure'    : 'Unable to fetch and determine acceptable workloads!',
+    'request'      : 'Unable to reach server for workload request!',
+    'bad_bench'    : 'Unable to reach server to report bad benchmark!',
+    'bench_nps'    : 'Unable to reach server to report benchmark NPS!',
+    'report_error' : 'Unable to reach server to report engine failure!',
+}
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                           #
+#   Setting up the Client. Build the OpenBench file structure, check for    #
+#   Syzygy Tables for both WDL and DTZ, download a static Cutechess binary, #
+#   and determine what engines we are able to compile by asking the server. #
+#                                                                           #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# Treat Windows and Linux systems differently
+# Differentiate Windows and Linux systems
 IS_WINDOWS = platform.system() == 'Windows'
 IS_LINUX   = platform.system() != 'Windows'
 
-COMPILERS = {} # Mapping of Engines to Compilers
+COMPILERS = {} # Compiler for each Engine, + CPU Flags
+OSNAME    = '%s %s' % (platform.system(), platform.release())
+DEBUG     = True
+
+def check_for_utilities():
+
+    def locate_utility(util):
+
+        try:
+            process = Popen([util, '--version'], stdout=PIPE)
+            stdout, stderr = process.communicate()
+
+            ver = re.search('[0-9]+.[0-9]+.[0-9]+', str(stdout))
+            print ('Located %s (%s)' % (util.upper(), ver.group()))
+
+        except OSError:
+            print('[Error] Unable to locate %s' % (util.upper()))
+            sys.exit()
+
+    print('\nScanning For Basic Utilities...')
+    for utility in ['gcc', 'make']:
+        locate_utility(utility)
+
+def init_client(arguments):
+
+    # Use Client.py's path as the base pathway
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+    # Ensure the folder structure for ease of coding
+    for folder in ['PGNs', 'Engines', 'Networks', 'Books']:
+        if not os.path.isdir(folder):
+            os.mkdir(folder)
+
+    # Verify all WDL/DTZ tables are present when told they are
+    validate_syzygy_exists()
+
+def cleanup_client():
+
+    SECONDS_PER_DAY   = 60 * 60 * 24
+    SECONDS_PER_MONTH = SECONDS_PER_DAY * 30
+
+    file_age = lambda x: time.time() - os.path.getmtime(x)
+
+    for file in os.listdir('PGNs'):
+        if file_age(os.path.join('PGNs', file)) > SECONDS_PER_DAY:
+            os.remove(os.path.join('PGNs', file))
+
+    for file in os.listdir('Engines'):
+        if file_age(os.path.join('Engines', file)) > SECONDS_PER_DAY:
+            os.remove(os.path.join('Engines', file))
+
+    for file in os.listdir('Networks'):
+        if file_age(os.path.join('Networks', file)) > SECONDS_PER_MONTH:
+            os.remove(os.path.join('Networks', file))
+
+def validate_syzygy_exists():
+
+    global SYZYGY_WDL_PATH, SYZYGY_DTZ_PATH
+
+    print ('\nScanning for Syzygy Configuration...')
+
+    for filename in tablebase_names():
+
+        # Build the paths when the configuration enables Syzygy
+
+        if SYZYGY_WDL_PATH:
+            wdlpath = os.path.join(SYZYGY_WDL_PATH, filename + '.rtbw')
+
+        if SYZYGY_DTZ_PATH:
+            dtzpath = os.path.join(SYZYGY_DTZ_PATH, filename + '.rtbz')
+
+        # Reset the configuration if the file is missing
+
+        if SYZYGY_WDL_PATH and not os.path.isfile(wdlpath):
+            print('Missing Syzygy File (%s)' % (filename + '.rtbw'))
+            SYZYGY_WDL_PATH = None
+
+        if SYZYGY_DTZ_PATH and not os.path.isfile(dtzpath):
+            print('Missing Syzygy File (%s)' % (filename + '.rtbz'))
+            SYZYGY_DTZ_PATH = None
+
+    # Report final results, which may conflict with the original configuration
+
+    if SYZYGY_WDL_PATH:
+        print('Verified Syzygy WDL (%s)' % (SYZYGY_WDL_PATH))
+
+    if SYZYGY_DTZ_PATH:
+        print('Verified Syzygy DTZ (%s)' % (SYZYGY_DTZ_PATH))
+
+def tablebase_names(K=6):
+
+    letters = ['', 'Q', 'R', 'B', 'N', 'P']; candidates = []
+
+    # Generate many potential K[] v K[], including all valid ones
+    for N in range(1, K - 1):
+        for lhs in combinations_with_replacement(letters, N):
+            for rhs in combinations_with_replacement(letters, K - N - 2):
+                candidates.append('K%svK%s' % (''.join(lhs), ''.join(rhs)))
+
+    # Syzygy does LHS having more pieces first, stronger pieces second
+    def valid_filename(name):
+        for i, letter in enumerate(letters[1:]):
+            name = name.replace(letter, str(9 - i))
+        lhs, rhs = name.replace('K', '9').split('v')
+        return int(lhs) >= int(rhs) and name != 'KvK'
+
+    return list(filter(valid_filename, set(candidates)))
 
 
-def addExtension(name):
-    return name + ["", ".exe"][IS_WINDOWS]
+def url_join(*args):
 
-def pathjoin(*args):
-
-    # Join a set of file paths while maintaining the correct
-    # format of "/"'s between each part of the file's pathway
-
-    return '/'.join([f.lstrip('/').rstrip('/') for f in args])
-
-def urljoin(*args):
-
-    # Join a set of file paths while maintaining the correct
-    # format of "/"'s between each part of the file's pathway
-
+    # Join a set of URL paths while maintaining the correct format
     return '/'.join([f.lstrip('/').rstrip('/') for f in args]) + '/'
 
-def savedEngineName(sha256, network256):
-    if not network256: return sha256
-    return "{0}-{1}".format(sha256, network256)
+def try_until_success(mesg):
+    def _try_until_success(funct):
+        def __try_until_success(*args):
+            while True:
+                try: return funct(*args)
+                except Exception:
+                    print('[Error]', mesg); time.sleep(TIMEOUT_ERROR)
+                    if DEBUG: traceback.print_exc()
+        return __try_until_success
+    return _try_until_success
 
-def relativeNetworkPath(network256, makepath):
-    root = '../' * makepath.count('/')
-    path = os.path.join(root, 'Networks', network256)
-    return path.replace('\\', '/').rstrip('/').rstrip('\\')
+def download_file(source, outname, post_data=None):
 
-def killCutechess(cutechess):
+    arguments = { 'stream' : True, 'timeout' : TIMEOUT_ERROR }
+    function  = [requests.get, requests.post][post_data != None]
+    if post_data: arguments['data'] = post_data
+
+    request = function(source, **arguments)
+    with open(outname, 'wb') as fout:
+        for chunk in request.iter_content(chunk_size=1024):
+            if chunk: fout.write(chunk)
+        fout.flush()
+
+def unzip_delete_file(source, outdir):
+    with zipfile.ZipFile(source) as fin:
+        fin.extractall(outdir)
+    os.remove(source)
+
+
+def make_command(arguments, engine, network_path):
+
+    command = 'make CC=%s EXE=%s -j%s' % (
+        COMPILERS[engine], engine, arguments.threads)
+
+    if engine in CUSTOM_SETTINGS:
+        command += ' '.join(CUSTOM_SETTINGS[engine])
+
+    if network_path != None:
+        command += ' EVALFILE=%s' % (network_path.replace('\\', '/'))
+
+    return command.split()
+
+def parse_bench_output(stream):
+
+    nps = bench = None # Search through output Stream
+    for line in stream.decode('ascii').strip().split('\n')[::-1]:
+
+        # Try to match a wide array of patterns
+        line = re.sub(r'[^a-zA-Z0-9 ]+', ' ', line)
+        nps_pattern = r'([0-9]+ NPS)|(NPS[ ]+[0-9]+)'
+        bench_pattern = r'([0-9]+ NODES)|(NODES[ ]+[0-9]+)'
+        re_nps = re.search(nps_pattern, line.upper())
+        re_bench = re.search(bench_pattern, line.upper())
+
+        # Replace only if not already found earlier
+        if not nps and re_nps: nps = re_nps.group()
+        if not bench and re_bench: bench = re_bench.group()
+
+    # Parse out the integer portion from our matches
+    nps = int(re.search(r'[0-9]+', nps).group()) if nps else None
+    bench = int(re.search(r'[0-9]+', bench).group()) if bench else None
+    return (nps, bench)
+
+def run_bench(engine, outqueue):
 
     try:
-        # Manually kill process trees for Windows
+        # Launch the engine and parse output for statistics
+        process = Popen(['./' + engine, 'bench'], stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        outqueue.put(parse_bench_output(stdout))
+    except Exception: outqueue.put((0, 0))
+
+def scale_time_control(workload, nps):
+
+    # Searching for X/Y+Z time controls
+    pattern = '(\d*.\d*)/?(\d+)?\+?(\d*.\d*)?'
+    time_control = workload['test']['timecontrol']
+    base, repeat, inc = re.search(pattern, time_control).groups(0)
+
+    # Scale our machine's NPS to the Server's NPS
+    base = float(base) * int(workload['test']['nps']) / nps
+    inc  = float(inc ) * int(workload['test']['nps']) / nps
+
+    # Only include repeating controls when found
+    if repeat == 0:
+        return '%.2f+%.2f' % (base, inc)
+    return ('%.2f/%d+%.2f' % (base, int(repeat), inc))
+
+def kill_cutechess(cutechess):
+
+    try:
+
         if IS_WINDOWS:
             subprocess.call(['taskkill', '/F', '/T', '/PID', str(cutechess.pid)])
-            cutechess.wait()
-            cutechess.stdout.close()
 
-        # Subprocesses close nicely on Linux
         if IS_LINUX:
             cutechess.kill()
-            cutechess.wait()
-            cutechess.stdout.close()
 
-    except KeyboardInterrupt: sys.exit()
-    except Exception as error: pass
+        cutechess.wait()
+        cutechess.stdout.close()
 
+    except Exception:
+        pass
 
-def cleanupEnginesDirectory():
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                           #
+#   All functions used to make requests to the OpenBench server. Workload   #
+#   requests require Username and Password authentication. Communication    #
+#   with the server is required to succeed except for result uploads which  #
+#   may be batched and held onto in the event of outages.                   #
+#                                                                           #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    SECONDS_PER_DAY = 60 * 60 * 24;
+@try_until_success(mesg=ERRORS['cutechess'])
+def server_download_cutechess(arguments):
 
-    for file in os.listdir('Engines/'):
-        if time.time() - os.path.getmtime('Engines/{0}'.format(file)) > SECONDS_PER_DAY:
-            os.remove('Engines/{0}'.format(file))
-            print ("[NOTE] Deleted Engine", file)
-
-def cleanupNetworksDirectory():
-
-    SECONDS_PER_MONTH = 60 * 60 * 24 * 30;
-
-    for file in os.listdir('Networks/'):
-        if time.time() - os.path.getmtime('Networks/{0}'.format(file)) > SECONDS_PER_MONTH:
-            os.remove('Networks/{0}'.format(file))
-            print ("[NOTE] Deleted Network", file)
-
-
-
-def getCutechess(server):
+    print('\nScanning for Cutechess Binary...')
 
     if IS_WINDOWS and not os.path.isfile('cutechess.exe'):
 
         # Fetch the source location if we are missing the binary
         source = requests.get(
-            urljoin(server, 'clientGetFiles'),
-            timeout=HTTP_TIMEOUT).content.decode('utf-8')
+            url_join(arguments.server, 'clientGetFiles'),
+            timeout=TIMEOUT_HTTP).content.decode('utf-8')
 
         # Windows workers simply need a static compile (64-bit)
-        getFile(urljoin(source, 'cutechess-windows.exe'), 'cutechess.exe')
+        download_file(url_join(source, 'cutechess-windows.exe'), 'cutechess.exe')
 
     if IS_LINUX and not os.path.isfile('cutechess'):
 
         # Fetch the source location if we are missing the binary
         source = requests.get(
-            urljoin(server, 'clientGetFiles'),
-            timeout=HTTP_TIMEOUT).content.decode('utf-8')
+            url_join(arguments.server, 'clientGetFiles'),
+            timeout=TIMEOUT_HTTP).content.decode('utf-8')
 
         # Linux workers need a static compile (64-bit) with execute permissions
-        getFile(urljoin(source, 'cutechess-linux'), 'cutechess')
+        download_file(url_join(source, 'cutechess-linux'), 'cutechess')
         os.system('chmod 777 cutechess')
 
-def getCompilationSettings(server):
+    print('Cutechess Binary found or obtained')
 
-    # Get a dictionary of engine -> compilers
-    data = requests.get(
-        urljoin(server, 'clientGetBuildInfo'),
-        timeout=HTTP_TIMEOUT).content.decode('utf-8')
-    data = ast.literal_eval(data)
+@try_until_success(mesg=ERRORS['configure'])
+def server_configure_worker(arguments):
 
-    for engine, compilers in data.items():
-        for compiler in compilers:
+    print ('\nScanning for Compilers...')
+
+    # Fetch { Engine -> Compilers } from the server
+    target = url_join(arguments.server, 'clientGetBuildInfo')
+    data   = requests.get(target, timeout=TIMEOUT_HTTP).json()
+
+    for engine, build_info in data.items():
+        for compiler in build_info['compilers']:
 
             # Compilers may require a specific version
             if '>=' in compiler:
                 compiler, version = compiler.split('>=')
                 version = tuple(map(int, version.split('.')))
-            else: compiler = compiler; version = (0, 0, 0)
+            else: version = (0, 0, 0)
 
             # Try to execute the compiler from the command line
-            try: stdout, stderr = subprocess.Popen(
-                    [compiler, '--version'],
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.STDOUT,
-                ).communicate()
+            try:
+                process = Popen([compiler, '--version'], stdout=PIPE)
+                stdout, stderr = process.communicate()
             except OSError: continue
 
             # Parse the version number reported by the compiler
             stdout = stdout.decode('utf-8')
-            match = re.search(r'[0-9]+\.[0-9]+\.[0-9]+', stdout).group()
-            actual = tuple(map(int, match.split('.')))
+            match  = re.search(r'[0-9]+\.[0-9]+\.[0-9]+', stdout).group()
 
-            # Compiler was sufficient
-            if actual >= version:
-                COMPILERS[engine] = { 'compiler' : compiler, 'version' : match }
+            # Compiler version was sufficient
+            if tuple(map(int, match.split('.'))) >= version:
+                print('%10s :: %s (%s)' % (engine, compiler, match))
+                COMPILERS[engine] = compiler
                 break
 
-    # Report each engine configuration we can build for
-    for engine in [engine for engine in data.keys() if engine in COMPILERS]:
-        compiler, version = COMPILERS[engine]['compiler'], COMPILERS[engine]['version']
-        print("Found {0} {1} for {2}".format(compiler, version, engine))
+    # Report missing engines in case the User is not expecting it
+    for engine in filter(lambda x: x not in COMPILERS, data):
+        compiler = data[engine]['compilers']
+        print('%10s :: Missing %s' % (engine, compiler))
 
-    # Report each engine configuration we cannot build for
-    for engine in [engine for engine in data.keys() if engine not in COMPILERS]:
-        print("Unable to find compiler for {0}".format(engine))
+    print ('\nScanning for CPU Flags...')
 
+    # Use GCC -march=native to find CPU info
+    stdout, stderr = Popen(
+        'echo | gcc -march=native -E -dM -',
+        stdout=PIPE, shell=True
+    ).communicate()
 
-def getFile(source, output, post=None):
+    # Check for each requested flag using the gcc dump
+    desired = [info['cpuflags'] for engine, info in data.items()]
+    flags   = set(sum(desired, [])) # Trick to flatten the list
+    actual  = set(f for f in flags if '__%s__ 1' % (f) in str(stdout))
 
-    # Download the source file
-    print('Downloading {0}'.format(source))
-    request = requests.get(url=source, stream=True, timeout=HTTP_TIMEOUT)
+    # Report and save to global configuration
+    print ('     Found ::', ' '.join(list(actual)))
+    print ('   Missing ::', ' '.join(list(flags - actual)))
+    COMPILERS['cpuflags'] = ' '.join(list(actual))
 
-    # Write the file out chunk by chunk
-    with open(output, 'wb') as fout:
-        for chunk in request.iter_content(chunk_size=1024):
-            if chunk: fout.write(chunk)
-        fout.flush()
+@try_until_success(mesg=ERRORS['request'])
+def server_request_workload(arguments):
 
-def getAndUnzipFile(source, name, output):
+    print('\nRequesting Workload from Server...')
 
-    # Download and extract .zip file
-    getFile(source, name)
-    with zipfile.ZipFile(name) as fin:
-        fin.extractall(output)
-
-    # Cleanup by deleting the .zip
-    os.remove(name)
-
-
-def getMachineID():
-
-    # Check if the machine is registered
+    machine_id = 'None'
     if os.path.isfile('machine.txt'):
-        with open('machine.txt', 'r') as fin:
-            return fin.readlines()[0]
-
-    # Notify user when the machine is new
-    print('[NOTE] Machine Is Unregistered')
-    return 'None'
-
-def getEngine(arguments, data, engine, network):
-
-    print('Engine {0}'.format(data['test']['engine']))
-    print('Branch {0}'.format(engine['name']))
-    print('Commit {0}'.format(engine['sha']))
-    print('Source {0}'.format(engine['source']))
-    print('')
-
-    # Extract the zipfile to /tmp/ for future processing
-    # Format: https://github.com/User/Engine/archive/SHA.zip
-    tokens = engine['source'].split('/')
-    unzipname = '{0}-{1}'.format(tokens[-3], tokens[-1].replace('.zip', ''))
-    getAndUnzipFile(engine['source'], '{0}.zip'.format(engine['name']), 'tmp')
-    pathway = pathjoin('tmp/{0}/'.format(unzipname), data['test']['build']['path'])
-
-    # Basic make assumption and an EXE= hook
-    command = ['make', 'EXE={0}'.format(engine['name'])]
-
-    # Allow for multiprocessed build up to the number of requested threads
-    command.append('-j' + arguments.threads)
-
-    # Use a CC= hook to select the compiler we found at start-up
-    command.append('CC={0}'.format(COMPILERS[data['test']['engine']]['compiler']))
-
-    # Use a EVALFILE= hook if we are using a NNUE Network File
-    if network != None:
-        command.append('EVALFILE={0}'.format(relativeNetworkPath(network, pathway)))
-
-    # Add any other custom compilation options if we have them
-    if data['test']['engine'] in CUSTOM_SETTINGS:
-        command.extend(CUSTOM_SETTINGS[data['test']['engine']]['args'])
-
-    # Build the engine. If something goes wrong with the
-    # compilation process, we will figure this out later on
-    subprocess.Popen(command, cwd=pathway).wait(); print("")
-
-    # Move the binary to the /Engines/ directory
-    output = '{0}{1}'.format(pathway, engine['name'])
-    destination = addExtension(pathjoin('Engines', savedEngineName(engine['sha'], network)))
-
-    # Check to see if the compiler included a file extension or not
-    if os.path.isfile(output): os.rename(output, destination)
-    if os.path.isfile(output + '.exe'): os.rename(output + '.exe', destination)
-
-    # Cleanup the zipfile directory
-    shutil.rmtree('tmp')
-
-def getNetworkWeights(server, network):
-
-    if not network:
-        return
-
-    print ('Fetching and Verifying Network ({0})'.format(network))
-    fname = pathjoin('Networks', network)
-    if not os.path.isfile(fname):
-        getFile(urljoin(server, 'networks', 'download', network), fname)
-
-    with open(fname, 'rb') as weights:
-        sha256 = hashlib.sha256(weights.read()).hexdigest()[:8].upper()
-
-    if sha256 != network:
-        os.remove(fname)
-        raise Exception('Unable to verify Network Weights')
-
-    print ('')
-
-def getCutechessCommand(arguments, data, nps):
-
-    # Parse options for Dev
-    tokens = data['test']['dev']['options'].split(' ')
-    devthreads = int(tokens[0].split('=')[1])
-    devoptions = ' option.'.join(['']+tokens)
-
-    # Parse options for Base
-    tokens = data['test']['base']['options'].split(' ')
-    basethreads = int(tokens[0].split('=')[1])
-    baseoptions = ' option.'.join(['']+tokens)
-
-    # Ensure .exe extension on Windows
-    devCommand  = addExtension(savedEngineName(data['test']['dev' ]['sha'], data['test']['dev' ]['network']))
-    baseCommand = addExtension(savedEngineName(data['test']['base']['sha'], data['test']['base']['network']))
-
-    # Scale the time control for this machine's speed
-    timecontrol = computeAdjustedTimecontrol(arguments, data, nps)
-
-    # Find max concurrency for the given testing conditions
-    concurrency = int(math.floor(int(arguments.threads) / max(devthreads, basethreads)))
-
-    # Check for an FRC/Chess960 opening book
-    if "FRC" in data['test']['book']['name'].upper(): variant = 'fischerandom'
-    elif "960" in data['test']['book']['name'].upper(): variant = 'fischerandom'
-    else: variant = 'standard'
-
-    # General Cutechess options
-    generalflags = '-repeat -recover -srand {0} -resign {1} -draw {2}'.format(
-        int(time.time()), 'movecount=3 score=400', 'movenumber=40 movecount=8 score=10'
-    )
-
-    # Options about tournament conditions
-    setupflags = '-variant {0} -concurrency {1} -games {2}'.format(
-        variant, concurrency, concurrency * GAMES_PER_CONCURRENCY
-    )
-
-    # Options for the Dev Engine
-    devflags = '-engine dir=Engines/ cmd=./{0} proto={1} tc={2}{3} name={4}'.format(
-        devCommand, data['test']['dev']['protocol'], timecontrol, devoptions,
-        '{0}-{1}'.format(data['test']['engine'], data['test']['dev']['name'])
-    )
-
-    # Options for the Base Engine
-    baseflags = '-engine dir=Engines/ cmd=./{0} proto={1} tc={2}{3} name={4}'.format(
-        baseCommand, data['test']['base']['protocol'], timecontrol, baseoptions,
-        '{0}-{1}'.format(data['test']['engine'], data['test']['base']['name'])
-    )
-
-    # Options for opening selection
-    bookflags = '-openings file=Books/{0} format={1} order=random plies=16'.format(
-        data['test']['book']['name'], data['test']['book']['name'].split('.')[-1]
-    )
-
-    # Save PGN files if requested, as Engine-Dev_vs_Engine-Base
-    if SAVE_PGN_FILES:
-        bookflags += ' -pgnout PGNs/{0}-{1}_vs_{0}-{2}'.format(
-            data['test']['engine'], data['test']['dev']['name'], data['test']['base']['name'])
-
-    # Combine all flags and add the cutechess program callout
-    options = ' '.join([generalflags, setupflags, devflags, baseflags, bookflags])
-    if IS_WINDOWS: return 'cutechess.exe {0}'.format(options), concurrency
-    if IS_LINUX: return './cutechess {0}'.format(options), concurrency
-
-
-def parseStreamOutput(output):
-
-    # None unless found
-    bench = None; speed = None
-
-    # Split the output line by line and look backwards
-    for line in output.decode('ascii').strip().split('\n')[::-1]:
-
-        # Convert all non-alpha numerics to spaces
-        line = re.sub(r'[^a-zA-Z0-9 ]+', ' ', line)
-
-        # Search for node or speed counters
-        bench1 = re.search(r'[0-9]+ NODES', line.upper())
-        bench2 = re.search(r'NODES[ ]+[0-9]+', line.upper())
-        speed1 = re.search(r'[0-9]+ NPS'  , line.upper())
-        speed2 = re.search(r'NPS[ ]+[0-9]+'  , line.upper())
-
-        # A line with no parsable information was found
-        if not bench1 and not bench2 and not speed1 and not speed2:
-            break
-
-        # A Bench value was found
-        if not bench and (bench1 or bench2):
-            bench = bench1.group() if bench1 else bench2.group()
-
-        # A Speed value was found
-        if not speed and (speed1 or speed2):
-            speed = speed1.group() if speed1 else speed2.group()
-
-    # Parse out the integer portion from our matches
-    bench = int(re.search(r'[0-9]+', bench).group()) if bench else None
-    speed = int(re.search(r'[0-9]+', speed).group()) if speed else None
-    return (bench, speed)
-
-def computeSingleThreadedBenchmark(filename, outqueue):
-
-    try:
-
-        # Assume .exe extensions on Windows machines
-        pathway = addExtension(os.path.join('Engines', filename).rstrip('/'))
-
-        # Launch the engine and run a benchmark
-        stdout, stderr = subprocess.Popen(
-            ['./{0}'.format(pathway), 'bench'],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        ).communicate()
-
-        # Parse output streams for the benchmark data
-        bench, speed = parseStreamOutput(stdout)
-        if bench is None or speed is None:
-            bench, speed = parseStreamOutput(stderr)
-        outqueue.put((int(bench), int(speed)))
-
-    # Missing file, unable to run, failed to compile, or some other
-    # error. Force an exit by sending back a null bench and nps value
-    except Exception as error:
-        print("[ERROR] {0}".format(str(error)))
-        outqueue.put((0, 0))
-
-def computeMultiThreadedBenchmark(arguments, engine, network):
-
-    # Log number of benchmarks being spawned for the given engine
-    print('Running {0}x Benchmarks for {1}'.format(arguments.threads, engine['name']))
-
-    # Each computeSingleThreadedBenchmark() reports to this Queue
-    outqueue = multiprocessing.Queue()
-
-    # Spawn a computeSingleThreadedBenchmark() for each thread
-    processes = [
-        multiprocessing.Process(
-            target=computeSingleThreadedBenchmark,
-            args=(savedEngineName(engine['sha'], network), outqueue,)
-        ) for f in range(int(arguments.threads))
-    ]
-
-    # Launch every benchmark
-    for process in processes:
-        process.start()
-
-    # Wait for each benchmark
-    for process in processes:
-        process.join()
-
-    # Extract the benches and nps counts from each worker
-    data  = [outqueue.get() for f in range(int(arguments.threads))]
-    bench = [int(f[0]) for f in data]
-    speed = [int(f[1]) for f in data]
-    avg   = sum(speed) / len(speed)
-
-    # Flag an error if there were different benches
-    if (len(set(bench)) > 1): return (0, 0)
-
-    # Log and return computed bench and speed
-    print ('Bench for {0} is {1}'.format(engine['name'], bench[0]))
-    print ('Speed for {0} is {1}\n'.format(engine['name'], int(avg)))
-    return (bench[0], avg)
-
-def computeAdjustedTimecontrol(arguments, data, nps):
-
-    # Scale and report the nodes per second
-    factor = int(data['test']['nps']) / nps
-    timecontrol = data['test']['timecontrol'];
-    reportNodesPerSecond(arguments, data, nps)
-
-    # Parse X / Y + Z time controls
-    if '/' in timecontrol and '+' in timecontrol:
-        moves = timecontrol.split('/')[0]
-        start, inc = map(float, timecontrol.split('/')[1].split('+'))
-        start = round(start * factor, 2)
-        inc = round(inc * factor, 2)
-        return moves + '/' + str(start) + '+' + str(inc)
-
-    # Parse X / Y time controls
-    elif '/' in timecontrol:
-        moves = timecontrol.split('/')[0]
-        start = float(timecontrol.split('/')[1])
-        start = round(start * factor, 2)
-        return moves + '/' + str(start)
-
-    # Parse X + Z time controls
-    else:
-        start, inc = map(float, timecontrol.split('+'))
-        start = round(start * factor, 2)
-        inc = round(inc * factor, 2)
-        return str(start) + '+' + str(inc)
-
-
-def verifyOpeningBook(data):
-
-    # Fetch the opening book if we don't have it
-    print('\nFetching and Verifying Opening Book')
-    if not os.path.isfile('Books/{0}'.format(data['name'])):
-        source = '{0}.zip'.format(data['source'])
-        name = '{0}.zip'.format(data['name'])
-        getAndUnzipFile(source, name, 'Books/')
-
-    # Verify data integrity with a hash
-    with open('Books/{0}'.format(data['name'])) as fin:
-        content = fin.read().encode('utf-8')
-        sha = hashlib.sha256(content).hexdigest()
-
-    # Log the SHA verification
-    print('Correct  SHA {0}'.format(data['sha']))
-    print('Download SHA {0}\n'.format(sha))
-
-    # Signal for error when SHAs do not match
-    return data['sha'] == sha
-
-def verifyEngine(arguments, data, engine, network):
-
-    # Download the engine if we do not already have it
-    name = savedEngineName(engine['sha'], network)
-    pathway = addExtension(pathjoin('Engines', name))
-    if not os.path.isfile(pathway): getEngine(arguments, data, engine, network)
-
-    # Run a group of benchmarks in parallel in order to better scale NPS
-    # values for this worker. We obtain a bench and average NPS value
-    bench, nps = computeMultiThreadedBenchmark(arguments, engine, network)
-
-    # Check for an invalid bench. Signal to the Client and the Server
-    if bench != int(engine['bench']):
-        reportWrongBenchmark(arguments, data, engine, bench)
-        raise Exception('Invalid Bench. Got {0} Expected {1}'.format(bench, engine['bench']))
-
-    # Return a valid bench or otherwise return None
-    return nps if bench == int(engine['bench']) else None
-
-
-def reportWrongBenchmark(arguments, data, engine, bench):
-
-    data = {
-        'username' : arguments.username, 'testid' : data['test']['id'],
-        'password' : arguments.password, 'machineid' : data['machine']['id'],
-        'correct'  : engine['bench']   , 'wrong'  : bench,
-        'engine'   : engine['name'],
+        with open('machine.txt') as fin:
+            machine_id = fin.readlines()[0]
+
+    if machine_id == 'None':
+        print('[NOTE] This machine is currently unregistered')
+
+    supported  = ' '.join(COMPILERS.keys() - ['cpuflags'])
+    has_syzygy = bool(SYZYGY_DTZ_PATH) and bool(SYZYGY_WDL_PATH)
+
+    payload = {
+        'username'   : arguments.username, 'threads'    : arguments.threads,
+        'password'   : arguments.password, 'osname'     : OSNAME,
+        'machineid'  : machine_id,         'syzygy_dtz' : has_syzygy,
+        'supported'  : supported,          'cpuflags'   : COMPILERS['cpuflags'],
     }
 
-    url = urljoin(arguments.server, 'clientWrongBench')
-    data = requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
-    if data == 'Bad Machine': raise Exception('Bad Machine')
+    target = url_join(arguments.server, 'clientGetWorkload')
+    return requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
-def reportNodesPerSecond(arguments, data, nps):
+@try_until_success(mesg=ERRORS['bad_bench'])
+def server_report_bad_bench(arguments, workload, branch, bench):
+
+    branch = workload['test'][branch]
 
     data = {
-        'username'  : arguments.username, 'machineid' : data['machine']['id'],
-        'password'  : arguments.password, 'nps'       : nps,
+        'username' : arguments.username, 'testid'    : workload['test']['id'],
+        'password' : arguments.password, 'machineid' : workload['machine']['id'],
+        'correct'  : branch['bench'],    'engine'    : branch['name'],
+        'wrong'    : bench,
     }
 
-    url = urljoin(arguments.server, 'clientSubmitNPS')
-    data = requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
-    if data == 'Bad Machine': raise Exception('Bad Machine')
+    target = url_join(arguments.server, 'clientWrongBench')
+    requests.post(target, data=data, timeout=TIMEOUT_HTTP)
 
-def reportEngineError(arguments, data, line):
+@try_until_success(mesg=ERRORS['bench_nps'])
+def server_report_nps(arguments, workload, dev_nps, base_nps):
 
-    pairing = line.split('(')[1].split(')')[0]
+    data = {
+        'username'  : arguments.username,
+        'password'  : arguments.password,
+        'machineid' : workload['machine']['id'],
+        'nps'       : (dev_nps + base_nps) // 2
+    }
+
+    target = url_join(arguments.server, 'clientSubmitNPS')
+    requests.post(target, data=data, timeout=TIMEOUT_ERROR)
+
+@try_until_success(mesg=ERRORS['report_error'])
+def server_report_engine_error(arguments, workload, cutechess_str):
+
+    pairing = cutechess_str.split('(')[1].split(')')[0]
     white, black = pairing.split(' vs ')
 
-    error = line.split('{')[1].rstrip().rstrip('}')
+    error = cutechess_str.split('{')[1].rstrip().rstrip('}')
     error = error.replace('White', '-'.join(white.split('-')[1:]).rstrip())
     error = error.replace('Black', '-'.join(black.split('-')[1:]).rstrip())
 
-    data = {
-        'username' : arguments.username, 'testid'    : data['test']['id'],
-        'password' : arguments.password, 'machineid' : data['machine']['id'],
+    payload = {
+        'username' : arguments.username,
+        'password' : arguments.password,
+        'testid'    : workload['test']['id'],
+        'machineid' : workload['machine']['id'],
         'error'    : error,
     }
 
-    url = urljoin(arguments.server, 'clientSubmitError')
-    data = requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
-    if data == 'Bad Machine': raise Exception('Bad Machine')
+    target = url_join(arguments.server, 'clientSubmitError')
+    requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
-def reportResults(arguments, data, wins, losses, draws, crashes, timelosses):
+def server_report_results(arguments, workload, stats):
 
-    data = {
-        'username'  : arguments.username,    'wins'      : wins,
-        'password'  : arguments.password,    'losses'    : losses,
-        'machineid' : data['machine']['id'], 'draws'     : draws,
-        'resultid'  : data['result']['id'],  'crashes'   : crashes,
-        'testid'    : data['test']['id'],    'timeloss'  : timelosses,
+    wins, losses, draws, crashes, timelosses = stats
+
+    payload = {
+        'username'  : arguments.username,        'wins'      : wins,
+        'password'  : arguments.password,        'losses'    : losses,
+        'machineid' : workload['machine']['id'], 'draws'     : draws,
+        'resultid'  : workload['result']['id'],  'crashes'   : crashes,
+        'testid'    : workload['test']['id'],    'timeloss'  : timelosses,
     }
 
-    url = urljoin(arguments.server, 'clientSubmitResults')
-    try: return requests.post(url, data=data, timeout=HTTP_TIMEOUT).text
-    except Exception: print('[NOTE] Unable To Reach Server'); return 'Unable'
+    target = url_join(arguments.server, 'clientSubmitResults')
+    try: return requests.post(target, data=payload, timeout=TIMEOUT_HTTP).text
+    except: print('[NOTE] Unable To Reach Server'); return 'Unable'
 
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                           #
+#                                                                           #
+#                                                                           #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def processCutechess(arguments, data, cutechess, concurrency):
+def check_workload_response(arguments, response):
 
-    # Tracking for game results
+    raw_text = response.content.decode('utf-8')
+
+    # No workloads available to our machine
+    if raw_text == 'None':
+        print('[Note] Server Has No Work')
+        time.sleep(TIMEOUT_WORKLOAD)
+        return False
+
+    # Bad login, kill the worker since all requests will fail
+    if raw_text == 'Bad Credentials':
+        print('[Error] Invalid Login Credentials')
+        sys.exit()
+
+    # Bad machine, mostly meaningless but note it
+    if raw_text == 'Bad Machine':
+        print('[Note] Replacing Invalid Machine Id')
+        os.remove('machine.txt')
+        return False
+
+    # Final check that we may parse the workload JSON
+    data = response.json()
+    with open('machine.txt', 'w') as fout:
+        fout.write(str(data['machine']['id']))
+
+    # Log the start of the new workload
+    engine = data['test']['engine']
+    dev    = data['test']['dev'   ]['name']
+    base   = data['test']['base'  ]['name']
+    print ('Workload [%s] %s vs %s\n' % (engine, dev, base))
+
+    return data
+
+def complete_workload(arguments, workload):
+
+    dev_network  = download_network_weights(arguments, workload, 'dev')
+    base_network = download_network_weights(arguments, workload, 'base')
+
+    dev_name  = download_engine(arguments, workload, 'dev', dev_network)
+    base_name = download_engine(arguments, workload, 'base', base_network)
+
+    dev_bench,  dev_nps  = run_benchmarks(arguments, workload, 'dev', dev_name)
+    base_bench, base_nps = run_benchmarks(arguments, workload, 'base', base_name)
+
+    dev_status  = verify_benchmarks(arguments, workload, 'dev', dev_bench)
+    base_status = verify_benchmarks(arguments, workload, 'base', base_bench)
+
+    if not dev_status or not base_status: return
+    server_report_nps(arguments, workload, dev_nps, base_nps)
+    download_opening_book(workload)
+
+    avg_nps = (dev_nps + base_nps) // 2
+    concurrency, command = build_cutechess_command(
+        arguments, workload, dev_name, base_name, avg_nps)
+
+    run_and_parse_cutechess(arguments,  workload, concurrency, command)
+
+def download_opening_book(workload):
+
+    # Log our attempts to download and verify the book
+    book_sha256 = workload['test']['book']['sha'   ]
+    book_source = workload['test']['book']['source']
+    book_name   = workload['test']['book']['name'  ]
+    book_path   = os.path.join('Books', book_name)
+    print ('\nFetching Opening Book [%s]' % (book_name))
+
+    # Download file if we do not already have it
+    if not os.path.isfile(book_path):
+        download_file(book_source, book_name + '.zip')
+        unzip_delete_file(book_name + '.zip', 'Books/')
+
+    # Verify SHAs match with the server
+    with open(book_path) as fin:
+        content = fin.read().encode('utf-8')
+        sha256 = hashlib.sha256(content).hexdigest()
+    if book_sha256 != sha256: os.remove(book_path)
+
+    # Log SHAs on every workload
+    print ('Correct  SHA256 %s' % (book_sha256.upper()))
+    print ('Download SHA256 %s' % (     sha256.upper()))
+
+    # We have to have the correct SHA to continue
+    if book_sha256 != sha256:
+        raise Exception('Invalid SHA for %s' % (book_name))
+
+def download_network_weights(arguments, workload, branch):
+
+    # Some tests may not use Neural Networks
+    network_name = workload['test'][branch]['network']
+    if not network_name or network_name == 'None': return None
+
+    # Log that we are obtaining a Neural Network
+    pattern = 'Fetching Neural Network [ %s, %-4s ]'
+    print (pattern % (network_name, branch.upper()))
+
+    # Neural Network requests require authorization
+    payload = {
+        'username' : arguments.username,
+        'password' : arguments.password,
+    }
+
+    # Fetch the Netural Network if we do not already have it
+    network_path = os.path.join('Networks', network_name)
+    if not os.path.isfile(network_path):
+        api = url_join(arguments.server, 'clientGetNetwork')
+        download_file(url_join(api, network_name), network_path, payload)
+
+    # Verify the download and delete partial or corrupted ones
+    with open(network_path, 'rb') as network:
+        sha256 = hashlib.sha256(network.read()).hexdigest()
+        sha256 = sha256[:8].upper()
+    if network_name != sha256: os.remove(network_path)
+
+    # We have to have the correct Neural Network to continue
+    if network_name != sha256:
+        raise Exception('Invalid SHA for %s' % (network_name))
+
+    return network_path
+
+def download_engine(arguments, workload, branch, network):
+
+    engine      = workload['test']['engine']
+    branch_name = workload['test'][branch]['name']
+    commit_sha  = workload['test'][branch]['sha']
+    source      = workload['test'][branch]['source']
+    build_path  = workload['test']['build']['path']
+
+    pattern = '\nEngine: %s\nBranch: %s\nCommit: %s'
+    print (pattern % (engine, branch_name, commit_sha.upper()))
+
+    # Naming as Engine-SHA256[:8]-NETSHA256[:8]
+    final_name = '%s-%s' % (engine, commit_sha.upper()[:8])
+    if network: final_name += '-%s' % (network[-8:])
+
+    # Check to see if we already have the final binary
+    final_path = os.path.join('Engines', final_name)
+    if os.path.isfile(final_path): return final_name
+    if os.path.isfile(final_path + '.exe'): return final_name + '.exe'
+
+    # Download and unzip the source from Github
+    download_file(source, '%s.zip' % (engine))
+    unzip_delete_file('%s.zip' % (engine), 'tmp/')
+
+    # Parse out paths to find the makefile location
+    tokens     = source.split('/')
+    unzip_name = '%s-%s' % (tokens[-3], tokens[-1].rstrip('.zip'))
+    src_path   = os.path.join('tmp', unzip_name, *build_path.split('/'))
+
+    # Build the engine and drop it into src_path
+    print ('\nBuilding [%s]' % (final_path))
+    rel_path = os.path.relpath(os.path.abspath(network), src_path)
+    Popen(make_command(arguments, engine, rel_path), cwd=src_path).wait()
+    output_name = os.path.join(src_path, engine)
+
+    # Move the file to the final location ( Linux )
+    if os.path.isfile(output_name):
+        os.rename(output_name, final_path)
+        shutil.rmtree('tmp')
+        return final_name
+
+    # Move the file to the final location ( Windows )
+    if os.path.isfile(output_name + '.exe'):
+        os.rename(output_name + '.exe', final_path + '.exe')
+        shutil.rmtree('tmp')
+        return final_name + '.exe'
+
+def run_benchmarks(arguments, workload, branch, engine):
+
+    cores = int(arguments.threads)
+    queue = multiprocessing.Queue()
+    name  = workload['test'][branch]['name']
+    print ('\nRunning %dx Benchmarks for %s' % (cores, name))
+
+    for ii in range(cores):
+        args = (os.path.join('Engines', engine), queue,)
+        proc = multiprocessing.Process(target=run_bench, args=args)
+        proc.start()
+
+    nps, bench = list(zip(*[queue.get() for ii in range(cores)]))
+    if len(set(bench)) > 1: return (0, 0) # Flag an error
+
+    print ('Bench for %s is %d' % (name, bench[0]))
+    print ('NPS   for %s is %d' % (name, sum(nps) // cores))
+    return bench[0], sum(nps) // cores
+
+def verify_benchmarks(arguments, workload, branch, bench):
+    if bench != int(workload['test'][branch]['bench']):
+        server_report_bad_bench(arguments, workload, branch, bench)
+    return bench == int(workload['test'][branch]['bench'])
+
+def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
+
+    dev_options  = workload['test']['dev' ]['options']
+    base_options = workload['test']['base']['options']
+
+    dev_threads  = int(re.search('(?<=Threads=)\d*', dev_options ).group())
+    base_threads = int(re.search('(?<=Threads=)\d*', base_options).group())
+
+    if SYZYGY_WDL_PATH:
+        path = SYZYGY_WDL_PATH.replace('\\', '\\\\')
+        dev_options  += ' SyzygyPath=%s' % (path)
+        base_options += ' SyzygyPath=%s' % (path)
+
+    dev_options  = ' option.'.join([''] +  dev_options.split())
+    base_options = ' option.'.join([''] + base_options.split())
+
+    book_name = workload['test']['book']['name']
+    variant   = ['standard', 'fischerandom']['FRC' in book_name.upper()]
+
+    flags  = '-repeat -recover -resign %s -draw %s '
+    flags += '-srand %d -variant %s -concurrency %d -games %d '
+    flags += '-engine dir=Engines/ cmd=./%s proto=uci tc=%s%s name=%s '
+    flags += '-engine dir=Engines/ cmd=./%s proto=uci tc=%s%s name=%s '
+    flags += '-openings file=Books/%s format=%s order=random plies=16 '
+    flags += '-pgnout PGNs/%s_vs_%s '
+
+    if SYZYGY_DTZ_PATH and workload['test']['allow_dtz']:
+        flags += '-tb %s' % (SYZYGY_DTZ_PATH.replace('\\', '\\\\'))
+
+    throughput = int(workload['test']['throughput'])
+    concurrency = int(arguments.threads) // max(dev_threads, base_threads)
+
+    games = int(concurrency * BASE_GAMES_PER_CORE * throughput / 1000)
+    games = max(concurrency * 2, games - (games % (2 * concurrency)))
+
+    time_control = scale_time_control(workload, nps)
+
+    args = (
+        'movecount=3 score=400', 'movenumber=40 movecount=8 score=10',
+        int(time.time()), variant, concurrency, games,
+        dev_name, time_control, dev_options, dev_name.rstrip('.exe'),
+        base_name, time_control, base_options, base_name.rstrip('.exe'),
+        book_name, book_name.split('.')[-1],
+        dev_name.rstrip('.exe'), base_name.rstrip('.exe')
+    )
+
+    if IS_LINUX:
+        return concurrency, './cutechess ' + flags % (args)
+    return concurrency, 'cutechess.exe ' + flags % (args)
+
+def run_and_parse_cutechess(arguments,  workload, concurrency, command):
+
+    print ('\nLaunching Cutechess...')
+    cutechess = Popen(command.split(), stdout=PIPE)
+
     crashes = timelosses = 0
-    score = [0, 0, 0]; sent = [0, 0, 0]
-    errors = ['on time', 'disconnects', 'connection stalls', 'illegal']
+    score   = [0, 0, 0]; sent = [0, 0, 0] # WLD
+    errors  = ['on time', 'disconnects', 'connection stalls', 'illegal']
 
     while True:
 
-        # Output the next line or quit when the pipe closes
+        # Read each line of output until the pipe closes
         line = cutechess.stdout.readline().strip().decode('ascii')
         if line != '': print(line)
         else: cutechess.wait(); return
 
-        # Updated timeloss/crash counters
-        timelosses += 'on time' in line
-        crashes    += 'disconnects' in line
-        crashes    += 'connection stalls' in line
+        # Real updates contain a colon
+        if ':' not in line: continue
 
-        # Report any engine errors to the server
+        # Parse for crashes and timelosses
+        score_reason = line.split(':')[1]
+        timelosses += 'on time' in score_reason
+        crashes    += 'disconnects' in score_reason
+        crashes    += 'connection stalls' in score_reason
+
+        # Forcefully report any engine failures to the server
         for error in errors:
-            if error in line:
-                reportEngineError(arguments, data, line)
+            if error in score_reason:
+                server_report_engine_error(arguments, workload, line)
 
-        # Parse updates to scores
-        if line.startswith('Score of'):
+        # All remaining processing is for score updates only
+        if not line.startswith('Score of'):
+            continue
 
-            # Format: Score of test vs base: W - L - D  [0.XXX] N
-            score = list(map(int, line.split(':')[1].split()[0:5:2]))
+        # Only report scores after every 'concurrency' games
+        score = list(map(int, score_reason.split()[0:5:2]))
+        if ((sum(score) - sum(sent)) % concurrency != 0): continue
 
-            # After every `concurrency` results, update the server
-            if (sum(score) - sum(sent)) % concurrency == 0:
+        # Report to the server but allow failed reports to delay
+        wld = [score[ii] - sent[ii] for ii in range(3)]
+        stats = wld + [crashes, timelosses]
+        status = server_report_results(arguments, workload, stats)
 
-                # Look only at the delta since last report
-                WLD = [score[f] - sent[f] for f in range(3)]
-                status = reportResults(arguments, data, *WLD, crashes, timelosses)
+        # Check for the task being aborted
+        if status.upper() == 'STOP':
+            kill_cutechess(cutechess)
+            return
 
-                # Check for the task being aborted
-                if status.upper() == 'STOP':
-                    killCutechess(cutechess)
-                    return
+        # If the update was succesful reset the results
+        if status.upper() != 'UNABLE':
+            crashes = timelosses = 0
+            sent = score[::]
 
-                # If we fail to update the server, hold onto the results
-                if status.upper() != 'UNABLE':
-                    crashes = timelosses = 0
-                    sent = score[::]
-
-def processWorkload(arguments, data):
-
-    # Verify and possibly download the opening book
-    if not verifyOpeningBook(data['test']['book']): sys.exit()
-
-    # Download network file(s) ( if any are given )
-    getNetworkWeights(arguments.server, data['test']['dev' ]['network'])
-    getNetworkWeights(arguments.server, data['test']['base']['network'])
-
-    # Download, Verify, and Benchmark each engine
-    devnps  = verifyEngine(arguments, data, data['test']['dev' ], data['test']['dev' ]['network'])
-    basenps = verifyEngine(arguments, data, data['test']['base'], data['test']['base']['network'])
-    avgnps  = (devnps + basenps) / 2
-
-    command, concurrency = getCutechessCommand(arguments, data, avgnps)
-    print("Launching Cutechess\n{0}\n".format(command))
-
-    cutechess = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-    processCutechess(arguments, data, cutechess, concurrency)
-
-def completeWorkload(workRequestData, arguments):
-
-    # Get the next workload
-    data = requests.post(
-        urljoin(arguments.server, 'clientGetWorkload'),
-        data=workRequestData, timeout=HTTP_TIMEOUT).content.decode('utf-8')
-
-    # Check for an empty workload
-    if data == 'None':
-        print('\n[NOTE] Server Has No Work')
-        time.sleep(WORKLOAD_TIMEOUT)
-        return
-
-    # Kill process if unable to login
-    if data == 'Bad Credentials':
-        print('\n[ERROR] Invalid Login Credentials')
-        sys.exit()
-
-    # Bad machines will be registered again
-    if data == 'Bad Machine':
-        workRequestData['machineid'] = 'None'
-        print('\n[NOTE] Invalid Machine ID')
-        return
-
-    # Convert response into a dictionary
-    data = ast.literal_eval(data)
-
-    # Update machine ID in case we got registered
-    if workRequestData['machineid'] != data['machine']['id']:
-        workRequestData['machineid'] = data['machine']['id']
-        with open('machine.txt', 'w') as fout:
-            fout.write(str(workRequestData['machineid']))
-
-    # Handle the actual workload's completion
-    processWorkload(arguments, data)
-
-
-def main():
-
-    # Use OpenBench.py's path as the base pathway
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-    # Ensure we have our usual file folder structure
-    if not os.path.isdir('Engines' ): os.mkdir('Engines' )
-    if not os.path.isdir('Networks'): os.mkdir('Networks')
-    if not os.path.isdir('Books'   ): os.mkdir('Books'   )
-    if not os.path.isdir('PGNs'    ): os.mkdir('PGNs'    )
-
-    # Expect a Username, Password, Server, and Threads value
-    p = argparse.ArgumentParser()
-    p.add_argument('-U', '--username', help='Username', required=True)
-    p.add_argument('-P', '--password', help='Password', required=True)
-    p.add_argument('-S', '--server',   help='Server Address', required=True)
-    p.add_argument('-T', '--threads',  help='Number of Threads', required=True)
-    arguments = p.parse_args()
-
-    # Make sure we have cutechess installed
-    getCutechess(arguments.server)
-
-    # Determine how we will compile engines
-    print("\nChecking for installed Compilers",)
-    getCompilationSettings(arguments.server)
-
-    # All workload requests must be tied to a user and a machine.
-    # We also pass a thread count to inform the server what tests this
-    # machine can handle. We pass the osname in order to register machines.
-    # We pass a space seperated string of the engines we are able to compile.
-    workRequestData = {
-        'machineid' : getMachineID(),
-        'username'  : arguments.username,
-        'password'  : arguments.password,
-        'threads'   : arguments.threads,
-        'osname'    : '{0} {1}'.format(platform.system(), platform.release()),
-        'supported' : ' '.join(COMPILERS.keys()),
-    };
-
-    # Continually pull down and complete workloads
-    while True:
-        if AUTO_DELETE_ENGINES: cleanupEnginesDirectory()
-        try: completeWorkload(workRequestData, arguments)
-        except KeyboardInterrupt: sys.exit()
-        except Exception as error:
-            print ('[ERROR] {0}'.format(str(error)))
-            time.sleep(ERROR_TIMEOUT)
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                           #
+#                                                                           #
+#                                                                           #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 if __name__ == '__main__':
-    main()
+
+    p = argparse.ArgumentParser()
+    p.add_argument('-U', '--username', help='Username' , required=True)
+    p.add_argument('-P', '--password', help='Password' , required=True)
+    p.add_argument('-S', '--server'  , help='Webserver', required=True)
+    p.add_argument('-T', '--threads' , help='Threads'  , required=True)
+    arguments = p.parse_args()
+
+    check_for_utilities()
+    init_client(arguments)
+    server_download_cutechess(arguments)
+    server_configure_worker(arguments)
+
+    while True:
+        cleanup_client()
+        response = server_request_workload(arguments)
+        workload = check_workload_response(arguments, response)
+        if workload: complete_workload(arguments, workload)
+        break

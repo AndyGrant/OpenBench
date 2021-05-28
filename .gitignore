@@ -1,6 +1,5 @@
 *.pyc
 Client/*
-!Client/openV2.py
 !Client/cleanup.sh
 OpenBench/migrations/*
 credentials
