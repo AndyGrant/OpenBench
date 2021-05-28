@@ -11,7 +11,7 @@
     <div id="configuration">
         <table class="datatable left-align">
             <tr><th>Author</th><td>{{test.author}}</td></tr>
-            <tr><th>Creation</th><td>{{test.creation|date:'Y-m-d H:i:s'}}</td></tr>
+            <tr><th>Creation</th><td class="timestamp">{{test.creation|date:'Y-m-d H:i:s'}}</td></tr>
             <tr><th>Engine</th><td>{{test.engine}}</td></tr>
             <tr><th>Dev Branch</th><td>{{test.dev.name|prettyName}}</td></tr>
             <tr><th>Dev Bench</th><td>{{test.dev.bench}}</td></tr>
@@ -130,7 +130,7 @@
                     <td>{{result.machine.id}}</td>
                     <td>{{result.machine.user.username|slice:"6"}}</td>
                     <td>{{result.machine.osname|truncatewords:1|slice:":-2"}}</td>
-                    <td>{{result.updated|date:'Y-m-d H:i'}}</td>
+                    <td class="timestamp">{{result.updated|date:'Y-m-d H:i'}}</td>
                     <td class="numeric">{{result.games}}</td>
                     <td class="numeric">{{result.wins}}</td>
                     <td class="numeric">{{result.losses}}</td>

@@ -16,7 +16,7 @@
 
         {% for event in events %}
             <tr>
-                <td>{{event.creation|date:'Y-m-d H:i:s'}}</td>
+                <td class="timestamp">{{event.creation|date:'Y-m-d H:i:s'}}</td>
                 <td>{{event.author}}</td>
                 <td><a href="/test/{{event.test.id}}">{{event.test.dev.name|prettyName}}</a></td>
                 <td>{{event.test.timecontrol}}</td>

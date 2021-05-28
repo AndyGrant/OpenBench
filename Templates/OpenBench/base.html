@@ -16,6 +16,25 @@
         <script>
             {% block scripts %}
             {% endblock %}
+
+
+            document.addEventListener('DOMContentLoaded', function() {
+
+                var timestamps = document.getElementsByClassName('timestamp');
+
+                var options = {
+                    year   : 'numeric', month  : '2-digit',
+                    day    : '2-digit', hour   : '2-digit',
+                    minute : '2-digit', second : '2-digit',
+                    hour12 : false,
+                };
+
+                for (var i = 0; i < timestamps.length; i++) {
+                    var time = timestamps[i].innerHTML + "+00:00"
+                    timestamps[i].innerHTML = new Date(time).toLocaleString(undefined, options);
+                }
+
+            }, false);
         </script>
     </head>
 
