@@ -811,4 +811,3 @@ if __name__ == '__main__':
         response = server_request_workload(arguments)
         workload = check_workload_response(arguments, response)
         if workload: complete_workload(arguments, workload)
-        break
