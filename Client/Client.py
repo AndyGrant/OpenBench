@@ -50,8 +50,8 @@ TIMEOUT_HTTP        = 30   # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR       = 10   # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD    = 60   # Timeout in seconds between workload requests
 
-SYZYGY_WDL_PATH     = 'C:\\Users\\14438\\Desktop\\Syzygy\\' # Pathway to WDL Syzygy Tables
-SYZYGY_DTZ_PATH     = 'C:\\Users\\14438\\Desktop\\Syzygy\\' # Pathway to DTZ Syzygy Tables
+SYZYGY_WDL_PATH     = None # Pathway to WDL Syzygy Tables
+SYZYGY_DTZ_PATH     = None # Pathway to DTZ Syzygy Tables
 BASE_GAMES_PER_CORE = 32   # Typical games played per-thread
 
 CUSTOM_SETTINGS = {
