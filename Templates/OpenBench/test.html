@@ -10,6 +10,8 @@
 
     <div id="configuration">
         <table class="datatable left-align">
+            <tr><th>Author</th><td>{{test.author}}</td></tr>
+            <tr><th>Creation</th><td>{{test.creation|date:'Y-m-d H:i:s'}}</td></tr>
             <tr><th>Engine</th><td>{{test.engine}}</td></tr>
             <tr><th>Dev Branch</th><td>{{test.dev.name|prettyName}}</td></tr>
             <tr><th>Dev Bench</th><td>{{test.dev.bench}}</td></tr>
@@ -18,7 +20,7 @@
             {% if test.devnetwork %}
             <tr>
                 <th>Dev Network</th>
-		<td><a href="{{test.devnetwork|resolveNetworkURL}}">{{test.devnetwork|resolveNetworkSha}}</td>
+                <td><a href="{{test.devnetwork|resolveNetworkURL}}">{{test.devnetwork|resolveNetworkSha}}</td>
             </tr>
             {% endif %}
             <tr><th>Base Branch</th><td>{{test.base.name|prettyName}}</td></tr>
@@ -28,7 +30,7 @@
             {% if test.basenetwork %}
             <tr>
                 <th>Base Network</th>
-		<td><a href="{{test.basenetwork|resolveNetworkURL}}">{{test.basenetwork|resolveNetworkSha}}</td>
+                <td><a href="{{test.basenetwork|resolveNetworkURL}}">{{test.basenetwork|resolveNetworkSha}}</td>
             </tr>
             {% endif %}
             <tr><th>Source Repo</th><td><a href="{{test.source}}">{{test.source}}</a></td></tr>
@@ -36,17 +38,17 @@
             <tr><th>Time Control</th><td>{{test.timecontrol}}s</td></tr>
             <tr><th>Elo Bounds</th><td>[{{test.elolower}}, {{test.eloupper}}]</td></tr>
             <tr><th>SPRT Bounds</th><td>({{test.lowerllr|twoDigitPrecision}}, {{test.upperllr|twoDigitPrecision}})</td></tr>
-            <tr><th>Creation</th><td>{{test.creation|date:'Y-m-d H:i:s'}}</td></tr>
-            <tr><th>Author</th><td>{{test.author}}</td></tr>
+            <tr><th>Allow DTZ</th><td>{{test.allow_dtz}}</td></tr>
+            <tr><th>Force WDL</th><td>{{test.force_wdl}}</td></tr>
         </table>
     </div>
 
     <div id="actions">
 
         <!-- Dev vs Base [Git Diff Link] -->
-        <a href="{{test|gitDiffLink}}">
-            <h4>{{test.dev.name|prettyName}} vs {{test.base.name|prettyName}}</h4>
-        </a>
+        <h4><a href="{{test|gitDiffLink}}">
+            {{test.dev.name|prettyName}} vs {{test.base.name|prettyName}}
+        </a></h4>
 
         <!-- Approve Button: For Admins, or Cross-approvers -->
         {% if not test.approved and profile.approver and profile.user.username != test.author %}

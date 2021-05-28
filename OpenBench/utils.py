@@ -243,6 +243,8 @@ def createNewTest(request):
     test.timecontrol = request.POST['timecontrol']
     test.priority    = int(request.POST['priority'])
     test.throughput  = int(request.POST['throughput'])
+    test.allow_dtz   = request.POST['allow_dtz'] == 'True'
+    test.force_wdl   = request.POST['force_dtz'] == 'True'
     test.elolower    = float(request.POST['elolower'])
     test.eloupper    = float(request.POST['eloupper'])
     test.alpha       = float(request.POST['alpha'])
@@ -318,6 +320,10 @@ def getWorkload(user, request):
             if flag not in cpuflags:
                 tests = tests.exclude(engine=engine)
 
+    # Remove Syzygy tests if the Machine has no TBs
+    if not request.POST['syzygy_dtz']:
+        tests = tests.exclude(force_wdl=True)
+
     # If we don't get a Test back, there was an error
     test = selectWorkload(tests, machine)
     if type(test) == str: return test
@@ -349,12 +355,7 @@ def selectWorkload(tests, machine):
         elif options and test.priority == highest:
             options.append(test)
 
-    if not options: return 'None'
-
-    target = random.randrange(sum([t.throughput for t in options]))
-    while True: # Select a random test used weighted randomness
-        if target < options[0].throughput: return options[0]
-        target -= options[0].throughput; options = options[1:]
+    return ['None', random.choice(options)][len(options) != 0]
 
 def workloadDictionary(test, result, machine):
 
@@ -371,11 +372,15 @@ def workloadDictionary(test, result, machine):
         'test' : {
 
             'id'            : test.id,
+            'engine'        : test.engine,
+            'timecontrol'   : test.timecontrol,
+            'throughput'    : test.throughput,
+            'allow_dtz'     : test.allow_dtz,
+            'force_wdl'     : test.force_wdl,
+
             'nps'           : OPENBENCH_CONFIG['engines'][test.engine]['nps'],
             'build'         : OPENBENCH_CONFIG['engines'][test.engine]['build'],
             'book'          : OPENBENCH_CONFIG['books'][test.bookname],
-            'timecontrol'   : test.timecontrol,
-            'engine'        : test.engine,
 
             'dev' : {
                 'id'        : test.dev.id,      'name'      : test.dev.name,

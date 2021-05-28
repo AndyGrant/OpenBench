@@ -1,5 +1,5 @@
 body {
-    font-family: "Montserrat";
+    font-family: "Courier Prime";
     font-size: 18px;
     background: #303030;
 }
@@ -26,7 +26,7 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #sidebar .header {
-    font-size: 12px;
+    font-size: 18px;
     color: #00AF00;
 }
 
@@ -42,16 +42,14 @@ a:link, a:visited, a:hover, a:active {
     text-align: right;
     display: inline-block;
     color: #A2A2A2;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 #content input, #content select {
     background-color: #BBBBBB;
     color: #000000;
-    padding: 8px;
-    margin: 2px 0px;
-    display: inline-block;
-    vertical-align: middle;
+    padding: 10px;
+    margin: 1px 0px;
     width: 320px;
     box-sizing: border-box;
     -moz-box-sizing: border-box;
@@ -116,7 +114,6 @@ a:link, a:visited, a:hover, a:active {
     margin: 0px 8px;
     border-radius: 16px;
     font-weight: bold;
-    font-family: "Courier New";
     text-align: center;
     display: inline-block;
     width: 25%;
@@ -166,7 +163,6 @@ a:link, a:visited, a:hover, a:active {
 #content th {
     color: #00AF00;
     font-size: 16px;
-    font-family: "Courier New";
     font-weight: 100;
     padding: 7px 12px 5px 12px;
     background-color: #000000;
@@ -174,7 +170,6 @@ a:link, a:visited, a:hover, a:active {
 
 #content td {
     padding: 7px 12px 5px 12px;
-    font-family: "Courier New";
 }
 
 #content .numeric {
@@ -195,6 +190,7 @@ a:link, a:visited, a:hover, a:active {
     color: black;
     background-color: #CCCCCC;
     border-radius: 4px;
+    font-family: "Courier New";
 }
 
 #content .green {
@@ -270,10 +266,15 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #content form h3 {
-    margin-left: 140px;
-    margin-bottom: 0px;
+    margin-left: 110px;
+    margin-bottom: 2px;
     font-size: 16px;
+    font-weight: normal;
     color: #00AF00;
+}
+
+#content h4 a {
+    font-size: 18px;
 }
 
 #content form .settings-column {

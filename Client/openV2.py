@@ -29,6 +29,7 @@ import time
 import traceback
 import zipfile
 import shutil
+import multiprocessing
 
 from subprocess import PIPE, Popen
 
@@ -46,12 +47,8 @@ from itertools import combinations_with_replacement
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 TIMEOUT_HTTP        = 30   # Timeout in seconds for HTTP requests
-TIMEOUT_ERROR       = 30   # Timeout in seconds when any errors are thrown
+TIMEOUT_ERROR       = 10   # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD    = 60   # Timeout in seconds between workload requests
-
-DELETE_OLD_ENGINES  = 24   # Number of hours until deleting Engines
-DELETE_OLD_NETWORKS = 720  # Number of hours until deleting Networks
-DELETE_OLD_PGNS     = None # Number of hours until deleting PGNs
 
 SYZYGY_WDL_PATH     = 'C:\\Users\\14438\\Desktop\\Syzygy\\' # Pathway to WDL Syzygy Tables
 SYZYGY_DTZ_PATH     = 'C:\\Users\\14438\\Desktop\\Syzygy\\' # Pathway to DTZ Syzygy Tables
@@ -66,9 +63,12 @@ CUSTOM_SETTINGS = {
 };
 
 ERRORS = {
-    'cutechess' : 'Unable to fetch Cutechess location and download it.',
-    'configure' : 'Unable to fetch engine data and find acceptable workloads',
-    'request'   : 'Unable to reach server for workload request.',
+    'cutechess'    : 'Unable to fetch Cutechess location and download it!',
+    'configure'    : 'Unable to fetch and determine acceptable workloads!',
+    'request'      : 'Unable to reach server for workload request!',
+    'bad_bench'    : 'Unable to reach server to report bad benchmark!',
+    'bench_nps'    : 'Unable to reach server to report benchmark NPS!',
+    'report_error' : 'Unable to reach server to report engine failure!',
 }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -86,7 +86,6 @@ IS_LINUX   = platform.system() != 'Windows'
 COMPILERS = {} # Compiler for each Engine, + CPU Flags
 OSNAME    = '%s %s' % (platform.system(), platform.release())
 DEBUG     = True
-
 
 def check_for_utilities():
 
@@ -113,7 +112,7 @@ def init_client(arguments):
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     # Ensure the folder structure for ease of coding
-    for folder in ['Engines', 'Networks', 'Books', 'PGNs']:
+    for folder in ['PGNs', 'Engines', 'Networks', 'Books']:
         if not os.path.isdir(folder):
             os.mkdir(folder)
 
@@ -126,6 +125,10 @@ def cleanup_client():
     SECONDS_PER_MONTH = SECONDS_PER_DAY * 30
 
     file_age = lambda x: time.time() - os.path.getmtime(x)
+
+    for file in os.listdir('PGNs'):
+        if file_age(os.path.join('PGNs', file)) > SECONDS_PER_DAY:
+            os.remove(os.path.join('PGNs', file))
 
     for file in os.listdir('Engines'):
         if file_age(os.path.join('Engines', file)) > SECONDS_PER_DAY:
@@ -188,6 +191,7 @@ def tablebase_names(K=6):
 
     return list(filter(valid_filename, set(candidates)))
 
+
 def url_join(*args):
 
     # Join a set of URL paths while maintaining the correct format
@@ -221,6 +225,7 @@ def unzip_delete_file(source, outdir):
         fin.extractall(outdir)
     os.remove(source)
 
+
 def make_command(arguments, engine, network_path):
 
     command = 'make CC=%s EXE=%s -j%s' % (
@@ -230,16 +235,78 @@ def make_command(arguments, engine, network_path):
         command += ' '.join(CUSTOM_SETTINGS[engine])
 
     if network_path != None:
-        network_path = network_path.replace('\\', '/')
-        command += ' EVALFILE=%s' % (network_path)
+        command += ' EVALFILE=%s' % (network_path.replace('\\', '/'))
 
     return command
+
+def parse_bench_output(stream):
+
+    nps = bench = None # Search through output Stream
+    for line in stream.decode('ascii').strip().split('\n')[::-1]:
+
+        # Try to match a wide array of patterns
+        line = re.sub(r'[^a-zA-Z0-9 ]+', ' ', line)
+        nps_pattern = r'([0-9]+ NPS)|(NPS[ ]+[0-9]+)'
+        bench_pattern = r'([0-9]+ NODES)|(NODES[ ]+[0-9]+)'
+        re_nps = re.search(nps_pattern, line.upper())
+        re_bench = re.search(bench_pattern, line.upper())
+
+        # Replace only if not already found earlier
+        if not nps and re_nps: nps = re_nps.group()
+        if not bench and re_bench: bench = re_bench.group()
+
+    # Parse out the integer portion from our matches
+    nps = int(re.search(r'[0-9]+', nps).group()) if nps else None
+    bench = int(re.search(r'[0-9]+', bench).group()) if bench else None
+    return (nps, bench)
+
+def run_bench(engine, outqueue):
+
+    try:
+        # Launch the engine and parse output for statistics
+        process = Popen(['./' + engine, 'bench'], stdout=PIPE, stderr=PIPE)
+        stdout, stderr = process.communicate()
+        outqueue.put(parse_bench_output(stdout))
+    except Exception: outqueue.put((0, 0))
+
+def scale_time_control(workload, nps):
+
+    # Searching for X/Y+Z time controls
+    pattern = '(\d*.\d*)/?(\d+)?\+?(\d*.\d*)?'
+    time_control = workload['test']['timecontrol']
+    base, repeat, inc = re.search(pattern, time_control).groups(0)
+
+    # Scale our machine's NPS to the Server's NPS
+    base = float(base) * int(workload['test']['nps']) / nps
+    inc  = float(inc ) * int(workload['test']['nps']) / nps
+
+    # Only include repeating controls when found
+    if repeat == 0:
+        return '%.2f+%.2f' % (base, inc)
+    return ('%.2f/%d+%.2f' % (base, int(repeat), inc))
+
+def kill_cutechess(cutechess):
+
+    try:
+
+        if IS_WINDOWS:
+            subprocess.call(['taskkill', '/F', '/T', '/PID', str(cutechess.pid)])
+
+        if IS_LINUX:
+            cutechess.kill()
+
+        cutechess.wait()
+        cutechess.stdout.close()
+
+    except Exception:
+        pass
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                           #
 #   All functions used to make requests to the OpenBench server. Workload   #
-#   requests require Username and Password authentication. Afterwords, all  #
-#   verification is done using a generated token assigned to each Workload. #
+#   requests require Username and Password authentication. Communication    #
+#   with the server is required to succeed except for result uploads which  #
+#   may be batched and held onto in the event of outages.                   #
 #                                                                           #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -347,12 +414,77 @@ def server_request_workload(arguments):
     payload = {
         'username'   : arguments.username, 'threads'    : arguments.threads,
         'password'   : arguments.password, 'osname'     : OSNAME,
-        'machineid'  : machine_id,         'syzygy_dtz' : str(has_syzygy),
+        'machineid'  : machine_id,         'syzygy_dtz' : has_syzygy,
         'supported'  : supported,          'cpuflags'   : COMPILERS['cpuflags'],
     }
 
     target = url_join(arguments.server, 'clientGetWorkload')
     return requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
+
+@try_until_success(mesg=ERRORS['bad_bench'])
+def server_report_bad_bench(arguments, workload, branch, bench):
+
+    branch = workload['test'][branch]
+
+    data = {
+        'username' : arguments.username, 'testid'    : workload['test']['id'],
+        'password' : arguments.password, 'machineid' : workload['machine']['id'],
+        'correct'  : branch['bench'],    'engine'    : branch['name'],
+        'wrong'    : bench,
+    }
+
+    target = url_join(arguments.server, 'clientWrongBench')
+    requests.post(target, data=data, timeout=TIMEOUT_HTTP)
+
+@try_until_success(mesg=ERRORS['bench_nps'])
+def server_report_nps(arguments, workload, dev_nps, base_nps):
+
+    data = {
+        'username'  : arguments.username,
+        'password'  : arguments.password,
+        'machineid' : workload['machine']['id'],
+        'nps'       : (dev_nps + base_nps) // 2
+    }
+
+    target = url_join(arguments.server, 'clientSubmitNPS')
+    requests.post(target, data=data, timeout=TIMEOUT_ERROR)
+
+@try_until_success(mesg=ERRORS['report_error'])
+def server_report_engine_error(arguments, workload, cutechess_str):
+
+    pairing = cutechess_str.split('(')[1].split(')')[0]
+    white, black = pairing.split(' vs ')
+
+    error = cutechess_str.split('{')[1].rstrip().rstrip('}')
+    error = error.replace('White', '-'.join(white.split('-')[1:]).rstrip())
+    error = error.replace('Black', '-'.join(black.split('-')[1:]).rstrip())
+
+    payload = {
+        'username' : arguments.username,
+        'password' : arguments.password,
+        'testid'    : workload['test']['id'],
+        'machineid' : workload['machine']['id'],
+        'error'    : error,
+    }
+
+    target = url_join(arguments.server, 'clientSubmitError')
+    requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
+
+def server_report_results(arguments, workload, stats):
+
+    wins, losses, draws, crashes, timelosses = stats
+
+    payload = {
+        'username'  : arguments.username,        'wins'      : wins,
+        'password'  : arguments.password,        'losses'    : losses,
+        'machineid' : workload['machine']['id'], 'draws'     : draws,
+        'resultid'  : workload['result']['id'],  'crashes'   : crashes,
+        'testid'    : workload['test']['id'],    'timeloss'  : timelosses,
+    }
+
+    target = url_join(arguments.server, 'clientSubmitResults')
+    try: return requests.post(target, data=payload, timeout=TIMEOUT_HTTP).text
+    except: print('[NOTE] Unable To Reach Server'); return 'Unable'
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                           #
@@ -396,16 +528,27 @@ def check_workload_response(arguments, response):
 
 def complete_workload(arguments, workload):
 
-    dev_network  = download_network_weights(arguments, workload, 'dev' )
+    dev_network  = download_network_weights(arguments, workload, 'dev')
     base_network = download_network_weights(arguments, workload, 'base')
 
-    dev_engine  = download_engine(arguments, workload, 'dev',  dev_network )
-    base_engine = download_engine(arguments, workload, 'base', base_network)
+    dev_name  = download_engine(arguments, workload, 'dev', dev_network)
+    base_name = download_engine(arguments, workload, 'base', base_network)
 
-    dev_nps  = compute_engine_speed(arguments, workload, 'dev',  dev_engine )
-    base_nps = compute_engine_speed(arguments, workload, 'base', base_engine)
+    dev_bench,  dev_nps  = run_benchmarks(arguments, workload, 'dev', dev_name)
+    base_bench, base_nps = run_benchmarks(arguments, workload, 'base', base_name)
 
+    dev_status  = verify_benchmarks(arguments, workload, 'dev', dev_bench)
+    base_status = verify_benchmarks(arguments, workload, 'base', base_bench)
+
+    if not dev_status or not base_status: return
+    server_report_nps(arguments, workload, dev_nps, base_nps)
     download_opening_book(workload)
+
+    avg_nps = (dev_nps + base_nps) // 2
+    concurrency, command = build_cutechess_command(
+        arguments, workload, dev_name, base_name, avg_nps)
+
+    run_and_parse_cutechess(arguments,  workload, concurrency, command)
 
 def download_opening_book(workload):
 
@@ -428,8 +571,8 @@ def download_opening_book(workload):
     if book_sha256 != sha256: os.remove(book_path)
 
     # Log SHAs on every workload
-    print ('Correct  SHA256 %s' % (book_sha256))
-    print ('Download SHA256 %s' % (sha256))
+    print ('Correct  SHA256 %s' % (book_sha256.upper()))
+    print ('Download SHA256 %s' % (     sha256.upper()))
 
     # We have to have the correct SHA to continue
     if book_sha256 != sha256:
@@ -480,13 +623,14 @@ def download_engine(arguments, workload, branch, network):
     pattern = '\nEngine: %s\nBranch: %s\nCommit: %s'
     print (pattern % (engine, branch_name, commit_sha.upper()))
 
-    # Naming as SHA256[:16]-NETSHA256[:8]
-    final_name = commit_sha.upper()[:16]
+    # Naming as Engine-SHA256[:8]-NETSHA256[:8]
+    final_name = '%s-%s' % (engine, commit_sha.upper()[:8])
     if network: final_name += '-%s' % (network[-8:])
 
     # Check to see if we already have the final binary
     final_path = os.path.join('Engines', final_name)
-    if os.path.isfile(final_path): return final_path
+    if os.path.isfile(final_path): return final_name
+    if os.path.isfile(final_path + '.exe'): return final_name + '.exe'
 
     # Download and unzip the source from Github
     download_file(source, '%s.zip' % (engine))
@@ -506,19 +650,141 @@ def download_engine(arguments, workload, branch, network):
     # Move the file to the final location ( Linux )
     if os.path.isfile(output_name):
         os.rename(output_name, final_path)
+        shutil.rmtree('tmp')
+        return final_name
 
     # Move the file to the final location ( Windows )
     if os.path.isfile(output_name + '.exe'):
-        os.rename(output_name + '.exe', final_path)
+        os.rename(output_name + '.exe', final_path + '.exe')
+        shutil.rmtree('tmp')
+        return final_name + '.exe'
 
-    # Cleanup the source code
-    shutil.rmtree('tmp')
+def run_benchmarks(arguments, workload, branch, engine):
 
-    # Relative location of final binary
-    return final_path
+    cores = int(arguments.threads)
+    queue = multiprocessing.Queue()
+    name  = workload['test'][branch]['name']
+    print ('\nRunning %dx Benchmarks for %s' % (cores, name))
 
-def compute_engine_speed(arguments, workload, branch, engine):
-    pass
+    for ii in range(cores):
+        args = (os.path.join('Engines', engine), queue,)
+        proc = multiprocessing.Process(target=run_bench, args=args)
+        proc.start()
+
+    nps, bench = list(zip(*[queue.get() for ii in range(cores)]))
+    if len(set(bench)) > 1: return (0, 0) # Flag an error
+
+    print ('Bench for %s is %d' % (name, bench[0]))
+    print ('NPS   for %s is %d' % (name, sum(nps) // cores))
+    return bench[0], sum(nps) // cores
+
+def verify_benchmarks(arguments, workload, branch, bench):
+    if bench != int(workload['test'][branch]['bench']):
+        server_report_bad_bench(arguments, workload, branch, bench)
+    return bench == int(workload['test'][branch]['bench'])
+
+def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
+
+    dev_options  = workload['test']['dev' ]['options']
+    base_options = workload['test']['base']['options']
+
+    dev_threads  = int(re.search('(?<=Threads=)\d*', dev_options ).group())
+    base_threads = int(re.search('(?<=Threads=)\d*', base_options).group())
+
+    if SYZYGY_WDL_PATH:
+        path = SYZYGY_WDL_PATH.replace('\\', '\\\\')
+        dev_options  += ' SyzygyPath=%s' % (path)
+        base_options += ' SyzygyPath=%s' % (path)
+
+    dev_options  = ' option.'.join([''] +  dev_options.split())
+    base_options = ' option.'.join([''] + base_options.split())
+
+    book_name = workload['test']['book']['name']
+    variant   = ['standard', 'fischerandom']['FRC' in book_name.upper()]
+
+    flags  = '-repeat -recover -resign %s -draw %s '
+    flags += '-srand %d -variant %s -concurrency %d -games %d '
+    flags += '-engine dir=Engines/ cmd=./%s proto=uci tc=%s%s name=%s '
+    flags += '-engine dir=Engines/ cmd=./%s proto=uci tc=%s%s name=%s '
+    flags += '-openings file=Books/%s format=%s order=random plies=16 '
+    flags += '-pgnout PGNs/%s_vs_%s '
+
+    if SYZYGY_DTZ_PATH and workload['test']['allow_dtz']:
+        flags += '-tb %s' % (SYZYGY_DTZ_PATH.replace('\\', '\\\\'))
+
+    throughput = int(workload['test']['throughput'])
+    concurrency = int(arguments.threads) // max(dev_threads, base_threads)
+
+    games = int(concurrency * BASE_GAMES_PER_CORE * throughput / 1000)
+    games = max(concurrency * 2, games - (games % (2 * concurrency)))
+
+    time_control = scale_time_control(workload, nps)
+
+    args = (
+        'movecount=3 score=400', 'movenumber=40 movecount=8 score=10',
+        int(time.time()), variant, concurrency, games,
+        dev_name, time_control, dev_options, dev_name.rstrip('.exe'),
+        base_name, time_control, base_options, base_name.rstrip('.exe'),
+        book_name, book_name.split('.')[-1],
+        dev_name.rstrip('.exe'), base_name.rstrip('.exe')
+    )
+
+    if IS_LINUX:
+        return concurrency, './cutechess ' + flags % (args)
+    return concurrency, 'cutechess.exe ' + flags % (args)
+
+def run_and_parse_cutechess(arguments,  workload, concurrency, command):
+
+    print ('\nLaunching Cutechess...')
+    cutechess = Popen(command.split(), stdout=PIPE)
+
+    crashes = timelosses = 0
+    score   = [0, 0, 0]; sent = [0, 0, 0] # WLD
+    errors  = ['on time', 'disconnects', 'connection stalls', 'illegal']
+
+    while True:
+
+        # Read each line of output until the pipe closes
+        line = cutechess.stdout.readline().strip().decode('ascii')
+        if line != '': print(line)
+        else: cutechess.wait(); return
+
+        # Real updates contain a colon
+        if ':' not in line: continue
+
+        # Parse for crashes and timelosses
+        score_reason = line.split(':')[1]
+        timelosses += 'on time' in score_reason
+        crashes    += 'disconnects' in score_reason
+        crashes    += 'connection stalls' in score_reason
+
+        # Forcefully report any engine failures to the server
+        for error in errors:
+            if error in score_reason:
+                server_report_engine_error(arguments, workload, line)
+
+        # All remaining processing is for score updates only
+        if not line.startswith('Score of'):
+            continue
+
+        # Only report scores after every 'concurrency' games
+        score = list(map(int, score_reason.split()[0:5:2]))
+        if ((sum(score) - sum(sent)) % concurrency != 0): continue
+
+        # Report to the server but allow failed reports to delay
+        wld = [score[ii] - sent[ii] for ii in range(3)]
+        stats = wld + [crashes, timelosses]
+        status = server_report_results(arguments, workload, stats)
+
+        # Check for the task being aborted
+        if status.upper() == 'STOP':
+            kill_cutechess(cutechess)
+            return
+
+        # If the update was succesful reset the results
+        if status.upper() != 'UNABLE':
+            crashes = timelosses = 0
+            sent = score[::]
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                           #

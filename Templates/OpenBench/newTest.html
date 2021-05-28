@@ -73,7 +73,7 @@
 
             devopt.selected  = network.default == "True";
             baseopt.selected = network.default == "True";
-            devnet.add(devopt); basenet.add(baseopt); 
+            devnet.add(devopt); basenet.add(baseopt);
 
 	    hasdefault = (hasdefault || (network.default == "True"));
 
@@ -152,6 +152,16 @@
             <h3> Test Settings </h3>
             <label> Priority </label> <input value="0" name="priority"><br>
             <label> Throughput </label> <input value="1000" name="throughput"><br>
+
+            <label> Syzygy DTZ </label> <select name="allow_dtz">
+                <option selected value="True"> Allowed </option>
+                <option value="False"> Disabled </option>
+            </select><br>
+
+            <label> Syzygy WDL </label> <select name="force_wdl">
+                <option value="True"> Required </option>
+                <option selected value="False"> Allowed </option>
+            </select><br>
 
         </div>
 

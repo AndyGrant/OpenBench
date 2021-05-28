@@ -94,6 +94,8 @@ class Test(Model):
 
     priority    = IntegerField(default=0)
     throughput  = IntegerField(default=0)
+    allow_dtz   = BooleanField(default=True)
+    force_wdl   = BooleanField(default=False)
 
     elolower    = FloatField(default=0.0)
     eloupper    = FloatField(default=0.0)
