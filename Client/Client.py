@@ -174,13 +174,13 @@ def validate_syzygy_exists():
 
 def tablebase_names(K=6):
 
-    letters = ['', 'Q', 'R', 'B', 'N', 'P']; candidates = []
+    letters = ['', 'Q', 'R', 'B', 'N', 'P']
 
     # Generate many potential K[] v K[], including all valid ones
-    for N in range(1, K - 1):
-        for lhs in combinations_with_replacement(letters, N):
-            for rhs in combinations_with_replacement(letters, K - N - 2):
-                candidates.append('K%svK%s' % (''.join(lhs), ''.join(rhs)))
+    candidates = ['K%svK%s' % (''.join(lhs), ''.join(rhs))
+        for N in range(1, K - 1)
+            for lhs in combinations_with_replacement(letters, N)
+                for rhs in combinations_with_replacement(letters, K - N - 2)]
 
     # Syzygy does LHS having more pieces first, stronger pieces second
     def valid_filename(name):
