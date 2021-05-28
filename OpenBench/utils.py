@@ -244,7 +244,7 @@ def createNewTest(request):
     test.priority    = int(request.POST['priority'])
     test.throughput  = int(request.POST['throughput'])
     test.allow_dtz   = request.POST['allow_dtz'] == 'True'
-    test.force_wdl   = request.POST['force_dtz'] == 'True'
+    test.force_wdl   = request.POST['force_wdl'] == 'True'
     test.elolower    = float(request.POST['elolower'])
     test.eloupper    = float(request.POST['eloupper'])
     test.alpha       = float(request.POST['alpha'])
