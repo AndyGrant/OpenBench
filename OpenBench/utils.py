@@ -355,7 +355,8 @@ def selectWorkload(tests, machine):
         elif options and test.priority == highest:
             options.append(test)
 
-    return ['None', random.choice(options)][len(options) != 0]
+    if len(options) == 0: return 'None'
+    return random.choice(options)
 
 def workloadDictionary(test, result, machine):
 
