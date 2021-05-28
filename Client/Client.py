@@ -226,7 +226,7 @@ def unzip_delete_file(source, outdir):
     os.remove(source)
 
 
-def make_command(arguments, engine, network_path):
+def make_command(arguments, engine, src_path, network_path):
 
     command = 'make CC=%s EXE=%s -j%s' % (
         COMPILERS[engine], engine, arguments.threads)
@@ -235,7 +235,8 @@ def make_command(arguments, engine, network_path):
         command += ' '.join(CUSTOM_SETTINGS[engine])
 
     if network_path != None:
-        command += ' EVALFILE=%s' % (network_path.replace('\\', '/'))
+        path = os.path.relpath(os.path.abspath(network_path), src_path)
+        command += ' EVALFILE=%s' % (path.replace('\\', '/'))
 
     return command.split()
 
@@ -643,8 +644,8 @@ def download_engine(arguments, workload, branch, network):
 
     # Build the engine and drop it into src_path
     print ('\nBuilding [%s]' % (final_path))
-    rel_path = os.path.relpath(os.path.abspath(network), src_path)
-    Popen(make_command(arguments, engine, rel_path), cwd=src_path).wait()
+    command = make_command(arguments, engine, src_path, network)
+    Popen(command, cwd=src_path).wait()
     output_name = os.path.join(src_path, engine)
 
     # Move the file to the final location ( Linux )
