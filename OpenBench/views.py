@@ -63,12 +63,16 @@ def render(request, template, content={}):
 
     return django.shortcuts.render(request, 'OpenBench/{0}'.format(template), data)
 
-def authenticate(request):
+def authenticate(request, requireEnabled=False):
 
     try:
         user = django.contrib.auth.authenticate(
             username = request.POST['username'],
             password = request.POST['password'])
+
+        if requireEnabled:
+            profile = OpenBench.models.Profile.objects.get(user=user)
+            if not profile.enabled: raise UnableToAuthenticate()
 
     except Exception:
         raise UnableToAuthenticate()
@@ -598,7 +602,7 @@ def clientGetWorkload(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Verify the User's credentials
-    try: user = authenticate(request)
+    try: user = authenticate(request, True)
     except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
     # getWorkload() will verify the integrity of the request
@@ -609,7 +613,7 @@ def clientGetWorkload(request):
 def clientGetNetwork(request, sha256):
 
     # Verify the User's credentials
-    try: django.contrib.auth.login(request, authenticate(request))
+    try: django.contrib.auth.login(request, authenticate(request, True))
     except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
     # Return the requested Neural Network file for the Client
@@ -628,7 +632,7 @@ def clientWrongBench(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Verify the User's credentials
-    try: user = authenticate(request)
+    try: user = authenticate(request, True)
     except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
     # Verify the Machine belongs to the User
@@ -669,7 +673,7 @@ def clientSubmitNPS(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Verify the User's credentials
-    try: user = authenticate(request)
+    try: user = authenticate(request, True)
     except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
     # Verify the Machine belongs to the User
@@ -693,7 +697,7 @@ def clientSubmitError(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Verify the User's credentials
-    try: user = authenticate(request)
+    try: user = authenticate(request, True)
     except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
     # Verify the Machine belongs to the User
@@ -717,7 +721,7 @@ def clientSubmitError(request):
 def clientSubmitResults(request):
 
     # Verify the User's credentials
-    try: user = authenticate(request)
+    try: user = authenticate(request, True)
     except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
     # Verify the Machine belongs to the User
