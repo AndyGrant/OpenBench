@@ -7,17 +7,24 @@
     <table>
 
         <tr>
-            <th>USERNAME</th>
-            <th>GAMES</th>
-            <th>TESTS</th>
-            <th>ENGINE</th>
-            <th>SOURCE REPOSITORY</th>
+	    <th>Username</th>
+            <th>Games</th>
+            <th>Tests</th>
+	    <th>Engine</th>
+            <th>Default Repository</th>
+        </tr>
+
+        <tr style="font-weight: bold">
+            <th>{{profiles|length}}</th>
+            <th>{{profiles|sumAttributes:"games"|insertCommas}}</th>
+            <th>{{profiles|sumAttributes:"tests"|insertCommas}}</th>
+            <th></th><th></th>
         </tr>
 
         {% for profile in profiles %}
             {% if profile.games or profile.tests %}
                 <tr>
-                    <td><a href="/user/{{profile.user.username}}">{{profile.user.username}}</a></td>
+                    <td><a href="/user/{{profile.user.username}}">{{profile.user.username|capfirst}}</a></td>
                     <td style="text-align: right">{{profile.games|insertCommas}}</td>
                     <td style="text-align: right">{{profile.tests|insertCommas}}</td>
                     <td>{{profile.engine}}</td>
@@ -25,13 +32,6 @@
                 </tr>
             {% endif %}
         {% endfor %}
-
-        <tr style="font-weight: bold">
-            <th>OVERALL</th>
-            <th>{{profiles|sumAttributes:"games"|insertCommas}}</th>
-            <th>{{profiles|sumAttributes:"tests"|insertCommas}}</th>
-            <th></th><th></th>
-        </tr>
 
     </table>
 

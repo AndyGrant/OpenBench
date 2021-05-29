@@ -7,19 +7,19 @@
     <table>
 
         <tr>
-            <th>ID</th>
-            <th>USER</th>
-            <th>SYSTEM</th>
-            <th>UPDATED</th>
-            <th>WORKLOAD</th>
-            <th>THREADS</th>
+            <th>#</th>
+            <th>User</th>
+            <th>System</th>
+            <th>Updated</th>
+            <th>Workload</th>
+            <th>Threads</th>
             <th>MNPS</th>
         </tr>
 
         {% for machine in machines %}
             <tr>
                 <td class="numeric">{{machine.id}}</td>
-                <td>{{machine.user.username}}</td>
+                <td>{{machine.user.username|capfirst}}</td>
                 <td>{{machine.osname|truncatewords:1|slice:":-2"}}</td>
                 <td class="timestamp">{{machine.updated|date:'Y-m-d H:i'}}</td>
                 <td> <a href="/test/{{machine.workload.id}}">{{machine.workload.dev.name|prettyName}}</a></td>
