@@ -736,7 +736,7 @@ def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
 
 def run_and_parse_cutechess(arguments,  workload, concurrency, command):
 
-    print ('\nLaunching Cutechess...')
+    print ('\nLaunching Cutechess...\n%s\n' % (command))
     cutechess = Popen(command.split(), stdout=PIPE)
 
     crashes = timelosses = 0
