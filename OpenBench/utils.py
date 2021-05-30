@@ -46,6 +46,17 @@ def extractOption(options, option):
     match = re.search('(?<={0}=)[^ ]*'.format(option), options)
     if match: return match.group()
 
+def parseTimeControl(timecontrol):
+
+    # Searching for X/Y+Z time controls
+    pattern = '(\d*.\d*)/?(\d+)?\+?(\d*.\d*)?'
+    base, repeat, inc = re.search(pattern, timecontrol).groups(0)
+
+    # Only include repeating controls when found
+    if repeat == 0:
+        return '%.1f+%.2f' % (float(base), float(inc))
+    return  '%.1f/%d+%.2f' % (float(base), int(repeat), float(inc))
+
 
 def getPendingTests():
     pending = OpenBench.models.Test.objects.filter(approved=False)
@@ -196,6 +207,10 @@ def verifyNewTest(request):
         if request.POST[field] not in OpenBench.config.OPENBENCH_CONFIG[parent].keys():
             errors.append('{0} was not found in the configuration'.format(fieldName))
 
+    def verifyTimeControl(field, fieldName):
+        try: parseTimeControl(request.POST[field])
+        except: errors.append('{0} is not a parsable {1}'.format(request.POST[field], fieldName))
+
     verifications = [
         (verifyInteger, 'priority', 'Priority'),
         (verifyInteger, 'throughput', 'Throughput'),
@@ -214,6 +229,7 @@ def verifyNewTest(request):
         (verifyOptions, 'baseoptions', 'Hash', 'Base Options'),
         (verifyConfiguration, 'enginename', 'Engine', 'engines'),
         (verifyConfiguration, 'bookname', 'Book', 'books'),
+        (verifyTimeControl, 'timecontrol', 'Time Control'),
     ]
 
     for verification in verifications:
@@ -240,7 +256,7 @@ def createNewTest(request):
     test.devnetwork  = request.POST['devnetwork']
     test.basenetwork = request.POST['basenetwork']
     test.bookname    = request.POST['bookname']
-    test.timecontrol = request.POST['timecontrol']
+    test.timecontrol = parseTimeControl(request.POST['timecontrol'])
     test.priority    = int(request.POST['priority'])
     test.throughput  = int(request.POST['throughput'])
     test.allow_dtz   = request.POST['allow_dtz'] == 'True'
