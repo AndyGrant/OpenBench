@@ -87,24 +87,29 @@ COMPILERS = {} # Compiler for each Engine, + CPU Flags
 OSNAME    = '%s %s' % (platform.system(), platform.release())
 DEBUG     = True
 
-def check_for_utilities():
+def locate_utility(util, force_exit=True, report_error=True):
 
-    def locate_utility(util):
+    try:
+        process = Popen([util, '--version'], stdout=PIPE)
+        stdout, stderr = process.communicate()
 
-        try:
-            process = Popen([util, '--version'], stdout=PIPE)
-            stdout, stderr = process.communicate()
+        ver = re.search('[0-9]+.[0-9]+.[0-9]+', str(stdout))
+        print ('Located %s (%s)' % (util, ver.group()))
+        return True
 
-            ver = re.search('[0-9]+.[0-9]+.[0-9]+', str(stdout))
-            print ('Located %s (%s)' % (util.upper(), ver.group()))
-
-        except OSError:
-            print('[Error] Unable to locate %s' % (util.upper()))
+    except Exception:
+        if report_error:
+            print('[Error] Unable to locate %s' % (util))
+        if force_exit:
             sys.exit()
+        return False
+
+def check_for_utilities():
 
     print('\nScanning For Basic Utilities...')
     for utility in ['gcc', 'make']:
         locate_utility(utility)
+
 
 def init_client(arguments):
 
@@ -157,20 +162,20 @@ def validate_syzygy_exists():
         # Reset the configuration if the file is missing
 
         if SYZYGY_WDL_PATH and not os.path.isfile(wdlpath):
-            print('Missing Syzygy File (%s)' % (filename + '.rtbw'))
             SYZYGY_WDL_PATH = None
 
         if SYZYGY_DTZ_PATH and not os.path.isfile(dtzpath):
-            print('Missing Syzygy File (%s)' % (filename + '.rtbz'))
             SYZYGY_DTZ_PATH = None
 
     # Report final results, which may conflict with the original configuration
 
     if SYZYGY_WDL_PATH:
         print('Verified Syzygy WDL (%s)' % (SYZYGY_WDL_PATH))
+    else: print('Syzygy WDL Not Found')
 
     if SYZYGY_DTZ_PATH:
         print('Verified Syzygy DTZ (%s)' % (SYZYGY_DTZ_PATH))
+    else: print('Syzygy DTZ Not Found')
 
 def tablebase_names(K=6):
 
@@ -314,9 +319,9 @@ def kill_cutechess(cutechess):
 @try_until_success(mesg=ERRORS['cutechess'])
 def server_download_cutechess(arguments):
 
-    print('\nScanning for Cutechess Binary...')
+    print('\nFetching Cutechess Binary...')
 
-    if IS_WINDOWS and not os.path.isfile('cutechess.exe'):
+    if IS_WINDOWS and not locate_utility('cutechess.exe', False, False):
 
         # Fetch the source location if we are missing the binary
         source = requests.get(
@@ -326,7 +331,11 @@ def server_download_cutechess(arguments):
         # Windows workers simply need a static compile (64-bit)
         download_file(url_join(source, 'cutechess-windows.exe'), 'cutechess.exe')
 
-    if IS_LINUX and not os.path.isfile('cutechess'):
+        # Verify that we can execute Cutechess
+        if not locate_utility('cutechess.exe', False):
+            raise Exception
+
+    if IS_LINUX and not locate_utility('cutechess', False, False):
 
         # Fetch the source location if we are missing the binary
         source = requests.get(
@@ -337,7 +346,9 @@ def server_download_cutechess(arguments):
         download_file(url_join(source, 'cutechess-linux'), 'cutechess')
         os.system('chmod 777 cutechess')
 
-    print('Cutechess Binary found or obtained')
+        # Verify that we can execute Cutechess
+        if not locate_utility('cutechess', False):
+            raise Exception
 
 @try_until_success(mesg=ERRORS['configure'])
 def server_configure_worker(arguments):
@@ -369,14 +380,14 @@ def server_configure_worker(arguments):
 
             # Compiler version was sufficient
             if tuple(map(int, match.split('.'))) >= version:
-                print('%10s :: %s (%s)' % (engine, compiler, match))
+                print('%10s | %s (%s)' % (engine, compiler, match))
                 COMPILERS[engine] = compiler
                 break
 
     # Report missing engines in case the User is not expecting it
     for engine in filter(lambda x: x not in COMPILERS, data):
         compiler = data[engine]['compilers']
-        print('%10s :: Missing %s' % (engine, compiler))
+        print('%10s | Missing %s' % (engine, compiler))
 
     print ('\nScanning for CPU Flags...')
 
@@ -392,8 +403,8 @@ def server_configure_worker(arguments):
     actual  = set(f for f in flags if '__%s__ 1' % (f) in str(stdout))
 
     # Report and save to global configuration
-    print ('     Found ::', ' '.join(list(actual)))
-    print ('   Missing ::', ' '.join(list(flags - actual)))
+    print ('     Found |', ' '.join(list(actual)))
+    print ('   Missing |', ' '.join(list(flags - actual)))
     COMPILERS['cpuflags'] = ' '.join(list(actual))
 
 @try_until_success(mesg=ERRORS['request'])
@@ -621,7 +632,7 @@ def download_engine(arguments, workload, branch, network):
     source      = workload['test'][branch]['source']
     build_path  = workload['test']['build']['path']
 
-    pattern = '\nEngine: %s\nBranch: %s\nCommit: %s'
+    pattern = '\nEngine: [%s] %s\nCommit: %s'
     print (pattern % (engine, branch_name, commit_sha.upper()))
 
     # Naming as Engine-SHA256[:8]-NETSHA256[:8]
@@ -676,7 +687,7 @@ def run_benchmarks(arguments, workload, branch, engine):
     if len(set(bench)) > 1: return (0, 0) # Flag an error
 
     print ('Bench for %s is %d' % (name, bench[0]))
-    print ('NPS   for %s is %d' % (name, sum(nps) // cores))
+    print ('Speed for %s is %d' % (name, sum(nps) // cores))
     return bench[0], sum(nps) // cores
 
 def verify_benchmarks(arguments, workload, branch, bench):
@@ -812,3 +823,47 @@ if __name__ == '__main__':
         response = server_request_workload(arguments)
         workload = check_workload_response(arguments, response)
         if workload: complete_workload(arguments, workload)
+
+
+# >>> x = 'cutechess-linux'
+# >>> y = 'cutechess-windows.exe'
+# >>>
+# >>>
+# >>> with open(x) as fin:
+# ...
+# ...
+#   File "<stdin>", line 3
+#
+#     ^
+# IndentationError: expected an indented block
+# >>>
+# >>> import hashlib
+# >>>
+# >>>
+# >>> with open(x) as fin:
+# ...   content = fin.read().decode('utf-8')
+# ...   print(hashlib.sha256(content).hexdigest())
+# ...
+# Traceback (most recent call last):
+#   File "<stdin>", line 2, in <module>
+#   File "C:\Python3\lib\encodings\cp1252.py", line 23, in decode
+#     return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+# UnicodeDecodeError: 'charmap' codec can't decode byte 0x8f in position 710: character maps to <undefined>
+# >>>
+# >>> with open(x, 'rb') as fin:
+# ...   content = fin.read()
+# ...   print(hashlib.sha256(content).hexdigest())
+# ...
+# 929ead50b90f5bd6a912d3cefbc0bbbe75cdc02a88b493100e2a5a5f8b47e012
+# >>>
+# >>> with
+#   File "<stdin>", line 1
+#     with
+#          ^
+# SyntaxError: invalid syntax
+# >>>
+# >>> with open(y, 'rb') as fin:
+# ...   content = fin.read()
+# ...   print(hashlib.sha256(content).hexdigest())
+# ...
+# 989995590abf19cb88fc23712eef1e61caa3edf5895151f184c7e5b0ca0c97e4
