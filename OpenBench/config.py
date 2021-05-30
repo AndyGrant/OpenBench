@@ -28,8 +28,8 @@ OPENBENCH_CONFIG = {
     },
 
     # Link to the repo on the sidebar, as well as the core files
-    'framework'   : 'http://github.com/AndyGrant/OpenBench/',
-    'corefiles'   : 'http://github.com/AndyGrant/OpenBench/raw/openV2/CoreFiles/',
+    'framework' : 'http://github.com/AndyGrant/OpenBench/',
+    'corefiles' : 'http://github.com/AndyGrant/OpenBench/raw/openV2/CoreFiles/',
 
     # SPRT Elo bounds and type I/II errors
     'sprt' : { 'elolower' : 0.00, 'eloupper' : 5.00, 'alpha' : 0.05, 'beta' : 0.05 },
@@ -79,7 +79,7 @@ OPENBENCH_CONFIG = {
 
         'Ethereal' : {
 
-            'nps'       : 1075000,
+            'nps'       : 640000,
             'source'    : 'https://github.com/AndyGrant/Ethereal',
 
             'build'     : {
@@ -117,7 +117,7 @@ OPENBENCH_CONFIG = {
 
         'Weiss' : {
 
-            'nps'       : 2400000,
+            'nps'       : 2022000,
             'source'    : 'https://github.com/TerjeKir/weiss',
 
             'build'     : {
@@ -136,7 +136,7 @@ OPENBENCH_CONFIG = {
 
         'Demolito' : {
 
-            'nps'       : 1075000,
+            'nps'       : 1040000,
             'source'    : 'https://github.com/lucasart/Demolito',
 
             'build'     : {
@@ -193,7 +193,7 @@ OPENBENCH_CONFIG = {
 
         'Igel' : {
 
-            'nps'       : 475000,
+            'nps'       : 520000,
             'source'    : 'https://github.com/vshcherbyna/igel',
 
             'build'     : {
@@ -212,7 +212,7 @@ OPENBENCH_CONFIG = {
 
         'Winter' : {
 
-            'nps'       : 380000,
+            'nps'       : 465000,
             'source'    : 'https://github.com/rosenthj/Winter',
 
             'build'     : {
@@ -231,7 +231,7 @@ OPENBENCH_CONFIG = {
 
         'Halogen' : {
 
-            'nps'       : 1350000,
+            'nps'       : 1320000,
             'source'    : 'https://github.com/KierenP/Halogen',
 
             'build'     : {
@@ -250,7 +250,7 @@ OPENBENCH_CONFIG = {
 
         'Stash' : {
 
-            'nps'       : 1415000,
+            'nps'       : 1380000,
             'source'    : 'https://github.com/mhouppin/stash-bot',
 
             'build'     : {
