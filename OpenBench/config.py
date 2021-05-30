@@ -155,7 +155,7 @@ OPENBENCH_CONFIG = {
 
         'RubiChess' : {
 
-            'nps'       : 1500000,
+            'nps'       : 1050000,
             'source'    : 'https://github.com/Matthies/RubiChess',
 
             'build'     : {
