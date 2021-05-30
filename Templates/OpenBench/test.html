@@ -10,7 +10,7 @@
 
     <div id="configuration">
         <table class="datatable left-align">
-            <tr><th>Author</th><td>{{test.author}}</td></tr>
+            <tr><th>Author</th><td>{{test.author|capfirst}}</td></tr>
             <tr><th>Creation</th><td class="timestamp">{{test.creation|date:'Y-m-d H:i:s'}}</td></tr>
             <tr><th>Engine</th><td>{{test.engine}}</td></tr>
             <tr><th>Dev Branch</th><td>{{test.dev.name|prettyName}}</td></tr>
@@ -113,22 +113,22 @@
         <table class="datatable">
 
             <tr>
-                <th>ID</th>
-                <th>USER</th>
+                <th>#</th>
+                <th>User</th>
                 <th>OS</th>
-                <th>UPDATED</th>
-                <th style="width: 60px">GAMES</th>
-                <th style="width: 60px">WON</th>
-                <th style="width: 60px">LOST</th>
-                <th style="width: 60px">DRAWN</th>
-                <th style="width: 60px">TIME</th>
-                <th style="width: 60px">CRASH</th>
+                <th>Updated</th>
+                <th style="width: 60px">Games</th>
+                <th style="width: 60px">Won</th>
+                <th style="width: 60px">Lost</th>
+                <th style="width: 60px">Drawn</th>
+                <th style="width: 60px">Time</th>
+                <th style="width: 60px">Crash</th>
             </tr>
 
             {% for result in results %}
                 <tr>
                     <td>{{result.machine.id}}</td>
-                    <td>{{result.machine.user.username|slice:"6"}}</td>
+                    <td>{{result.machine.user.username|capfirst|slice:"6"}}</td>
                     <td>{{result.machine.osname|truncatewords:1|slice:":-2"}}</td>
                     <td class="timestamp">{{result.updated|date:'Y-m-d H:i'}}</td>
                     <td class="numeric">{{result.games}}</td>
