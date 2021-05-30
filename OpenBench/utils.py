@@ -235,8 +235,8 @@ def createNewTest(request):
     test.author      = request.user.username
     test.engine      = request.POST['enginename']
     test.source      = request.POST['source']
-    test.devoptions  = request.POST['devoptions']
-    test.baseoptions = request.POST['baseoptions']
+    test.devoptions  = request.POST['devoptions'].rstrip(' ')
+    test.baseoptions = request.POST['baseoptions'].rstrip(' ')
     test.devnetwork  = request.POST['devnetwork']
     test.basenetwork = request.POST['basenetwork']
     test.bookname    = request.POST['bookname']
