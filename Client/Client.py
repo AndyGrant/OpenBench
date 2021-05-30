@@ -335,7 +335,7 @@ def server_download_cutechess(arguments):
         if not locate_utility('cutechess.exe', False):
             raise Exception
 
-    if IS_LINUX and not locate_utility('cutechess', False, False):
+    if IS_LINUX and not locate_utility('./cutechess', False, False):
 
         # Fetch the source location if we are missing the binary
         source = requests.get(
@@ -347,7 +347,7 @@ def server_download_cutechess(arguments):
         os.system('chmod 777 cutechess')
 
         # Verify that we can execute Cutechess
-        if not locate_utility('cutechess', False):
+        if not locate_utility('./cutechess', False):
             raise Exception
 
 @try_until_success(mesg=ERRORS['configure'])
