@@ -49,13 +49,18 @@ def extractOption(options, option):
 def parseTimeControl(timecontrol):
 
     # Searching for X/Y+Z time controls
-    pattern = '(\d*.\d*)/?(\d+)?\+?(\d*.\d*)?'
-    base, repeat, inc = re.search(pattern, timecontrol).groups(0)
+    pattern = '(?P<base>\d*(\.\d+)?)(?P<rep>/\d+)?(?P<inc>\+\d+\.\d+)?'
+    results = re.search(pattern, timecontrol)
+    base, rep, inc = results.group('base', 'rep', 'inc')
+
+    # Strip any leading / or + symbols
+    rep = None if rep is None else rep[1:]
+    inc = '0' if inc is None else inc[1:]
 
     # Only include repeating controls when found
-    if repeat == 0:
+    if rep is None:
         return '%.1f+%.2f' % (float(base), float(inc))
-    return  '%.1f/%d+%.2f' % (float(base), int(repeat), float(inc))
+    return '%.1f/%d+%.2f' % (float(base), int(rep), float(inc))
 
 
 def getPendingTests():

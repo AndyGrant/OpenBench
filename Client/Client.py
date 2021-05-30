@@ -278,18 +278,22 @@ def run_bench(engine, outqueue):
 def scale_time_control(workload, nps):
 
     # Searching for X/Y+Z time controls
-    pattern = '(\d*.\d*)/?(\d+)?\+?(\d*.\d*)?'
-    time_control = workload['test']['timecontrol']
-    base, repeat, inc = re.search(pattern, time_control).groups(0)
+    pattern = '(?P<base>\d*(\.\d+)?)(?P<rep>/\d+)?(?P<inc>\+\d+\.\d+)?'
+    results = re.search(pattern, workload['test']['timecontrol'])
+    base, rep, inc = results.group('base', 'rep', 'inc')
+
+    # Strip any leading / or + symbols
+    rep = None if rep is None else rep[1:]
+    inc = '0'  if inc is None else inc[1:]
 
     # Scale our machine's NPS to the Server's NPS
     base = float(base) * int(workload['test']['nps']) / nps
     inc  = float(inc ) * int(workload['test']['nps']) / nps
 
     # Only include repeating controls when found
-    if repeat == 0:
+    if rep is None:
         return '%.2f+%.2f' % (base, inc)
-    return ('%.2f/%d+%.2f' % (base, int(repeat), inc))
+    return '%.2f/%d+%.2f' % (base, int(rep), inc)
 
 def kill_cutechess(cutechess):
 
