@@ -441,14 +441,12 @@ def server_request_workload(arguments):
 @try_until_success(mesg=ERRORS['build_fail'])
 def server_report_build_fail(arguments, workload, branch):
 
-    branch = workload['test'][branch]
-
     payload = {
-        'username' : arguments.username,
-        'password' : arguments.password,
+        'username'  : arguments.username,
+        'password'  : arguments.password,
         'testid'    : workload['test']['id'],
         'machineid' : workload['machine']['id'],
-        'error'    : '%s build failed' % branch
+        'error'     : '%s build failed' % (workload['test'][branch])
     }
 
     target = url_join(arguments.server, 'clientSubmitError')
