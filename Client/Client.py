@@ -446,7 +446,7 @@ def server_report_build_fail(arguments, workload, branch):
         'password'  : arguments.password,
         'testid'    : workload['test']['id'],
         'machineid' : workload['machine']['id'],
-        'error'     : '%s build failed' % (workload['test'][branch])
+        'error'     : '%s build failed' % (workload['test'][branch]['name'])
     }
 
     target = url_join(arguments.server, 'clientSubmitError')
@@ -564,7 +564,6 @@ def complete_workload(arguments, workload):
 
     dev_name  = download_engine(arguments, workload, 'dev', dev_network)
     base_name = download_engine(arguments, workload, 'base', base_network)
-
     if dev_name == None or base_name == None: return
 
     dev_bench,  dev_nps  = run_benchmarks(arguments, workload, 'dev', dev_name)
@@ -844,7 +843,9 @@ if __name__ == '__main__':
     server_configure_worker(arguments)
 
     while True:
-        cleanup_client()
-        response = server_request_workload(arguments)
-        workload = check_workload_response(arguments, response)
-        if workload: complete_workload(arguments, workload)
+        try:
+            cleanup_client()
+            response = server_request_workload(arguments)
+            workload = check_workload_response(arguments, response)
+            if workload: complete_workload(arguments, workload)
+        except Exception: traceback.print_exc()
