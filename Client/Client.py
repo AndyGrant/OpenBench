@@ -66,6 +66,7 @@ ERRORS = {
     'cutechess'    : 'Unable to fetch Cutechess location and download it!',
     'configure'    : 'Unable to fetch and determine acceptable workloads!',
     'request'      : 'Unable to reach server for workload request!',
+    'build_fail'   : 'Unablt to reach server to report failed build!',
     'bad_bench'    : 'Unable to reach server to report bad benchmark!',
     'bench_nps'    : 'Unable to reach server to report benchmark NPS!',
     'report_error' : 'Unable to reach server to report engine failure!',
@@ -437,6 +438,20 @@ def server_request_workload(arguments):
     target = url_join(arguments.server, 'clientGetWorkload')
     return requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
+@try_until_success(mesg=ERRORS['build_fail'])
+def server_report_build_fail(arguments, workload, branch):
+
+    payload = {
+        'username'  : arguments.username,
+        'password'  : arguments.password,
+        'testid'    : workload['test']['id'],
+        'machineid' : workload['machine']['id'],
+        'error'     : '%s build failed' % (workload['test'][branch])
+    }
+
+    target = url_join(arguments.server, 'clientSubmitError')
+    requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
+
 @try_until_success(mesg=ERRORS['bad_bench'])
 def server_report_bad_bench(arguments, workload, branch, bench):
 
@@ -549,6 +564,8 @@ def complete_workload(arguments, workload):
 
     dev_name  = download_engine(arguments, workload, 'dev', dev_network)
     base_name = download_engine(arguments, workload, 'base', base_network)
+
+    if dev_name == None or base_name == None: return
 
     dev_bench,  dev_nps  = run_benchmarks(arguments, workload, 'dev', dev_name)
     base_bench, base_nps = run_benchmarks(arguments, workload, 'base', base_name)
@@ -674,6 +691,10 @@ def download_engine(arguments, workload, branch, network):
         os.rename(output_name + '.exe', final_path + '.exe')
         shutil.rmtree('tmp')
         return final_name + '.exe'
+
+    # Notify the server if the build failed
+    server_report_build_fail(arguments, workload, branch)
+    return None
 
 def run_benchmarks(arguments, workload, branch, engine):
 
