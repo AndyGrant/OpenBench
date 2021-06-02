@@ -144,7 +144,6 @@ def getBranch(request, errors, name):
     target = repo.replace('github.com', 'api.github.com/repos')
     target = pathjoin(target, url, branch).rstrip('/')
 
-
     # Avoid leaking our credentials to other sites
     if not target.startswith('https://api.github.com/'):
         errors.append('OpenBench may only reach Github\'s API')
@@ -157,12 +156,11 @@ def getBranch(request, errors, name):
             auth = requests.auth.HTTPBasicAuth(user, token)
     else: auth = None
 
-
-    try:
+    try: # Fetch data from the Github API
         data = requests.get(target, auth=auth).json()
         data = data if bysha else data['commit']
 
-    except:
+    except: # Unable to connect for whatever reason
         lookup = 'Commit Sha' if bysha else 'Branch'
         errors.append('{0} {1} could not be found'.format(lookup, branch))
         return (None, None, None, None)
@@ -170,17 +168,20 @@ def getBranch(request, errors, name):
     treeurl = data['commit']['tree']['sha'] + '.zip'
     source = pathjoin(repo, 'archive', treeurl).rstrip('/')
 
-    try:
+    try: # Use the provided Bench is their is one
+        bench = int(request.POST['{0}bench'.format(name)])
+        return (source, branch, data['sha'], bench)
+    except: pass
+
+    try: # Fallback to try to parse the Bench from the commit
         message = data['commit']['message'].replace(',', '').upper()
         bench = re.search('(BENCH|NODES)[ :=]+[0-9]+', message)
-        if bench: bench = int(re.search('[0-9]+', bench.group()).group())
-        else: bench = int(request.POST['{0}bench'.format(name)])
+        bench = int(re.search('[0-9]+', bench.group()).group())
+        return (source, branch, data['sha'], bench)
 
-    except:
+    except: # Neither method found a viable Bench
         errors.append('Unable to parse a Bench for {0}'.format(branch))
         return (None, None, None, None)
-
-    return (source, branch, data['sha'], bench)
 
 def verifyNewTest(request):
 
