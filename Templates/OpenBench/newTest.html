@@ -49,7 +49,7 @@
             document.getElementById("baseoptions").value  = "Threads=" + threads + " Hash=" + hash;
             document.getElementById("timecontrol").value  = timecontrol;
 
-	    return; // Don't change the Network setup unless asked
+            return; // Don't change the Network setup unless asked
         }
 
         // Fetch each option selection for Dev & Base
@@ -75,9 +75,8 @@
             baseopt.selected = network.default == "True";
             devnet.add(devopt); basenet.add(baseopt);
 
-	    hasdefault = (hasdefault || (network.default == "True"));
-
-	}
+            hasdefault = (hasdefault || (network.default == "True"));
+        }
 
         {
             var devopt  = document.createElement("option");
@@ -103,7 +102,7 @@
         <div class="settings-column">
 
             <h3> Engine </h3>
-            <label> Name </label> <select id="enginename" name="enginename">
+            <label> Name </label> <select onClick="configure(null)" id="enginename" name="enginename">
             {% for engine in config.engines %}
                 {% if engine == profile.engine %}
                     <option onClick="configure(null)" selected value="{{engine}}">{{engine}}</option>
