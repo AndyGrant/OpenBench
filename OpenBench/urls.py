@@ -66,4 +66,7 @@ urlpatterns = [
 
     # Redirect anything else to the Index
     django.urls.path(r'', OpenBench.views.index),
+
+    # Link for Ethereal 13.00 PRO Sales
+    django.urls.path(r'Ethereal/', OpenBench.views.buyEthereal),
 ]

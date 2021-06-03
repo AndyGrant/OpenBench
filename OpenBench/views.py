@@ -730,3 +730,10 @@ def clientSubmitResults(request):
 
     # updateTest() will return 'None' or 'Stop'
     return HttpResponse(OpenBench.utils.updateTest(request, user))
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                BUSINESS VIEWS                               #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+def buyEthereal(request):
+    return render(request, 'buyEthereal.html')

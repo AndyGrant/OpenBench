@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+    {% load static %}
+
+    <head>
+        <link rel="stylesheet" href="{% static 'style.css' %}">
+        <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
+
+        <link rel="preconnect" href="https://fonts.gstatic.com">
+        <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital@0;1&display=swap" rel="stylesheet">
+
+        <title> Ethereal 13.00 (NNUE) </title>
+
+        <style>
+
+            body {
+                background: #202020;
+                transform: scale(0.95);
+            }
+
+            #content {
+                font-family: "Open Sans", sans-serif;
+            }
+
+            #content h1 {
+                font-size: 64px;
+                font-weight: bold;
+                margin: 20px 0px;
+                color: #00AF00;
+                font-style: italic;
+            }
+
+            #content p {
+                font-size: 16px;
+                margin: 16px 100px;
+                text-align: justify
+            }
+
+            #content #buyethereal {
+                font-size: 40px;
+                display: block;
+                border-radius: 20px;
+                color: black;
+                font-weight: bold;
+                font-style: italic;
+                background: #00AF00;
+                text-align: center;
+                margin-top: 20px;
+                line-height: 64px;
+                border-style: solid;
+                border-width : 5px;
+                border-color: black;
+                margin: 20px 90px;
+            }
+
+        </style>
+    </head>
+
+    <body>
+        <div id="content">
+
+            <h1> Ethereal 13.00 </h1>
+
+            <p> Ethereal 13 has been released, with both a free (Standard) version and a commercial NNUE (Efficiently-Updated Neural Network) version which requires an AVX2 compatible system. The free version is <a href="https://github.com/AndyGrant/Ethereal/releases"> available on Github </a>, and offers minor elo gains over the previous version, with increased functionality for analysis. Ethereal continues its legacy of stability and reliability for analysis and engine play. </p>
+
+            <p> Ethereal 13 (NNUE) includes two NNUE Networks for evaluation. These Networks are the second of their kind, boasting themselves as the only other high level NNUEs not derived from, trained on, nor duplicated from the works of the Stockfish team. With it, Ethereal adds new ideas and techniques to extend existing  machine learning algorithms, and adds original practices into the implementation. These new approaches in software design allow for older AVX2 processors to outperform NNUEs found in other engines, while still harnessing the full power of the AVX2 instruction set. </p>
+
+            <p> Additionally, Ethereal is the first engine to offer a secondary Network trained exclusively for Fischer Random Chess (FRC). This Network outperforms the standard Network by significant margins in FRC play, showcasing a creative style by Ethereal, not reliant on Opening Theory. These Neural Networks offer up to +120 elo over Ethereal 12.75 in self-play for Standard and Fischer Random Chess, the culmination of over 238,000,000 games played between various versions of Ethereal.</p>
+
+            <p> The Standard version will run on any 64-bit machine, with source provided for Linux users, and binaries provided for Windows users. The NNUE version requires a CPU with the AVX2 instruction set, and will not run on systems lacking these instructions. AVX2 has become ubiquitous in modern processor design, and is necessary to capitalize on the full strength of Neural Network technology. If you are unsure if your system is supported, please reach out to me via email at andrew@grantnet.us for assistance. </p>
+
+            <p> <a href="https://stripe.com/">Stripe</a>, an online payment processor, will verify your payment of $40 USD. Afterwards, you will receive an email from <a>andrew@grantnet.us</a> within 24 hours containing the following: Windows binary with the default Network compiled into it, Linux binary with the default Network compiled into it, copies of both Network files specific to your binaries.</p>
+
+            <a id="buyethereal" href="https://buy.stripe.com/aEU7wz19x7EGbJeaEG"> Buy Ethereal 13 (NNUE) </a>
+        </div>
+    </body>
+</html>
