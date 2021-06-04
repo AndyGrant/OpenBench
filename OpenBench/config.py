@@ -266,5 +266,23 @@ OPENBENCH_CONFIG = {
                 'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
             },
         },
+        
+        'Seer' : {
+            'nps'       : 500000,
+            'source'    : 'https://github.com/connormcmonigle/seer-nnue.git',
+            
+            'build'     : { 
+            	'path' : 'build',
+            	'compilers' : ['g++'],
+            	'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'], 
+            },
+
+            'testmodes' : {
+                'stc'     : { 'threads' : 1, 'hash' :  32, 'timecontrol' : '15.0+0.15' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
+                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
+                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
+            },
+        },
     },
 }
