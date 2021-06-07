@@ -39,20 +39,17 @@
             }
 
             #content #buyethereal {
-                font-size: 40px;
+                font-size: 32px;
                 display: block;
-                border-radius: 20px;
+                border-radius: 8px;
                 color: black;
                 font-weight: bold;
-                font-style: italic;
                 background: #00AF00;
                 text-align: center;
                 margin-top: 20px;
                 line-height: 64px;
-                border-style: solid;
-                border-width : 5px;
                 border-color: black;
-                margin: 20px 90px;
+                margin: 20px 100px;
             }
 
         </style>
@@ -63,15 +60,15 @@
 
             <h1> Ethereal 13.00 </h1>
 
-            <p> Ethereal 13 has been released, with both a free (Standard) version and a commercial NNUE (Efficiently-Updated Neural Network) version which requires an AVX or AVX2 compatible system. The free version is <a href="https://github.com/AndyGrant/Ethereal/releases"> available on Github </a>, and offers minor elo gains over the previous version, with increased functionality for analysis. Ethereal continues its legacy of stability and reliability for analysis and engine play. </p>
+            <p> Ethereal 13 has been released, with both a free (Standard) version and a commercial NNUE (Efficiently-Updated Neural Network) version. The free version is <a href="https://github.com/AndyGrant/Ethereal/releases"> available on Github </a>, and offers minor elo gains over the previous version, with increased functionality for analysis. Ethereal continues its legacy of stability and reliability for analysis and engine play. </p>
 
-            <p> Ethereal 13 (NNUE) includes two NNUE Networks for evaluation. These Networks are the second of their kind, boasting themselves as the only other high level NNUEs not derived from, trained on, nor duplicated from the works of the Stockfish team. With it, Ethereal adds new ideas and techniques to extend existing  machine learning algorithms, and adds original practices into the implementation. These new approaches in software design allow for older processors to outperform NNUEs found in other engines, while still harnessing the full power of the AVX/AVX2 instruction set. </p>
+            <p> Ethereal 13 (NNUE) includes two NNUE Networks for evaluation. These Networks are the second of their kind, boasting themselves as the only other high level NNUEs not derived from, trained on, nor duplicated from the works of the Stockfish team. With it, Ethereal adds new ideas and techniques to extend existing  machine learning algorithms, and adds original practices into the implementation. These new approaches in software design allow for older processors to outperform NNUEs found in other engines, while still harnessing the full power of the AVX/AVX2 instruction sets for CPUs with support. </p>
 
             <p> Additionally, Ethereal is the first engine to offer a secondary Network trained exclusively for Fischer Random Chess (FRC). This Network outperforms the standard Network by significant margins in FRC play, showcasing a creative style by Ethereal, not reliant on Opening Theory. These Neural Networks offer up to +120 elo over Ethereal 12.75 in self-play for Standard and Fischer Random Chess, the culmination of over 238,000,000 games played between various versions of Ethereal.</p>
 
-            <p> The Standard version will run on any 64-bit machine, with source provided for Linux users, and binaries provided for Windows users. The NNUE version requires a CPU with the AVX or AVX2 instruction set, and will not run on systems lacking these instructions. AVX/AVX2 have become ubiquitous in modern processor design, and are necessary to capitalize on the full strength of Neural Network technology. If you are unsure if your system is supported, please reach out to me via email at andrew@grantnet.us for assistance. </p>
+            <p> The Standard version will run on any 64-bit machine, with source provided for Linux users, and binaries provided for Windows users. The NNUE version requires a CPU with the SSSE3 instruction set (which almost all CPUs have), and will not run on systems lacking these instructions. AVX/AVX2 have become ubiquitous in modern processor design, and are necessary to capitalize on the full strength of Neural Network technology. If you are unsure if your system is supported, please reach out to me via email at andrew@grantnet.us for assistance. </p>
 
-            <p> <a href="https://stripe.com/">Stripe</a>, an online payment processor, will verify your payment of $40 USD. Afterwards, you will receive an email from <a>andrew@grantnet.us</a> or <a>andrewgrantethereal@gmail.com</a> within 24 hours containing a download link for a Standard NNUE Network, a Fischer Random NNUE Network, as well as an assortment of binary or executable files. You should select the binary matching your Operating System. Users with Intel CPUs containing BMI2 support (Also known as PEXT), should use the pext binary for optimal performance. AMD CPU users should use the popcnt binary, unless they have a 5XXX series Ryzen.</p>
+            <p> <a href="https://stripe.com">Stripe</a> will verify your payment of $40 USD. Afterwards, you will receive an email from <a>andrew@grantnet.us</a> or <a>andrewgrantethereal@gmail.com</a> within 24 hours containing a download link for the Standard/Fischer NNUE Networks, as well as the binary or executable files for Windows and Linux. You should select the binary matching your Operating System. Users with Intel CPUs containing BMI2 support (Also known as PEXT), should use the pext binary for optimal performance. AMD CPU users should use the popcnt binary, unless they have a 5XXX series Ryzen. AVX2 binaries will be the fastest, followed by AVX, and finally SSSE3. You should use the fastest your CPU allows. </p>
 
             <a id="buyethereal" href="https://buy.stripe.com/aEU7wz19x7EGbJeaEG"> Buy Ethereal 13 (NNUE) </a>
         </div>
