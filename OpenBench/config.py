@@ -75,11 +75,11 @@ OPENBENCH_CONFIG = {
     # a set of paramaters for each standard test type, as well as a scaled
     # NPS value, which is used to normalize speed across all workers.
 
-    'engines'     : {
+    'engines' : {
 
         'Ethereal' : {
 
-            'nps'       : 640000,
+            'nps'       : 1060000,
             'source'    : 'https://github.com/AndyGrant/Ethereal',
 
             'build'     : {
@@ -98,7 +98,7 @@ OPENBENCH_CONFIG = {
 
         'Laser' : {
 
-            'nps'       : 720000,
+            'nps'       : 925000,
             'source'    : 'https://github.com/jeffreyan11/uci-chess-engine',
 
             'build'     : {
@@ -108,8 +108,8 @@ OPENBENCH_CONFIG = {
             },
 
             'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
+                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
                 'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
                 'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
              },
@@ -117,7 +117,7 @@ OPENBENCH_CONFIG = {
 
         'Weiss' : {
 
-            'nps'       : 2022000,
+            'nps'       : 2500000,
             'source'    : 'https://github.com/TerjeKir/weiss',
 
             'build'     : {
@@ -127,8 +127,8 @@ OPENBENCH_CONFIG = {
             },
 
             'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :  32, 'timecontrol' : '10.0+0.1' },
-                'ltc'     : { 'threads' : 1, 'hash' : 128, 'timecontrol' : '60.0+0.6' },
+                'stc'     : { 'threads' : 1, 'hash' :  32, 'timecontrol' : '8.0+0.08' },
+                'ltc'     : { 'threads' : 1, 'hash' : 128, 'timecontrol' : '40.0+0.4' },
                 'smpstc'  : { 'threads' : 8, 'hash' : 128, 'timecontrol' : '5.0+0.05' },
                 'smpltc'  : { 'threads' : 8, 'hash' : 512, 'timecontrol' : '20.0+0.2' },
             },
@@ -136,7 +136,7 @@ OPENBENCH_CONFIG = {
 
         'Demolito' : {
 
-            'nps'       : 1040000,
+            'nps'       : 1250000,
             'source'    : 'https://github.com/lucasart/Demolito',
 
             'build'     : {
@@ -155,7 +155,7 @@ OPENBENCH_CONFIG = {
 
         'RubiChess' : {
 
-            'nps'       : 1050000,
+            'nps'       : 980000,
             'source'    : 'https://github.com/Matthies/RubiChess',
 
             'build'     : {
@@ -174,7 +174,7 @@ OPENBENCH_CONFIG = {
 
         'FabChess' : {
 
-            'nps'       : 640000,
+            'nps'       : 850000,
             'source'    : 'https://github.com/fabianvdW/FabChess',
 
             'build'     : {
@@ -184,8 +184,8 @@ OPENBENCH_CONFIG = {
             },
 
             'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
+                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
                 'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
                 'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
             },
@@ -193,7 +193,7 @@ OPENBENCH_CONFIG = {
 
         'Igel' : {
 
-            'nps'       : 520000,
+            'nps'       : 790000,
             'source'    : 'https://github.com/vshcherbyna/igel',
 
             'build'     : {
@@ -212,7 +212,7 @@ OPENBENCH_CONFIG = {
 
         'Winter' : {
 
-            'nps'       : 465000,
+            'nps'       : 650000,
             'source'    : 'https://github.com/rosenthj/Winter',
 
             'build'     : {
@@ -222,8 +222,8 @@ OPENBENCH_CONFIG = {
             },
 
             'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
+                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
                 'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
                 'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
             },
@@ -231,7 +231,7 @@ OPENBENCH_CONFIG = {
 
         'Halogen' : {
 
-            'nps'       : 1320000,
+            'nps'       : 1950000,
             'source'    : 'https://github.com/KierenP/Halogen',
 
             'build'     : {
@@ -241,8 +241,8 @@ OPENBENCH_CONFIG = {
             },
 
             'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
+                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
                 'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
                 'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
             },
@@ -250,7 +250,7 @@ OPENBENCH_CONFIG = {
 
         'Stash' : {
 
-            'nps'       : 1380000,
+            'nps'       : 1850000,
             'source'    : 'https://github.com/mhouppin/stash-bot',
 
             'build'     : {
@@ -260,8 +260,27 @@ OPENBENCH_CONFIG = {
             },
 
             'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :  16, 'timecontrol' : '10.0+0.1' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
+                'stc'     : { 'threads' : 1, 'hash' :  16, 'timecontrol' : '8.0+0.08' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
+                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
+                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
+            },
+        },
+
+        'Seer' : {
+
+            'nps'       : 500000,
+            'source'    : 'https://github.com/connormcmonigle/seer-nnue',
+
+            'build'     : {
+                'path'      : 'build',
+                'compilers' : ['g++>=9.0.0'],
+                'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
+            },
+
+            'testmodes' : {
+                'stc'     : { 'threads' : 1, 'hash' :  32, 'timecontrol' : '8.0+0.08' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
                 'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
                 'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
             },
