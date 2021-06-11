@@ -31,7 +31,7 @@ import zipfile
 import shutil
 import multiprocessing
 
-from subprocess import PIPE, Popen
+from subprocess import PIPE, Popen, call
 
 from itertools import combinations_with_replacement
 
@@ -301,7 +301,7 @@ def kill_cutechess(cutechess):
     try:
 
         if IS_WINDOWS:
-            subprocess.call(['taskkill', '/F', '/T', '/PID', str(cutechess.pid)])
+            call(['taskkill', '/F', '/T', '/PID', str(cutechess.pid)])
 
         if IS_LINUX:
             cutechess.kill()
