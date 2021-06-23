@@ -235,7 +235,7 @@ OPENBENCH_CONFIG = {
             'source'    : 'https://github.com/KierenP/Halogen',
 
             'build'     : {
-                'path'      : 'Halogen/src',
+                'path'      : 'src',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
             },
