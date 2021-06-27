@@ -17,7 +17,6 @@
             {% block scripts %}
             {% endblock %}
 
-
             document.addEventListener('DOMContentLoaded', function() {
 
                 var timestamps = document.getElementsByClassName('timestamp');
@@ -30,8 +29,8 @@
                 };
 
                 for (var i = 0; i < timestamps.length; i++) {
-                    var time = timestamps[i].innerHTML + "+00:00"
-                    timestamps[i].innerHTML = new Date(time).toLocaleString(undefined, options);
+                    var date = new Date(1000 * timestamps[i].innerHTML);
+                    timestamps[i].innerHTML = date.toLocaleString(undefined, options);
                 }
 
             }, false);
