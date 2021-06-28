@@ -203,6 +203,7 @@ def try_until_success(mesg):
                 except Exception:
                     print('[Error]', mesg);
                     if not FLEET_MODE: time.sleep(TIMEOUT_ERROR)
+                    if FLEET_MODE and mesg == ERRORS['request']: sys.exit()
                     if DEBUG: traceback.print_exc()
         return __try_until_success
     return _try_until_success
