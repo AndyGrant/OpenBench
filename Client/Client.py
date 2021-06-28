@@ -326,6 +326,8 @@ def server_download_cutechess(arguments):
             url_join(arguments.server, 'clientGetFiles'),
             timeout=TIMEOUT_HTTP).content.decode('utf-8')
 
+        if arguments.proxy: source = 'https://ghproxy.com/' + source
+
         # Windows workers simply need a static compile (64-bit)
         download_file(url_join(source, 'cutechess-windows.exe').rstrip('/'), 'cutechess-ob.exe')
 
@@ -339,6 +341,8 @@ def server_download_cutechess(arguments):
         source = requests.get(
             url_join(arguments.server, 'clientGetFiles'),
             timeout=TIMEOUT_HTTP).content.decode('utf-8')
+
+        if arguments.proxy: source = 'https://ghproxy.com/' + source
 
         # Linux workers need a static compile (64-bit) with execute permissions
         download_file(url_join(source, 'cutechess-linux').rstrip('/'), 'cutechess-ob')
@@ -572,7 +576,7 @@ def complete_workload(arguments, workload):
 
     if not dev_status or not base_status: return
     server_report_nps(arguments, workload, dev_nps, base_nps)
-    download_opening_book(workload)
+    download_opening_book(arguments, workload)
 
     avg_nps = (dev_nps + base_nps) // 2
     concurrency, command = build_cutechess_command(
@@ -580,7 +584,7 @@ def complete_workload(arguments, workload):
 
     run_and_parse_cutechess(arguments,  workload, concurrency, command)
 
-def download_opening_book(workload):
+def download_opening_book(arguments, workload):
 
     # Log our attempts to download and verify the book
     book_sha256 = workload['test']['book']['sha'   ]
@@ -591,6 +595,7 @@ def download_opening_book(workload):
 
     # Download file if we do not already have it
     if not os.path.isfile(book_path):
+        if arguments.proxy: book_source = 'https://ghproxy.com/' + book_source
         download_file(book_source, book_name + '.zip')
         unzip_delete_file(book_name + '.zip', 'Books/')
 
@@ -649,6 +654,8 @@ def download_engine(arguments, workload, branch, network):
     commit_sha  = workload['test'][branch]['sha']
     source      = workload['test'][branch]['source']
     build_path  = workload['test']['build']['path']
+
+    if arguments.proxy: source = 'https://ghproxy.com/' + source
 
     pattern = '\nEngine: [%s] %s\nCommit: %s'
     print (pattern % (engine, branch_name, commit_sha.upper()))
@@ -833,15 +840,15 @@ if __name__ == '__main__':
     p.add_argument('-P', '--password', help='Password' , required=True)
     p.add_argument('-S', '--server'  , help='Webserver', required=True)
     p.add_argument('-T', '--threads' , help='Threads'  , required=True)
-    p.add_argument('--syzygy', help='Syzygy WDL', required=False)
-    p.add_argument('--fleet' , help='Fleet Mode', action='store_true')
+    p.add_argument('--syzygy', help='Syzygy WDL'  , required=False)
+    p.add_argument('--fleet' , help='Fleet Mode'  , action='store_true')
+    p.add_argument('--proxy' , help='Github Proxy', action='store_true')
     arguments = p.parse_args()
 
     if arguments.syzygy is not None:
         SYZYGY_WDL_PATH = arguments.syzygy
 
-    if arguments.fleet:
-        FLEET_MODE = True
+    if arguments.fleet: FLEET_MODE = True
 
     check_for_utilities()
     init_client(arguments)
