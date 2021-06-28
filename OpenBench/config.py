@@ -53,28 +53,28 @@ OPENBENCH_CONFIG = {
         '2moves_v1.epd' : {
             'name'    : '2moves_v1.epd',
             'sha'     : '7bec98239836f219dc41944a768c0506abed950aaec48da69a0782643e90f237',
-            'source'  : 'http://github.com/AndyGrant/OpenBench/raw/master/Books/2moves_v1.epd.zip',
+            'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/2moves_v1.epd.zip',
             'default' : False,
         },
 
         '8moves_v3.epd' : {
             'name'    : '8moves_v3.epd',
             'sha'     : '1f055af431656f09ee6a09d2448e0b876125f78bb7b404fca2031c403a1541e5',
-            'source'  : 'http://github.com/AndyGrant/OpenBench/raw/master/Books/8moves_v3.epd.zip',
+            'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/8moves_v3.epd.zip',
             'default' : False,
         },
 
         '3moves_FRC.epd' : {
             'name'    : '3moves_FRC.epd',
             'sha'     : '38d1b6c456bc3d3f69a4927e2667ef3f3fa231e253b6dc4040093f00a1c2ccb3',
-            'source'  : 'http://github.com/AndyGrant/OpenBench/raw/master/Books/3moves_FRC.epd.zip',
+            'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/3moves_FRC.epd.zip',
             'default' : False,
         },
 
         '4moves_noob.epd' : {
             'name'    : '4moves_noob.epd',
             'sha'     : '4be746a91e3f8af0c9344b1e72d611e9fcfe486843867a55760970a4896f284d',
-            'source'  : 'http://github.com/AndyGrant/OpenBench/raw/master/Books/4moves_noob.epd.zip',
+            'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/4moves_noob.epd.zip',
             'default' : True,
         },
     },
