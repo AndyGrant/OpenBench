@@ -327,7 +327,7 @@ def server_download_cutechess(arguments):
             timeout=TIMEOUT_HTTP).content.decode('utf-8')
 
         # Windows workers simply need a static compile (64-bit)
-        download_file(url_join(source, 'cutechess-windows.exe'), 'cutechess-ob.exe')
+        download_file(url_join(source, 'cutechess-windows.exe').rstrip('/'), 'cutechess-ob.exe')
 
         # Verify that we can execute Cutechess
         if not locate_utility('cutechess-ob.exe', False):
@@ -341,7 +341,7 @@ def server_download_cutechess(arguments):
             timeout=TIMEOUT_HTTP).content.decode('utf-8')
 
         # Linux workers need a static compile (64-bit) with execute permissions
-        download_file(url_join(source, 'cutechess-linux'), 'cutechess-ob')
+        download_file(url_join(source, 'cutechess-linux').rstrip('/'), 'cutechess-ob')
         os.system('chmod 777 cutechess-ob')
 
         # Verify that we can execute Cutechess
