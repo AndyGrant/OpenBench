@@ -834,11 +834,14 @@ if __name__ == '__main__':
     p.add_argument('-S', '--server'  , help='Webserver', required=True)
     p.add_argument('-T', '--threads' , help='Threads'  , required=True)
     p.add_argument('--syzygy', help='Syzygy WDL', required=False)
-    p.add_argument('-fleet'  , help='Fleet Mode', action='store_true')
+    p.add_argument('--fleet'  , help='Fleet Mode', action='store_true')
     arguments = p.parse_args()
 
-    if arguments.syzygy is not None: SYZYGY_WDL_PATH = arguments.syzygy
-    if arguments.fleet  is not None: FLEET_MODE = True
+    if arguments.syzygy is not None:
+        SYZYGY_WDL_PATH = arguments.syzygy
+
+    if arguments.fleet:
+        FLEET_MODE = True
 
     check_for_utilities()
     init_client(arguments)
