@@ -22,6 +22,10 @@ USE_CROSS_APPROVAL = False
 
 OPENBENCH_CONFIG = {
 
+    # Server Client version control
+    'client_version' : '1',
+
+    # Generic Error Messages useful to those setting up their own instance
     'error' : {
         'disabled' : 'Account has not been enabled. Contact andrew@grantnet.us',
         'fakeuser' : 'This is not a real OpenBench User. Create an OpenBench account',
@@ -31,11 +35,16 @@ OPENBENCH_CONFIG = {
     'framework' : 'http://github.com/AndyGrant/OpenBench/',
     'corefiles' : 'http://github.com/AndyGrant/OpenBench/raw/master/CoreFiles/',
 
-    # SPRT Elo bounds and type I/II errors
-    'sprt' : { 'elolower' : 0.00, 'eloupper' : 5.00, 'alpha' : 0.05, 'beta' : 0.05 },
+    # Test Configuration. For both SPRT and Fixed Games Tests
 
+    'tests' : {
+        'bounds'     : '[0.00, 5.00]', # SPRT Elo Bounds
+        'confidence' : '[0.05, 0.05]', # SPRT Type I/II Confidence
+        'max_games'  : '20000',        # Default for Fixed Games
+        'throughput' : { 'stc' : 1000, 'ltc' : 500, 'smpstc' : 250, 'smpltc' : 125 },
+    },
 
-    # Book confgiruation. When addding a book, follow the provided template.
+    # Book Configuration. When addding a book, follow the provided template.
     # The SHA is defined by hashlib.sha256(book).hexdigest(). Client.py has
     # code to generate and verify sha256 values, as an example.
 

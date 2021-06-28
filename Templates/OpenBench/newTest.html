@@ -19,6 +19,13 @@
     {% endfor %}
     };
 
+    var Throughputs = {
+        "stc"    : "{{config.tests.throughput.stc   }}",
+        "ltc"    : "{{config.tests.throughput.ltc   }}",
+        "smpstc" : "{{config.tests.throughput.smpstc}}",
+        "smpltc" : "{{config.tests.throughput.smpltc}}",
+    };
+
     var Networks = [
     {% for network in networks %}
         {
@@ -48,6 +55,7 @@
             document.getElementById("devoptions").value   = "Threads=" + threads + " Hash=" + hash;
             document.getElementById("baseoptions").value  = "Threads=" + threads + " Hash=" + hash;
             document.getElementById("timecontrol").value  = timecontrol;
+            document.getElementById("throughput").value   = Throughputs[mode];
 
             return; // Don't change the Network setup unless asked
         }
@@ -90,8 +98,27 @@
         }
     }
 
+    function test_type() {
+
+        var selection = document.getElementById("test_mode");
+        var mode      = selection.options[selection.selectedIndex].value;
+
+        if (mode == "SPRT") {
+            document.getElementById("test_bounds").value     = "{{config.tests.bounds}}";
+            document.getElementById("test_confidence").value = "{{config.tests.confidence}}";
+            document.getElementById("test_max_games").value  = "N/A";
+        }
+
+        if (mode == "GAMES") {
+            document.getElementById("test_bounds").value     = "N/A";
+            document.getElementById("test_confidence").value = "N/A";
+            document.getElementById("test_max_games").value  = "{{config.tests.max_games}}";
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () { configure('stc'); }, false);
     document.addEventListener('DOMContentLoaded', function () { configure(null);  }, false);
+    document.addEventListener('DOMContentLoaded', function () { test_type();      }, false);
 
 {% endblock %}
 
@@ -102,7 +129,7 @@
         <div class="settings-column">
 
             <h3> Engine </h3>
-            <label> Name </label> <select onClick="configure(null)" id="enginename" name="enginename">
+            <label> Engine </label> <select onClick="configure(null)" id="enginename" name="enginename">
             {% for engine in config.engines %}
                 {% if engine == profile.engine %}
                     <option onClick="configure(null)" selected value="{{engine}}">{{engine}}</option>
@@ -115,16 +142,16 @@
             <label> Source </label> <input value="{{profile.repo}}" name="source"><br>
 
             <h3> Dev Settings </h3>
-            <label> Bench </label> <input name="devbench"><br>
-            <label> Branch </label> <input name="devbranch" autofocus><br>
-            <label> Options </label> <input id="devoptions" name="devoptions"><br>
-            <label> Network </label> <select id="devnetwork" name="devnetwork"></select><br>
+            <label> Dev Bench </label> <input name="devbench"><br>
+            <label> Dev Branch </label> <input name="devbranch" autofocus><br>
+            <label> Dev Options </label> <input id="devoptions" name="devoptions"><br>
+            <label> Dev Network </label> <select id="devnetwork" name="devnetwork"></select><br>
 
             <h3> Base Settings </h3>
-            <label> Bench </label> <input name="basebench"><br>
-            <label> Branch </label> <input value="master" name="basebranch"><br>
-            <label> Options </label> <input id="baseoptions" name="baseoptions"><br>
-            <label> Network </label> <select id="basenetwork" name="basenetwork"></select><br>
+            <label> Base Bench </label> <input name="basebench"><br>
+            <label> Base Branch </label> <input value="master" name="basebranch"><br>
+            <label> Base Options </label> <input id="baseoptions" name="baseoptions"><br>
+            <label> Base Network </label> <select id="basenetwork" name="basenetwork"></select><br>
 
         </div>
 
@@ -142,24 +169,29 @@
             </select><br>
             <label> Time </label> <input id="timecontrol" name="timecontrol"><br>
 
-            <h3> SPRT Settings </h3>
-            <label> Lower </label> <input value="{{config.sprt.elolower}}" name="elolower"><br>
-            <label> Upper </label> <input value="{{config.sprt.eloupper}}" name="eloupper"><br>
-            <label> Alpha </label> <input value="{{config.sprt.alpha}}" name="alpha"><br>
-            <label> Beta  </label> <input value="{{config.sprt.beta}}" name="beta"><br>
-
             <h3> Test Settings </h3>
-            <label> Priority </label> <input value="0" name="priority"><br>
-            <label> Throughput </label> <input value="1000" name="throughput"><br>
+            <label> Test Mode </label> <select onchange='test_type()' id="test_mode" name="test_mode">
+                <option selected value="SPRT"> SPRT </option>
+                <option value="GAMES"> Fixed Games </option>
+            </select><br>
+            <label> Bounds </label> <input id="test_bounds" name="bounds"><br>
+            <label> Confidence </label> <input id="test_confidence" name="confidence"><br>
+            <label> Max Games </label> <input id="test_max_games" name="max_games"><br>
 
-            <label> Syzygy DTZ </label> <select name="allow_dtz">
-                <option selected value="True"> Allowed </option>
-                <option value="False"> Disabled </option>
+            <h3> General Settings </h3>
+            <label> Priority </label> <input value="0" name="priority"><br>
+            <label> Throughput </label> <input id="throughput", name="throughput"><br>
+
+            <label> Syzygy ADJ </label> <select name="syzygy_adj">
+                <option value="OPTIONAL"> Optional </option>
+                <option value="REQUIRED"> Required </option>
+                <option value="DISABLED"> Disabled </option>
             </select><br>
 
-            <label> Syzygy WDL </label> <select name="force_wdl">
-                <option value="True"> Required </option>
-                <option selected value="False"> Allowed </option>
+            <label> Syzygy WDL </label> <select name="syzygy_wdl">
+                <option value="OPTIONAL"> Optional </option>
+                <option value="REQUIRED"> Required </option>
+                <option value="DISABLED"> Disabled </option>
             </select><br>
 
         </div>
@@ -176,4 +208,3 @@
     </div>
 
 {% endblock %}
-

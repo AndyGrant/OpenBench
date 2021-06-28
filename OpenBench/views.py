@@ -605,6 +605,14 @@ def clientGetWorkload(request):
     try: user = authenticate(request, True)
     except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
+    # Make sure the Client passed its version number
+    if 'version' not in request.POST:
+        return HttpResponse('Bad Client Version')
+
+    # Make sure the Client & Server version numbers match
+    if request.POST['version'] != OpenBench.config.OPENBENCH_CONFIG['client_version']:
+        return HttpResponse('Bad Client Version')
+
     # getWorkload() will verify the integrity of the request
     return HttpResponse(OpenBench.utils.getWorkload(user, request))
 

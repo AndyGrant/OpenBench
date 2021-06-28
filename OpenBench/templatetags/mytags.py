@@ -64,16 +64,29 @@ def gitDiffLink(test):
 
 def shortStatBlock(test):
 
-    currentllr = twoDigitPrecision(test.currentllr)
-    lowerllr   = twoDigitPrecision(test.lowerllr)
-    upperllr   = twoDigitPrecision(test.upperllr)
-    elolower   = twoDigitPrecision(test.elolower)
-    eloupper   = twoDigitPrecision(test.eloupper)
+    if test.test_mode == "SPRT":
 
-    llrbounds = '({}, {}) '.format(lowerllr, upperllr)
+        currentllr = twoDigitPrecision(test.currentllr)
+        lowerllr   = twoDigitPrecision(test.lowerllr)
+        upperllr   = twoDigitPrecision(test.upperllr)
+        elolower   = twoDigitPrecision(test.elolower)
+        eloupper   = twoDigitPrecision(test.eloupper)
 
-    return 'LLR: {0} {1}[{2}, {3}]\n'.format(currentllr, llrbounds, elolower, eloupper) \
-         + 'Games: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
+        llrbounds = '({}, {}) '.format(lowerllr, upperllr)
+
+        return 'LLR: {0} {1}[{2}, {3}]\n'.format(currentllr, llrbounds, elolower, eloupper) \
+             + 'Games: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
+
+    if test.test_mode == "GAMES":
+
+        lower, elo, upper = OpenBench.stats.ELO(test.wins, test.losses, test.draws)
+        error = max(upper - elo, elo - lower)
+
+        elo   = twoDigitPrecision(elo)
+        error = twoDigitPrecision(error)
+
+        return 'Elo: {0} +- {1} (95%) [N={2}]\n'.format(elo, error, test.max_games) \
+             + 'Games: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
 
 def longStatBlock(test):
 
@@ -84,18 +97,27 @@ def longStatBlock(test):
     lower, elo, upper = OpenBench.stats.ELO(test.wins, test.losses, test.draws)
     error = max(upper - elo, elo - lower)
 
-    elo        = twoDigitPrecision(elo)
-    error      = twoDigitPrecision(error)
-    lowerllr   = twoDigitPrecision(test.lowerllr)
-    currentllr = twoDigitPrecision(test.currentllr)
-    upperllr   = twoDigitPrecision(test.upperllr)
-    elolower   = twoDigitPrecision(test.elolower)
-    eloupper   = twoDigitPrecision(test.eloupper)
+    elo   = twoDigitPrecision(elo)
+    error = twoDigitPrecision(error)
 
-    return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
-         + 'SPRT  | {0}s Threads={1} Hash={2}MB\n'.format(test.timecontrol, threads, hash) \
-         + 'LLR   | {0} ({1}, {2}) [{3}, {4}]\n'.format(currentllr, lowerllr, upperllr, elolower, eloupper) \
-         + 'Games | N: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws) \
+    if test.test_mode == 'SPRT':
+
+        lowerllr   = twoDigitPrecision(test.lowerllr)
+        currentllr = twoDigitPrecision(test.currentllr)
+        upperllr   = twoDigitPrecision(test.upperllr)
+        elolower   = twoDigitPrecision(test.elolower)
+        eloupper   = twoDigitPrecision(test.eloupper)
+
+        return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
+             + 'SPRT  | {0}s Threads={1} Hash={2}MB\n'.format(test.timecontrol, threads, hash) \
+             + 'LLR   | {0} ({1}, {2}) [{3}, {4}]\n'.format(currentllr, lowerllr, upperllr, elolower, eloupper) \
+             + 'GAMES | N: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
+
+    if test.test_mode == 'GAMES':
+
+        return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
+             + 'LLR   | {0}s Threads={1} Hash={2}MB\n'.format(test.timecontrol, threads, hash) \
+             + 'GAMES | N: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
 
 def testResultColour(test):
 

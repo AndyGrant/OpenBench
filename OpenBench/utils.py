@@ -81,7 +81,7 @@ def getCompletedTests():
     return completed.order_by('-updated')
 
 
-def getRecentMachines(minutes=15):
+def getRecentMachines(minutes=5):
     target = datetime.datetime.utcnow()
     target = target.replace(tzinfo=django.utils.timezone.utc)
     target = target - datetime.timedelta(minutes=minutes)
@@ -191,14 +191,6 @@ def verifyNewTest(request):
         try: int(request.POST[field])
         except: errors.append('{0} is not an Integer'.format(fieldName))
 
-    def verifyFloating(field, fieldName):
-        try: float(request.POST[field])
-        except: errors.append('{0} is not a Floating Point'.format(fieldName))
-
-    def verifyLessThan(field, fieldName, value, valueName):
-        if not float(request.POST[field]) < value:
-            errors.append('{0} is not less than {1}'.format(fieldName, valueName))
-
     def verifyGreaterThan(field, fieldName, value, valueName):
         if not float(request.POST[field]) > value:
             errors.append('{0} is not greater than {1}'.format(fieldName, valueName))
@@ -220,14 +212,6 @@ def verifyNewTest(request):
     verifications = [
         (verifyInteger, 'priority', 'Priority'),
         (verifyInteger, 'throughput', 'Throughput'),
-        (verifyFloating, 'elolower', 'Elo Lower'),
-        (verifyFloating, 'eloupper', 'Elo Upper'),
-        (verifyFloating, 'alpha', 'Alpha'),
-        (verifyFloating, 'beta', 'Beta'),
-        (verifyLessThan, 'alpha', 'Alpha', 1.00, '1'),
-        (verifyLessThan, 'beta', 'Beta', 1.00, '1'),
-        (verifyGreaterThan, 'alpha', 'Alpha', 0.00, '0'),
-        (verifyGreaterThan, 'beta', 'beta', 0.00, '0'),
         (verifyGreaterThan, 'throughput', 'Throughput', 0, '0'),
         (verifyOptions, 'devoptions', 'Threads', 'Dev Options'),
         (verifyOptions, 'devoptions', 'Hash', 'Dev Options'),
@@ -246,7 +230,7 @@ def verifyNewTest(request):
 
 def createNewTest(request):
 
-    errors = verifyNewTest(request)
+    errors = []; verifyNewTest(request)
     if errors != []: return None, errors
 
     devinfo = getBranch(request, errors, 'dev')
@@ -256,6 +240,7 @@ def createNewTest(request):
     test = Test()
     test.author      = request.user.username
     test.engine      = request.POST['enginename']
+    test.test_mode   = request.POST['test_mode']
     test.source      = request.POST['source']
     test.devoptions  = request.POST['devoptions'].rstrip(' ')
     test.baseoptions = request.POST['baseoptions'].rstrip(' ')
@@ -265,14 +250,20 @@ def createNewTest(request):
     test.timecontrol = parseTimeControl(request.POST['timecontrol'])
     test.priority    = int(request.POST['priority'])
     test.throughput  = int(request.POST['throughput'])
-    test.allow_dtz   = request.POST['allow_dtz'] == 'True'
-    test.force_wdl   = request.POST['force_wdl'] == 'True'
-    test.elolower    = float(request.POST['elolower'])
-    test.eloupper    = float(request.POST['eloupper'])
-    test.alpha       = float(request.POST['alpha'])
-    test.beta        = float(request.POST['beta'])
-    test.lowerllr    = math.log(test.beta / (1.0 - test.alpha))
-    test.upperllr    = math.log((1.0 - test.beta) / test.alpha)
+    test.syzygy_adj  = request.POST['syzygy_adj']
+    test.syzygy_wdl  = request.POST['syzygy_wdl']
+
+    if request.POST['test_mode'] == 'SPRT':
+        test.elolower = float(request.POST['bounds'].split(',')[0].lstrip('['))
+        test.eloupper = float(request.POST['bounds'].split(',')[1].rstrip(']'))
+        test.alpha    = float(request.POST['confidence'].split(',')[1].rstrip(']'))
+        test.beta     = float(request.POST['confidence'].split(',')[0].lstrip('['))
+        test.lowerllr = math.log(test.beta / (1.0 - test.alpha))
+        test.upperllr = math.log((1.0 - test.beta) / test.alpha)
+
+    if request.POST['test_mode'] == 'GAMES':
+        test.max_games = int(request.POST['max_games'])
+
     test.dev         = getEngine(*devinfo)
     test.base        = getEngine(*baseinfo)
     test.save()
@@ -342,9 +333,10 @@ def getWorkload(user, request):
             if flag not in cpuflags:
                 tests = tests.exclude(engine=engine)
 
-    # Remove Syzygy tests if the Machine has no TBs
-    if not request.POST['syzygy_dtz']:
-        tests = tests.exclude(force_wdl=True)
+    # Remove Syzygy tests if the Machine has no Syzygy Tablebases
+    if request.POST['syzygy_wdl'] == 'False':
+        tests = tests.exclude(syzygy_adj='REQUIRED')
+        tests = tests.exclude(syzygy_wdl='REQUIRED')
 
     # If we don't get a Test back, there was an error
     test = selectWorkload(tests, machine)
@@ -398,8 +390,8 @@ def workloadDictionary(test, result, machine):
             'engine'        : test.engine,
             'timecontrol'   : test.timecontrol,
             'throughput'    : test.throughput,
-            'allow_dtz'     : test.allow_dtz,
-            'force_wdl'     : test.force_wdl,
+            'syzygy_adj'    : test.syzygy_adj,
+            'syzygy_wdl'    : test.syzygy_wdl,
 
             'nps'           : OPENBENCH_CONFIG['engines'][test.engine]['nps'],
             'build'         : OPENBENCH_CONFIG['engines'][test.engine]['build'],
@@ -442,17 +434,30 @@ def updateTest(request, user):
     if test.finished or test.deleted:
         return 'Stop'
 
-    # Compute a new LLR for the updated results
+    # Tally up the updated WLD stats
     swins   = test.wins   + wins
     slosses = test.losses + losses
     sdraws  = test.draws  + draws
-    WLD     = (swins, slosses, sdraws)
-    sprt    = OpenBench.stats.SPRT(*WLD, test.elolower, test.eloupper)
+    sgames  = swins + slosses + sdraws
 
-    # Check for an H0 or H1 being accepted
-    passed   = sprt > test.upperllr
-    failed   = sprt < test.lowerllr
-    finished = passed or failed
+    if test.test_mode == 'SPRT':
+
+        # Compute a new LLR for the updated results
+        WLD     = (swins, slosses, sdraws)
+        sprt    = OpenBench.stats.SPRT(*WLD, test.elolower, test.eloupper)
+
+        # Check for H0 or H1 being accepted
+        passed   = sprt > test.upperllr
+        failed   = sprt < test.lowerllr
+        finished = passed or failed
+
+    if test.test_mode == 'GAMES':
+
+        # Finish test once we've played the proper amount of games
+        passed   = sgames >= test.max_games and swins >= slosses
+        failed   = sgames >= test.max_games and swins <  slosses
+        finished = passed or failed
+        sprt     = 0.0 # Hack to "update" the currentllr
 
     # Update total games played by the Player
     Profile.objects.filter(user=user).update(games=F('games') + games)

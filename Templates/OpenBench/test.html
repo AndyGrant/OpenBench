@@ -35,11 +35,9 @@
             {% endif %}
             <tr><th>Source Repo</th><td><a href="{{test.source}}">{{test.source}}</a></td></tr>
             <tr><th>Opening Book</th><td><a href="{{config.framework}}/raw/master/Books/">{{test.bookname}}</a></td></tr>
-            <tr><th>Time Control</th><td>{{test.timecontrol}}s</td></tr>
-            <tr><th>Elo Bounds</th><td>[{{test.elolower}}, {{test.eloupper}}]</td></tr>
-            <tr><th>SPRT Bounds</th><td>({{test.lowerllr|twoDigitPrecision}}, {{test.upperllr|twoDigitPrecision}})</td></tr>
-            <tr><th>Allow DTZ</th><td>{{test.allow_dtz}}</td></tr>
-            <tr><th>Force WDL</th><td>{{test.force_wdl}}</td></tr>
+
+            <tr><th>Syzygy ADJ</th><td>{{test.syzygy_adj}}</td></tr>
+            <tr><th>Syzygy WDL</th><td>{{test.syzygy_wdl}}</td></tr>
         </table>
     </div>
 
@@ -84,7 +82,7 @@
         <a class="anchorbutton deadbutton">Delete</a>
         {% endif %}
 
-        <!-- ELO, SPRT, LLR, Games -->
+        <!-- Elo, (SPRT/LRR if SPRT, otherwise CONF), Games -->
         <pre>{{test|longStatBlock|linebreaksbr}}</pre>
 
         <!-- Forum to modify the Priority or Throughput -->

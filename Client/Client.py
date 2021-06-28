@@ -46,13 +46,14 @@ from itertools import combinations_with_replacement
 #                                                                           #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-TIMEOUT_HTTP        = 30   # Timeout in seconds for HTTP requests
-TIMEOUT_ERROR       = 10   # Timeout in seconds when any errors are thrown
-TIMEOUT_WORKLOAD    = 60   # Timeout in seconds between workload requests
+TIMEOUT_HTTP        = 30    # Timeout in seconds for HTTP requests
+TIMEOUT_ERROR       = 10    # Timeout in seconds when any errors are thrown
+TIMEOUT_WORKLOAD    = 30    # Timeout in seconds between workload requests
+CLIENT_VERSION      = '1'   # Client version to send to the Server
 
-SYZYGY_WDL_PATH     = None # Pathway to WDL Syzygy Tables
-SYZYGY_DTZ_PATH     = None # Pathway to DTZ Syzygy Tables
-BASE_GAMES_PER_CORE = 32   # Typical games played per-thread
+SYZYGY_WDL_PATH     = None  # Pathway to WDL Syzygy Tables
+BASE_GAMES_PER_CORE = 16    # Typical games played per-thread
+FLEET_MODE          = False # Exit when there are no workloads
 
 CUSTOM_SETTINGS = {
     'Ethereal'  : [], 'Laser'     : [],
@@ -75,8 +76,9 @@ ERRORS = {
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                           #
 #   Setting up the Client. Build the OpenBench file structure, check for    #
-#   Syzygy Tables for both WDL and DTZ, download a static Cutechess binary, #
-#   and determine what engines we are able to compile by asking the server. #
+#   Syzygy Tables for both WDL (Adjudication, and Gameplay). Download a     #
+#   static Cutechess binary,  and determine what engines we are able to     #
+#   compile by asking the server for compiler and CPU Flag requirements     #
 #                                                                           #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -122,7 +124,7 @@ def init_client(arguments):
         if not os.path.isdir(folder):
             os.mkdir(folder)
 
-    # Verify all WDL/DTZ tables are present when told they are
+    # Verify all WDL tables are present when told they are
     validate_syzygy_exists()
 
 def cleanup_client():
@@ -146,7 +148,7 @@ def cleanup_client():
 
 def validate_syzygy_exists():
 
-    global SYZYGY_WDL_PATH, SYZYGY_DTZ_PATH
+    global SYZYGY_WDL_PATH
 
     print ('\nScanning for Syzygy Configuration...')
 
@@ -157,26 +159,16 @@ def validate_syzygy_exists():
         if SYZYGY_WDL_PATH:
             wdlpath = os.path.join(SYZYGY_WDL_PATH, filename + '.rtbw')
 
-        if SYZYGY_DTZ_PATH:
-            dtzpath = os.path.join(SYZYGY_DTZ_PATH, filename + '.rtbz')
-
         # Reset the configuration if the file is missing
 
         if SYZYGY_WDL_PATH and not os.path.isfile(wdlpath):
             SYZYGY_WDL_PATH = None
-
-        if SYZYGY_DTZ_PATH and not os.path.isfile(dtzpath):
-            SYZYGY_DTZ_PATH = None
 
     # Report final results, which may conflict with the original configuration
 
     if SYZYGY_WDL_PATH:
         print('Verified Syzygy WDL (%s)' % (SYZYGY_WDL_PATH))
     else: print('Syzygy WDL Not Found')
-
-    if SYZYGY_DTZ_PATH:
-        print('Verified Syzygy DTZ (%s)' % (SYZYGY_DTZ_PATH))
-    else: print('Syzygy DTZ Not Found')
 
 def tablebase_names(K=6):
 
@@ -209,7 +201,8 @@ def try_until_success(mesg):
             while True:
                 try: return funct(*args)
                 except Exception:
-                    print('[Error]', mesg); time.sleep(TIMEOUT_ERROR)
+                    print('[Error]', mesg);
+                    if not FLEET_MODE: time.sleep(TIMEOUT_ERROR)
                     if DEBUG: traceback.print_exc()
         return __try_until_success
     return _try_until_success
@@ -326,7 +319,7 @@ def server_download_cutechess(arguments):
 
     print('\nFetching Cutechess Binary...')
 
-    if IS_WINDOWS and not locate_utility('cutechess.exe', False, False):
+    if IS_WINDOWS and not locate_utility('cutechess-ob.exe', False, False):
 
         # Fetch the source location if we are missing the binary
         source = requests.get(
@@ -334,13 +327,13 @@ def server_download_cutechess(arguments):
             timeout=TIMEOUT_HTTP).content.decode('utf-8')
 
         # Windows workers simply need a static compile (64-bit)
-        download_file(url_join(source, 'cutechess-windows.exe'), 'cutechess.exe')
+        download_file(url_join(source, 'cutechess-windows.exe'), 'cutechess-ob.exe')
 
         # Verify that we can execute Cutechess
-        if not locate_utility('cutechess.exe', False):
+        if not locate_utility('cutechess-ob.exe', False):
             raise Exception
 
-    if IS_LINUX and not locate_utility('./cutechess', False, False):
+    if IS_LINUX and not locate_utility('./cutechess-ob', False, False):
 
         # Fetch the source location if we are missing the binary
         source = requests.get(
@@ -348,11 +341,11 @@ def server_download_cutechess(arguments):
             timeout=TIMEOUT_HTTP).content.decode('utf-8')
 
         # Linux workers need a static compile (64-bit) with execute permissions
-        download_file(url_join(source, 'cutechess-linux'), 'cutechess')
-        os.system('chmod 777 cutechess')
+        download_file(url_join(source, 'cutechess-linux'), 'cutechess-ob')
+        os.system('chmod 777 cutechess-ob')
 
         # Verify that we can execute Cutechess
-        if not locate_utility('./cutechess', False):
+        if not locate_utility('./cutechess-ob', False):
             raise Exception
 
 @try_until_success(mesg=ERRORS['configure'])
@@ -426,13 +419,13 @@ def server_request_workload(arguments):
         print('[NOTE] This machine is currently unregistered')
 
     supported  = ' '.join(COMPILERS.keys() - ['cpuflags'])
-    has_syzygy = bool(SYZYGY_DTZ_PATH) and bool(SYZYGY_WDL_PATH)
 
     payload = {
         'username'   : arguments.username, 'threads'    : arguments.threads,
         'password'   : arguments.password, 'osname'     : OSNAME,
-        'machineid'  : machine_id,         'syzygy_dtz' : has_syzygy,
+        'machineid'  : machine_id,         'syzygy_wdl' : bool(SYZYGY_WDL_PATH),
         'supported'  : supported,          'cpuflags'   : COMPILERS['cpuflags'],
+        'version'    : CLIENT_VERSION
     }
 
     target = url_join(arguments.server, 'clientGetWorkload')
@@ -530,7 +523,7 @@ def check_workload_response(arguments, response):
     # No workloads available to our machine
     if raw_text == 'None':
         print('[Note] Server Has No Work')
-        time.sleep(TIMEOUT_WORKLOAD)
+        if not FLEET_MODE: time.sleep(TIMEOUT_WORKLOAD)
         return False
 
     # Bad login, kill the worker since all requests will fail
@@ -543,6 +536,11 @@ def check_workload_response(arguments, response):
         print('[Note] Replacing Invalid Machine Id')
         os.remove('machine.txt')
         return False
+
+    # We must match the server's version number
+    if raw_text == 'Bad Client Version':
+        print('[ERROR] Client Version Outdated')
+        sys.exit()
 
     # Final check that we may parse the workload JSON
     data = response.json()
@@ -727,7 +725,7 @@ def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
     dev_threads  = int(re.search('(?<=Threads=)\d*', dev_options ).group())
     base_threads = int(re.search('(?<=Threads=)\d*', base_options).group())
 
-    if SYZYGY_WDL_PATH:
+    if SYZYGY_WDL_PATH and workload['test']['syzygy_wdl'] != 'DISABLED':
         path = SYZYGY_WDL_PATH.replace('\\', '\\\\')
         dev_options  += ' SyzygyPath=%s' % (path)
         base_options += ' SyzygyPath=%s' % (path)
@@ -745,8 +743,8 @@ def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
     flags += '-openings file=Books/%s format=%s order=random plies=16 '
     flags += '-pgnout PGNs/%s_vs_%s '
 
-    if SYZYGY_DTZ_PATH and workload['test']['allow_dtz']:
-        flags += '-tb %s' % (SYZYGY_DTZ_PATH.replace('\\', '\\\\'))
+    if SYZYGY_WDL_PATH and workload['test']['syzygy_adj'] != 'DISABLED':
+        flags += '-tb %s' % (SYZYGY_WDL_PATH.replace('\\', '\\\\'))
 
     throughput = int(workload['test']['throughput'])
     concurrency = int(arguments.threads) // max(dev_threads, base_threads)
@@ -766,8 +764,8 @@ def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
     )
 
     if IS_LINUX:
-        return concurrency, './cutechess ' + flags % (args)
-    return concurrency, 'cutechess.exe ' + flags % (args)
+        return concurrency, './cutechess-ob ' + flags % (args)
+    return concurrency, 'cutechess-ob.exe ' + flags % (args)
 
 def run_and_parse_cutechess(arguments,  workload, concurrency, command):
 
@@ -805,7 +803,7 @@ def run_and_parse_cutechess(arguments,  workload, concurrency, command):
 
         # Only report scores after every 'concurrency' games
         score = list(map(int, score_reason.split()[0:5:2]))
-        if ((sum(score) - sum(sent)) % concurrency != 0): continue
+        if ((sum(score) - sum(sent)) % 8 != 0): continue
 
         # Report to the server but allow failed reports to delay
         wld = [score[ii] - sent[ii] for ii in range(3)]
@@ -835,7 +833,12 @@ if __name__ == '__main__':
     p.add_argument('-P', '--password', help='Password' , required=True)
     p.add_argument('-S', '--server'  , help='Webserver', required=True)
     p.add_argument('-T', '--threads' , help='Threads'  , required=True)
+    p.add_argument('--syzygy', help='Syzygy WDL', required=False)
+    p.add_argument('-fleet'  , help='Fleet Mode', action='store_true')
     arguments = p.parse_args()
+
+    if arguments.syzygy is not None: SYZYGY_WDL_PATH = arguments.syzygy
+    if arguments.fleet  is not None: FLEET_MODE = True
 
     check_for_utilities()
     init_client(arguments)
@@ -848,4 +851,5 @@ if __name__ == '__main__':
             response = server_request_workload(arguments)
             workload = check_workload_response(arguments, response)
             if workload: complete_workload(arguments, workload)
+            elif FLEET_MODE: break
         except Exception: traceback.print_exc()

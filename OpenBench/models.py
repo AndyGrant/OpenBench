@@ -78,6 +78,7 @@ class Test(Model):
 
     author      = CharField(max_length=64)
     engine      = CharField(max_length=64)
+    test_mode   = CharField(max_length=16, default='SPRT')
 
     dev         = ForeignKey('Engine', PROTECT, related_name='dev')
     base        = ForeignKey('Engine', PROTECT, related_name='base')
@@ -94,17 +95,21 @@ class Test(Model):
 
     priority    = IntegerField(default=0)
     throughput  = IntegerField(default=0)
-    allow_dtz   = BooleanField(default=True)
-    force_wdl   = BooleanField(default=False)
 
+    syzygy_adj  = CharField(max_length=16, default='OPTIONAL')
+    syzygy_wdl  = CharField(max_length=16, default='OPTIONAL')
+
+    # Only for SPRT Tests
     elolower    = FloatField(default=0.0)
     eloupper    = FloatField(default=0.0)
     alpha       = FloatField(default=0.0)
     beta        = FloatField(default=0.0)
-
     lowerllr    = FloatField(default=0.0)
     currentllr  = FloatField(default=0.0)
     upperllr    = FloatField(default=0.0)
+
+    # Only for Fixed-Games Tests
+    max_games   = IntegerField(default=0)
 
     games       = IntegerField(default=0)
     wins        = IntegerField(default=0)
