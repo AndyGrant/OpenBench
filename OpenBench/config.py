@@ -33,7 +33,7 @@ OPENBENCH_CONFIG = {
 
     # Link to the repo on the sidebar, as well as the core files
     'framework' : 'http://github.com/AndyGrant/OpenBench/',
-    'corefiles' : 'http://github.com/AndyGrant/OpenBench/raw/master/CoreFiles/',
+    'corefiles' : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/CoreFiles',
 
     # Test Configuration. For both SPRT and Fixed Games Tests
 

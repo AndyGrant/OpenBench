@@ -834,7 +834,7 @@ if __name__ == '__main__':
     p.add_argument('-S', '--server'  , help='Webserver', required=True)
     p.add_argument('-T', '--threads' , help='Threads'  , required=True)
     p.add_argument('--syzygy', help='Syzygy WDL', required=False)
-    p.add_argument('--fleet'  , help='Fleet Mode', action='store_true')
+    p.add_argument('--fleet' , help='Fleet Mode', action='store_true')
     arguments = p.parse_args()
 
     if arguments.syzygy is not None:
