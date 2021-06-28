@@ -67,10 +67,6 @@ ERRORS = {
     'cutechess'    : 'Unable to fetch Cutechess location and download it!',
     'configure'    : 'Unable to fetch and determine acceptable workloads!',
     'request'      : 'Unable to reach server for workload request!',
-    'build_fail'   : 'Unablt to reach server to report failed build!',
-    'bad_bench'    : 'Unable to reach server to report bad benchmark!',
-    'bench_nps'    : 'Unable to reach server to report benchmark NPS!',
-    'report_error' : 'Unable to reach server to report engine failure!',
 }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -202,8 +198,8 @@ def try_until_success(mesg):
                 try: return funct(*args)
                 except Exception:
                     print('[Error]', mesg);
-                    if not FLEET_MODE: time.sleep(TIMEOUT_ERROR)
-                    if FLEET_MODE and mesg == ERRORS['request']: sys.exit()
+                    if FLEET_MODE: sys.exit()
+                    time.sleep(TIMEOUT_ERROR)
                     if DEBUG: traceback.print_exc()
         return __try_until_success
     return _try_until_success
@@ -436,7 +432,6 @@ def server_request_workload(arguments):
     target = url_join(arguments.server, 'clientGetWorkload')
     return requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
-@try_until_success(mesg=ERRORS['build_fail'])
 def server_report_build_fail(arguments, workload, branch):
 
     payload = {
@@ -450,7 +445,6 @@ def server_report_build_fail(arguments, workload, branch):
     target = url_join(arguments.server, 'clientSubmitError')
     requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
-@try_until_success(mesg=ERRORS['bad_bench'])
 def server_report_bad_bench(arguments, workload, branch, bench):
 
     branch = workload['test'][branch]
@@ -465,7 +459,6 @@ def server_report_bad_bench(arguments, workload, branch, bench):
     target = url_join(arguments.server, 'clientWrongBench')
     requests.post(target, data=data, timeout=TIMEOUT_HTTP)
 
-@try_until_success(mesg=ERRORS['bench_nps'])
 def server_report_nps(arguments, workload, dev_nps, base_nps):
 
     data = {
@@ -478,7 +471,6 @@ def server_report_nps(arguments, workload, dev_nps, base_nps):
     target = url_join(arguments.server, 'clientSubmitNPS')
     requests.post(target, data=data, timeout=TIMEOUT_ERROR)
 
-@try_until_success(mesg=ERRORS['report_error'])
 def server_report_engine_error(arguments, workload, cutechess_str):
 
     pairing = cutechess_str.split('(')[1].split(')')[0]
