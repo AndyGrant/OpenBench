@@ -18,7 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import os, hashlib, mimetypes, datetime, json
+import os, hashlib, mimetypes, datetime, json, random
 
 import django.http
 import django.shortcuts
@@ -600,6 +600,11 @@ def clientGetWorkload(request):
     #         is returned.                                                    #
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+    # HACK: Make Noobpwnftw's workers jump around
+    if request.POST['username'] == 'WorkerPool':
+        if random.randrange(2) == 1:
+            return 'None'
 
     # Verify the User's credentials
     try: user = authenticate(request, True)
