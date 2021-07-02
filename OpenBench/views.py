@@ -31,6 +31,7 @@ from OpenBench.models import *
 from django.contrib.auth.models import User
 from OpenSite.settings import MEDIA_ROOT
 
+from ipware import get_client_ip
 from wsgiref.util import FileWrapper
 from django.db.models import F
 from django.http import HttpResponse, FileResponse
@@ -81,6 +82,25 @@ def authenticate(request, requireEnabled=False):
         raise UnableToAuthenticate()
 
     return user
+
+def fastAuthenticate(request):
+
+    try:
+
+        # Try to compare the saved IP address of the machine
+        client_ip, _ = get_client_ip(request)
+        machine = Machine.objects.get(id=int(request.POST['machineid']))
+
+        # Authenticate via IP comparisons, and update lastaddr
+        if client_ip and machine.lastaddr == str(client_ip):
+            return User.objects.get(username=request.POST['username']), machine
+        if client_ip: machine.lastaddr = str(client_ip); machine.save()
+
+        raise UnableToAuthenticate()
+
+    except Exception as err:
+        print(err)
+        raise UnableToAuthenticate()
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                            ADMINISTRATIVE VIEWS                             #
@@ -734,13 +754,19 @@ def clientSubmitError(request):
 @not_minified_response
 def clientSubmitResults(request):
 
-    # Verify the User's credentials
-    try: user = authenticate(request, True)
-    except UnableToAuthenticate: return HttpResponse('Bad Credentials')
+    try:
+        # Authenticate using saved IP addresses
+        user, machine = fastAuthenticate(request)
 
-    # Verify the Machine belongs to the User
-    machine = Machine.objects.get(id=int(request.POST['machineid']))
-    if machine.user != user: return HttpResponse('Bad Machine')
+    except UnableToAuthenticate:
+
+        # Verify the User's credentials
+        try: user = authenticate(request, True)
+        except UnableToAuthenticate: return HttpResponse('Bad Credentials')
+
+        # Verify the Machine belongs to the User
+        machine = Machine.objects.get(id=int(request.POST['machineid']))
+        if machine.user != user: return HttpResponse('Bad Machine')
 
     # updateTest() will return 'None' or 'Stop'
     return HttpResponse(OpenBench.utils.updateTest(request, user))

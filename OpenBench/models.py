@@ -54,6 +54,7 @@ class Machine(Model):
     threads  = IntegerField(default=0)
     mnps     = FloatField(default=0.00)
     updated  = DateTimeField(auto_now=True)
+    lastaddr = CharField(max_length=64, default='None')
     workload = ForeignKey('Test', PROTECT, related_name='workload', default=1)
 
     def __str__(self):
