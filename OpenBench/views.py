@@ -626,9 +626,15 @@ def clientGetWorkload(request):
         if random.randrange(2) == 1:
             return HttpResponse('None')
 
-    # Verify the User's credentials
-    try: user = authenticate(request, True)
-    except UnableToAuthenticate: return HttpResponse('Bad Credentials')
+    try:
+        # Authenticate using saved IP addresses
+        user, machine = fastAuthenticate(request)
+
+    except UnableToAuthenticate:
+
+        # Verify the User's credentials
+        try: user = authenticate(request, True)
+        except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
     # Make sure the Client passed its version number
     if 'version' not in request.POST:
@@ -664,13 +670,19 @@ def clientWrongBench(request):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    # Verify the User's credentials
-    try: user = authenticate(request, True)
-    except UnableToAuthenticate: return HttpResponse('Bad Credentials')
+    try:
+        # Authenticate using saved IP addresses
+        user, machine = fastAuthenticate(request)
 
-    # Verify the Machine belongs to the User
-    machine = Machine.objects.get(id=int(request.POST['machineid']))
-    if machine.user != user: return HttpResponse('Bad Machine')
+    except UnableToAuthenticate:
+
+        # Verify the User's credentials
+        try: user = authenticate(request, True)
+        except UnableToAuthenticate: return HttpResponse('Bad Credentials')
+
+        # Verify the Machine belongs to the User
+        machine = Machine.objects.get(id=int(request.POST['machineid']))
+        if machine.user != user: return HttpResponse('Bad Machine')
 
     # Find and stop the test with the bad bench
     if int(request.POST['wrong']) != 0:
@@ -705,13 +717,19 @@ def clientSubmitNPS(request):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    # Verify the User's credentials
-    try: user = authenticate(request, True)
-    except UnableToAuthenticate: return HttpResponse('Bad Credentials')
+    try:
+        # Authenticate using saved IP addresses
+        user, machine = fastAuthenticate(request)
 
-    # Verify the Machine belongs to the User
-    machine = Machine.objects.get(id=int(request.POST['machineid']))
-    if machine.user != user: return HttpResponse('Bad Machine')
+    except UnableToAuthenticate:
+
+        # Verify the User's credentials
+        try: user = authenticate(request, True)
+        except UnableToAuthenticate: return HttpResponse('Bad Credentials')
+
+        # Verify the Machine belongs to the User
+        machine = Machine.objects.get(id=int(request.POST['machineid']))
+        if machine.user != user: return HttpResponse('Bad Machine')
 
     # Update the NPS and return 'None' to signal no errors
     machine.mnps = float(request.POST['nps']) / 1e6; machine.save()
@@ -729,13 +747,19 @@ def clientSubmitError(request):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    # Verify the User's credentials
-    try: user = authenticate(request, True)
-    except UnableToAuthenticate: return HttpResponse('Bad Credentials')
+    try:
+        # Authenticate using saved IP addresses
+        user, machine = fastAuthenticate(request)
 
-    # Verify the Machine belongs to the User
-    machine = Machine.objects.get(id=int(request.POST['machineid']))
-    if machine.user != user: return HttpResponse('Bad Machine')
+    except UnableToAuthenticate:
+
+        # Verify the User's credentials
+        try: user = authenticate(request, True)
+        except UnableToAuthenticate: return HttpResponse('Bad Credentials')
+
+        # Verify the Machine belongs to the User
+        machine = Machine.objects.get(id=int(request.POST['machineid']))
+        if machine.user != user: return HttpResponse('Bad Machine')
 
     # Flag the Test as having an error except for time losses
     test = Test.objects.get(id=int(request.POST['testid']))
