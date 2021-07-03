@@ -83,24 +83,27 @@ def authenticate(request, requireEnabled=False):
 
     return user
 
-def fastAuthenticate(request):
+def authenticate_client(request):
 
-    try:
+    # Fetch the Machine associated with the Client Request
+    try: machine = Machine.objects.get(id=int(request.POST['machineid']))
+    except: raise Exception('Bad Machine')
 
-        # Try to compare the saved IP address of the machine
-        client_ip, _ = get_client_ip(request)
-        machine = Machine.objects.get(id=int(request.POST['machineid']))
+    # Try to compare the saved IP address of the machine
+    client_ip, _ = get_client_ip(request)
 
-        # Authenticate via IP comparisons, and update lastaddr
-        if client_ip and machine.lastaddr == str(client_ip):
-            return User.objects.get(username=request.POST['username']), machine
-        if client_ip: machine.lastaddr = str(client_ip); machine.save()
+    # Authenticate via comparing current to recent IP addresses ( Fast )
+    if client_ip and machine.lastaddr == str(client_ip):
+        return User.objects.get(username=request.POST['username']), machine
 
-        raise UnableToAuthenticate()
+    # Authenticate the User associated with the Client Request ( Slow )
+    try: user = authenticate(request, True)
+    except: raise Exception('Bad Credentials')
 
-    except Exception as err:
-        print(err)
-        raise UnableToAuthenticate()
+    # After Authentication, we may save the Client's IP Address for later
+    if client_ip: machine.lastaddr = str(client_ip); machine.save()
+
+    return user, machine
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                            ADMINISTRATIVE VIEWS                             #
@@ -626,15 +629,9 @@ def clientGetWorkload(request):
         if random.randrange(2) == 1:
             return HttpResponse('None')
 
-    try:
-        # Authenticate using saved IP addresses
-        user, machine = fastAuthenticate(request)
-
-    except UnableToAuthenticate:
-
-        # Verify the User's credentials
-        try: user = authenticate(request, True)
-        except UnableToAuthenticate: return HttpResponse('Bad Credentials')
+    # Verify the User's credentials
+    try: user = authenticate(request, True)
+    except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
     # Make sure the Client passed its version number
     if 'version' not in request.POST:
@@ -670,19 +667,9 @@ def clientWrongBench(request):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    try:
-        # Authenticate using saved IP addresses
-        user, machine = fastAuthenticate(request)
-
-    except UnableToAuthenticate:
-
-        # Verify the User's credentials
-        try: user = authenticate(request, True)
-        except UnableToAuthenticate: return HttpResponse('Bad Credentials')
-
-        # Verify the Machine belongs to the User
-        machine = Machine.objects.get(id=int(request.POST['machineid']))
-        if machine.user != user: return HttpResponse('Bad Machine')
+    # Authenticate the User/Machine combination
+    try: user, machine = authenticate_client(request)
+    except Exception as error: return HttpResponse(str(error))
 
     # Find and stop the test with the bad bench
     if int(request.POST['wrong']) != 0:
@@ -717,19 +704,9 @@ def clientSubmitNPS(request):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    try:
-        # Authenticate using saved IP addresses
-        user, machine = fastAuthenticate(request)
-
-    except UnableToAuthenticate:
-
-        # Verify the User's credentials
-        try: user = authenticate(request, True)
-        except UnableToAuthenticate: return HttpResponse('Bad Credentials')
-
-        # Verify the Machine belongs to the User
-        machine = Machine.objects.get(id=int(request.POST['machineid']))
-        if machine.user != user: return HttpResponse('Bad Machine')
+    # Authenticate the User/Machine combination
+    try: user, machine = authenticate_client(request)
+    except Exception as error: return HttpResponse(str(error))
 
     # Update the NPS and return 'None' to signal no errors
     machine.mnps = float(request.POST['nps']) / 1e6; machine.save()
@@ -747,19 +724,9 @@ def clientSubmitError(request):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    try:
-        # Authenticate using saved IP addresses
-        user, machine = fastAuthenticate(request)
-
-    except UnableToAuthenticate:
-
-        # Verify the User's credentials
-        try: user = authenticate(request, True)
-        except UnableToAuthenticate: return HttpResponse('Bad Credentials')
-
-        # Verify the Machine belongs to the User
-        machine = Machine.objects.get(id=int(request.POST['machineid']))
-        if machine.user != user: return HttpResponse('Bad Machine')
+    # Authenticate the User/Machine combination
+    try: user, machine = authenticate_client(request)
+    except Exception as error: return HttpResponse(str(error))
 
     # Flag the Test as having an error except for time losses
     test = Test.objects.get(id=int(request.POST['testid']))
@@ -778,19 +745,9 @@ def clientSubmitError(request):
 @not_minified_response
 def clientSubmitResults(request):
 
-    try:
-        # Authenticate using saved IP addresses
-        user, machine = fastAuthenticate(request)
-
-    except UnableToAuthenticate:
-
-        # Verify the User's credentials
-        try: user = authenticate(request, True)
-        except UnableToAuthenticate: return HttpResponse('Bad Credentials')
-
-        # Verify the Machine belongs to the User
-        machine = Machine.objects.get(id=int(request.POST['machineid']))
-        if machine.user != user: return HttpResponse('Bad Machine')
+    # Authenticate the User/Machine combination
+    try: user, machine = authenticate_client(request)
+    except Exception as error: return HttpResponse(str(error))
 
     # updateTest() will return 'None' or 'Stop'
     return HttpResponse(OpenBench.utils.updateTest(request, user))
