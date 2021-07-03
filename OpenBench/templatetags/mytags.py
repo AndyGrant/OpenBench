@@ -116,7 +116,7 @@ def longStatBlock(test):
     if test.test_mode == 'GAMES':
 
         return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
-             + 'LLR   | {0}s Threads={1} Hash={2}MB\n'.format(test.timecontrol, threads, hash) \
+             + 'CONF  | {0}s Threads={1} Hash={2}MB\n'.format(test.timecontrol, threads, hash) \
              + 'GAMES | N: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
 
 def testResultColour(test):
