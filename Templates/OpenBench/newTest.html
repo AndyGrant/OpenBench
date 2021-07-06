@@ -8,6 +8,8 @@
     var Configurations = {
     {% for name, data in config.engines.items %}
         '{{name}}' : {
+            'base'   : "{{data.base}}",
+            'bounds' : "{{data.bounds}}",
             {% for type, settings in data.testmodes.items %}
             '{{type}}' : {
                 "threads"     : "{{settings.threads}}",
@@ -96,15 +98,24 @@
             devopt.selected  = (hasdefault == false); devnet.add(devopt);
             baseopt.selected = (hasdefault == false); basenet.add(baseopt);
         }
+
+        // Update the Base Branch for the selected Engine
+        var base_branch = document.getElementById("basebranch");
+        base_branch.value = Configurations[engine]["base"];
+
+        return test_type(); // Refresh the settings for the new Engine
     }
 
     function test_type() {
 
-        var selection = document.getElementById("test_mode");
-        var mode      = selection.options[selection.selectedIndex].value;
+        var selectA = document.getElementById("test_mode");
+        var mode    = selectA.options[selectA.selectedIndex].value;
+
+        var selectB = document.getElementById("enginename");
+        var engine  = selectB.options[selectB.selectedIndex].value;
 
         if (mode == "SPRT") {
-            document.getElementById("test_bounds").value     = "{{config.tests.bounds}}";
+            document.getElementById("test_bounds").value     = Configurations[engine]["bounds"]
             document.getElementById("test_confidence").value = "{{config.tests.confidence}}";
             document.getElementById("test_max_games").value  = "N/A";
         }
@@ -149,7 +160,7 @@
 
             <h3> Base Settings </h3>
             <label> Base Bench </label> <input name="basebench"><br>
-            <label> Base Branch </label> <input value="master" name="basebranch"><br>
+            <label> Base Branch </label> <input id="basebranch" name="basebranch"><br>
             <label> Base Options </label> <input id="baseoptions" name="baseoptions"><br>
             <label> Base Network </label> <select id="basenetwork" name="basenetwork"></select><br>
 

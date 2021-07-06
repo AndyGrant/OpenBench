@@ -38,10 +38,9 @@ OPENBENCH_CONFIG = {
     # Test Configuration. For both SPRT and Fixed Games Tests
 
     'tests' : {
-        'bounds'     : '[0.00, 5.00]', # SPRT Elo Bounds
-        'confidence' : '[0.05, 0.05]', # SPRT Type I/II Confidence
         'max_games'  : '20000',        # Default for Fixed Games
-        'throughput' : { 'stc' : 1000, 'ltc' : 500, 'smpstc' : 250, 'smpltc' : 125 },
+        'confidence' : '[0.05, 0.05]', # SPRT Type I/II Confidence
+        'throughput' : { 'stc' : 1000, 'ltc' : 500, 'smpstc' : 1000, 'smpltc' : 500 },
     },
 
     # Book Configuration. When addding a book, follow the provided template.
@@ -89,6 +88,8 @@ OPENBENCH_CONFIG = {
         'Ethereal' : {
 
             'nps'       : 1060000,
+            'base'      : 'master',
+            'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/AndyGrant/Ethereal',
 
             'build'     : {
@@ -108,6 +109,8 @@ OPENBENCH_CONFIG = {
         'Laser' : {
 
             'nps'       : 925000,
+            'base'      : 'master',
+            'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/jeffreyan11/uci-chess-engine',
 
             'build'     : {
@@ -127,6 +130,8 @@ OPENBENCH_CONFIG = {
         'Weiss' : {
 
             'nps'       : 2500000,
+            'base'      : 'master',
+            'bounds'    : '[-1.00, 4.00]',
             'source'    : 'https://github.com/TerjeKir/weiss',
 
             'build'     : {
@@ -146,6 +151,8 @@ OPENBENCH_CONFIG = {
         'Demolito' : {
 
             'nps'       : 1250000,
+            'base'      : 'master',
+            'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/lucasart/Demolito',
 
             'build'     : {
@@ -165,6 +172,8 @@ OPENBENCH_CONFIG = {
         'RubiChess' : {
 
             'nps'       : 980000,
+            'base'      : 'master',
+            'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/Matthies/RubiChess',
 
             'build'     : {
@@ -184,6 +193,8 @@ OPENBENCH_CONFIG = {
         'FabChess' : {
 
             'nps'       : 850000,
+            'base'      : 'master',
+            'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/fabianvdW/FabChess',
 
             'build'     : {
@@ -203,6 +214,8 @@ OPENBENCH_CONFIG = {
         'Igel' : {
 
             'nps'       : 790000,
+            'base'      : 'master',
+            'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/vshcherbyna/igel',
 
             'build'     : {
@@ -222,6 +235,8 @@ OPENBENCH_CONFIG = {
         'Winter' : {
 
             'nps'       : 650000,
+            'base'      : 'master',
+            'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/rosenthj/Winter',
 
             'build'     : {
@@ -241,6 +256,8 @@ OPENBENCH_CONFIG = {
         'Halogen' : {
 
             'nps'       : 1950000,
+            'base'      : 'master',
+            'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/KierenP/Halogen',
 
             'build'     : {
@@ -260,6 +277,8 @@ OPENBENCH_CONFIG = {
         'Stash' : {
 
             'nps'       : 1850000,
+            'base'      : 'master',
+            'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/mhouppin/stash-bot',
 
             'build'     : {
@@ -279,6 +298,8 @@ OPENBENCH_CONFIG = {
         'Seer' : {
 
             'nps'       : 500000,
+            'base'      : 'main',
+            'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/connormcmonigle/seer-nnue',
 
             'build'     : {
