@@ -626,7 +626,7 @@ def clientGetWorkload(request):
 
     # HACK: Make Noobpwnftw's workers jump around
     if request.POST['username'] == 'WorkerPool':
-        if random.randrange(2) == 1:
+        if random.randrange(1 + len(getActiveTests())) == 0:
             return HttpResponse('None')
 
     # Verify the User's credentials
