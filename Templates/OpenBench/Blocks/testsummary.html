@@ -1,10 +1,10 @@
 {% load mytags %}
 <tr>
-    <td><a href="/user/{{test.author}}">{{test.author|slice:":6"}}</a></td>
+    <td><a href="/user/{{test.author}}">{{test.author|capfirst|slice:":6"}}</a></td>
     <td>{{test.engine}}</td>
-    {% if test.error %} <td><a href="/test/{{test.id}}"><span style="color: red">[x]</span> {{test.dev.name|prettyName}}</a></td>
-    {% elif  test|testIsFRC %} <td><a href="/test/{{test.id}}">{{test.dev.name|prettyName}}<span style="color: green">[FRC]</span></a></td>
-    {% else %} <td><a href="/test/{{test.id}}">{{test.dev.name|prettyName}}</a></td> {% endif %}
+    {% if test.error %} <td><a href="/test/{{test.id}}"><span style="color: red">[x]</span> {{test|prettyDevName}}</a></td>
+    {% elif  test|testIsFRC %} <td><a href="/test/{{test.id}}">{{test|prettyDevName}}<span style="color: green">[FRC]</span></a></td>
+    {% else %} <td><a href="/test/{{test.id}}">{{test|prettyDevName}}</a></td> {% endif %}
     <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
     <td>{{test.timecontrol}}</td>
     <td class='statblock {{test|testResultColour}}'><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>

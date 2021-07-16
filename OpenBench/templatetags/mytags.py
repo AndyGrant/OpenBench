@@ -139,6 +139,12 @@ def prettyName(name):
         return name[:16].upper()
     return name
 
+def prettyDevName(test):
+    if test.dev.name == test.base.name and test.devnetwork != '':
+        try: return OpenBench.models.Network.objects.get(sha256=test.devnetwork).name
+        except: pass # File has since been deleted ?
+    return prettyName(test.dev)
+
 def testIsFRC(test):
     return "FRC" in test.bookname.upper() or "960" in test.bookname.upper()
 
@@ -161,6 +167,7 @@ register.filter('testResultColour', testResultColour)
 register.filter('sumAttributes', sumAttributes)
 register.filter('insertCommas', insertCommas)
 register.filter('prettyName', prettyName)
+register.filter('prettyDevName', prettyDevName)
 register.filter('testIsFRC', testIsFRC)
 register.filter('resolveNetworkSha', resolveNetworkSha)
 register.filter('resolveNetworkURL', resolveNetworkURL)
