@@ -143,7 +143,7 @@ def prettyDevName(test):
     if test.dev.name == test.base.name and test.devnetwork != '':
         try: return OpenBench.models.Network.objects.get(sha256=test.devnetwork).name
         except: pass # File has since been deleted ?
-    return prettyName(test.dev)
+    return prettyName(test.dev.name)
 
 def testIsFRC(test):
     return "FRC" in test.bookname.upper() or "960" in test.bookname.upper()
