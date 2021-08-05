@@ -315,5 +315,68 @@ OPENBENCH_CONFIG = {
                 'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
             },
         },
+
+        'Koivisto' : {
+
+            'nps'       : 1750000,
+            'base'      : 'master',
+            'bounds'    : '[0.00, 5.00]',
+            'source'    : 'https://github.com/Luecx/Koivisto',
+
+            'build'     : {
+                'path'      : '/src_files/',
+                'compilers' : ['g++'],
+                'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
+            },
+
+            'testmodes' : {
+                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
+                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
+                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
+            },
+        },
+
+        'Drofa' : {
+
+            'nps'       : 1375000,
+            'base'      : 'master',
+            'bounds'    : '[0.00, 5.00]',
+            'source'    : 'https://github.com/justNo4b/Drofa',
+
+            'build'     : {
+                'path'      : '',
+                'compilers' : ['g++'],
+                'cpuflags'  : ['POPCNT'],
+            },
+
+            'testmodes' : {
+                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
+                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
+                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
+            },
+        },
+
+        'Bit-Genie' : {
+
+            'nps'       : 3000000,
+            'base'      : 'master',
+            'bounds'    : '[0.00, 5.00]',
+            'source'    : 'https://github.com/Aryan1508/Bit-Genie',
+
+            'build'     : {
+                'path'      : '/src/',
+                'compilers' : ['g++'],
+                'cpuflags'  : ['POPCNT'],
+            },
+
+            'testmodes' : {
+                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
+                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
+                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
+            },
+        },
     },
 }
