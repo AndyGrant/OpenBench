@@ -22,6 +22,7 @@
         </tr>
 
         {% for profile in profiles %}
+	    {% if profile.enabled %}
             {% if profile.games or profile.tests %}
                 <tr>
                     <td><a href="/user/{{profile.user.username}}">{{profile.user.username|capfirst}}</a></td>
@@ -31,6 +32,7 @@
                     <td><a href="{{profile.repo}}">{{profile.repo}}</a></td>
                 </tr>
             {% endif %}
+	    {% endif %}
         {% endfor %}
 
     </table>
