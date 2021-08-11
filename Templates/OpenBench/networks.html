@@ -3,16 +3,53 @@
 {% block style %}
 {% endblock %}
 
+{% block scripts %}
+
+    var Networks = [
+        {% for network in networks %}
+            {
+                'default' : "{{network.default}}",
+                'engine'  : "{{network.engine}}",
+                'author'  : "{{network.author|capfirst}}",
+                'name'    : "{{network.name}}",
+                'hash'    : "{{network.sha256}}",
+            },
+        {% endfor %}
+    ];
+
+    function swap_networks(index1, index2) {
+
+        var temp = Networks[index1];
+        Networks[index1] = Networks[index2];
+        Networks[index2] = temp;
+
+        var table = document.getElementById("network-table");
+        var temp_row = table.rows[index1+1].innerHTML
+        table.rows[index1+1].innerHTML = table.rows[index2+1].innerHTML;
+        table.rows[index2+1].innerHTML = temp_row;
+    }
+
+    function sort_networks(field) {
+        for (let i = 0; i != Networks.length; i++)
+            for (let j = i + 1; j != Networks.length; j++)
+                if (Networks[j][field] > Networks[i][field])
+                    swap_networks(i, j);
+    };
+
+    document.addEventListener('DOMContentLoaded', function () { sort_networks("default"); }, false);
+
+{% endblock %}
+
 {% block content %}
 
-    <table>
+    <table id="network-table">
 
         <tr>
-            <th></th>
-            <th>Engine</th>
-            <th>Uploader</th>
-            <th>Name</th>
-            <th>Hash</th>
+            <th onclick=sort_networks("default")></th>
+            <th onclick=sort_networks("engine")>Engine</th>
+            <th onclick=sort_networks("author")>Uploader</th>
+            <th onclick=sort_networks("name")>Name</th>
+            <th onclick=sort_networks("hash")>Hash</th>
             <th></th>
         </tr>
 
