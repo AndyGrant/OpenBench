@@ -29,7 +29,7 @@ from django.db.models import F
 from django.contrib.auth import authenticate
 
 from OpenBench.config import *
-from OpenBench.models import Engine, Profile, Machine, Result, Test
+from OpenBench.models import Engine, Profile, Machine, Result, Test, Network
 
 
 def pathjoin(*args):
@@ -263,6 +263,12 @@ def createNewTest(request):
 
     if request.POST['test_mode'] == 'GAMES':
         test.max_games = int(request.POST['max_games'])
+
+    if request.POST['devnetwork']:
+        test.devnetname = Network.objects.get(sha256=request.POST['devnetwork']).name
+
+    if request.POST['basenetwork']:
+        test.basenetname = Network.objects.get(sha256=request.POST['basenetwork']).name
 
     test.dev         = getEngine(*devinfo)
     test.base        = getEngine(*baseinfo)

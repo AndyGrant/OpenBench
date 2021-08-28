@@ -91,6 +91,9 @@ class Test(Model):
     devnetwork  = CharField(max_length=256)
     basenetwork = CharField(max_length=256)
 
+    devnetname  = CharField(max_length=256)
+    basenetname = CharField(max_length=256)
+
     bookname    = CharField(max_length=32)
     timecontrol = CharField(max_length=16)
 
