@@ -32,7 +32,7 @@
     }
 
     function invert_networks() {
-        for (let i = 0; i * 2 != Networks.length; i++)
+        for (let i = 0; Networks.length > i * 2; i++)
             swap_networks(i, Networks.length-i-1);
     }
 
