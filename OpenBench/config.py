@@ -65,7 +65,7 @@ OPENBENCH_CONFIG = {
 
         '3moves_FRC.epd' : {
             'name'    : '3moves_FRC.epd',
-            'sha'     : '38d1b6c456bc3d3f69a4927e2667ef3f3fa231e253b6dc4040093f00a1c2ccb3',
+            'sha'     : '6bf81e1ada6a3306bbc8356f7bca1e2984a2828d658799992d5443b7179c934d',
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/3moves_FRC.epd.zip',
             'default' : False,
         },
