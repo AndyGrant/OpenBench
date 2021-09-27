@@ -324,7 +324,7 @@ OPENBENCH_CONFIG = {
             'source'    : 'https://github.com/Luecx/Koivisto',
 
             'build'     : {
-                'path'      : '/src_files/',
+                'path'      : 'src_files',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
             },
@@ -366,7 +366,7 @@ OPENBENCH_CONFIG = {
             'source'    : 'https://github.com/Aryan1508/Bit-Genie',
 
             'build'     : {
-                'path'      : '/src/',
+                'path'      : 'src',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
             },
@@ -377,6 +377,27 @@ OPENBENCH_CONFIG = {
                 'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
                 'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
             },
+        },
+
+        'Berserk' : {
+
+            'nps'       : 965000,
+            'base'      : 'main',
+            'bounds'    : '[-1.00, 4.00]',
+            'source'    : 'https://github.com/jhonnold/berserk',
+
+            'build'     : {
+                'path'      : 'src',
+                'compilers' : ['gcc'],
+                'cpuflags'  : ['POPCNT'],
+            },
+
+            'testmodes' : {
+                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
+                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
+                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
+             },
         },
     },
 }
