@@ -399,5 +399,26 @@ OPENBENCH_CONFIG = {
                 'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
              },
         },
+
+        'Zahak' : {
+
+            'nps'       : 1020000,
+            'base'      : 'master',
+            'bounds'    : '[0.00, 5.00]',
+            'source'    : 'https://github.com/amanjpro/zahak',
+
+            'build'     : {
+                'path'      : '',
+                'compilers' : ['go'],
+                'cpuflags'  : ['AVX', 'POPCNT'],
+            },
+
+            'testmodes' : {
+                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
+                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
+                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
+             },
+        },
     },
 }
