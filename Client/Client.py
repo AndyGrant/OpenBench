@@ -61,6 +61,9 @@ CUSTOM_SETTINGS = {
     'Rubichess' : [], 'FabChess'  : [],
     'Igel'      : [], 'Winter'    : [],
     'Halogen'   : [], 'Stash'     : [],
+    'Seer'      : [], 'Koivisto'  : [],
+    'Drofa'     : [], 'Bit-Genie' : [],
+    'Berserk'   : [], 'Zahak'     : [],
 };
 
 ERRORS = {
@@ -358,6 +361,22 @@ def server_configure_worker(arguments):
     target = url_join(arguments.server, 'clientGetBuildInfo')
     data   = requests.get(target, timeout=TIMEOUT_HTTP).json()
 
+    def get_version(compiler):
+
+        # Try to execute the compiler from the command line
+        # First with `--version`, and again with just `version`
+
+        try:
+            process = Popen([compiler, '--version'], stdout=PIPE, stderr=PIPE)
+            stdout = process.communicate()[0].decode('utf-8')
+            return re.search(r'[0-9]+\.[0-9]+\.[0-9]+', stdout).group()
+
+        except:
+            process = Popen([compiler, 'version'], stdout=PIPE, stderr=PIPE)
+            stdout = process.communicate()[0].decode('utf-8')
+            return re.search(r'[0-9]+\.[0-9]+\.[0-9]+', stdout).group()
+
+    # For each engine, attempt to find a valid compiler
     for engine, build_info in data.items():
         for compiler in build_info['compilers']:
 
@@ -367,15 +386,8 @@ def server_configure_worker(arguments):
                 version = tuple(map(int, version.split('.')))
             else: version = (0, 0, 0)
 
-            # Try to execute the compiler from the command line
-            try:
-                process = Popen([compiler, '--version'], stdout=PIPE)
-                stdout, stderr = process.communicate()
-            except OSError: continue
-
-            # Parse the version number reported by the compiler
-            stdout = stdout.decode('utf-8')
-            match  = re.search(r'[0-9]+\.[0-9]+\.[0-9]+', stdout).group()
+            try: match = get_version(compiler)
+            except: continue # Unable to execute compiler
 
             # Compiler version was sufficient
             if tuple(map(int, match.split('.'))) >= version:
