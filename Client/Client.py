@@ -49,7 +49,7 @@ from itertools import combinations_with_replacement
 TIMEOUT_HTTP        = 30    # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR       = 10    # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD    = 30    # Timeout in seconds between workload requests
-CLIENT_VERSION      = '1'   # Client version to send to the Server
+CLIENT_VERSION      = '2'   # Client version to send to the Server
 
 SYZYGY_WDL_PATH     = None  # Pathway to WDL Syzygy Tables
 BASE_GAMES_PER_CORE = 16    # Typical games played per-thread
@@ -272,22 +272,21 @@ def run_bench(engine, outqueue):
 def scale_time_control(workload, nps):
 
     # Searching for X/Y+Z time controls
-    pattern = '(?P<base>\d*(\.\d+)?)(?P<rep>/\d+)?(?P<inc>\+\d+\.\d+)?'
+    pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
     results = re.search(pattern, workload['test']['timecontrol'])
-    base, rep, inc = results.group('base', 'rep', 'inc')
+    moves, base, inc = results.group('moves', 'base', 'inc')
 
-    # Strip any leading / or + symbols
-    rep = None if rep is None else rep[1:]
-    inc = '0'  if inc is None else inc[1:]
+    # Strip the trailing and leading symbols
+    moves = None if moves == '' else moves.rstrip('/')
+    inc   = 0.0  if inc   is None else inc.lstrip('+')
 
-    # Scale our machine's NPS to the Server's NPS
+    # Scale the time based on this machines NPS
     base = float(base) * int(workload['test']['nps']) / nps
     inc  = float(inc ) * int(workload['test']['nps']) / nps
 
-    # Only include repeating controls when found
-    if rep is None:
-        return '%.2f+%.2f' % (base, inc)
-    return '%.2f/%d+%.2f' % (base, int(rep), inc)
+    # Format the time control for cutechess
+    if moves is None: return '%.2f+%.2f' % (base, inc)
+    return '%d/%.2f+%.2f' % (int(moves), base, inc)
 
 def kill_cutechess(cutechess):
 

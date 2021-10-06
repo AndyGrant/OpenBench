@@ -624,11 +624,6 @@ def clientGetWorkload(request):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    # HACK: Make Noobpwnftw's workers jump around
-    # if request.POST['username'] == 'WorkerPool':
-    #     N = len(set([x.engine for x in OpenBench.utils.getActiveTests()]))
-    #     if random.randrange(1 + N) == 0: return HttpResponse('None')
-
     # Verify the User's credentials
     try: user = authenticate(request, True)
     except UnableToAuthenticate: return HttpResponse('Bad Credentials')

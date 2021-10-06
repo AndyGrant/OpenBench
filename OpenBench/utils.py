@@ -46,21 +46,20 @@ def extractOption(options, option):
     match = re.search('(?<={0}=)[^ ]*'.format(option), options)
     if match: return match.group()
 
-def parseTimeControl(timecontrol):
+def parseTimeControl(time_control):
 
     # Searching for X/Y+Z time controls
-    pattern = '(?P<base>\d*(\.\d+)?)(?P<rep>/\d+)?(?P<inc>\+\d+\.\d+)?'
-    results = re.search(pattern, timecontrol)
-    base, rep, inc = results.group('base', 'rep', 'inc')
+    pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
+    results = re.search(pattern, time_control)
+    moves, base, inc = results.group('moves', 'base', 'inc')
 
-    # Strip any leading / or + symbols
-    rep = None if rep is None else rep[1:]
-    inc = '0' if inc is None else inc[1:]
+    # Strip the trailing and leading symbols
+    moves = None if moves == '' else moves.rstrip('/')
+    inc   = 0.0  if inc   is None else inc.lstrip('+')
 
-    # Only include repeating controls when found
-    if rep is None:
-        return '%.1f+%.2f' % (float(base), float(inc))
-    return '%.1f/%d+%.2f' % (float(base), int(rep), float(inc))
+    # Format the time control for cutechess
+    if moves is None: return '%.1f+%.2f' % (float(base), float(inc))
+    return '%d/%.1f+%.2f' % (int(moves), float(base), float(inc))
 
 
 def getPendingTests():
