@@ -761,7 +761,7 @@ def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
     concurrency = int(arguments.threads) // max(dev_threads, base_threads)
 
     games = int(concurrency * BASE_GAMES_PER_CORE * throughput / 1000)
-    games = max(concurrency * 2, games - (games % (2 * concurrency)))
+    games = max(8, concurrency * 2, games - (games % (2 * concurrency)))
 
     time_control = scale_time_control(workload, nps)
 
@@ -812,7 +812,7 @@ def run_and_parse_cutechess(arguments,  workload, concurrency, command):
         if not line.startswith('Score of'):
             continue
 
-        # Only report scores after every 'concurrency' games
+        # Only report scores after every eight games
         score = list(map(int, score_reason.split()[0:5:2]))
         if ((sum(score) - sum(sent)) % 8 != 0): continue
 
