@@ -96,7 +96,7 @@ def locate_utility(util, force_exit=True, report_error=True):
         stdout, stderr = process.communicate()
 
         ver = re.search('[0-9]+.[0-9]+.[0-9]+', str(stdout))
-        print ('Located %s (%s)' % (util, ver.group()))
+        print('Located %s (%s)' % (util, ver.group()))
         return True
 
     except Exception:
@@ -149,7 +149,7 @@ def validate_syzygy_exists():
 
     global SYZYGY_WDL_PATH
 
-    print ('\nScanning for Syzygy Configuration...')
+    print('\nScanning for Syzygy Configuration...')
 
     for filename in tablebase_names():
 
@@ -399,7 +399,7 @@ def server_configure_worker(arguments):
         compiler = data[engine]['compilers']
         print('%10s | Missing %s' % (engine, compiler))
 
-    print ('\nScanning for CPU Flags...')
+    print('\nScanning for CPU Flags...')
 
     # Use GCC -march=native to find CPU info
     stdout, stderr = Popen(
@@ -413,8 +413,8 @@ def server_configure_worker(arguments):
     actual  = set(f for f in flags if '__%s__ 1' % (f) in str(stdout))
 
     # Report and save to global configuration
-    print ('     Found |', ' '.join(list(actual)))
-    print ('   Missing |', ' '.join(list(flags - actual)))
+    print('     Found |', ' '.join(list(actual)))
+    print('   Missing |', ' '.join(list(flags - actual)))
     COMPILERS['cpuflags'] = ' '.join(list(actual))
 
 @try_until_success(mesg=ERRORS['request'])
@@ -559,7 +559,7 @@ def check_workload_response(arguments, response):
     engine = data['test']['engine']
     dev    = data['test']['dev'   ]['name']
     base   = data['test']['base'  ]['name']
-    print ('Workload [%s] %s vs %s\n' % (engine, dev, base))
+    print('Workload [%s] %s vs %s\n' % (engine, dev, base))
 
     return data
 
@@ -595,7 +595,7 @@ def download_opening_book(arguments, workload):
     book_source = workload['test']['book']['source']
     book_name   = workload['test']['book']['name'  ]
     book_path   = os.path.join('Books', book_name)
-    print ('\nFetching Opening Book [%s]' % (book_name))
+    print('\nFetching Opening Book [%s]' % (book_name))
 
     # Download file if we do not already have it
     if not os.path.isfile(book_path):
@@ -610,8 +610,8 @@ def download_opening_book(arguments, workload):
     if book_sha256 != sha256: os.remove(book_path)
 
     # Log SHAs on every workload
-    print ('Correct  SHA256 %s' % (book_sha256.upper()))
-    print ('Download SHA256 %s' % (     sha256.upper()))
+    print('Correct  SHA256 %s' % (book_sha256.upper()))
+    print('Download SHA256 %s' % (     sha256.upper()))
 
     # We have to have the correct SHA to continue
     if book_sha256 != sha256:
@@ -625,7 +625,7 @@ def download_network_weights(arguments, workload, branch):
 
     # Log that we are obtaining a Neural Network
     pattern = 'Fetching Neural Network [ %s, %-4s ]'
-    print (pattern % (network_name, branch.upper()))
+    print(pattern % (network_name, branch.upper()))
 
     # Neural Network requests require authorization
     payload = {
@@ -662,7 +662,7 @@ def download_engine(arguments, workload, branch, network):
     if arguments.proxy: source = 'https://ghproxy.com/' + source
 
     pattern = '\nEngine: [%s] %s\nCommit: %s'
-    print (pattern % (engine, branch_name, commit_sha.upper()))
+    print(pattern % (engine, branch_name, commit_sha.upper()))
 
     # Naming as Engine-SHA256[:8]-NETSHA256[:8]
     final_name = '%s-%s' % (engine, commit_sha.upper()[:8])
@@ -683,7 +683,7 @@ def download_engine(arguments, workload, branch, network):
     src_path   = os.path.join('tmp', unzip_name, *build_path.split('/'))
 
     # Build the engine and drop it into src_path
-    print ('\nBuilding [%s]' % (final_path))
+    print('\nBuilding [%s]' % (final_path))
     command = make_command(arguments, engine, src_path, network)
     Popen(command, cwd=src_path).wait()
     output_name = os.path.join(src_path, engine)
@@ -709,7 +709,7 @@ def run_benchmarks(arguments, workload, branch, engine):
     cores = int(arguments.threads)
     queue = multiprocessing.Queue()
     name  = workload['test'][branch]['name']
-    print ('\nRunning %dx Benchmarks for %s' % (cores, name))
+    print('\nRunning %dx Benchmarks for %s' % (cores, name))
 
     for ii in range(cores):
         args = (os.path.join('Engines', engine), queue,)
@@ -719,8 +719,8 @@ def run_benchmarks(arguments, workload, branch, engine):
     nps, bench = list(zip(*[queue.get() for ii in range(cores)]))
     if len(set(bench)) > 1: return (0, 0) # Flag an error
 
-    print ('Bench for %s is %d' % (name, bench[0]))
-    print ('Speed for %s is %d' % (name, sum(nps) // cores))
+    print('Bench for %s is %d' % (name, bench[0]))
+    print('Speed for %s is %d' % (name, sum(nps) // cores))
     return bench[0], sum(nps) // cores
 
 def verify_benchmarks(arguments, workload, branch, bench):
@@ -780,7 +780,7 @@ def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
 
 def run_and_parse_cutechess(arguments,  workload, concurrency, command):
 
-    print ('\nLaunching Cutechess...\n%s\n' % (command))
+    print('\nLaunching Cutechess...\n%s\n' % (command))
     cutechess = Popen(command.split(), stdout=PIPE)
 
     crashes = timelosses = 0
@@ -861,9 +861,18 @@ if __name__ == '__main__':
 
     while True:
         try:
+            # Request a new workload
             cleanup_client()
             response = server_request_workload(arguments)
             workload = check_workload_response(arguments, response)
+
+            # Fleet workers exit when there are no workloads
             if workload: complete_workload(arguments, workload)
             elif FLEET_MODE: break
+
+            # Check for exit signal via openbench.exit
+            if os.path.isfile('openbench.exit'):
+                print('Exited via openbench.exit')
+                break
+
         except Exception: traceback.print_exc()
