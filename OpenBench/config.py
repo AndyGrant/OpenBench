@@ -409,7 +409,7 @@ OPENBENCH_CONFIG = {
 
             'build'     : {
                 'path'      : '',
-                'compilers' : ['go'],
+                'compilers' : ['go', 'gcc'],
                 'cpuflags'  : ['AVX', 'POPCNT'],
             },
 
