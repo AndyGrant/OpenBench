@@ -76,6 +76,13 @@ OPENBENCH_CONFIG = {
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/4moves_noob.epd.zip',
             'default' : True,
         },
+
+        'Pohl.epd' : {
+            'name'    : 'Pohl.epd',
+            'sha'     : 'b3e64e0dab84cf451a9ac7ef031f5a2bbcf16c7e21be95298fb03cbf021f5466',
+            'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/Pohl.epd.zip',
+            'default' : False,
+        },
     },
 
 
