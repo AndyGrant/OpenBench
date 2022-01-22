@@ -94,7 +94,7 @@ OPENBENCH_CONFIG = {
 
         'Ethereal' : {
 
-            'nps'       : 1060000,
+            'nps'       : 1225000,
             'base'      : 'master',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/AndyGrant/Ethereal',
@@ -115,7 +115,7 @@ OPENBENCH_CONFIG = {
 
         'Laser' : {
 
-            'nps'       : 925000,
+            'nps'       : 920000,
             'base'      : 'master',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/jeffreyan11/uci-chess-engine',
@@ -136,7 +136,7 @@ OPENBENCH_CONFIG = {
 
         'Weiss' : {
 
-            'nps'       : 2500000,
+            'nps'       : 1825000,
             'base'      : 'master',
             'bounds'    : '[-1.00, 4.00]',
             'source'    : 'https://github.com/TerjeKir/weiss',
@@ -157,7 +157,7 @@ OPENBENCH_CONFIG = {
 
         'Demolito' : {
 
-            'nps'       : 1250000,
+            'nps'       : 1220000,
             'base'      : 'master',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/lucasart/Demolito',
@@ -220,7 +220,7 @@ OPENBENCH_CONFIG = {
 
         'Igel' : {
 
-            'nps'       : 790000,
+            'nps'       : 800000,
             'base'      : 'master',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/vshcherbyna/igel',
@@ -262,7 +262,7 @@ OPENBENCH_CONFIG = {
 
         'Halogen' : {
 
-            'nps'       : 1950000,
+            'nps'       : 1850000,
             'base'      : 'master',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/KierenP/Halogen',
@@ -283,7 +283,7 @@ OPENBENCH_CONFIG = {
 
         'Stash' : {
 
-            'nps'       : 1850000,
+            'nps'       : 1700000,
             'base'      : 'master',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/mhouppin/stash-bot',
@@ -325,7 +325,7 @@ OPENBENCH_CONFIG = {
 
         'Koivisto' : {
 
-            'nps'       : 1750000,
+            'nps'       : 1225000,
             'base'      : 'master',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/Luecx/Koivisto',
@@ -346,7 +346,7 @@ OPENBENCH_CONFIG = {
 
         'Drofa' : {
 
-            'nps'       : 1375000,
+            'nps'       : 1110000,
             'base'      : 'master',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/justNo4b/Drofa',
@@ -367,7 +367,7 @@ OPENBENCH_CONFIG = {
 
         'Bit-Genie' : {
 
-            'nps'       : 3000000,
+            'nps'       : 875000,
             'base'      : 'master',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/Aryan1508/Bit-Genie',
@@ -388,7 +388,7 @@ OPENBENCH_CONFIG = {
 
         'Berserk' : {
 
-            'nps'       : 965000,
+            'nps'       : 1225000,
             'base'      : 'main',
             'bounds'    : '[-1.00, 4.00]',
             'source'    : 'https://github.com/jhonnold/berserk',
