@@ -52,7 +52,7 @@ TIMEOUT_WORKLOAD    = 30    # Timeout in seconds between workload requests
 CLIENT_VERSION      = '2'   # Client version to send to the Server
 
 SYZYGY_WDL_PATH     = None  # Pathway to WDL Syzygy Tables
-BASE_GAMES_PER_CORE = 16    # Typical games played per-thread
+BASE_GAMES_PER_CORE = 32    # Typical games played per-thread
 FLEET_MODE          = False # Exit when there are no workloads
 
 CUSTOM_SETTINGS = {
@@ -583,10 +583,10 @@ def complete_workload(arguments, workload):
     download_opening_book(arguments, workload)
 
     avg_nps = (dev_nps + base_nps) // 2
-    concurrency, command = build_cutechess_command(
+    concurrency, update_interval, command = build_cutechess_command(
         arguments, workload, dev_name, base_name, avg_nps)
 
-    run_and_parse_cutechess(arguments,  workload, concurrency, command)
+    run_and_parse_cutechess(arguments, workload, concurrency, update_interval, command)
 
 def download_opening_book(arguments, workload):
 
@@ -757,10 +757,10 @@ def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
     if SYZYGY_WDL_PATH and workload['test']['syzygy_adj'] != 'DISABLED':
         flags += '-tb %s' % (SYZYGY_WDL_PATH.replace('\\', '\\\\'))
 
-    throughput = int(workload['test']['throughput'])
     concurrency = int(arguments.threads) // max(dev_threads, base_threads)
+    update_interval = 8 if max(dev_threads, base_threads) == 1 else 1
 
-    games = int(concurrency * BASE_GAMES_PER_CORE * throughput / 1000)
+    games = int(concurrency * BASE_GAMES_PER_CORE)
     games = max(8, concurrency * 2, games - (games % (2 * concurrency)))
 
     time_control = scale_time_control(workload, nps)
@@ -775,10 +775,10 @@ def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
     )
 
     if IS_LINUX:
-        return concurrency, './cutechess-ob ' + flags % (args)
-    return concurrency, 'cutechess-ob.exe ' + flags % (args)
+        return concurrency, update_interval, './cutechess-ob ' + flags % (args)
+    return concurrency, update_interval, 'cutechess-ob.exe ' + flags % (args)
 
-def run_and_parse_cutechess(arguments,  workload, concurrency, command):
+def run_and_parse_cutechess(arguments, workload, concurrency, update_interval, command):
 
     print('\nLaunching Cutechess...\n%s\n' % (command))
     cutechess = Popen(command.split(), stdout=PIPE)
@@ -814,7 +814,7 @@ def run_and_parse_cutechess(arguments,  workload, concurrency, command):
 
         # Only report scores after every eight games
         score = list(map(int, score_reason.split()[0:5:2]))
-        if ((sum(score) - sum(sent)) % 8 != 0): continue
+        if ((sum(score) - sum(sent)) % update_interval != 0): continue
 
         # Report to the server but allow failed reports to delay
         wld = [score[ii] - sent[ii] for ii in range(3)]
