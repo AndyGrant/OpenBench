@@ -40,7 +40,7 @@ OPENBENCH_CONFIG = {
     'tests' : {
         'max_games'  : '20000',        # Default for Fixed Games
         'confidence' : '[0.05, 0.05]', # SPRT Type I/II Confidence
-        'throughput' : { 'stc' : 1000, 'ltc' : 500, 'smpstc' : 1000, 'smpltc' : 500 },
+        'throughput' : { 'stc' : 1000, 'ltc' : 1000, 'smpstc' : 1000, 'smpltc' : 1000 },
     },
 
     # Book Configuration. When addding a book, follow the provided template.

@@ -359,6 +359,7 @@ def get_valid_workloads(machine, request):
     options = [x for x in tests if test_maps_onto_thread_count(machine, x)]
 
     # Finally refine for tests of the highest priority
+    if not options: return []
     highest_prio = max(options, key=lambda x: x.priority).priority
     return [test for test in options if test.priority == highest_prio]
 
