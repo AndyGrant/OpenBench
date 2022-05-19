@@ -17,7 +17,7 @@ data = {
 
     'devbench'    : '',
     'devbranch'   : '',
-    'devoptions'  : '
+    'devoptions'  : '',
     'devnetwork'  : '',
 
     'basebench'   : '',

@@ -5,7 +5,7 @@ FILENAME = ''
 
 data = {
     'engine'   : '',
-    'name'     : ''.
+    'name'     : '',
     'username' : '',
     'password' : '',
     'action'   : 'UPLOAD',
