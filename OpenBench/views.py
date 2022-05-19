@@ -581,6 +581,21 @@ def networks(request, action=None, sha256=None, client=False):
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                             OPENBENCH SCRIPTING                             #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+@csrf_exempt
+def scripts(request):
+
+    login(request) # All requests are attached to a User
+
+    if request.POST['action'] == 'UPLOAD':
+        return networks(request, action='UPLOAD')
+
+    if request.POST['action'] == 'CREATE_TEST':
+        return newTest(request)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              CLIENT HOOK VIEWS                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
