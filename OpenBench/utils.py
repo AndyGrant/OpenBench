@@ -388,8 +388,8 @@ def select_workload(machine, tests, variance=0.25):
     ratios = [table[test] / test.throughput for test in tests]
     lowest_idxs = [i for i, r in enumerate(ratios) if r == min(ratios)]
 
-    # Machine has not recently been working on the current options
-    if machine.workload not in tests:
+    # Machine is out of date; or there is an unassigned test
+    if machine.workload not in tests or min(ratios) == 0:
         return tests[random.choice(lowest_idxs)]
 
     # No test has less than (1-variance)% of its deserved resources, and
