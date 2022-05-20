@@ -376,7 +376,7 @@ def test_maps_onto_thread_count(machine, test):
     if max(dev_threads, base_threads) > machine.threads: return False
     return dev_threads != base_threads or machine.threads % dev_threads == 0
 
-def select_workload(machine, tests, acceptable_variance=1.25):
+def select_workload(machine, tests, variance=0.25):
 
     # Determine how many threads are assigned to each workload
     table = { test : 0 for test in tests }
@@ -389,12 +389,13 @@ def select_workload(machine, tests, acceptable_variance=1.25):
     lowest_idxs = [i for i, r in enumerate(ratios) if r == min(ratios)]
 
     # Machine has not recently been working on the current options
-    if machine.workload not in tests or min(ratios) == 0:
+    if machine.workload not in tests:
         return tests[random.choice(lowest_idxs)]
 
-    # Machine can repeat its workload without exceeding distrubtion limits
+    # No test has less than (1-variance)% of its deserved resources, and
+    # therefore we may have this machine repeat its existing workload again
     ideal_ratio = sum(table.values()) / sum([x.throughput for x in tests])
-    if ratios[tests.index(machine.workload)] / ideal_ratio < acceptable_variance:
+    if min(ratios) / ideal_ratio < 1 - variance:
         return machine.workload
 
     # Fallback to simply doing the least attention given test
