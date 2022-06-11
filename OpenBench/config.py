@@ -84,10 +84,10 @@ OPENBENCH_CONFIG = {
             'default' : False,
         },
 
-        'Startpos_DFRC.epd' : {
-            'name'    : 'Startpos_DFRC.epd',
+        'DFRC.epd' : {
+            'name'    : 'DFRC.epd',
             'sha'     : '648c447ef40614a44d13b78911e81470d8ddb0d3b2711c1b180e990871f5db4f',
-            'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/Startpos_DFRC.epd.zip',
+            'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/DFRC.epd.zip',
             'default' : False,
         },
     },
