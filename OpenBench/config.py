@@ -44,8 +44,8 @@ OPENBENCH_CONFIG = {
     },
 
     # Book Configuration. When addding a book, follow the provided template.
-    # The SHA is defined by hashlib.sha256(book).hexdigest(). Client.py has
-    # code to generate and verify sha256 values, as an example.
+    # The SHA is defined by hashlib.sha256(book.read().encode('utf-8')).hexdigest().
+    # Client.py has this exact code to generate and verify sha256 values, as an example.
 
     'books' : {
 
@@ -81,6 +81,13 @@ OPENBENCH_CONFIG = {
             'name'    : 'Pohl.epd',
             'sha'     : 'b3e64e0dab84cf451a9ac7ef031f5a2bbcf16c7e21be95298fb03cbf021f5466',
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/Pohl.epd.zip',
+            'default' : False,
+        },
+
+        'Startpos_DFRC.epd' : {
+            'name'    : 'Startpos_DFRC.epd',
+            'sha'     : '648c447ef40614a44d13b78911e81470d8ddb0d3b2711c1b180e990871f5db4f',
+            'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/Startpos_DFRC.zip',
             'default' : False,
         },
     },
