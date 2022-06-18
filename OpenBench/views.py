@@ -497,23 +497,24 @@ def newTest(request):
 
 def networks(request, action=None, sha256=None, client=False):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : There are three possible GET lookups. [1] Fetch a view of all   #
-    #         the Networks on the framework. [2] Fetch a template to upload a #
-    #         new Network to the framework. [3] Download the contents of a    #
-    #         Network that is already saved on the framework. Anyone may view #
-    #         the list of Network weights, but only some may interact         #
-    #                                                                         #
-    # POST  : There are three possible POST lookups. They are Upload, Default #
-    #         and Delete. All of these are placed behind a login and approver #
-    #         flag wall. This view is not meant to distribute Networks        #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # *** GET Requests:
+    # [1] Fetch a view of all the Networks on the framework (/networks/)
+    # [2] Fetch a view of all Networks for a given engine (/networks/<engine>/)
+    # [3] Download the contents of a Network if allowed (/networks/download/<sha256>/)
+    #
+    # *** POST Requests:
+    # [1] Upload a Network to the framework (/networks/upload/)
+    # [2] Set as default a Network on the framework (/networks/default/<sha256>/)
+    # [3] Delete a Network from the framework (/networks/delete/<sha256>/)
+    #
+    # *** Rights:
+    # Any user may look at the list of Networks, for all or some engines
+    # Only authenticated and approved Users may interact in the remaining ways
 
-    if action == None:
-        networks = Network.objects.all().order_by('-id')
-        return render(request, 'networks.html', {'networks' : networks})
+    if not action or action.upper() not in ['UPLOAD', 'DEFAULT', 'DELETE', 'DOWNLOAD']:
+        networks = Network.objects.all()
+        if action: networks = networks.filter(engine=action)
+        return render(request, 'networks.html', { 'networks' : networks.order_by('-id') })
 
     if not request.user.is_authenticated:
         return django.http.HttpResponseRedirect('/login/')
