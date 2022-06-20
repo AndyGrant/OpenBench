@@ -95,7 +95,7 @@ OPENBENCH_CONFIG = {
 
         'Ethereal' : {
 
-            'nps'       : 1225000,
+            'nps'       : 1200000,
             'base'      : 'master',
             'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
@@ -117,7 +117,7 @@ OPENBENCH_CONFIG = {
 
         'Laser' : {
 
-            'nps'       : 920000,
+            'nps'       : 935000,
             'base'      : 'master',
             'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
@@ -139,7 +139,7 @@ OPENBENCH_CONFIG = {
 
         'Weiss' : {
 
-            'nps'       : 1825000,
+            'nps'       : 1775000,
             'base'      : 'master',
             'book'      : 'Pohl.epd',
             'bounds'    : '[-1.00, 4.00]',
@@ -161,7 +161,7 @@ OPENBENCH_CONFIG = {
 
         'Demolito' : {
 
-            'nps'       : 1220000,
+            'nps'       : 1330000,
             'base'      : 'master',
             'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
@@ -183,7 +183,7 @@ OPENBENCH_CONFIG = {
 
         'RubiChess' : {
 
-            'nps'       : 980000,
+            'nps'       : 1085000,
             'base'      : 'master',
             'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
@@ -205,7 +205,7 @@ OPENBENCH_CONFIG = {
 
         'FabChess' : {
 
-            'nps'       : 850000,
+            'nps'       : 1000000,
             'base'      : 'master',
             'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
@@ -227,7 +227,7 @@ OPENBENCH_CONFIG = {
 
         'Igel' : {
 
-            'nps'       : 800000,
+            'nps'       : 860000,
             'base'      : 'master',
             'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
@@ -271,7 +271,7 @@ OPENBENCH_CONFIG = {
 
         'Halogen' : {
 
-            'nps'       : 1850000,
+            'nps'       : 1750000,
             'base'      : 'master',
             'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
@@ -293,9 +293,9 @@ OPENBENCH_CONFIG = {
 
         'Stash' : {
 
-            'nps'       : 1700000,
+            'nps'       : 1585000,
             'base'      : 'master',
-            'book'      : 'Pohl.epd',
+            'book'      : '4moves_noob.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/mhouppin/stash-bot',
 
@@ -315,7 +315,7 @@ OPENBENCH_CONFIG = {
 
         'Seer' : {
 
-            'nps'       : 500000,
+            'nps'       : 680000,
             'base'      : 'main',
             'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
@@ -337,7 +337,7 @@ OPENBENCH_CONFIG = {
 
         'Koivisto' : {
 
-            'nps'       : 1225000,
+            'nps'       : 1220000,
             'base'      : 'master',
             'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 2.50]',
@@ -359,9 +359,9 @@ OPENBENCH_CONFIG = {
 
         'Drofa' : {
 
-            'nps'       : 1110000,
+            'nps'       : 1300000,
             'base'      : 'master',
-            'book'      : 'Pohl.epd',
+            'book'      : '4moves_noob.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/justNo4b/Drofa',
 
@@ -381,7 +381,7 @@ OPENBENCH_CONFIG = {
 
         'Bit-Genie' : {
 
-            'nps'       : 875000,
+            'nps'       : 1820000,
             'base'      : 'master',
             'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
@@ -403,7 +403,7 @@ OPENBENCH_CONFIG = {
 
         'Berserk' : {
 
-            'nps'       : 1225000,
+            'nps'       : 1145000,
             'base'      : 'main',
             'book'      : 'Pohl.epd',
             'bounds'    : '[-1.00, 4.00]',
@@ -425,7 +425,7 @@ OPENBENCH_CONFIG = {
 
         'Zahak' : {
 
-            'nps'       : 1020000,
+            'nps'       : 860000,
             'base'      : 'master',
             'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
