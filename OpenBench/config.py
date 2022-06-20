@@ -53,42 +53,36 @@ OPENBENCH_CONFIG = {
             'name'    : '2moves_v1.epd',
             'sha'     : '7bec98239836f219dc41944a768c0506abed950aaec48da69a0782643e90f237',
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/2moves_v1.epd.zip',
-            'default' : False,
         },
 
         '8moves_v3.epd' : {
             'name'    : '8moves_v3.epd',
             'sha'     : '1f055af431656f09ee6a09d2448e0b876125f78bb7b404fca2031c403a1541e5',
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/8moves_v3.epd.zip',
-            'default' : False,
         },
 
         '3moves_FRC.epd' : {
             'name'    : '3moves_FRC.epd',
             'sha'     : '6bf81e1ada6a3306bbc8356f7bca1e2984a2828d658799992d5443b7179c934d',
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/3moves_FRC.epd.zip',
-            'default' : False,
         },
 
         '4moves_noob.epd' : {
             'name'    : '4moves_noob.epd',
             'sha'     : '4be746a91e3f8af0c9344b1e72d611e9fcfe486843867a55760970a4896f284d',
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/4moves_noob.epd.zip',
-            'default' : True,
         },
 
         'Pohl.epd' : {
             'name'    : 'Pohl.epd',
             'sha'     : 'b3e64e0dab84cf451a9ac7ef031f5a2bbcf16c7e21be95298fb03cbf021f5466',
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/Pohl.epd.zip',
-            'default' : False,
         },
 
         'DFRC.epd' : {
             'name'    : 'DFRC.epd',
             'sha'     : '648c447ef40614a44d13b78911e81470d8ddb0d3b2711c1b180e990871f5db4f',
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/DFRC.epd.zip',
-            'default' : False,
         },
     },
 
@@ -103,6 +97,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 1225000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/AndyGrant/Ethereal',
 
@@ -124,6 +119,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 920000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/jeffreyan11/uci-chess-engine',
 
@@ -145,6 +141,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 1825000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[-1.00, 4.00]',
             'source'    : 'https://github.com/TerjeKir/weiss',
 
@@ -166,6 +163,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 1220000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/lucasart/Demolito',
 
@@ -187,6 +185,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 980000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/Matthies/RubiChess',
 
@@ -208,6 +207,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 850000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/fabianvdW/FabChess',
 
@@ -229,6 +229,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 800000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/vshcherbyna/igel',
 
@@ -250,6 +251,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 650000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/rosenthj/Winter',
 
@@ -271,6 +273,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 1850000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/KierenP/Halogen',
 
@@ -292,6 +295,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 1700000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/mhouppin/stash-bot',
 
@@ -313,6 +317,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 500000,
             'base'      : 'main',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/connormcmonigle/seer-nnue',
 
@@ -334,6 +339,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 1225000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/Luecx/Koivisto',
 
@@ -355,6 +361,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 1110000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/justNo4b/Drofa',
 
@@ -376,6 +383,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 875000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/Aryan1508/Bit-Genie',
 
@@ -397,6 +405,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 1225000,
             'base'      : 'main',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[-1.00, 4.00]',
             'source'    : 'https://github.com/jhonnold/berserk',
 
@@ -418,6 +427,7 @@ OPENBENCH_CONFIG = {
 
             'nps'       : 1020000,
             'base'      : 'master',
+            'book'      : 'Pohl.epd',
             'bounds'    : '[0.00, 5.00]',
             'source'    : 'https://github.com/amanjpro/zahak',
 

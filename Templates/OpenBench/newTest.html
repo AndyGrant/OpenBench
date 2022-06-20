@@ -9,6 +9,7 @@
     {% for name, data in config.engines.items %}
         '{{name}}' : {
             'base'   : "{{data.base}}",
+            'book'   : "{{data.book}}",
             'bounds' : "{{data.bounds}}",
             {% for type, settings in data.testmodes.items %}
             '{{type}}' : {
@@ -103,6 +104,10 @@
         var base_branch = document.getElementById("basebranch");
         base_branch.value = Configurations[engine]["base"];
 
+        // Update the Default Book for the selected Engine
+        var book_selection = document.getElementById("bookname");
+        book_selection.value = Configurations[engine]["book"];
+
         return test_type(); // Refresh the settings for the new Engine
     }
 
@@ -169,14 +174,10 @@
         <div class="settings-column">
 
             <h3> Game Settings </h3>
-            <label> Book </label> <select name="bookname">
-            {% for name, data in config.books.items %}
-                {% if data.default %}
-                    <option selected value="{{name}}">{{name}}</option>
-                {% else %}
-                    <option value="{{name}}">{{name}}</option>
-                {% endif %}
-            {% endfor %}
+            <label> Book </label> <select id="bookname" name="bookname">
+                {% for name, data in config.books.items %}
+                <option value="{{name}}">{{name}}</option>
+                {% endfor %}
             </select><br>
             <label> Time </label> <input id="timecontrol" name="timecontrol"><br>
 
