@@ -340,7 +340,7 @@ OPENBENCH_CONFIG = {
             'nps'       : 1225000,
             'base'      : 'master',
             'book'      : 'Pohl.epd',
-            'bounds'    : '[0.00, 5.00]',
+            'bounds'    : '[0.00, 2.50]',
             'source'    : 'https://github.com/Luecx/Koivisto',
 
             'build'     : {
