@@ -95,13 +95,13 @@ OPENBENCH_CONFIG = {
 
         'Ethereal' : {
 
-            'nps'       : 1200000,
-            'base'      : 'master',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/AndyGrant/Ethereal',
+            'nps'    : 1200000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/AndyGrant/Ethereal',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['gcc'],
                 'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
@@ -117,13 +117,13 @@ OPENBENCH_CONFIG = {
 
         'Laser' : {
 
-            'nps'       : 935000,
-            'base'      : 'master',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/jeffreyan11/uci-chess-engine',
+            'nps'    : 935000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/jeffreyan11/uci-chess-engine',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
@@ -139,13 +139,13 @@ OPENBENCH_CONFIG = {
 
         'Weiss' : {
 
-            'nps'       : 1775000,
-            'base'      : 'master',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[-1.00, 4.00]',
-            'source'    : 'https://github.com/TerjeKir/weiss',
+            'nps'    : 1775000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[-1.00, 4.00]',
+            'source' : 'https://github.com/TerjeKir/weiss',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['gcc'],
                 'cpuflags'  : ['POPCNT'],
@@ -161,13 +161,13 @@ OPENBENCH_CONFIG = {
 
         'Demolito' : {
 
-            'nps'       : 1330000,
-            'base'      : 'master',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/lucasart/Demolito',
+            'nps'    : 1330000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/lucasart/Demolito',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['clang', 'gcc'],
                 'cpuflags'  : ['POPCNT'],
@@ -183,13 +183,13 @@ OPENBENCH_CONFIG = {
 
         'RubiChess' : {
 
-            'nps'       : 1085000,
-            'base'      : 'master',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/Matthies/RubiChess',
+            'nps'    : 1085000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/Matthies/RubiChess',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
@@ -205,13 +205,13 @@ OPENBENCH_CONFIG = {
 
         'FabChess' : {
 
-            'nps'       : 1000000,
-            'base'      : 'master',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/fabianvdW/FabChess',
+            'nps'    : 1000000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/fabianvdW/FabChess',
 
-            'build'     : {
+            'build' : {
                 'path'      : '',
                 'compilers' : ['cargo>=1.41.0'],
                 'cpuflags'  : ['POPCNT'],
@@ -227,13 +227,13 @@ OPENBENCH_CONFIG = {
 
         'Igel' : {
 
-            'nps'       : 860000,
-            'base'      : 'master',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/vshcherbyna/igel',
+            'nps'    : 860000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/vshcherbyna/igel',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
@@ -249,13 +249,13 @@ OPENBENCH_CONFIG = {
 
         'Winter' : {
 
-            'nps'       : 650000,
-            'base'      : 'master',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/rosenthj/Winter',
+            'nps'    : 650000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/rosenthj/Winter',
 
-            'build'     : {
+            'build' : {
                 'path'      : '',
                 'compilers' : ['clang++', 'g++'],
                 'cpuflags'  : ['POPCNT'],
@@ -271,13 +271,13 @@ OPENBENCH_CONFIG = {
 
         'Halogen' : {
 
-            'nps'       : 1750000,
-            'base'      : 'master',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/KierenP/Halogen',
+            'nps'    : 1750000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/KierenP/Halogen',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
@@ -293,13 +293,13 @@ OPENBENCH_CONFIG = {
 
         'Stash' : {
 
-            'nps'       : 1585000,
-            'base'      : 'master',
-            'book'      : '4moves_noob.epd',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/mhouppin/stash-bot',
+            'nps'    : 1585000,
+            'base'   : 'master',
+            'book'   : '4moves_noob.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/mhouppin/stash-bot',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['gcc', 'clang'],
                 'cpuflags'  : ['POPCNT'],
@@ -315,13 +315,13 @@ OPENBENCH_CONFIG = {
 
         'Seer' : {
 
-            'nps'       : 680000,
-            'base'      : 'main',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/connormcmonigle/seer-nnue',
+            'nps'    : 680000,
+            'base'   : 'main',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/connormcmonigle/seer-nnue',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'build',
                 'compilers' : ['g++>=9.0.0'],
                 'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
@@ -337,13 +337,13 @@ OPENBENCH_CONFIG = {
 
         'Koivisto' : {
 
-            'nps'       : 1220000,
-            'base'      : 'master',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[0.00, 2.50]',
-            'source'    : 'https://github.com/Luecx/Koivisto',
+            'nps'    : 1220000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 2.50]',
+            'source' : 'https://github.com/Luecx/Koivisto',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src_files',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
@@ -359,13 +359,13 @@ OPENBENCH_CONFIG = {
 
         'Drofa' : {
 
-            'nps'       : 1300000,
-            'base'      : 'master',
-            'book'      : '4moves_noob.epd',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/justNo4b/Drofa',
+            'nps'    : 1300000,
+            'base'   : 'master',
+            'book'   : '4moves_noob.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/justNo4b/Drofa',
 
-            'build'     : {
+            'build' : {
                 'path'      : '',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
@@ -381,13 +381,13 @@ OPENBENCH_CONFIG = {
 
         'Bit-Genie' : {
 
-            'nps'       : 1820000,
-            'base'      : 'master',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/Aryan1508/Bit-Genie',
+            'nps'    : 1820000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/Aryan1508/Bit-Genie',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
@@ -403,13 +403,13 @@ OPENBENCH_CONFIG = {
 
         'Berserk' : {
 
-            'nps'       : 1145000,
-            'base'      : 'main',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[-1.00, 4.00]',
-            'source'    : 'https://github.com/jhonnold/berserk',
+            'nps'    : 1145000,
+            'base'   : 'main',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[-1.00, 4.00]',
+            'source' : 'https://github.com/jhonnold/berserk',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['gcc'],
                 'cpuflags'  : ['POPCNT'],
@@ -425,13 +425,13 @@ OPENBENCH_CONFIG = {
 
         'Zahak' : {
 
-            'nps'       : 860000,
-            'base'      : 'master',
-            'book'      : 'Pohl.epd',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/amanjpro/zahak',
+            'nps'    : 860000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/amanjpro/zahak',
 
-            'build'     : {
+            'build' : {
                 'path'      : '',
                 'compilers' : ['go'],
                 'cpuflags'  : ['AVX', 'POPCNT'],
@@ -443,6 +443,28 @@ OPENBENCH_CONFIG = {
                 'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
                 'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
              },
+        },
+
+        'BlackMarlin' : {
+
+            'nps'    : 1050000,
+            'base'   : 'main',
+            'book'   : '4moves_noob.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/dsekercioglu/blackmarlin',
+
+            'build' : {
+                'path'     : '',
+                'compilers': ['cargo>=1.57.0'],
+                'cpuflags' : [],
+            },
+
+            'testmodes' : {
+                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
+                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
+                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
+                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
+            },
         },
     },
 }

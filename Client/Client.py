@@ -56,14 +56,15 @@ BASE_GAMES_PER_CORE = 32    # Typical games played per-thread
 FLEET_MODE          = False # Exit when there are no workloads
 
 CUSTOM_SETTINGS = {
-    'Ethereal'  : [], 'Laser'     : [],
-    'Weiss'     : [], 'Demolito'  : [],
-    'Rubichess' : [], 'FabChess'  : [],
-    'Igel'      : [], 'Winter'    : [],
-    'Halogen'   : [], 'Stash'     : [],
-    'Seer'      : [], 'Koivisto'  : [],
-    'Drofa'     : [], 'Bit-Genie' : [],
-    'Berserk'   : [], 'Zahak'     : [],
+    'Ethereal'    : [], 'Laser'     : [],
+    'Weiss'       : [], 'Demolito'  : [],
+    'Rubichess'   : [], 'FabChess'  : [],
+    'Igel'        : [], 'Winter'    : [],
+    'Halogen'     : [], 'Stash'     : [],
+    'Seer'        : [], 'Koivisto'  : [],
+    'Drofa'       : [], 'Bit-Genie' : [],
+    'Berserk'     : [], 'Zahak'     : [],
+    'BlackMarlin' : [],
 };
 
 ERRORS = {
