@@ -403,7 +403,7 @@ OPENBENCH_CONFIG = {
 
         'Berserk' : {
 
-            'nps'    : 1145000,
+            'nps'    : 850000,
             'base'   : 'main',
             'book'   : 'Pohl.epd',
             'bounds' : '[-1.00, 4.00]',
