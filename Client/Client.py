@@ -391,14 +391,14 @@ def server_configure_worker(arguments):
 
             # Compiler version was sufficient
             if tuple(map(int, match.split('.'))) >= version:
-                print('%10s | %s (%s)' % (engine, compiler, match))
+                print('%14s | %s (%s)' % (engine, compiler, match))
                 COMPILERS[engine] = compiler
                 break
 
     # Report missing engines in case the User is not expecting it
     for engine in filter(lambda x: x not in COMPILERS, data):
         compiler = data[engine]['compilers']
-        print('%10s | Missing %s' % (engine, compiler))
+        print('%14s | Missing %s' % (engine, compiler))
 
     print('\nScanning for CPU Flags...')
 

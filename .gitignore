@@ -3,3 +3,7 @@ Client/*
 !Client/cleanup.sh
 OpenBench/migrations/*
 credentials
+
+Scripts/Binaries/*
+Scripts/Networks/*
+Scripts/Repositories/*

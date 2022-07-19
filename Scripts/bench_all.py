@@ -9,6 +9,7 @@ import sys
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
+from bench_engine import run_benchmark
 from OpenBench.config import OPENBENCH_CONFIG
 
 USE_OLD_BINARIES   = True
@@ -20,7 +21,10 @@ BENCHMARK_SETS     = None
 
 def download_network(engine, sha256):
 
-    if not os.path.isfile(sha256):
+    if not os.path.isdir('Networks'):
+        os.mkdir('Networks')
+
+    if not os.path.isfile('Networks/%s' % (sha256)):
 
         print ('Downloading %s for %s...' % (sha256, engine))
 
@@ -28,12 +32,12 @@ def download_network(engine, sha256):
         payload = { 'username' : OPENBENCH_USERNAME, 'password' : OPENBENCH_PASSWORD }
         request = requests.post(data=payload, url=target)
 
-        with open(sha256, 'wb') as fout:
+        with open('Networks/%s' % (sha256), 'wb') as fout:
             for chunk in request.iter_content(chunk_size=1024):
                 if chunk: fout.write(chunk)
             fout.flush()
 
-    with open(sha256, 'rb') as network:
+    with open('Networks/%s' % (sha256), 'rb') as network:
         assert sha256 == hashlib.sha256(network.read()).hexdigest()[:8].upper()
 
 def download_default_networks():
@@ -70,7 +74,7 @@ def build_engine(engine, config, defaults):
 
     command = 'make -j EXE=%s' % (engine)
     if engine in defaults:
-        command += ' EVALFILE=%s' % (os.path.join(base_path, defaults[engine]).replace('\\', '/'))
+        command += ' EVALFILE=%s' % (os.path.join(base_path, 'Networks', defaults[engine]).replace('\\', '/'))
 
     print ('=' * 120)
     print ('Attempting to build %s...' % (engine))
@@ -101,68 +105,6 @@ def build_all_engines():
             continue
 
         build_engine(engine, config, defaults)
-
-def parse_stream_output(stream):
-
-    nps = bench = None # Search through output Stream
-    for line in stream.decode('ascii').strip().split('\n')[::-1]:
-
-        # Try to match a wide array of patterns
-        line = re.sub(r'[^a-zA-Z0-9 ]+', ' ', line)
-        nps_pattern = r'([0-9]+ NPS)|(NPS[ ]+[0-9]+)'
-        bench_pattern = r'([0-9]+ NODES)|(NODES[ ]+[0-9]+)'
-        re_nps = re.search(nps_pattern, line.upper())
-        re_bench = re.search(bench_pattern, line.upper())
-
-        # Replace only if not already found earlier
-        if not nps and re_nps: nps = re_nps.group()
-        if not bench and re_bench: bench = re_bench.group()
-
-    # Parse out the integer portion from our matches
-    nps = int(re.search(r'[0-9]+', nps).group()) if nps else None
-    bench = int(re.search(r'[0-9]+', bench).group()) if bench else None
-    return (bench, nps)
-
-def single_core_bench(engine, outqueue):
-
-    # Launch the bench and wait for results
-    stdout, stderr = subprocess.Popen(
-        "./{0} bench".format(engine).split(),
-        stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
-
-    # Parse output streams for the benchmark data
-    bench, speed = parse_stream_output(stdout)
-    if bench is None or speed is None:
-        bench, speed = parse_stream_output(stderr)
-    outqueue.put((int(bench), int(speed)))
-
-def multi_core_bench(engine, threads):
-
-    outqueue = multiprocessing.Queue()
-
-    processes = [
-        multiprocessing.Process(
-            target=single_core_bench,
-            args=(engine, outqueue)
-        ) for ii in range(threads)
-    ]
-
-    for process in processes: process.start()
-
-    return [outqueue.get() for ii in range(threads)]
-
-def run_benchmark(engine, threads, sets):
-
-    benches, speeds = [], []
-    for ii in range(sets):
-        for bench, speed in multi_core_bench(engine, threads):
-            benches.append(bench); speeds.append(speed)
-
-    if len(set(benches)) != 1:
-        print("Error: Non-Deterministic Results!")
-        sys.exit()
-
-    return int(sum(speeds) / len(speeds))
 
 def bench_built_engines():
 
