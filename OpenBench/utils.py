@@ -136,10 +136,10 @@ def getEngine(source, name, sha, bench):
 def getBranch(request, errors, name):
 
     branch = request.POST['{0}branch'.format(name)]
-    bysha = bool(re.search('[0-9a-fA-F]{40}', branch))
-    url = 'commits' if bysha else 'branches'
+    bysha  = bool(re.search('[0-9a-fA-F]{40}', branch))
+    url    = 'commits' if bysha else 'branches'
 
-    repo = request.POST['source']
+    repo   = request.POST['source']
     target = repo.replace('github.com', 'api.github.com/repos')
     target = pathjoin(target, url, branch).rstrip('/')
 
@@ -165,17 +165,17 @@ def getBranch(request, errors, name):
         return (None, None, None, None)
 
     treeurl = data['commit']['tree']['sha'] + '.zip'
-    source = pathjoin(repo, 'archive', treeurl).rstrip('/')
+    source  = pathjoin(repo, 'archive', treeurl).rstrip('/')
 
-    try: # Use the provided Bench is their is one
+    try: # Use the provided Bench if there is one
         bench = int(request.POST['{0}bench'.format(name)])
         return (source, branch, data['sha'], bench)
     except: pass
 
     try: # Fallback to try to parse the Bench from the commit
-        message = data['commit']['message'].replace(',', '').upper()
-        bench = re.search('(BENCH|NODES)[ :=]+[0-9]+', message)
-        bench = int(re.search('[0-9]+', bench.group()).group())
+        message = data['commit']['message']
+        benches = re.findall('(?:BENCH|NODES)[ :=]+([0-9,]+)', message, re.IGNORECASE)
+        bench   = int(benches[-1].replace(',', ''))
         return (source, branch, data['sha'], bench)
 
     except: # Neither method found a viable Bench
