@@ -10,9 +10,12 @@
 
         <label>Engine</label> <select id="engine" name="engine">
             {% for engine in config.engines %}
-                <option value="{{engine}}">{{engine}}</option>
+                {% if engine == profile.engine %}
+                    <option selected value="{{engine}}">{{engine}}</option>
+                {% else %}
+                    <option value="{{engine}}">{{engine}}</option>
+                {% endif %}
             {% endfor %}
-            <option selected value=""></option>
         </select><br>
 
         <input type="submit" value="Upload">
