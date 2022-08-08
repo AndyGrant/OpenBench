@@ -452,7 +452,7 @@ OPENBENCH_CONFIG = {
 
             'nps'    : 1050000,
             'base'   : 'main',
-            'book'   : '4moves_noob.epd',
+            'book'   : 'Pohl.epd',
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/dsekercioglu/blackmarlin',
 
