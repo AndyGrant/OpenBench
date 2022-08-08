@@ -40,7 +40,6 @@ OPENBENCH_CONFIG = {
     'tests' : {
         'max_games'  : '20000',        # Default for Fixed Games
         'confidence' : '[0.05, 0.05]', # SPRT Type I/II Confidence
-        'throughput' : { 'stc' : 1000, 'ltc' : 1000, 'smpstc' : 1000, 'smpltc' : 1000 },
     },
 
     # Book Configuration. When addding a book, follow the provided template.
@@ -107,12 +106,16 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-             },
+            'testmodes' : [
+                { 'id' : 'STC',                'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1' },
+                { 'id' : 'LTC',                'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6' },
+                { 'id' : 'SMP STC',            'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC',            'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+                { 'id' : 'STC Simplification', 'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1', 'bounds' : '[-3.00, 1.00]' },
+                { 'id' : 'LTC Simplification', 'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6', 'bounds' : '[-3.00, 1.00]' },
+                { 'id' : 'STC Regression',     'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1', 'book' : '8moves_v3.epd', 'games' : 40000 },
+                { 'id' : 'LTC Regression',     'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6', 'book' : '8moves_v3.epd', 'games' : 40000 },
+            ],
         },
 
         'Laser' : {
@@ -129,12 +132,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-             },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Weiss' : {
@@ -151,12 +154,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :  32, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' : 128, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' : 128, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 512, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :  32, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' : 128, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' : 128, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 512, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Demolito' : {
@@ -173,12 +176,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  32, 'timecontrol' : '32.0+0.32'},
-                'smpstc'  : { 'threads' : 8, 'hash' :  32, 'timecontrol' : '4.0+0.04' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 128, 'timecontrol' : '16.0+0.16'},
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  32, 'tc' : '32.0+0.32'},
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  32, 'tc' : '4.0+0.04' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 128, 'tc' : '16.0+0.16'},
+            ],
         },
 
         'RubiChess' : {
@@ -195,12 +198,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'FabChess' : {
@@ -217,12 +220,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Igel' : {
@@ -239,12 +242,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Winter' : {
@@ -261,12 +264,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Halogen' : {
@@ -283,12 +286,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Stash' : {
@@ -305,12 +308,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :  16, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :  16, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Seer' : {
@@ -327,12 +330,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :  32, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :  32, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Koivisto' : {
@@ -349,12 +352,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Drofa' : {
@@ -371,12 +374,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Bit-Genie' : {
@@ -393,12 +396,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Berserk' : {
@@ -415,12 +418,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-             },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Zahak' : {
@@ -437,12 +440,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags'  : ['AVX', 'POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-             },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'BlackMarlin' : {
@@ -459,12 +462,12 @@ OPENBENCH_CONFIG = {
                 'cpuflags' : [],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
     },
 }

@@ -2,73 +2,135 @@
 
 {% block scripts %}
 
-    // Take the settings from OpenBench/config.py for each engine
-    // and generate a new dictionary in javascript that can be used
-
     var Configurations = {
-    {% for name, data in config.engines.items %}
-        '{{name}}' : {
-            'base'   : "{{data.base}}",
-            'book'   : "{{data.book}}",
-            'bounds' : "{{data.bounds}}",
-            {% for type, settings in data.testmodes.items %}
-            '{{type}}' : {
-                "threads"     : "{{settings.threads}}",
-                "hash"        : "{{settings.hash}}",
-                "timecontrol" : "{{settings.timecontrol}}"
+        {% for name, data in config.engines.items %}
+            '{{name}}' : {
+                'base'   : "{{data.base}}",
+                'book'   : "{{data.book}}",
+                'bounds' : "{{data.bounds}}",
             },
-            {% endfor %}
-        },
-    {% endfor %}
+        {% endfor %}
     };
 
-    var Throughputs = {
-        "stc"    : "{{config.tests.throughput.stc   }}",
-        "ltc"    : "{{config.tests.throughput.ltc   }}",
-        "smpstc" : "{{config.tests.throughput.smpstc}}",
-        "smpltc" : "{{config.tests.throughput.smpltc}}",
+    var TestModes = {
+        {% for name, data in config.engines.items %}
+            '{{name}}' : [
+                {% for mode in data.testmodes %}
+                {
+                    {% for key, value in mode.items %}
+                        '{{key}}' : '{{value}}',
+                    {% endfor %}
+                },
+                {% endfor %}
+            ],
+        {% endfor %}
     };
 
     var Networks = [
-    {% for network in networks %}
-        {
-            "name"    : "{{network.name}}",
-            "sha256"  : "{{network.sha256}}",
-            "engine"  : "{{network.engine}}",
-            "default" : "{{network.default}}",
-
-        },
-    {% endfor %}
+        {% for network in networks %}
+            {
+                "name"    : "{{network.name}}",
+                "sha256"  : "{{network.sha256}}",
+                "engine"  : "{{network.engine}}",
+                "default" : "{{network.default}}",
+            },
+        {% endfor %}
     ];
 
-    function configure(mode) {
 
-        // Find the selected engine
-        var selection = document.getElementById("enginename");
-        var engine    = selection.options[selection.selectedIndex].value;
+    function set_test_type(type) {
 
-        if (mode != null) {
+        //// When the test mode is set or changed, run this.
+        //// Sets the bounds, confidence intervals, and max games fields.
 
-            // Parse out the needed configuration settings
-            var threads     = Configurations[engine][mode]["threads"];
-            var hash        = Configurations[engine][mode]["hash"];
-            var timecontrol = Configurations[engine][mode]["timecontrol"];
+        var selectA = document.getElementById("test_mode");
+        var mode    = selectA.options[selectA.selectedIndex].value;
 
-            // Adjust all the fields to auto-fill the settings
-            document.getElementById("devoptions").value   = "Threads=" + threads + " Hash=" + hash;
-            document.getElementById("baseoptions").value  = "Threads=" + threads + " Hash=" + hash;
-            document.getElementById("timecontrol").value  = timecontrol;
-            document.getElementById("throughput").value   = Throughputs[mode];
+        var selectB = document.getElementById("enginename");
+        var engine  = selectB.options[selectB.selectedIndex].value;
 
-            return; // Don't change the Network setup unless asked
+        if (mode == "SPRT") {
+            document.getElementById("test_bounds").value     = Configurations[engine]["bounds"]
+            document.getElementById("test_confidence").value = "{{config.tests.confidence}}";
+            document.getElementById("test_max_games").value  = "N/A";
         }
 
-        // Fetch each option selection for Dev & Base
+        if (mode == "GAMES") {
+            document.getElementById("test_bounds").value     = "N/A";
+            document.getElementById("test_confidence").value = "N/A";
+            document.getElementById("test_max_games").value  = "{{config.tests.max_games}}";
+        }
+    }
+
+    function set_test_mode(mode_idx) {
+
+        //// Sets any of the possible following options:
+        //// Threads, Hash, Book, time Control, Test Mode, Bounds, Games
+
+        var selection = document.getElementById("enginename");
+        var engine    = selection.options[selection.selectedIndex].value;
+        var mode      = TestModes[engine][mode_idx];
+
+        if (mode["th"] != null && mode["hash"] != null) {
+            var threads = mode["th"]; var hash = mode["hash"];
+            document.getElementById("devoptions").value   = "Threads=" + threads + " Hash=" + hash;
+            document.getElementById("baseoptions").value  = "Threads=" + threads + " Hash=" + hash;
+        }
+
+        if (mode["book"] != null) {
+            document.getElementById("bookname").value = mode["book"]
+        }
+
+        if (mode["tc"] != null) {
+            document.getElementById("timecontrol").value = mode["tc"];;
+        }
+
+        if (mode["bounds"] != null) {
+            document.getElementById("test_mode").value = "SPRT"; set_test_type();
+            document.getElementById("test_bounds").value = mode["bounds"];
+        }
+
+        if (mode["games"] != null) {
+            document.getElementById("test_mode").value = "GAMES"; set_test_type();
+            document.getElementById("test_max_games").value = mode["games"];
+        }
+
+        // Default back when not specified
+
+        if (mode["bounds"] == null && mode["games"] == null) {
+            document.getElementById("test_mode").value = "SPRT"; set_test_type();
+        }
+
+        if (mode["book"] == null) {
+            document.getElementById("bookname").value = Configurations[engine]["book"];
+        }
+    }
+
+    function set_engine(engine) {
+
+        //// Creates a button to setup test modes, as specififed in the Engine's
+        //// entry in config.py. Also sets the opening book, and default base branch
+        //// based on the same config entry. Finally, creates a list of all uploaded
+        //// Network files that can be selected. The default Network is set as such,
+        //// if it exists. In all cases, a blank Network is included in the options.
+
+        document.getElementById("enginename").value = engine;
+
+        var button_div = document.getElementById("test-mode-buttons");
+        while (button_div.hasChildNodes()) button_div.removeChild(button_div.lastChild);
+
+        for (let i in TestModes[engine]) {
+            const btn = document.createElement('button')
+            btn.innerHTML = TestModes[engine][i]["id"];
+            btn.onclick   = function() { set_test_mode(i); };
+            btn.class     = (i % 2) ? "left-floated" : "right-floated";
+            button_div.append(btn);
+        }
+
         var devnet  = document.getElementById("devnetwork");
         var basenet = document.getElementById("basenetwork");
         var hasdefault = false;
 
-        // Remove all options initially
         while (devnet.length)  devnet.remove(0);
         while (basenet.length) basenet.remove(0);
 
@@ -100,41 +162,21 @@
             baseopt.selected = (hasdefault == false); basenet.add(baseopt);
         }
 
-        // Update the Base Branch for the selected Engine
         var base_branch = document.getElementById("basebranch");
         base_branch.value = Configurations[engine]["base"];
 
-        // Update the Default Book for the selected Engine
         var book_selection = document.getElementById("bookname");
         book_selection.value = Configurations[engine]["book"];
-
-        return test_type(); // Refresh the settings for the new Engine
     }
 
-    function test_type() {
 
-        var selectA = document.getElementById("test_mode");
-        var mode    = selectA.options[selectA.selectedIndex].value;
-
-        var selectB = document.getElementById("enginename");
-        var engine  = selectB.options[selectB.selectedIndex].value;
-
-        if (mode == "SPRT") {
-            document.getElementById("test_bounds").value     = Configurations[engine]["bounds"]
-            document.getElementById("test_confidence").value = "{{config.tests.confidence}}";
-            document.getElementById("test_max_games").value  = "N/A";
-        }
-
-        if (mode == "GAMES") {
-            document.getElementById("test_bounds").value     = "N/A";
-            document.getElementById("test_confidence").value = "N/A";
-            document.getElementById("test_max_games").value  = "{{config.tests.max_games}}";
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', function () { configure('stc'); }, false);
-    document.addEventListener('DOMContentLoaded', function () { configure(null);  }, false);
-    document.addEventListener('DOMContentLoaded', function () { test_type();      }, false);
+    document.addEventListener(
+        'DOMContentLoaded', function () {
+            set_test_type();
+            set_test_mode(0);
+            set_engine("{{profile.engine}}");
+        }, false
+    );
 
 {% endblock %}
 
@@ -145,15 +187,10 @@
         <div class="settings-column">
 
             <h3> Engine </h3>
-            <label> Engine </label> <select onClick="configure(null)" id="enginename" name="enginename">
+            <label> Engine </label> <select id="enginename" name="enginename">
             {% for engine in config.engines %}
-                {% if engine == profile.engine %}
-                    <option onClick="configure(null)" selected value="{{engine}}">{{engine}}</option>
-                {% else %}
-                    <option onClick="configure(null)" value="{{engine}}">{{engine}}</option>
-                {% endif %}
+                <option onClick="set_engine('{{engine}}')" value="{{engine}}">{{engine}}</option>
             {% endfor %}
-            <option value="{{engine}}">{{engine}}</option>
             </select><br>
             <label> Source </label> <input value="{{profile.repo}}" name="source"><br>
 
@@ -182,7 +219,7 @@
             <label> Time </label> <input id="timecontrol" name="timecontrol"><br>
 
             <h3> Test Settings </h3>
-            <label> Test Mode </label> <select onchange='test_type()' id="test_mode" name="test_mode">
+            <label> Test Mode </label> <select onchange='set_test_type()' id="test_mode" name="test_mode">
                 <option selected value="SPRT"> SPRT </option>
                 <option value="GAMES"> Fixed Games </option>
             </select><br>
@@ -192,7 +229,7 @@
 
             <h3> General Settings </h3>
             <label> Priority </label> <input value="0" name="priority"><br>
-            <label> Throughput </label> <input id="throughput", name="throughput"><br>
+            <label> Throughput </label> <input value="1000" id="throughput", name="throughput"><br>
 
             <label> Syzygy ADJ </label> <select name="syzygy_adj">
                 <option selected value="OPTIONAL"> Optional </option>
@@ -213,10 +250,7 @@
     </form>
 
     <div id="test-mode-buttons">
-        <button class="left-floated"  onClick="configure('stc')">Setup STC</button>
-        <button class="right-floated" onClick="configure('ltc')">Setup LTC</button><br>
-        <button class="left-floated"  onClick="configure('smpstc')">Setup SMP STC</button>
-        <button class="right-floated" onClick="configure('smpltc')">Setup SMP LTC</button>
+        <!-- Generated based on the selected Engine -->
     </div>
 
 {% endblock %}
