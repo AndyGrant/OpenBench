@@ -459,7 +459,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'     : '',
                 'compilers': ['cargo>=1.57.0'],
-                'cpuflags' : [],
+                'cpuflags' : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
             },
 
             'testmodes' : [
