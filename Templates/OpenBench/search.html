@@ -1,5 +1,21 @@
 {% extends "OpenBench/base.html" %}
 
+{% block scripts %}
+
+    function set_default_engine() {
+        {% if profile.engine %}
+            document.getElementById("engine").value = "{{profile.engine}}";
+        {% endif %}
+    }
+
+    document.addEventListener(
+        'DOMContentLoaded', function () {
+            set_default_engine();
+        }, false
+    );
+
+{% endblock %}
+
 {% block content %}
 
     {% if not tests %}
@@ -11,7 +27,7 @@
             <label> Author </label> <input name="author"><br>
 
             <label> Engine </label>
-            <select name="engine">
+            <select id="engine" name="engine">
                 <option selected value="">ALL</option>
                 {% for name, data in config.engines.items %}
                     <option value="{{name}}">{{name}}</option>
