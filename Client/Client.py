@@ -841,14 +841,22 @@ def run_and_parse_cutechess(arguments, workload, concurrency, update_interval, c
 if __name__ == '__main__':
 
     p = argparse.ArgumentParser()
-    p.add_argument('-U', '--username', help='Username' , required=True)
-    p.add_argument('-P', '--password', help='Password' , required=True)
+    p.add_argument('-U', '--username', help='Username. May also be passed as OPENBENCH_USERNAME environment variable.',
+                   required=('OPENBENCH_USERNAME' not in os.environ))
+    p.add_argument('-P', '--password', help='Password. May also be passed as OPENBENCH_PASSWORD environment variable.',
+                   required=('OPENBENCH_PASSWORD' not in os.environ))
     p.add_argument('-S', '--server'  , help='Webserver', required=True)
     p.add_argument('-T', '--threads' , help='Threads'  , required=True)
     p.add_argument('--syzygy', help='Syzygy WDL'  , required=False)
     p.add_argument('--fleet' , help='Fleet Mode'  , action='store_true')
     p.add_argument('--proxy' , help='Github Proxy', action='store_true')
     arguments = p.parse_args()
+
+    if arguments.username is None:
+        arguments.username = os.environ['OPENBENCH_USERNAME']
+
+    if arguments.password is None:
+        arguments.password = os.environ['OPENBENCH_PASSWORD']
 
     if arguments.syzygy is not None:
         SYZYGY_WDL_PATH = arguments.syzygy
