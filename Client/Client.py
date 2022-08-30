@@ -840,11 +840,14 @@ def run_and_parse_cutechess(arguments, workload, concurrency, update_interval, c
 
 if __name__ == '__main__':
 
+    req_user  = required=('OPENBENCH_USERNAME' not in os.environ)
+    req_pass  = required=('OPENBENCH_PASSWORD' not in os.environ)
+    help_user = 'Username. May also be passed as OPENBENCH_USERNAME environment variable'
+    help_pass = 'Password. May also be passed as OPENBENCH_PASSWORD environment variable'
+
     p = argparse.ArgumentParser()
-    p.add_argument('-U', '--username', help='Username. May also be passed as OPENBENCH_USERNAME environment variable.',
-                   required=('OPENBENCH_USERNAME' not in os.environ))
-    p.add_argument('-P', '--password', help='Password. May also be passed as OPENBENCH_PASSWORD environment variable.',
-                   required=('OPENBENCH_PASSWORD' not in os.environ))
+    p.add_argument('-U', '--username', help=help_user  , required=req_user)
+    p.add_argument('-P', '--password', help=help_pass  , required=req_pass)
     p.add_argument('-S', '--server'  , help='Webserver', required=True)
     p.add_argument('-T', '--threads' , help='Threads'  , required=True)
     p.add_argument('--syzygy', help='Syzygy WDL'  , required=False)
@@ -861,7 +864,8 @@ if __name__ == '__main__':
     if arguments.syzygy is not None:
         SYZYGY_WDL_PATH = arguments.syzygy
 
-    if arguments.fleet: FLEET_MODE = True
+    if arguments.fleet:
+        FLEET_MODE = True
 
     check_for_utilities()
     init_client(arguments)
@@ -869,6 +873,7 @@ if __name__ == '__main__':
     server_configure_worker(arguments)
 
     while True:
+
         try:
             # Request a new workload
             cleanup_client()

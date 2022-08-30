@@ -29,10 +29,18 @@ def download_network(username, password, sha256):
 
 if __name__ == '__main__':
 
-    p = argparse.ArgumentParser()
-    p.add_argument('-U', '--username', help='OpenBench Username', required=True)
-    p.add_argument('-P', '--password', help='OpenBench Password', required=True)
-    p.add_argument('-N', '--network',  help='Network SHA256',     required=True)
-    args = p.parse_args()
+    req_user  = required=('OPENBENCH_USERNAME' not in os.environ)
+    req_pass  = required=('OPENBENCH_PASSWORD' not in os.environ)
+    help_user = 'Username. May also be passed as OPENBENCH_USERNAME environment variable'
+    help_pass = 'Password. May also be passed as OPENBENCH_PASSWORD environment variable'
 
-    download_network(args.username, args.password, args.network)
+    p = argparse.ArgumentParser()
+    p.add_argument('-U', '--username', help=help_user       , required=req_user)
+    p.add_argument('-P', '--password', help=help_pass       , required=req_pass)
+    p.add_argument('-N', '--network',  help='Network SHA256', required=True)
+    arguments = p.parse_args()
+
+    if arguments.username is None: arguments.username = os.environ['OPENBENCH_USERNAME']
+    if arguments.password is None: arguments.password = os.environ['OPENBENCH_PASSWORD']
+
+    download_network(arguments.username, arguments.password, arguments.network)

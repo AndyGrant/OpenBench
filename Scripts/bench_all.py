@@ -114,9 +114,14 @@ def bench_built_engines():
 
 if __name__ == '__main__':
 
+    req_user  = required=('OPENBENCH_USERNAME' not in os.environ)
+    req_pass  = required=('OPENBENCH_PASSWORD' not in os.environ)
+    help_user = 'Username. May also be passed as OPENBENCH_USERNAME environment variable'
+    help_pass = 'Password. May also be passed as OPENBENCH_PASSWORD environment variable'
+
     p = argparse.ArgumentParser()
-    p.add_argument('-U', '--username', help='OpenBench Username',     required=True)
-    p.add_argument('-P', '--password', help='OpenBench Password',     required=True)
+    p.add_argument('-U', '--username', help=help_user, required=req_user)
+    p.add_argument('-P', '--password', help=help_pass, required=req_pass)
     p.add_argument('-T', '--threads' , help='Concurrent Benchmarks',  required=True)
     p.add_argument('-S', '--sets'    , help='Benchmark Sample Count', required=True)
     p.add_argument('-R', '--rebuild' , help='Rebuild Binaries',       action='store_true')
@@ -127,6 +132,9 @@ if __name__ == '__main__':
     OPENBENCH_PASSWORD = arguments.password
     BENCHMARK_THREADS  = int(arguments.threads)
     BENCHMARK_SETS     = int(arguments.sets)
+
+    if arguments.username is None: OPENBENCH_USERNAME = os.environ['OPENBENCH_USERNAME']
+    if arguments.password is None: OPENBENCH_PASSWORD = os.environ['OPENBENCH_PASSWORD']
 
     build_all_engines()
     bench_built_engines()
