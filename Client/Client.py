@@ -229,7 +229,7 @@ def unzip_delete_file(source, outdir):
 def make_command(arguments, engine, src_path, network_path):
 
     command = 'make %s=%s EXE=%s -j%s' % (
-        "CXX" if "++" in COMPILERS[engine] else "CC", COMPILERS[engine], engine, arguments.threads)
+        ['CC', 'CXX']['++' in COMPILERS[engine]], COMPILERS[engine], engine, arguments.threads)
 
     if engine in CUSTOM_SETTINGS:
         command += ' '.join(CUSTOM_SETTINGS[engine])
