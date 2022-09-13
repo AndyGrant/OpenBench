@@ -37,6 +37,7 @@ from django.db.models import F
 from django.http import HttpResponse, FileResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
+from django.core.files.base import ContentFile
 from htmlmin.decorators import not_minified_response
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -329,6 +330,13 @@ def user(request, username, page=1):
 
     return render(request, 'index.html', data)
 
+def event(request, id):
+
+    try:
+        with open(os.path.join(MEDIA_ROOT, LogEvent.objects.get(id=id).log_file)) as fin:
+            return render(request, 'event.html', { 'content' : fin.read() })
+    except:
+        return HttpResponseRedirect('/index/')
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                           GENERAL DATA TABLE VIEWS                          #
@@ -431,7 +439,7 @@ def test(request, id, action=None):
         test.save()
 
     action += " P={0} TP={1}".format(test.priority, test.throughput)
-    LogEvent.objects.create(data=action, author=user.username, test=test)
+    LogEvent.objects.create(author=user.username, summary=action, log_file='', test_id=test.id)
     return django.http.HttpResponseRedirect('/index/')
 
 def newTest(request):
@@ -470,7 +478,7 @@ def newTest(request):
 
     username = request.user.username
     profile  = Profile.objects.get(user=request.user)
-    LogEvent.objects.create(data="CREATE", author=username, test=test)
+    LogEvent.objects.create(author=username, summary='CREATE', log_file='', test_id=test.id)
 
     approved = Test.objects.filter(approved=True)
     A = approved.filter( dev__sha=test.dev.sha).exists()
@@ -481,12 +489,12 @@ def newTest(request):
     if (A or B) and (C or D):
         test.approved = True; test.save()
         action = "AUTOAPP P={0} TP={1}".format(test.priority, test.throughput)
-        LogEvent.objects.create(data=action, author=username, test=test)
+        LogEvent.objects.create(author=username, summary=action, log_file='', test_id=test.id)
 
     elif not OpenBench.config.USE_CROSS_APPROVAL and profile.approver:
         test.approved = True; test.save()
         action = "APPROVE P={0} TP={1}".format(test.priority, test.throughput)
-        LogEvent.objects.create(data=action, author=username, test=test)
+        LogEvent.objects.create(author=username, summary=action, log_file='', test_id=test.id)
 
     return django.http.HttpResponseRedirect('/index/')
 
@@ -693,14 +701,16 @@ def clientWrongBench(request):
     name    = request.POST['engine']
 
     # Format a nice Error message
-    message = 'Got {0} Expected {1} for {2} [{3}]'
-    message = message.format(wrong, correct, name, int(request.POST['machineid']))
+    message = 'Got {0} Expected {1} for {2}'
+    message = message.format(wrong, correct, name)
 
     # Log the error into the Events table
     LogEvent.objects.create(
-        test   = test,
-        data   = message,
-        author = user.username)
+        author     = user.username,
+        summary    = message,
+        log_file   = '',
+        machine_id = int(request.POST['machineid']),
+        test_id    = int(request.POST['testid']))
 
     return HttpResponse('None')
 
@@ -731,7 +741,7 @@ def clientSubmitError(request):
     #                                                                         #
     #  POST : Report en Engine error to the server. This could be a crash, a  #
     #         timeloss, a disconnect, or an illegal move. Log the Error into  #
-    #         the Events table.                                                #
+    #         the Events table.                                               #
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -745,10 +755,17 @@ def clientSubmitError(request):
         test.error = True; test.save()
 
     # Log the Error into the Events table
-    LogEvent.objects.create(
-        test   = test,
-        author = user.username,
-        data   = request.POST['error'])
+    event = LogEvent.objects.create(
+        author     = user.username,
+        summary    = request.POST['error'],
+        log_file   = '',
+        machine_id = int(request.POST['machineid']),
+        test_id    = int(request.POST['testid']))
+
+    # Save the Logs to /Media/ to be viewed later
+    logfile = ContentFile(request.POST['logs'])
+    FileSystemStorage().save('event%d.log' % (event.id), logfile)
+    event.log_file = 'event%d.log' % (event.id); event.save()
 
     return HttpResponse('None')
 

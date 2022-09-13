@@ -23,7 +23,7 @@ USE_CROSS_APPROVAL = False
 OPENBENCH_CONFIG = {
 
     # Server Client version control
-    'client_version' : '2',
+    'client_version' : '3',
 
     # Generic Error Messages useful to those setting up their own instance
     'error' : {

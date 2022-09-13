@@ -153,6 +153,12 @@ def resolveNetworkURL(sha256):
         return '/networks/download/{0}'.format(sha256)
     return sha256 # Legacy Networks
 
+def testIdToPrettyName(test_id):
+    return prettyName(OpenBench.models.Test.objects.get(id=test_id).dev.name)
+
+def testIdToTimeControl(test_id):
+    return OpenBench.models.Test.objects.get(id=test_id).timecontrol
+
 register = django.template.Library()
 register.filter('oneDigitPrecision', oneDigitPrecision)
 register.filter('twoDigitPrecision', twoDigitPrecision)
@@ -166,3 +172,5 @@ register.filter('prettyName', prettyName)
 register.filter('prettyDevName', prettyDevName)
 register.filter('testIsFRC', testIsFRC)
 register.filter('resolveNetworkURL', resolveNetworkURL)
+register.filter('testIdToPrettyName', testIdToPrettyName)
+register.filter('testIdToTimeControl', testIdToTimeControl)

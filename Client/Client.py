@@ -31,8 +31,7 @@ import zipfile
 import shutil
 import multiprocessing
 
-from subprocess import PIPE, Popen, call
-
+from subprocess import PIPE, Popen, call, STDOUT
 from itertools import combinations_with_replacement
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -49,7 +48,7 @@ from itertools import combinations_with_replacement
 TIMEOUT_HTTP        = 30    # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR       = 10    # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD    = 30    # Timeout in seconds between workload requests
-CLIENT_VERSION      = '2'   # Client version to send to the Server
+CLIENT_VERSION      = '3'   # Client version to send to the Server
 
 SYZYGY_WDL_PATH     = None  # Pathway to WDL Syzygy Tables
 BASE_GAMES_PER_CORE = 32    # Typical games played per-thread
@@ -305,6 +304,23 @@ def kill_cutechess(cutechess):
     except Exception:
         pass
 
+def find_pgn_error(reason, command):
+
+    pgn_file = command.split('-pgnout ')[1].split()[0]
+    with open(pgn_file, 'r') as fin:
+        data = fin.readlines()
+
+    reason = reason.split('{')[1]
+    for ii in range(len(data) - 1, -1, -1):
+        if reason in data[ii]:
+            break
+
+    pgn = ""
+    while "[Event " not in data[ii]:
+        pgn = data[ii] + pgn
+        ii = ii - 1
+    return data[ii] + pgn
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                           #
 #   All functions used to make requests to the OpenBench server. Workload   #
@@ -444,14 +460,15 @@ def server_request_workload(arguments):
     target = url_join(arguments.server, 'clientGetWorkload')
     return requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
-def server_report_build_fail(arguments, workload, branch):
+def server_report_build_fail(arguments, workload, branch, compiler_output):
 
     payload = {
         'username'  : arguments.username,
         'password'  : arguments.password,
         'testid'    : workload['test']['id'],
         'machineid' : workload['machine']['id'],
-        'error'     : '%s build failed' % (workload['test'][branch]['name'])
+        'error'     : '%s build failed' % (workload['test'][branch]['name']),
+        'logs'      : compiler_output,
     }
 
     target = url_join(arguments.server, 'clientSubmitError')
@@ -483,7 +500,7 @@ def server_report_nps(arguments, workload, dev_nps, base_nps):
     target = url_join(arguments.server, 'clientSubmitNPS')
     requests.post(target, data=data, timeout=TIMEOUT_ERROR)
 
-def server_report_engine_error(arguments, workload, cutechess_str):
+def server_report_engine_error(arguments, workload, cutechess_str, pgn):
 
     pairing = cutechess_str.split('(')[1].split(')')[0]
     white, black = pairing.split(' vs ')
@@ -493,11 +510,12 @@ def server_report_engine_error(arguments, workload, cutechess_str):
     error = error.replace('Black', '-'.join(black.split('-')[1:]).rstrip())
 
     payload = {
-        'username' : arguments.username,
-        'password' : arguments.password,
+        'username'  : arguments.username,
+        'password'  : arguments.password,
         'testid'    : workload['test']['id'],
         'machineid' : workload['machine']['id'],
-        'error'    : error,
+        'error'     : error,
+        'logs'      : pgn,
     }
 
     target = url_join(arguments.server, 'clientSubmitError')
@@ -685,9 +703,11 @@ def download_engine(arguments, workload, branch, network):
 
     # Build the engine and drop it into src_path
     print('\nBuilding [%s]' % (final_path))
-    command = make_command(arguments, engine, src_path, network)
-    Popen(command, cwd=src_path).wait()
     output_name = os.path.join(src_path, engine)
+    command = make_command(arguments, engine, src_path, network)
+    process = Popen(command, cwd=src_path, stdout=PIPE, stderr=STDOUT)
+    compiler_output = process.communicate()[0].decode('utf-8')
+    print (compiler_output)
 
     # Move the file to the final location ( Linux )
     if os.path.isfile(output_name):
@@ -702,7 +722,7 @@ def download_engine(arguments, workload, branch, network):
         return final_name + '.exe'
 
     # Notify the server if the build failed
-    server_report_build_fail(arguments, workload, branch)
+    server_report_build_fail(arguments, workload, branch, compiler_output)
     return None
 
 def run_benchmarks(arguments, workload, branch, engine):
@@ -807,7 +827,8 @@ def run_and_parse_cutechess(arguments, workload, concurrency, update_interval, c
         # Forcefully report any engine failures to the server
         for error in errors:
             if error in score_reason:
-                server_report_engine_error(arguments, workload, line)
+                pgn = find_pgn_error(score_reason, command)
+                server_report_engine_error(arguments, workload, line, pgn)
 
         # All remaining processing is for score updates only
         if not line.startswith('Score of'):
