@@ -187,9 +187,9 @@
         <div class="settings-column">
 
             <h3> Engine </h3>
-            <label> Engine </label> <select id="enginename" name="enginename">
+            <label> Engine </label> <select id="enginename" name="enginename" onchange="set_engine(value);">
             {% for engine in config.engines %}
-                <option onClick="set_engine('{{engine}}')" value="{{engine}}">{{engine}}</option>
+                <option value="{{engine}}">{{engine}}</option>
             {% endfor %}
             </select><br>
             <label> Source </label> <input value="{{profile.repo}}" name="source"><br>
