@@ -10,6 +10,7 @@
             <th>Date</th>
             <th>User</th>
             <th>Test</th>
+            <th>Worker</th>
             <th>TC</th>
             <th>Summary</th>
             <th>Logs</th>
@@ -20,9 +21,10 @@
                 <td class="timestamp">{{event.created|date:'U'}}</td>
                 <td>{{event.author|capfirst}}</td>
                 <td><a href="/test/{{event.test_id}}">{{event.test_id|testIdToPrettyName}}</a></td>
+                <td>{% if event.machine_id %} {{event.machine_id}} {% endif %}</td>
                 <td>{{event.test_id|testIdToTimeControl}}</td>
                 <td>{{event.summary}}</td>
-                <td> {% if event.log_file %} <a href='/event/{{event.id}}'>View</a> {% endif %} </td>
+                <td>{% if event.log_file %}<a href='/event/{{event.id}}'>View</a>{% endif %}</td>
             </tr>
         {% endfor %}
 
