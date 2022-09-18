@@ -97,12 +97,12 @@ OPENBENCH_CONFIG = {
             'nps'    : 950000,
             'base'   : 'master',
             'book'   : 'Pohl.epd',
-            'bounds' : '[0.00, 5.00]',
+            'bounds' : '[0.00, 3.00]',
             'source' : 'https://github.com/AndyGrant/Ethereal',
 
             'build' : {
                 'path'      : 'src',
-                'compilers' : ['gcc'],
+                'compilers' : ['clang'],
                 'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
             },
 
