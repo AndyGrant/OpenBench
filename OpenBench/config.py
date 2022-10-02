@@ -260,7 +260,7 @@ OPENBENCH_CONFIG = {
 
             'build' : {
                 'path'      : '',
-                'compilers' : ['clang++'],
+                'compilers' : ['clang++', 'g++'],
                 'cpuflags'  : ['POPCNT'],
             },
 
