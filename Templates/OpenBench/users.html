@@ -4,35 +4,39 @@
 
 {% block content %}
 
-    <table>
+    <table class="table table-hover table-striped">
+        <thead>
 
         <tr>
-	    <th>Username</th>
+            <th>Username</th>
             <th>Games</th>
             <th>Tests</th>
-	    <th>Engine</th>
+            <th>Engine</th>
             <th>Default Repository</th>
         </tr>
-
+        </thead>
+        <thead>
         <tr style="font-weight: bold">
-            <th>{{profiles|length}}</th>
-            <th>{{profiles|sumAttributes:"games"|insertCommas}}</th>
-            <th>{{profiles|sumAttributes:"tests"|insertCommas}}</th>
-            <th></th><th></th>
+            <th></th>
+            <th style="text-align: right">{{ profiles|sumAttributes:"games"|insertCommas }}</th>
+            <th style="text-align: right">{{ profiles|sumAttributes:"tests"|insertCommas }}</th>
+            <th></th>
+            <th></th>
         </tr>
+        </thead>
 
         {% for profile in profiles %}
-	    {% if profile.enabled %}
-            {% if profile.games or profile.tests %}
-                <tr>
-                    <td><a href="/user/{{profile.user.username}}">{{profile.user.username|capfirst}}</a></td>
-                    <td style="text-align: right">{{profile.games|insertCommas}}</td>
-                    <td style="text-align: right">{{profile.tests|insertCommas}}</td>
-                    <td>{{profile.engine}}</td>
-                    <td><a href="{{profile.repo}}">{{profile.repo}}</a></td>
-                </tr>
+            {% if profile.enabled %}
+                {% if profile.games or profile.tests %}
+                    <tr>
+                        <td><a href="/user/{{ profile.user.username }}">{{ profile.user.username|capfirst }}</a></td>
+                        <td style="text-align: right">{{ profile.games|insertCommas }}</td>
+                        <td style="text-align: right">{{ profile.tests|insertCommas }}</td>
+                        <td>{{ profile.engine }}</td>
+                        <td><a href="{{ profile.repo }}">{{ profile.repo }}</a></td>
+                    </tr>
+                {% endif %}
             {% endif %}
-	    {% endif %}
         {% endfor %}
 
     </table>

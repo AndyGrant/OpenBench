@@ -136,10 +136,10 @@ def getEngine(source, name, sha, bench):
 def getBranch(request, errors, name):
 
     branch = request.POST['{0}branch'.format(name)]
-    bysha = bool(re.search('[0-9a-fA-F]{40}', branch))
-    url = 'commits' if bysha else 'branches'
+    bysha  = bool(re.search('[0-9a-fA-F]{40}', branch))
+    url    = 'commits' if bysha else 'branches'
 
-    repo = request.POST['source']
+    repo   = request.POST['source']
     target = repo.replace('github.com', 'api.github.com/repos')
     target = pathjoin(target, url, branch).rstrip('/')
 
@@ -165,17 +165,17 @@ def getBranch(request, errors, name):
         return (None, None, None, None)
 
     treeurl = data['commit']['tree']['sha'] + '.zip'
-    source = pathjoin(repo, 'archive', treeurl).rstrip('/')
+    source  = pathjoin(repo, 'archive', treeurl).rstrip('/')
 
-    try: # Use the provided Bench is their is one
+    try: # Use the provided Bench if there is one
         bench = int(request.POST['{0}bench'.format(name)])
         return (source, branch, data['sha'], bench)
     except: pass
 
     try: # Fallback to try to parse the Bench from the commit
-        message = data['commit']['message'].replace(',', '').upper()
-        bench = re.search('(BENCH|NODES)[ :=]+[0-9]+', message)
-        bench = int(re.search('[0-9]+', bench.group()).group())
+        message = data['commit']['message']
+        benches = re.findall('(?:BENCH|NODES)[ :=]+([0-9,]+)', message, re.IGNORECASE)
+        bench   = int(benches[-1].replace(',', ''))
         return (source, branch, data['sha'], bench)
 
     except: # Neither method found a viable Bench
@@ -318,66 +318,90 @@ def getWorkload(user, request):
     machine = getMachine(machineid, user, osname, int(threads))
     if type(machine) == str: return machine
 
-    # Filter only to active tests
+    # Check to make sure we have a potential workload
+    tests = get_valid_workloads(machine, request)
+    if not tests: return 'None'
+
+    # Select from valid workloads and create a Result object
+    test = select_workload(machine, tests)
+    result = getResult(test, machine)
+
+    # Success. Update the Machine's status and save everything
+    machine.workload = test; machine.save(); result.save()
+    return str(workload_to_dictionary(test, result, machine))
+
+
+# Purely Helper functions for getWorkload()
+
+def get_valid_workloads(machine, request):
+
+    # Skip finished tests
     tests = Test.objects.filter(finished=False)
-    tests = tests.filter(deleted=False)
-    tests = tests.filter(approved=True)
+    tests = tests.filter(deleted=False).filter(approved=True)
 
-    # Filter to compilable engines
-    supported = request.POST['supported'].split()
-    cpuflags  = request.POST['cpuflags'].split()
-
-    # Remove tests that this Machine cannot complete (Compile)
+    # Skip engines that the Machine cannot build
     for engine in OPENBENCH_CONFIG['engines'].keys():
-        if engine not in supported:
+        if engine not in request.POST['supported'].split():
             tests = tests.exclude(engine=engine)
 
-    # Remove tests that this Machine cannot complete (Architecture)
+    # Skip engines that the Machine cannot run
     for engine, data in OPENBENCH_CONFIG['engines'].items():
         for flag in data['build']['cpuflags']:
-            if flag not in cpuflags:
+            if flag not in request.POST['cpuflags'].split():
                 tests = tests.exclude(engine=engine)
 
-    # Remove Syzygy tests if the Machine has no Syzygy Tablebases
+    # Skip tests with unmet Syzygy requirments
     if request.POST['syzygy_wdl'] == 'False':
         tests = tests.exclude(syzygy_adj='REQUIRED')
         tests = tests.exclude(syzygy_wdl='REQUIRED')
 
-    # If we don't get a Test back, there was an error
-    test = selectWorkload(tests, machine)
-    if type(test) == str: return test
+    # Skip tests that would waste available Threads or exceed them
+    options = [x for x in tests if test_maps_onto_thread_count(machine, x)]
 
-    # If we don't get a Result back, there was an error
-    result = getResult(test, machine)
-    if type(result) == str: return result
+    # Finally refine for tests of the highest priority
+    if not options: return []
+    highest_prio = max(options, key=lambda x: x.priority).priority
+    return [test for test in options if test.priority == highest_prio]
 
-    # Success. Update the Machine's status and save everything
-    machine.workload = test; machine.save(); result.save()
-    return str(workloadDictionary(test, result, machine))
+def test_maps_onto_thread_count(machine, test):
 
-def selectWorkload(tests, machine):
+    # Only assign a workload to a machine if the machine actually has
+    # enough Threads for the test. Furthermore, ensure that there are
+    # no left over threads when assigned. An exception is made for the
+    # case where thread counts differ -- a bad idea to run in general
 
-    options = [] # Tests which this Machine may complete
+    dev_threads  = int(extractOption(test.devoptions,  'Threads'))
+    base_threads = int(extractOption(test.baseoptions, 'Threads'))
 
-    for test in tests:
+    if max(dev_threads, base_threads) > machine.threads: return False
+    return dev_threads != base_threads or machine.threads % dev_threads == 0
 
-        # Skip tests which the Machine lacks the threads to complete
-        devthreads  = int(extractOption(test.devoptions, 'Threads'))
-        basethreads = int(extractOption(test.baseoptions, 'Threads'))
-        if max(devthreads, basethreads) > machine.threads: continue
+def select_workload(machine, tests, variance=0.25):
 
-        # First Test or a higher priority Test
-        if not options or test.priority > highest:
-            highest = test.priority; options = [test]
+    # Determine how many threads are assigned to each workload
+    table = { test : 0 for test in tests }
+    for m in getRecentMachines():
+        if m.workload in tests and m != machine:
+            table[m.workload] = table[m.workload] + m.threads
 
-        # Another Test with an equal priority
-        elif options and test.priority == highest:
-            options.append(test)
+    # Find the tests most deserving of resources currently
+    ratios = [table[test] / test.throughput for test in tests]
+    lowest_idxs = [i for i, r in enumerate(ratios) if r == min(ratios)]
 
-    if len(options) == 0: return 'None'
-    return random.choice(options)
+    # Machine is out of date; or there is an unassigned test
+    if machine.workload not in tests or min(ratios) == 0:
+        return tests[random.choice(lowest_idxs)]
 
-def workloadDictionary(test, result, machine):
+    # No test has less than (1-variance)% of its deserved resources, and
+    # therefore we may have this machine repeat its existing workload again
+    ideal_ratio = sum(table.values()) / sum([x.throughput for x in tests])
+    if min(ratios) / ideal_ratio > 1 - variance:
+        return machine.workload
+
+    # Fallback to simply doing the least attention given test
+    return tests[random.choice(lowest_idxs)]
+
+def workload_to_dictionary(test, result, machine):
 
     # Convert the workload into a Dictionary to be used by the Client.
     # The Client must know his Machine ID, his Result ID, and his Test
@@ -389,31 +413,32 @@ def workloadDictionary(test, result, machine):
 
         'result'  : { 'id'  : result.id },
 
-        'test' : {
+        'test'    : {
 
-            'id'            : test.id,
-            'engine'        : test.engine,
-            'timecontrol'   : test.timecontrol,
-            'throughput'    : test.throughput,
-            'syzygy_adj'    : test.syzygy_adj,
-            'syzygy_wdl'    : test.syzygy_wdl,
+            'throughput'  : 1000, # HACK: Updated Client's no longer need this value
 
-            'nps'           : OPENBENCH_CONFIG['engines'][test.engine]['nps'],
-            'build'         : OPENBENCH_CONFIG['engines'][test.engine]['build'],
-            'book'          : OPENBENCH_CONFIG['books'][test.bookname],
+            'id'          : test.id,
+            'engine'      : test.engine,
+            'timecontrol' : test.timecontrol,
+            'syzygy_adj'  : test.syzygy_adj,
+            'syzygy_wdl'  : test.syzygy_wdl,
 
-            'dev' : {
-                'id'        : test.dev.id,      'name'      : test.dev.name,
-                'source'    : test.dev.source,  'sha'       : test.dev.sha,
-                'bench'     : test.dev.bench,   'options'   : test.devoptions,
-                'network'   : test.devnetwork,
+            'nps'         : OPENBENCH_CONFIG['engines'][test.engine]['nps'],
+            'build'       : OPENBENCH_CONFIG['engines'][test.engine]['build'],
+            'book'        : OPENBENCH_CONFIG['books'][test.bookname],
+
+            'dev'  : {
+                'id'      : test.dev.id,      'name'    : test.dev.name,
+                'source'  : test.dev.source,  'sha'     : test.dev.sha,
+                'bench'   : test.dev.bench,   'options' : test.devoptions,
+                'network' : test.devnetwork,
             },
 
             'base' : {
-                'id'        : test.base.id,     'name'      : test.base.name,
-                'source'    : test.base.source, 'sha'       : test.base.sha,
-                'bench'     : test.base.bench,  'options'   : test.baseoptions,
-                'network'   : test.basenetwork,
+                'id'      : test.base.id,     'name'    : test.base.name,
+                'source'  : test.base.source, 'sha'     : test.base.sha,
+                'bench'   : test.base.bench,  'options' : test.baseoptions,
+                'network' : test.basenetwork,
             },
         },
     })

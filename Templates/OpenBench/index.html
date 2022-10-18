@@ -2,37 +2,70 @@
 
 {% block content %}
 
-    <table class="datatable">
-
-        <!-- Only show Pending tests for the front page of the Index -->
-        {% if paging.page == 1 %}
-
-            <!-- Currently Pending tests (Waiting to be approved) -->
-            {% if pending %}
-                <tr><th colspan='6'>Pending</th></tr>
+    {% if paging.page == 1 %}
+        {% if pending %}
+            <table class="table table-striped datatable">
+                <thead>
+                <tr>
+                    <th scope="col">Author</th>
+                    <th scope="col">Engine</th>
+                    <th scope="col">Name</th>
+                    <th scope="col"><i class="fa-brands fa-github"></i></th>
+                    <th scope="col">TC <i class="fa-solid fa-clock"></i></th>
+                    <th scope="col">Result</th>
+                </tr>
+                </thead>
+                <tr>
+                    <th colspan='6'>Pending</th>
+                </tr>
                 {% for test in pending %}
                     {% include "OpenBench/Blocks/testsummary.html" %}
                 {% endfor %}
-                <tr class="table-spacer"><th></th></tr>
-            {% endif %}
+                <tr class="table-spacer">
+                    <th></th>
+                </tr>
+            </table>
+        {% endif %}
 
-            <!-- Currently Running tests (Waiting to be completed) -->
-            {% if active %}
-                <tr><th colspan='6'>Active {{status}}</th></tr>
+        {% if active %}
+            <h2>Active {{ status }}</h2>
+            <table class="table table-striped datatable" style="table-layout: fixed">
+                <thead>
+                <tr>
+                    <th style="width:10%; max-width: 10%; min-width: 10%" scope="col">Author</th>
+                    <th style="width:10%; max-width: 10%; min-width: 10%" scope="col">Engine</th>
+                    <th style="width:25%; max-width: 25%; min-width: 25%" scope="col">Name</th>
+                    <th style="width: 5%; max-width:  5%; min-width:  5%" scope="col"><i class="fa-brands fa-github"></i></th>
+                    <th style="width:12%; max-width: 12%; min-width: 12%" scope="col">TC <i class="fa-solid fa-clock"></i></th>
+                    <th style="width:38%; max-width: 38%; min-width: 38%" scope="col">Result</th>
+                </tr>
+                </thead>
                 {% for test in active %}
                     {% include "OpenBench/Blocks/testsummary.html" %}
                 {% endfor %}
-                <tr class="table-spacer"><th></th></tr>
-            {% endif %}
-
+                <tr class="table-spacer">
+                    <th></th>
+                </tr>
+            </table>
         {% endif %}
+    {% endif %}
 
-        <!-- Tests which have already finished -->
-        <tr><th colspan='6'>Finished</th></tr>
+
+    <h2>Finished</h2>
+    <table class="mw-100 table table-striped datatable" style="table-layout: fixed">
+        <thead>
+        <tr>
+            <th style="width:10%; max-width: 10%; min-width: 10%" scope="col">Author</th>
+            <th style="width:10%; max-width: 10%; min-width: 10%" scope="col">Engine</th>
+            <th style="width:25%; max-width: 25%; min-width: 25%" scope="col">Name</th>
+            <th style="width: 5%; max-width:  5%; min-width:  5%" scope="col"><i class="fa-brands fa-github"></i></th>
+            <th style="width:12%; max-width: 12%; min-width: 12%" scope="col">TC <i class="fa-solid fa-clock"></i></th>
+            <th style="width:38%; max-width: 38%; min-width: 38%" scope="col">Result</th>
+        </tr>
+        </thead>
         {% for test in completed %}
             {% include "OpenBench/Blocks/testsummary.html" %}
         {% endfor %}
-
     </table>
 
     {% include "OpenBench/Blocks/pagebrowser.html" %}

@@ -1,11 +1,28 @@
 {% load mytags %}
-<tr>
-    <td><a href="/user/{{test.author}}">{{test.author|capfirst|slice:":6"}}</a></td>
-    <td>{{test.engine}}</td>
-    {% if test.error %} <td><a href="/test/{{test.id}}"><span style="color: red">[x]</span> {{test|prettyDevName}}</a></td>
-    {% elif  test|testIsFRC %} <td><a href="/test/{{test.id}}">{{test|prettyDevName}}<span style="color: green">[FRC]</span></a></td>
-    {% else %} <td><a href="/test/{{test.id}}">{{test|prettyDevName}}</a></td> {% endif %}
-    <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
-    <td>{{test.timecontrol}}</td>
-    <td class='statblock {{test|testResultColour}}'><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
+<tr class="w-100">
+    <td>
+        <a class="text-truncate" href="/user/{{ test.author }}">
+            {{ test.author|capfirst|slice:":6" }}
+        </a>
+    </td>
+    <td class="text-truncate">{{ test.engine }}</td>
+    {% if test.error %}
+        <td class="text-truncate"><a class="text-truncate text-danger" href="/test/{{ test.id }}"><span>[x]</span> {{ test|prettyDevName }}</a></td>
+    {% elif  test|testIsFRC %}
+        <td class="text-truncate"><a class="text-truncate" href="/test/{{ test.id }}">{{ test|prettyDevName }}<span style="color: green">[FRC]</span></a></td>
+    {% else %}
+        <td class="text-truncate"><a class="text-truncate" href="/test/{{ test.id }}">{{ test|prettyDevName }}</a></td> {% endif %}
+
+    <td class="textcenter text-truncate"><a href="{{ test|gitDiffLink }}">diff</a></td>
+
+    <td class="text-truncate">{{ test.timecontrol }}</td>
+
+    <td style="font-size: 0.9rem" class='statblock {{ test|testResultColour }}'>
+        <div class="row">
+            <div class="col-4 align-self-center text-center"><h6><strong>{{ test|shortBoldBlock|linebreaksbr }}</strong></h6></div>
+            <div class="col-8">{{ test|shortStatBlock|linebreaksbr }}</div>
+        </div>
+
+
+    </td>
 </tr>

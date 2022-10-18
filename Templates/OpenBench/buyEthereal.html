@@ -2,81 +2,129 @@
 
 <html lang="en">
 
-    {% load static %}
+{% load static %}
 
-    <head>
-        <link rel="stylesheet" href="{% static 'style.css' %}">
-        <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
+<head>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
 
-        <link rel="preconnect" href="https://fonts.gstatic.com">
-        <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital@0;1&display=swap" rel="stylesheet">
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,400;1,100&amp;display=swap"
+          rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
 
-        <title> Ethereal 13.50 (NNUE) </title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
-        <style>
 
-            body {
-                background: #202020;
-                transform: scale(1.05);
-            }
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js"
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+            crossorigin="anonymous"></script>
 
-            #content {
-                font-family: "Open Sans", sans-serif;
-            }
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital@0;1&display=swap" rel="stylesheet">
 
-            #content h1 {
-                font-size: 64px;
-                font-weight: bold;
-                margin: 20px 0px;
-                color: #00AF00;
-                font-style: italic;
-            }
+    <title> Ethereal 13.75 (NNUE) </title>
 
-            #content p {
-                font-size: 16px;
-                margin: 16px 100px;
-                text-align: justify
-            }
+    <style>
+        body, html, :root {
+            height: 100%;
+        }
+    </style>
+</head>
 
-            #content #buyethereal {
-                font-size: 32px;
-                display: block;
-                border-radius: 8px;
-                color: black;
-                font-weight: bold;
-                background: #00AF00;
-                text-align: center;
-                margin-top: 20px;
-                line-height: 64px;
-                border-color: black;
-                margin: 0px 100px;
-            }
+<body class="bg-light w-100 h-100">
+<div class="container-fluid h-100 bg-light">
+    <div class="container h-100 bg-light" style="max-width: 1500px">
+        <div class="min-vh-100 d-flex align-items-center bg-light">
+            <div class="jumbotron container align-items-center text-center bg-light">
+                {#                <img class="w-100 mw-100" src="https://github.com/AndyGrant/Ethereal/blob/master/logo.png?raw=true">#}
+                <h1 class="mb-5"> <strong>Ethereal 13.75</strong> </h1>
 
-        </style>
-    </head>
+                <p> Ethereal 13.75 (NNUE) has been released. Since 13.50, a large number of changes have been made to
+                    improve the search, time management, and NNUE architecture and training methods. Ethereal has
+                    received multiple iterations of NNUE updates since 13.50, finally arriving at a pair of newly
+                    trained Networks that are larger, but still faster than previous Networks. These Networks are
+                    trained using the sum total of training data built up since 13.00.</p>
 
-    <body>
-        <div id="content">
+                <p> Ethereal 13.75 (NNUE) once again includes two NNUE Networks for evaluation. These Networks continue
+                    Ethereal's long standing legacy of original work. These Networks are not trained on, nor duplicated
+                    from the works of any other Computer Chess team. With it, Ethereal continues to refine new ideas and
+                    techniques, allowing older processors to outperform NNUE implementations found in other engines,
+                    while still harnessing the full power of the AVX/AVX2 instruction sets for CPUs with support. </p>
 
-            <h1> Ethereal 13.50 </h1>
+                <p> Additionally, Ethereal 13.00 was the first engine to offer a secondary Network trained exclusively
+                    for Fischer Random Chess (FRC). Ethereal 13.75 once again provides a secondary Network, updated with
+                    all of the improvements found between releases. This Network outperforms the standard Network by
+                    significant margins in FRC play, showcasing a creative style by Ethereal, not reliant on Opening
+                    Theory.</p>
 
-            <p> Ethereal 13.50 (NNUE) has been released. In addition to the usual updates to the search and evaluation algorithms, Ethereal is now using a newly trained NNUE architecture called "Mirrored Half-KP". Ethereal is one of the first engines to adopt this improvement which drastically reduces training times, Network size, and improves symetrical evaluations over the board. </p>
+                <p> The commercial NNUE version requires a CPU with the SSSE3 instruction set (which almost all CPUs
+                    have), and will not run on systems lacking these instructions. AVX/AVX2 have become ubiquitous in
+                    modern processor design, and are necessary to capitalize on the full strength of Neural Network
+                    technology. If you are unsure if your system is supported, please reach out to me via email at <a>andrew@grantnet.us</a>
+                    for assistance. </p>
 
-            <p> Ethereal 13.50 (NNUE) includes two NNUE Networks for evaluation. These Networks continue Ethereal's long standing legacy of  original work. These networks are not trained on, nor duplicated from the works of any other Computer Chess team. With it, Ethereal continues to refine new ideas and techniques, allowing older processors to outperform NNUE implementations found in other engines, while still harnessing the full power of the AVX/AVX2 instruction sets for CPUs with support. </p>
+                <p><a href="https://stripe.com">Stripe</a> will verify your payment of $40 USD. Afterwards, you will
+                    receive an email from <a>andrew@grantnet.us</a> or <a>andrewgrantethereal@gmail.com</a> within 24
+                    hours containing a download link for the Standard/Fischer NNUE Networks, as well as the binary or
+                    executable files for Windows and Linux. You should select the binary matching your Operating System.
+                    Users with Intel CPUs containing BMI2 support (Also known as PEXT), should use the pext binary for
+                    optimal performance. AMD CPU users should use the popcnt binary, unless they have a 5XXX series
+                    Ryzen. AVX2 binaries will be the fastest, followed by AVX, and finally SSSE3. You should use the
+                    fastest your CPU allows. </p>
 
-            <p> Additionally, Ethereal is still the first engine to offer a secondary Network trained exclusively for Fischer Random Chess (FRC). This Network outperforms the standard Network by significant margins in FRC play, showcasing a creative style by Ethereal, not reliant on Opening Theory. These Neural Networks offer up to +125 elo over Ethereal 13.25 according to the CCRL rating list for Fischer Random Chess, the culmination of over over a hundred million games played between various versions of Ethereal.</p>
+                <p> If you purchased Ethereal 13.00, or 13.25, or 13.50, you should have received an email containing
+                    updates to 13.75 free of charge. If you did not, and the email cannot be found in your spam folder,
+                    please reach out to me via <a>andrew@grantnet.us</a> or <a>andrewgrantethereal@gmail.com.</p>
 
-            <p> The commercial NNUE version requires a CPU with the SSSE3 instruction set (which almost all CPUs have), and will not run on systems lacking these instructions. AVX/AVX2 have become ubiquitous in modern processor design, and are necessary to capitalize on the full strength of Neural Network technology. If you are unsure if your system is supported, please reach out to me via email at <a>andrew@grantnet.us</a> for assistance. </p>
+                <br>
 
-            <p> <a href="https://stripe.com">Stripe</a> will verify your payment of $40 USD. Afterwards, you will receive an email from <a>andrew@grantnet.us</a> or <a>andrewgrantethereal@gmail.com</a> within 24 hours containing a download link for the Standard/Fischer NNUE Networks, as well as the binary or executable files for Windows and Linux. You should select the binary matching your Operating System. Users with Intel CPUs containing BMI2 support (Also known as PEXT), should use the pext binary for optimal performance. AMD CPU users should use the popcnt binary, unless they have a 5XXX series Ryzen. AVX2 binaries will be the fastest, followed by AVX, and finally SSSE3. You should use the fastest your CPU allows. </p>
-
-            <p> If Stripe is not possible for you, PayPal is also an option. Using PayPal as a merchant account proved to be unworkable. However, you can send a payment of $40 USD to <a>andrew@grantnet.us</a> via the <a href="https://www.paypal.com/myaccount/transfer">"Send &#38; Request"</a> button. This process is not yet automated, so I will have to build and send binaries by hand. If you are able to use Stripe, that is my preference. PayPal charges greater fees for foreign currency conversions, and I do not pass any fees on to the buyer.</p>
-
-            <p> If you purchased Ethereal 13.00, or 13.25, you should have received an email containing updates to 13.50. If you did not, and the email cannot be found in your spam folder, please reach out to me via <a>andrew@grantnet.us</a> or <a>andrewgrantethereal@gmail.com.</p>
-
-            <br>
-
-            <a id="buyethereal" href="https://buy.stripe.com/aEU7wz19x7EGbJeaEG"> Buy Ethereal 13.50 (NNUE) </a>
+                {#                <button class="btn btn-primary" id="buyethereal" href="https://buy.stripe.com/aEU7wz19x7EGbJeaEG"> Buy#}
+                {#                    Ethereal 13.75 (NNUE)#}
+                {#                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">#}
+                {#                         Special Offer!#}
+                {#                    </span>#}
+                {#                </button>#}
+                <button type="button" class="btn btn-primary position-relative" id="buyethereal" href="https://buy.stripe.com/aEU7wz19x7EGbJeaEG">
+                    Buy Ethereal 13.75 (NNUE)
+                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                        Christmas Offer
+                    </span>
+                </button>
+            </div>
         </div>
-    </body>
+    </div>
+</div>
+
+
+{#        <div id="content">#}
+{##}
+{#            <h1> Ethereal 13.75 </h1>#}
+{##}
+{#            <p> Ethereal 13.75 (NNUE) has been released. Since 13.50, a large number of changes have been made to improve the search, time management, and NNUE architecture and training methods. Ethereal has received multiple iterations of NNUE updates since 13.50, finally arriving at a pair of newly trained Networks that are larger, but still faster than previous Networks. These Networks are trained using the sum total of training data built up since 13.00.</p>#}
+{##}
+{#            <p> Ethereal 13.75 (NNUE) once again includes two NNUE Networks for evaluation. These Networks continue Ethereal's long standing legacy of original work. These Networks are not trained on, nor duplicated from the works of any other Computer Chess team. With it, Ethereal continues to refine new ideas and techniques, allowing older processors to outperform NNUE implementations found in other engines, while still harnessing the full power of the AVX/AVX2 instruction sets for CPUs with support. </p>#}
+{##}
+{#            <p> Additionally, Ethereal 13.00 was the first engine to offer a secondary Network trained exclusively for Fischer Random Chess (FRC). Ethereal 13.75 once again provides a secondary Network, updated with all of the improvements found between releases. This Network outperforms the standard Network by significant margins in FRC play, showcasing a creative style by Ethereal, not reliant on Opening Theory.</p>#}
+{##}
+{#            <p> The commercial NNUE version requires a CPU with the SSSE3 instruction set (which almost all CPUs have), and will not run on systems lacking these instructions. AVX/AVX2 have become ubiquitous in modern processor design, and are necessary to capitalize on the full strength of Neural Network technology. If you are unsure if your system is supported, please reach out to me via email at <a>andrew@grantnet.us</a> for assistance. </p>#}
+{##}
+{#            <p> <a href="https://stripe.com">Stripe</a> will verify your payment of $40 USD. Afterwards, you will receive an email from <a>andrew@grantnet.us</a> or <a>andrewgrantethereal@gmail.com</a> within 24 hours containing a download link for the Standard/Fischer NNUE Networks, as well as the binary or executable files for Windows and Linux. You should select the binary matching your Operating System. Users with Intel CPUs containing BMI2 support (Also known as PEXT), should use the pext binary for optimal performance. AMD CPU users should use the popcnt binary, unless they have a 5XXX series Ryzen. AVX2 binaries will be the fastest, followed by AVX, and finally SSSE3. You should use the fastest your CPU allows. </p>#}
+{##}
+{#            <p> If you purchased Ethereal 13.00, or 13.25, or 13.50, you should have received an email containing updates to 13.75 free of charge. If you did not, and the email cannot be found in your spam folder, please reach out to me via <a>andrew@grantnet.us</a> or <a>andrewgrantethereal@gmail.com.</p>#}
+{##}
+{#            <br>#}
+{##}
+{#            <a id="buyethereal" href="https://buy.stripe.com/aEU7wz19x7EGbJeaEG"> Buy Ethereal 13.75 (NNUE) </a>#}
+{#        </div>#}
+</body>
 </html>

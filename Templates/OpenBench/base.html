@@ -2,104 +2,197 @@
 
 <html lang="en">
 
-    {% load static %}
+{% load static %}
 
-    <head>
-        <link rel="stylesheet" href="{% static 'style.css' %}">
-        <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
-        <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css ' rel='stylesheet'>
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,400;1,100&amp;display=swap" rel="stylesheet">
-        <link rel="preconnect" href="https://fonts.gstatic.com">
-        <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
+<head>
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
+    <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,400;1,100&amp;display=swap"
+          rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
 
-        <title>OpenBench</title>
-        <script>
-            {% block scripts %}
-            {% endblock %}
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
-            document.addEventListener('DOMContentLoaded', function() {
 
-                var timestamps = document.getElementsByClassName('timestamp');
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+            integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js"
+            integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js"
+            integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+            crossorigin="anonymous"></script>
 
-                var options = {
-                    year   : 'numeric', month  : '2-digit',
-                    day    : '2-digit', hour   : '2-digit',
-                    minute : '2-digit', second : '2-digit',
-                    hour12 : false,
-                };
+    <title>OpenBench</title>
+    <script>
+        {% block scripts %}
+        {% endblock %}
 
-                for (var i = 0; i < timestamps.length; i++) {
-                    var date = new Date(1000 * timestamps[i].innerHTML);
-                    timestamps[i].innerHTML = date.toLocaleString(undefined, options);
-                }
+        document.addEventListener('DOMContentLoaded', function () {
 
-            }, false);
-        </script>
-    </head>
+            var timestamps = document.getElementsByClassName('timestamp');
 
-    <body>
+            var options = {
+                year: 'numeric', month: '2-digit',
+                day: '2-digit', hour: '2-digit',
+                minute: '2-digit', second: '2-digit',
+                hour12: false,
+            };
 
-        <!-- Views may return an error message -->
-        {% if error %}
-            <div id="error">
-                <pre>{{error}}</pre>
+            for (var i = 0; i < timestamps.length; i++) {
+                var date = new Date(1000 * timestamps[i].innerHTML);
+                timestamps[i].innerHTML = date.toLocaleString(undefined, options);
+            }
+
+        }, false);
+    </script>
+</head>
+
+<body class="container-fluid p-0 w-100 h-100">
+
+<!-- Views may return an error message -->
+{% if error %}
+    <div id="error">
+        <pre>{{ error }}</pre>
+    </div>
+{% endif %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light sticky-top">
+    <div class="container container-xxl" style="max-width: 1540px;">
+        <a class="navbar-brand w-100" href="#">
+            <h2><i class="fa-solid fa-chess-knight fa-1x"></i> OpenBench Testing Framework</h2>
+        </a>
+    </div>
+</nav>
+
+<div class="">
+    <div class="container container-xxl" style="max-width: 1540px;">
+        <div class="row h-100">
+            <div class="col-12 col-md-3 col-xl-2 h-75 pt-5">
+                <label>
+                    <strong>Admin<br></strong>
+                </label>
+                <ul class="list-unstyled font-weight-normal pb-2">
+                    {% if user.is_authenticated %}
+                        <li><a class="page-link rounded border-0" href="/logout/"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+                        <li><a class="page-link rounded border-0" href="/profile/"><i class="fa-solid fa-user"></i> Profile</a></li>
+                    {% else %}
+                        <li><a class="page-link rounded border-0" href="/login"><i class="fa-solid fa-right-to-bracket"></i> Login</a></li>
+                        <li><a class="page-link rounded border-0" href="/register"><i class="fa-solid fa-registered"></i> Register</a></li>
+                    {% endif %}
+                </ul>
+                <hr>
+                <label><strong>Tests<br></strong></label>
+                <ul class="list-unstyled font-weight-normal pb-2">
+                    <li><a class="page-link rounded border-0"  href="/index"><i class="fa-solid fa-house"></i> Index</a></li>
+                    <li><a class="page-link rounded border-0"  href="/greens"><i class="fa-solid fa-heart"></i> Greens</a></li>
+                    <li><a class="page-link rounded border-0"  href="/search"><i class="fa-solid fa-magnifying-glass"></i> Search</a></li>
+                </ul>
+                <hr>
+                 <label><strong>Actions<br></strong></label>
+                <ul class="list-unstyled font-weight-normal pb-2">
+                    <li><a class="page-link rounded border-0" href="/newTest"><i class="fa-solid fa-plus"></i> Create Test</a></li>
+                    <li><a class="page-link rounded border-0" href="/networks/upload"><i class="fa-solid fa-upload"></i> Upload Network</a></li>
+                </ul>
+                <hr>
+                <strong>Info<br></strong>
+                <ul class="list-unstyled font-weight-normal pb-2">
+                    <li><a class="page-link rounded border-0" href="/users"><i class="fa-solid fa-users"></i> Users</a></li>
+                    <li><a class="page-link rounded border-0" href="/events"><i class="fa-solid fa-circle-exclamation"></i> Events</a></li>
+                    <li><a class="page-link rounded border-0" href="/machines"><i class="fa-solid fa-microchip"></i> Machines</a></li>
+                    <li><a class="page-link rounded border-0" href="/networks"><i class="fa-solid fa-circle-nodes"></i> Networks</a></li>
+                </ul>
+                <hr>
+                <strong>Support<br></strong>
+                <ul class="list-unstyled font-weight-normal pb-2">
+                    <li><a class="page-link rounded border-0" href="{{ config.framework }}"><i class="fa-brands fa-github"></i> OpenBench</a></li>
+                    <li><a class="page-link rounded border-0" href="https://discord.gg/9MVg7fBTpM"><i class="fa-brands fa-discord"></i> Discord</a></li>
+                </ul>
+                <hr>
+                <strong>Engines<br></strong>
+                <ul class="list-unstyled font-weight-normal pb-2">
+                    {% for engine, data in config.engines.items|dictsort:"0.lower" %}
+                        <li><a class="page-link rounded border-0" href="{{ data.source }}">{{ engine }}</a></li>
+                    {% endfor %}
+                </ul>
             </div>
-        {% endif %}
-
-        <div id="sidebar">
-
-            <ul>
-                <li class="header">Admin</li>
-                {% if user.is_authenticated %}
-                    <li><a href="/logout/">Logout</a></li>
-                    <li><a href="/profile/">Profile</a></li>
-                {% else %}
-                    <li><a href="/login">Login</a></li>
-                    <li><a href="/register">Register</a></li>
-                {% endif %}
-            </ul>
-
-            <ul>
-                <li class="header">Tests</li>
-                <li><a href="/index">Index</a></li>
-                <li><a href="/greens">Greens</a></li>
-                <li><a href="/search">Search</a></li>
-            </ul>
-
-            <ul>
-                <li class="header">Actions</li>
-                <li><a href="/newTest">Create Test</a></li>
-                <li><a href="/networks/upload">Upload Net</a></li>
-            </ul>
-
-            <ul>
-                <li class="header">Info</li>
-                <li><a href="/users">Users</a></li>
-                <li><a href="/events">Events</a></li>
-                <li><a href="/machines">Machines</a></li>
-                <li><a href="/networks">Networks</a></li>
-            </ul>
-
-            <ul>
-                <li class="header">Support</li>
-                <li><a href="{{config.framework}}">OpenBench</a></li>
-                <li><a href="https://discord.gg/HNXsgfS">Discord</a></li>
-            </ul>
-
-            <ul>
-                <li class="header">Engines</li>
-                {% for engine, data in config.engines.items|dictsort:"0.lower" %}
-                    <li><a href="{{data.source}}">{{engine}}</a></li>
-                {% endfor %}
-            </ul>
-
+            <div class="col-12 col-md-9 col-xl-10  pt-5">
+                <div class="w-100 mb-5" id="content">
+                    {% block content %}
+                    {% endblock %}
+                </div>
+            </div>
         </div>
+    </div>
+</div>
 
-        <div id="content">
-            <h2> <a class="TitleLink" href="/">OpenBench Testing Framework</a></h2>
-            {% block content %}
-            {% endblock %}
-        </div>
+{##}
+{#<div class="container-fluid w-100 p-0">#}
+{#    <div class="row w-100 h-100 p-0">#}
+{#        <div class="col-3 bg-light p-5" id="sidebar">#}
+{#            <strong>Admin</strong>#}
+{#            <ul>#}
+{#                <li class="header">Admin</li>#}
+{#                {% if user.is_authenticated %}#}
+{#                    <li><a href="/logout/">Logout</a></li>#}
+{#                    <li><a href="/profile/">Profile</a></li>#}
+{#                {% else %}#}
+{#                    <li><a href="/login">Login</a></li>#}
+{#                    <li><a href="/register">Register</a></li>#}
+{#                {% endif %}#}
+{#            </ul>#}
+{##}
+{#            <ul>#}
+{#                <li class="header">Tests</li>#}
+{#                <li><a href="/index">Index</a></li>#}
+{#                <li><a href="/greens">Greens</a></li>#}
+{#                <li><a href="/search">Search</a></li>#}
+{#            </ul>#}
+{##}
+{#            <ul>#}
+{#                <li class="header">Actions</li>#}
+{#                <li><a href="/newTest">Create Test</a></li>#}
+{#                <li><a href="/networks/upload">Upload Net</a></li>#}
+{#            </ul>#}
+{##}
+{#            <ul>#}
+{#                <li class="header">Info</li>#}
+{#                <li><a href="/users">Users</a></li>#}
+{#                <li><a href="/events">Events</a></li>#}
+{#                <li><a href="/machines">Machines</a></li>#}
+{#                <li><a href="/networks">Networks</a></li>#}
+{#            </ul>#}
+{##}
+{#            <ul>#}
+{#                <li class="header">Support</li>#}
+{#                <li><a href="{{ config.framework }}">OpenBench</a></li>#}
+{#                <li><a href="https://discord.gg/9MVg7fBTpM">Discord</a></li>#}
+{#            </ul>#}
+{##}
+{#            <ul>#}
+{#                <li class="header">Engines</li>#}
+{#                {% for engine, data in config.engines.items|dictsort:"0.lower" %}#}
+{#                    <li><a href="{{ data.source }}">{{ engine }}</a></li>#}
+{#                {% endfor %}#}
+{#            </ul>#}
+{#        </div>#}
+{##}
+{#        <div class="col-9 bg-light" id="content">#}
+{#            <h2><a class="TitleLink" href="/">OpenBench Testing Framework</a></h2>#}
+{#            {% block content %}#}
+{#            {% endblock %}#}
+{#        </div>#}
+{#    </div>#}
+{##}
+{##}
+{#</div>#}
 
-    </body>
+
+</body>
+
+
 </html>

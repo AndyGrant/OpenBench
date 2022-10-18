@@ -135,13 +135,17 @@ class Test(Model):
 
 class LogEvent(Model):
 
-    data     = CharField(max_length=256)
-    author   = CharField(max_length=64)
-    test     = ForeignKey('Test', PROTECT, related_name='test1')
-    creation = DateTimeField(auto_now_add=True)
+    author     = CharField(max_length=128) # Username for the OpenBench Profile
+    summary    = CharField(max_length=128) # Quick summary of the Event or Error
+    log_file   = CharField(max_length=128) # .log file stored in /Media/
+
+    machine_id = IntegerField(default=0)   # Only set for Client based Log Events
+    test_id    = IntegerField(default=0)   # Should always be set
+
+    created    = DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return "{0} {1} {2}".format(self.author, str(self.test), self.data)
+        return "{0} {1} {2}".format(self.author, str(self.test_id), self.summary)
 
 class Network(Model):
 

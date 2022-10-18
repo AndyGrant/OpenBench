@@ -23,7 +23,7 @@ USE_CROSS_APPROVAL = False
 OPENBENCH_CONFIG = {
 
     # Server Client version control
-    'client_version' : '2',
+    'client_version' : '3',
 
     # Generic Error Messages useful to those setting up their own instance
     'error' : {
@@ -40,12 +40,11 @@ OPENBENCH_CONFIG = {
     'tests' : {
         'max_games'  : '20000',        # Default for Fixed Games
         'confidence' : '[0.05, 0.05]', # SPRT Type I/II Confidence
-        'throughput' : { 'stc' : 1000, 'ltc' : 500, 'smpstc' : 1000, 'smpltc' : 500 },
     },
 
     # Book Configuration. When addding a book, follow the provided template.
-    # The SHA is defined by hashlib.sha256(book).hexdigest(). Client.py has
-    # code to generate and verify sha256 values, as an example.
+    # The SHA is defined by hashlib.sha256(book.read().encode('utf-8')).hexdigest().
+    # Client.py has this exact code to generate and verify sha256 values, as an example.
 
     'books' : {
 
@@ -53,35 +52,36 @@ OPENBENCH_CONFIG = {
             'name'    : '2moves_v1.epd',
             'sha'     : '7bec98239836f219dc41944a768c0506abed950aaec48da69a0782643e90f237',
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/2moves_v1.epd.zip',
-            'default' : False,
         },
 
         '8moves_v3.epd' : {
             'name'    : '8moves_v3.epd',
             'sha'     : '1f055af431656f09ee6a09d2448e0b876125f78bb7b404fca2031c403a1541e5',
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/8moves_v3.epd.zip',
-            'default' : False,
         },
 
         '3moves_FRC.epd' : {
             'name'    : '3moves_FRC.epd',
             'sha'     : '6bf81e1ada6a3306bbc8356f7bca1e2984a2828d658799992d5443b7179c934d',
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/3moves_FRC.epd.zip',
-            'default' : False,
         },
 
         '4moves_noob.epd' : {
             'name'    : '4moves_noob.epd',
             'sha'     : '4be746a91e3f8af0c9344b1e72d611e9fcfe486843867a55760970a4896f284d',
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/4moves_noob.epd.zip',
-            'default' : True,
         },
 
         'Pohl.epd' : {
             'name'    : 'Pohl.epd',
             'sha'     : 'b3e64e0dab84cf451a9ac7ef031f5a2bbcf16c7e21be95298fb03cbf021f5466',
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/Pohl.epd.zip',
-            'default' : False,
+        },
+
+        'DFRC.epd' : {
+            'name'    : 'DFRC.epd',
+            'sha'     : '648c447ef40614a44d13b78911e81470d8ddb0d3b2711c1b180e990871f5db4f',
+            'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/DFRC.epd.zip',
         },
     },
 
@@ -94,338 +94,380 @@ OPENBENCH_CONFIG = {
 
         'Ethereal' : {
 
-            'nps'       : 1225000,
-            'base'      : 'master',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/AndyGrant/Ethereal',
+            'nps'    : 950000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 3.00]',
+            'source' : 'https://github.com/AndyGrant/Ethereal',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
-                'compilers' : ['gcc'],
+                'compilers' : ['clang', 'gcc'],
                 'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-             },
+            'testmodes' : [
+                { 'id' : 'STC',                'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1' },
+                { 'id' : 'LTC',                'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6' },
+                { 'id' : 'SMP STC',            'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC',            'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+                { 'id' : 'STC Simplification', 'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1', 'bounds' : '[-3.00, 1.00]' },
+                { 'id' : 'LTC Simplification', 'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6', 'bounds' : '[-3.00, 1.00]' },
+                { 'id' : 'STC Regression',     'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1', 'book' : '8moves_v3.epd', 'games' : 40000 },
+                { 'id' : 'LTC Regression',     'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6', 'book' : '8moves_v3.epd', 'games' : 40000 },
+            ],
         },
 
         'Laser' : {
 
-            'nps'       : 920000,
-            'base'      : 'master',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/jeffreyan11/uci-chess-engine',
+            'nps'    : 935000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/jeffreyan11/uci-chess-engine',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-             },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Weiss' : {
 
-            'nps'       : 1825000,
-            'base'      : 'master',
-            'bounds'    : '[-1.00, 4.00]',
-            'source'    : 'https://github.com/TerjeKir/weiss',
+            'nps'    : 1650000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[-1.00, 4.00]',
+            'source' : 'https://github.com/TerjeKir/weiss',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['gcc'],
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :  32, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' : 128, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' : 128, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 512, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :  32, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' : 128, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' : 128, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 512, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Demolito' : {
 
-            'nps'       : 1220000,
-            'base'      : 'master',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/lucasart/Demolito',
+            'nps'    : 1300000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/lucasart/Demolito',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['clang', 'gcc'],
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  32, 'timecontrol' : '32.0+0.32'},
-                'smpstc'  : { 'threads' : 8, 'hash' :  32, 'timecontrol' : '4.0+0.04' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 128, 'timecontrol' : '16.0+0.16'},
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  32, 'tc' : '32.0+0.32'},
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  32, 'tc' : '4.0+0.04' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 128, 'tc' : '16.0+0.16'},
+            ],
         },
 
         'RubiChess' : {
 
-            'nps'       : 980000,
-            'base'      : 'master',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/Matthies/RubiChess',
+            'nps'    : 1050000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/Matthies/RubiChess',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'FabChess' : {
 
-            'nps'       : 850000,
-            'base'      : 'master',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/fabianvdW/FabChess',
+            'nps'    : 1000000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/fabianvdW/FabChess',
 
-            'build'     : {
+            'build' : {
                 'path'      : '',
                 'compilers' : ['cargo>=1.41.0'],
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Igel' : {
 
-            'nps'       : 800000,
-            'base'      : 'master',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/vshcherbyna/igel',
+            'nps'    : 850000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/vshcherbyna/igel',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '10.0+0.1' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '60.0+0.6' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Winter' : {
 
-            'nps'       : 650000,
-            'base'      : 'master',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/rosenthj/Winter',
+            'nps'    : 650000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/rosenthj/Winter',
 
-            'build'     : {
+            'build' : {
                 'path'      : '',
                 'compilers' : ['clang++', 'g++'],
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Halogen' : {
 
-            'nps'       : 1850000,
-            'base'      : 'master',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/KierenP/Halogen',
+            'nps'    : 1725000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/KierenP/Halogen',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Stash' : {
 
-            'nps'       : 1700000,
-            'base'      : 'master',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/mhouppin/stash-bot',
+            'nps'    : 1585000,
+            'base'   : 'master',
+            'book'   : '4moves_noob.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/mhouppin/stash-bot',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['gcc', 'clang'],
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :  16, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :  16, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Seer' : {
 
-            'nps'       : 500000,
-            'base'      : 'main',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/connormcmonigle/seer-nnue',
+            'nps'    : 775000,
+            'base'   : 'main',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/connormcmonigle/seer-nnue',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'build',
                 'compilers' : ['g++>=9.0.0'],
                 'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :  32, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :  32, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Koivisto' : {
 
-            'nps'       : 1225000,
-            'base'      : 'master',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/Luecx/Koivisto',
+            'nps'    : 1200000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 2.50]',
+            'source' : 'https://github.com/Luecx/Koivisto',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src_files',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Drofa' : {
 
-            'nps'       : 1110000,
-            'base'      : 'master',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/justNo4b/Drofa',
+            'nps'    : 1275000,
+            'base'   : 'master',
+            'book'   : '4moves_noob.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/justNo4b/Drofa',
 
-            'build'     : {
+            'build' : {
                 'path'      : '',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Bit-Genie' : {
 
-            'nps'       : 875000,
-            'base'      : 'master',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/Aryan1508/Bit-Genie',
+            'nps'    : 1800000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/Aryan1508/Bit-Genie',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-            },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Berserk' : {
 
-            'nps'       : 1225000,
-            'base'      : 'main',
-            'bounds'    : '[-1.00, 4.00]',
-            'source'    : 'https://github.com/jhonnold/berserk',
+            'nps'    : 1150000,
+            'base'   : 'main',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[-1.00, 4.00]',
+            'source' : 'https://github.com/jhonnold/berserk',
 
-            'build'     : {
+            'build' : {
                 'path'      : 'src',
                 'compilers' : ['gcc'],
                 'cpuflags'  : ['POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-             },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
 
         'Zahak' : {
 
-            'nps'       : 1020000,
-            'base'      : 'master',
-            'bounds'    : '[0.00, 5.00]',
-            'source'    : 'https://github.com/amanjpro/zahak',
+            'nps'    : 850000,
+            'base'   : 'master',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/amanjpro/zahak',
 
-            'build'     : {
+            'build' : {
                 'path'      : '',
                 'compilers' : ['go'],
                 'cpuflags'  : ['AVX', 'POPCNT'],
             },
 
-            'testmodes' : {
-                'stc'     : { 'threads' : 1, 'hash' :   8, 'timecontrol' : '8.0+0.08' },
-                'ltc'     : { 'threads' : 1, 'hash' :  64, 'timecontrol' : '40.0+0.4' },
-                'smpstc'  : { 'threads' : 8, 'hash' :  64, 'timecontrol' : '5.0+0.05' },
-                'smpltc'  : { 'threads' : 8, 'hash' : 256, 'timecontrol' : '20.0+0.2' },
-             },
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
+        },
+
+        'BlackMarlin' : {
+
+            'nps'    : 675000,
+            'base'   : 'main',
+            'book'   : 'Pohl.epd',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/dsekercioglu/blackmarlin',
+
+            'build' : {
+                'path'     : '',
+                'compilers': ['cargo>=1.57.0'],
+                'cpuflags' : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
+            },
+
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
         },
     },
 }

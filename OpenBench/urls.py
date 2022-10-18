@@ -36,6 +36,7 @@ urlpatterns = [
     django.urls.path(r'search/', OpenBench.views.search),
     django.urls.path(r'user/<str:username>/', OpenBench.views.user),
     django.urls.path(r'user/<str:username>/<int:page>/', OpenBench.views.user),
+    django.urls.path(r'event/<int:id>/', OpenBench.views.event),
 
     # Links for viewing general information tables
     django.urls.path(r'users/', OpenBench.views.users),
@@ -53,6 +54,9 @@ urlpatterns = [
     django.urls.path(r'networks/', OpenBench.views.networks),
     django.urls.path(r'networks/<str:action>/', OpenBench.views.networks),
     django.urls.path(r'networks/<str:action>/<str:sha256>/', OpenBench.views.networks),
+
+    # Links for interacting with OpenBench via scripting
+    django.urls.path(r'scripts/', OpenBench.views.scripts),
 
     # Links for the Client to work with the Server
     django.urls.path(r'clientGetFiles/', OpenBench.views.clientGetFiles),

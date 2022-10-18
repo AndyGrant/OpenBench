@@ -4,8 +4,8 @@
 
 {% block content %}
 
-    <table>
-
+    <table class="table table-striped table-hover">
+        <thead>
         <tr>
             <th>#</th>
             <th>User</th>
@@ -15,16 +15,16 @@
             <th>Threads</th>
             <th>MNPS</th>
         </tr>
-
+        </thead>
         {% for machine in machines %}
             <tr>
-                <td class="numeric">{{machine.id}}</td>
-                <td>{{machine.user.username|capfirst}}</td>
-                <td>{{machine.osname|truncatewords:1|slice:":-2"}}</td>
-                <td class="timestamp">{{machine.updated|date:'U'}}</td>
-                <td> <a href="/test/{{machine.workload.id}}">{{machine.workload.dev.name|prettyName}}</a></td>
-                <td class="numeric">{{machine.threads}}</td>
-                <td class="numeric">{{machine.mnps|twoDigitPrecision}}</td>
+                <td class="numeric">{{ machine.id }}</td>
+                <td>{{ machine.user.username|capfirst }}</td>
+                <td>{{ machine.osname|truncatewords:1|slice:":-2" }}</td>
+                <td class="timestamp">{{ machine.updated|date:'U' }}</td>
+                <td><a href="/test/{{ machine.workload.id }}">{{ machine.workload.dev.name|prettyName }}</a></td>
+                <td class="numeric">{{ machine.threads }}</td>
+                <td class="numeric">{{ machine.mnps|twoDigitPrecision }}</td>
             </tr>
         {% endfor %}
 

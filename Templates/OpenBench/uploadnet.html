@@ -3,19 +3,43 @@
 {% block content %}
 
     <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
+    {% csrf_token %}
 
-        <label>Name</label><input name="name"><br>
-        <label>Weights</label><input name="netfile" type="file"><br>
+    <div class="form">
 
-        <label>Engine</label> <select id="engine" name="engine">
-            {% for engine in config.engines %}
-                <option value="{{engine}}">{{engine}}</option>
-            {% endfor %}
-            <option selected value=""></option>
-        </select><br>
+        <div class="row mb-2">
+            <div class="col-12">
+                <div class="container-fluid py-3 px-2 mb-4 border rounded bg-light">
+                    <div class="row">
+                        <div class="col-6">
+                            <label for="name" class="form-label">Name</label>
+                            <input class="form-control" id="name" name="name"><br>
+                        </div>
+                        <div class="col-6">
+                            <label for="engine" class="form-label">Name</label>
+                            <select class="form-control" id="engine" name="engine">
+                                {% for engine in config.engines %}
+                                    {% if engine == profile.engine %}
+                                        <option selected value="{{ engine }}">{{ engine }}</option>
+                                    {% else %}
+                                        <option value="{{ engine }}">{{ engine }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="netfile" class="form-label">Netfile</label>
+                            <input class="form-control" type="file" id="netfile" name="netfile">
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <input type="submit" value="Upload">
+        </div>
+
+    </div>
+
+    <input class="btn btn-primary" type="submit" value="Upload">
     <form>
 
 {% endblock %}

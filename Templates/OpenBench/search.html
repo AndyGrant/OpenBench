@@ -1,60 +1,123 @@
 {% extends "OpenBench/base.html" %}
 
+{% block scripts %}
+
+    function set_default_engine() {
+    {% if profile.engine %}
+        document.getElementById("engine").value = "{{ profile.engine }}";
+    {% endif %}
+    }
+
+    document.addEventListener(
+    'DOMContentLoaded', function () {
+    set_default_engine();
+    }, false
+    );
+
+{% endblock %}
+
 {% block content %}
 
     {% if not tests %}
 
         <form method="POST" action="/search/">
             {% csrf_token %}
+{#            <h2>Search for a test</h2>#}
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="container-fluid py-3 px-2 mb-4 border rounded bg-light">
+                            <div class="row">
+                                <div class="col-12 col-xl-6 mb-2">
+                                    <label for="search-keywords-input">Keywords</label>
+                                    <input id="search-keywords-input" class="form-control" name="keywords">
+                                </div>
+                                <div class="col-12 col-xl-6 mb-2">
+                                    <label for="search-author-input">Author</label>
+                                    <input id="search-author-input" class="form-control" name="author">
+                                </div>
+                                <div class="col-12">
+                                    <label for="engine">Engine</label>
+                                    <select id="engine" class="form-control form-select" name="engine">
+                                        <option selected value="">ALL</option>
+                                        {% for name, data in config.engines.items %}
+                                            <option value="{{ name }}">{{ name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
-            <label> Keywords </label> <input name="keywords"><br>
-            <label> Author </label> <input name="author"><br>
-
-            <label> Engine </label>
-            <select name="engine">
-                <option selected value="">ALL</option>
-                {% for name, data in config.engines.items %}
-                    <option value="{{name}}">{{name}}</option>
-                {% endfor %}
-            </select><br>
-
-            <label> Show Greens </label>
-            <select name="showgreens">
-                <option selected value="True">True</option>
-                <option value="False">False</option>
-            </select><br>
-
-            <label> Show Yellows </label>
-            <select name="showyellows">
-                <option selected value="True">True</option>
-                <option value="False">False</option>
-            </select><br>
-
-            <label> Show Reds </label>
-            <select name="showreds">
-                <option selected value="True">True</option>
-                <option value="False">False</option>
-            </select><br>
-
-            <label> Show Stopped </label>
-            <select name="showunfinished">
-                <option value="True">True</option>
-                <option selected value="False">False</option>
-            </select><br>
-
-            <label> Show Deleted </label>
-            <select name="showdeleted">
-                <option value="True">True</option>
-                <option selected value="False">False</option>
-            </select><br>
-
-            <input type="submit" name="submit" value="Search Tests">
-
+                    <div class="col-12">
+                        <div class="container-fluid py-3 px-2 mb-4 border rounded bg-light">
+                            <div class="row">
+                                <div class="col-12 col-md-4 mb-2">
+                                    <label for="search-show-greens-select"> Show Greens </label>
+                                    <select id="search-show-greens-select" class="form-control form-select"
+                                            name="showgreens">
+                                        <option selected value="True">True</option>
+                                        <option value="False">False</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-4 mb-2">
+                                    <label for="search-show-yellows-select"> Show Yellows </label>
+                                    <select id="search-show-yellows-select" class="form-control form-select"
+                                            name="showyellows">
+                                        <option selected value="True">True</option>
+                                        <option value="False">False</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-4 mb-2">
+                                    <label for="search-show-reds-select"> Show Reds </label>
+                                    <select id="search-show-reds-select" class="form-control form-select"
+                                            name="showreds">
+                                        <option selected value="True">True</option>
+                                        <option value="False">False</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-6 mb-2">
+                                    <label for="search-show-stopped-select"> Show Stopped </label>
+                                    <select id="search-show-stopped-select" class="form-control form-select"
+                                            name="showunfinished">
+                                        <option selected value="True">True</option>
+                                        <option value="False">False</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 col-md-6 mb-2">
+                                    <label for="search-show-deleted-select"> Show Deleted </label>
+                                    <select id="search-show-deleted-select" class="form-control form-select"
+                                            name="showdeleted">
+                                        <option selected value="True">True</option>
+                                        <option value="False">False</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <input class="btn btn-primary" type="submit" name="submit" value="Search Tests">
+                    </div>
+                </div>
+            </div>
         </form>
 
     {% endif %}
 
-    <table class="datatable">
+    <table class="table table-hover table-striped datatable" style="table-layout: fixed">
+        <thead>
+        {% if tests != empty %}
+            <tr>
+                <th style="width:10%; max-width: 10%; min-width: 10%"  scope="col">Author</th>
+                <th style="width:10%; max-width: 10%; min-width: 10%"  scope="col">Engine</th>
+                <th style="width:25%; max-width: 25%; min-width: 25%"  scope="col">Name</th>
+                <th style="width: 5%; max-width:  5%; min-width:  5%"  scope="col"><i class="fa-brands fa-github"></i></th>
+                <th style="width:12%; max-width: 12%; min-width: 12%"  scope="col">TC <i class="fa-solid fa-clock"></i></th>
+                <th style="width:38%; max-width: 38%; min-width: 38%"  scope="col">Result</th>
+            </tr>
+        {% endif %}
+
+        </thead>
         {% for test in tests %}
             {% include "OpenBench/Blocks/testsummary.html" %}
         {% endfor %}

@@ -55,7 +55,7 @@
 
 {% block content %}
 
-    <table id="network-table">
+    <table class="table table-striped table-hover" id="network-table">
 
         <tr>
             <th onclick=sort_networks("default")></th>
@@ -76,13 +76,13 @@
                     <i class="far fa-star" aria-hidden="true"></i></a></td>
                 {% endif %}
 
-                <td>{{network.engine}}</td>
+                <td><a href="/networks/{{network.engine}}/">{{network.engine}}</a></td>
                 <td><a href="/user/{{network.author}}">{{network.author|capfirst}}</a></td>
                 <td><a href="/networks/download/{{network.sha256}}">{{network.name}}</a></td>
                 <td>{{network.sha256}}</td>
 
                 <td><a class="redlink" onclick="return confirm('YOU ARE DELETING THIS NETWORK FILE FOREVER')" href="/networks/delete/{{network.sha256}}">
-                <i class="fas fa-minus-circle"></i></a></td>
+                <i class="fas fa-trash"></i></a></td>
             </tr>
         {% endfor %}
 
