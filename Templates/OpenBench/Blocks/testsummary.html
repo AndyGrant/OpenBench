@@ -1,28 +1,26 @@
 {% load mytags %}
 <tr class="w-100">
     <td>
-        <a class="text-truncate" href="/user/{{ test.author }}">
+        <a class="btn btn-primary-outline btn-block" href="/user/{{ test.author }}" role="button">
             {{ test.author|capfirst|slice:":6" }}
         </a>
     </td>
-    <td class="text-truncate">{{ test.engine }}</td>
+    <td class="text-truncate"><a class="btn btn-primary-outline btn-block" role="button">{{ test.engine }}</a></td>
     {% if test.error %}
-        <td class="text-truncate"><a class="text-truncate text-danger" href="/test/{{ test.id }}"><span>[x]</span> {{ test|prettyDevName }}</a></td>
+        <td class="text-truncate"><a class="btn btn-outline-danger btn-block text-danger" href="/test/{{ test.id }}" role="button"><span>[x]</span> {{ test|prettyDevName }}</a></td>
     {% elif  test|testIsFRC %}
-        <td class="text-truncate"><a class="text-truncate" href="/test/{{ test.id }}">{{ test|prettyDevName }}<span style="color: green">[FRC]</span></a></td>
+        <td class="text-truncate"><a class="btn btn-primary-outline btn-block" href="/test/{{ test.id }}" role="button">{{ test|prettyDevName }}<span style="color: green">[FRC]</span></a></td>
     {% else %}
-        <td class="text-truncate"><a class="text-truncate" href="/test/{{ test.id }}">{{ test|prettyDevName }}</a></td> {% endif %}
+        <td class="text-truncate"><a class="btn btn-primary-outline btn-block" href="/test/{{ test.id }}" role="button">{{ test|prettyDevName }}</a></td> {% endif %}
 
-    <td class="textcenter text-truncate"><a href="{{ test|gitDiffLink }}">diff</a></td>
+    <td class="textcenter text-truncate"><a class="btn btn-primary-outline btn-block" href="{{ test|gitDiffLink }}" role="button">diff</a></td>
 
-    <td class="text-truncate">{{ test.timecontrol }}</td>
+    <td class="text-truncate"><a class="btn btn-primary-outline btn-block" role="button">{{ test.timecontrol }}</a></td>
 
-    <td style="font-size: 1.0rem; font-weight: 600" class='statblock {{ test|testResultColour }}'>
+    <td style="font-size: 0.9rem" class='statblock {{ test|testResultColour }}'>
         <div class="row">
-{#            <div class="col-4 align-self-center text-center"><h6><strong>{{ test|shortBoldBlock|linebreaksbr }}</strong></h6></div>#}
-            <div class="col-12">{{ test|shortStatBlock|linebreaksbr }}</div>
+            <!-- <div class="col-4 align-self-center text-center"><h6><strong>{{ test|shortBoldBlock|linebreaksbr }}</strong></h6></div> -->
+            <div class="col-8">{{ test|shortStatBlock|linebreaksbr }}</div>
         </div>
-
-
     </td>
 </tr>
