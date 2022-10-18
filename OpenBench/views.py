@@ -336,7 +336,7 @@ def event(request, id):
         with open(os.path.join(MEDIA_ROOT, LogEvent.objects.get(id=id).log_file)) as fin:
             return render(request, 'event.html', { 'content' : fin.read() })
     except:
-        return HttpResponseRedirect('/index/')
+        return django.http.HttpResponseRedirect('/index/')
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                           GENERAL DATA TABLE VIEWS                          #

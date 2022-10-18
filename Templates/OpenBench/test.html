@@ -94,49 +94,47 @@
             </div>
             <div class="col-12 col-xl-6">
 
-                <div class="row">
+                 <div class="row">
                     <div class="col-3">
                         <!-- Approve Button: For Admins, or Cross-approvers -->
                         {% if not test.approved and profile.approver and profile.user.username != test.author %}
-                            <button class="btn btn-success w-100" id="approvebutton" href="/test/{{ test.id }}/APPROVE">Approve
-                            </button>
+                            <a class="btn btn-success w-100" id="approvebutton" href="/test/{{ test.id }}/APPROVE" role="button">Approve</a>
                         {% elif not test.approved and request.user.is_superuser %}
-                            <button class="btn btn-success w-100" id="approvebutton" href="/test/{{ test.id }}/APPROVE">Approve
-                            </button>
+                            <a class="btn btn-success w-100" id="approvebutton" href="/test/{{ test.id }}/APPROVE" role="button">Approve</a>
                         {% else %}
-                            <button class="btn btn-secondary w-100" disabled>Approve</button>
+                            <a class="btn btn-success w-100 disabled "role="button">Approve</a>
                         {% endif %}
                     </div>
                     <div class="col-3">
                         <!-- Restart Button: For Approvers or Test Authors of finished tests -->
                         {% if test.finished and profile.approver %}
-                            <button class="btn btn-primary w-100" id="stopbutton" href="/test/{{ test.id }}/RESTART">Restart</button>
+                            <a class="btn btn-primary w-100" id="stopbutton" href="/test/{{ test.id }}/RESTART" role="button">Restart</a>
                         {% elif test.finished and profile.user.username == test.author %}
-                            <button class="btn btn-primary w-100" id="stopbutton" href="/test/{{ test.id }}/RESTART">Restart</button>
+                            <a class="btn btn-primary w-100" id="stopbutton" href="/test/{{ test.id }}/RESTART" role="button">Restart</a>
                         {% elif test.finished %}
-                            <button class="btn btn-secondary w-100" disabled>Restart</button>
+                            <a class="btn btn-secondary w-100" role="button">Restart</a>
                         {% else %}
-                            <button class="btn btn-light w-100" disabled>Stop</button>
+                            <a class="btn btn-light w-100 disabled " role="button">Restart</a>
                         {% endif %}
                     </div>
                     <div class="col-3">
                         <!-- Stop Button: For Approvers or Test Authors of active tests -->
                         {% if not test.finished and profile.approver %}
-                            <button class="btn btn-danger w-100" id="restartbutton" href="/test/{{ test.id }}/STOP">Stop</button>
+                            <a class="btn btn-danger w-100" id="restartbutton" href="/test/{{ test.id }}/STOP" role="button">Stop</a>
                         {% elif not test.finished and profile.user.username == test.author %}
-                            <button class="btn btn-danger w-100" id="restartbutton" href="/test/{{ test.id }}/STOP">Stop</button>
+                            <a class="btn btn-danger w-100" id="restartbutton" href="/test/{{ test.id }}/STOP" role="button">Stop</a>
                         {% elif not test.finished %}
-                            <button class="btn btn-secondary w-100" disabled>Stop</button>
+                            <a class="btn btn-primary w-100 disabled" role="button">Stop</a>
                         {% else %}
-                            <button class="btn btn-light w-100" disabled>Stop</button>
+                            <a class="btn btn-light w-100 disabled" role="button">Stop</a>
                         {% endif %}
                     </div>
                     <div class="col-3">
                         <!-- Delete Button: For Approvers or Test Authors -->
                         {% if profile.approver or profile.user.username == test.author %}
-                            <button class="btn btn-danger w-100" id="deletebutton" href="/test/{{ test.id }}/DELETE">Delete</button>
+                            <a class="btn btn-danger w-100" id="deletebutton" href="/test/{{ test.id }}/DELETE" role="button">Delete</a>
                         {% else %}
-                            <button class="btn btn-secondary w-100" disabled>Delete</button>
+                            <a class="btn btn-secondary w-100 disabled" role="button">Delete</a>
                         {% endif %}
                     </div>
                 </div>

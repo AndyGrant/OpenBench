@@ -17,10 +17,10 @@
 
     <td class="text-truncate">{{ test.timecontrol }}</td>
 
-    <td style="font-size: 0.9rem" class='statblock {{ test|testResultColour }}'>
+    <td style="font-size: 1.0rem; font-weight: 600" class='statblock {{ test|testResultColour }}'>
         <div class="row">
-            <div class="col-4 align-self-center text-center"><h6><strong>{{ test|shortBoldBlock|linebreaksbr }}</strong></h6></div>
-            <div class="col-8">{{ test|shortStatBlock|linebreaksbr }}</div>
+{#            <div class="col-4 align-self-center text-center"><h6><strong>{{ test|shortBoldBlock|linebreaksbr }}</strong></h6></div>#}
+            <div class="col-12">{{ test|shortStatBlock|linebreaksbr }}</div>
         </div>
 
 
