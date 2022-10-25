@@ -1,23 +1,23 @@
 {% load mytags %}
 <tr class="w-100">
     <td>
-        <a class="btn btn-primary-outline btn-block" href="/user/{{ test.author }}" role="button">
+        <a class="text-left btn btn-primary-outline btn-block" href="/user/{{ test.author }}" role="button">
             {{ test.author|capfirst|slice:":6" }}
         </a>
     </td>
-    <td class="text-truncate"><a class="btn btn-primary-outline btn-block" role="button">{{ test.engine }}</a></td>
+    <td class="text-left text-truncate"><a class="text-left btn btn-primary-outline btn-block" role="button">{{ test.engine }}</a></td>
     {% if test.error %}
-        <td class="text-truncate"><a class="btn btn-outline-danger btn-block text-danger" href="/test/{{ test.id }}" role="button"><span>[x]</span> {{ test|prettyDevName }}</a></td>
+        <td class="text-left text-truncate"><a class="text-left btn btn-outline-danger btn-block text-danger" href="/test/{{ test.id }}" role="button"><span>[x]</span> {{ test|prettyDevName }}</a></td>
     {% elif  test|testIsFRC %}
-        <td class="text-truncate"><a class="btn btn-primary-outline btn-block" href="/test/{{ test.id }}" role="button">{{ test|prettyDevName }}<span style="color: green">[FRC]</span></a></td>
+        <td class="text-left text-truncate"><a class="text-left btn btn-primary-outline btn-block" href="/test/{{ test.id }}" role="button">{{ test|prettyDevName }}<span style="color: green">[FRC]</span></a></td>
     {% else %}
-        <td class="text-truncate"><a class="btn btn-primary-outline btn-block" href="/test/{{ test.id }}" role="button">{{ test|prettyDevName }}</a></td> {% endif %}
+        <td class="text-left text-truncate"><a class="text-left btn btn-primary-outline btn-block" href="/test/{{ test.id }}" role="button">{{ test|prettyDevName }}</a></td> {% endif %}
 
-    <td class="textcenter text-truncate"><a class="btn btn-primary-outline btn-block" href="{{ test|gitDiffLink }}" role="button">diff</a></td>
+    <td class="text-truncate"><a class="btn btn-primary-outline btn-block" href="{{ test|gitDiffLink }}" role="button">diff</a></td>
 
     <td class="text-truncate"><a class="btn btn-primary-outline btn-block" role="button">{{ test.timecontrol }}</a></td>
 
-    <td style="font-size: 0.9rem" class='statblock {{ test|testResultColour }}'>
+    <td style="font-size: 0.9rem; line-height:1.1rem; border-radius:7px;" class='px-2 statblock {{ test|testResultColour }}'>
         <div class="row">
             <!-- <div class="col-4 align-self-center text-center"><h6><strong>{{ test|shortBoldBlock|linebreaksbr }}</strong></h6></div> -->
             <div class="col-8">{{ test|shortStatBlock|linebreaksbr }}</div>

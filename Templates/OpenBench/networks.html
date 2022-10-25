@@ -55,16 +55,18 @@
 
 {% block content %}
 
-    <table class="table table-striped table-hover" id="network-table">
+    <table class="table table-striped table-hover table-sm" id="network-table">
 
-        <tr>
-            <th onclick=sort_networks("default")></th>
-            <th onclick=sort_networks("engine")>Engine</th>
-            <th onclick=sort_networks("author")>Uploader</th>
-            <th onclick=sort_networks("name")>Name</th>
-            <th onclick=sort_networks("hash")>Hash</th>
-            <th></th>
-        </tr>
+        <thead>
+            <tr>
+                <th onclick=sort_networks("default")></th>
+                <th onclick=sort_networks("engine")>Engine</th>
+                <th onclick=sort_networks("author")>Uploader</th>
+                <th onclick=sort_networks("name")>Name</th>
+                <th onclick=sort_networks("hash")>Hash</th>
+                <th></th>
+            </tr>
+        </thead>
 
         {% for network in networks %}
             <tr>

@@ -4,15 +4,15 @@
 
     {% if paging.page == 1 %}
         {% if pending %}
-            <table class="table table-striped datatable">
+            <table class="table table-sm table-striped datatable">
                 <thead>
                 <tr>
-                    <th scope="col">Author</th>
-                    <th scope="col">Engine</th>
-                    <th scope="col">Name</th>
-                    <th scope="col"><i class="fa-brands fa-github"></i></th>
-                    <th scope="col">TC <i class="fa-solid fa-clock"></i></th>
-                    <th scope="col">Result</th>
+                    <th class="pl-3"             scope="col">Author</th>
+                    <th class="pl-3"             scope="col">Engine</th>
+                    <th class="pl-3"             scope="col">Name</th>
+                    <th class="pl-3 text-center" scope="col"><i class="fa-brands fa-github"></i></th>
+                    <th class="pl-3 text-center" scope="col">TC <i class="fa-solid fa-clock"></i></th>
+                    <th class="pl-3"             scope="col">Result</th>
                 </tr>
                 </thead>
                 <tr>
@@ -29,15 +29,15 @@
 
         {% if active %}
             <h2>Active {{ status }}</h2>
-            <table class="table table-striped datatable" style="table-layout: fixed">
+            <table class="table table-sm table-striped datatable" style="table-layout: fixed">
                 <thead>
                 <tr>
-                    <th style="width:10%; max-width: 10%; min-width: 10%" scope="col">Author</th>
-                    <th style="width:10%; max-width: 10%; min-width: 10%" scope="col">Engine</th>
-                    <th style="width:25%; max-width: 25%; min-width: 25%" scope="col">Name</th>
-                    <th style="width: 5%; max-width:  5%; min-width:  5%" scope="col"><i class="fa-brands fa-github"></i></th>
-                    <th style="width:12%; max-width: 12%; min-width: 12%" scope="col">TC <i class="fa-solid fa-clock"></i></th>
-                    <th style="width:38%; max-width: 38%; min-width: 38%" scope="col">Result</th>
+                    <th class="pl-3"             style="width:10%; max-width: 10%; min-width: 10%" scope="col">Author</th>
+                    <th class="pl-3"             style="width:10%; max-width: 10%; min-width: 10%" scope="col">Engine</th>
+                    <th class="pl-3"             style="width:25%; max-width: 25%; min-width: 25%" scope="col">Name</th>
+                    <th class="pl-3 text-center" style="width: 5%; max-width:  5%; min-width:  5%" scope="col"><i class="fa-brands fa-github"></i></th>
+                    <th class="pl-3 text-center" style="width:12%; max-width: 12%; min-width: 12%" scope="col">TC <i class="fa-solid fa-clock"></i></th>
+                    <th class="pl-3"             style="width:38%; max-width: 38%; min-width: 38%" scope="col">Result</th>
                 </tr>
                 </thead>
                 {% for test in active %}
@@ -52,15 +52,15 @@
 
 
     <h2>Finished</h2>
-    <table class="mw-100 table table-striped datatable" style="table-layout: fixed">
+    <table class="mw-100 table table-sm table-striped datatable" style="table-layout: fixed">
         <thead>
         <tr>
-            <th style="width:10%; max-width: 10%; min-width: 10%" scope="col">Author</th>
-            <th style="width:10%; max-width: 10%; min-width: 10%" scope="col">Engine</th>
-            <th style="width:25%; max-width: 25%; min-width: 25%" scope="col">Name</th>
-            <th style="width: 5%; max-width:  5%; min-width:  5%" scope="col"><i class="fa-brands fa-github"></i></th>
-            <th style="width:12%; max-width: 12%; min-width: 12%" scope="col">TC <i class="fa-solid fa-clock"></i></th>
-            <th style="width:38%; max-width: 38%; min-width: 38%" scope="col">Result</th>
+            <th class="pl-3"             style="width:10%; max-width: 10%; min-width: 10%" scope="col">Author</th>
+            <th class="pl-3"             style="width:10%; max-width: 10%; min-width: 10%" scope="col">Engine</th>
+            <th class="pl-3"             style="width:25%; max-width: 25%; min-width: 25%" scope="col">Name</th>
+            <th class="pl-3 text-center" style="width: 5%; max-width:  5%; min-width:  5%" scope="col"><i class="fa-brands fa-github"></i></th>
+            <th class="pl-3 text-center" style="width:12%; max-width: 12%; min-width: 12%" scope="col">TC <i class="fa-solid fa-clock"></i></th>
+            <th class="pl-3"             style="width:38%; max-width: 38%; min-width: 38%" scope="col">Result</th>
         </tr>
         </thead>
         {% for test in completed %}
