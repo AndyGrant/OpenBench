@@ -4,7 +4,7 @@
 
     {% if paging.page == 1 %}
         {% if pending %}
-            <table class="table table-sm table-striped datatable">
+            <table class="table table-sm table-hover table-striped datatable">
                 <thead>
                 <tr>
                     <th class="pl-3"             scope="col">Author</th>
@@ -29,7 +29,7 @@
 
         {% if active %}
             <h2>Active {{ status }}</h2>
-            <table class="table table-sm table-striped datatable" style="table-layout: fixed">
+            <table class="table table-sm table-hover table-striped datatable" style="table-layout: fixed">
                 <thead>
                 <tr>
                     <th class="pl-3"             style="width:10%; max-width: 10%; min-width: 10%" scope="col">Author</th>
@@ -52,7 +52,7 @@
 
 
     <h2>Finished</h2>
-    <table class="mw-100 table table-sm table-striped datatable" style="table-layout: fixed">
+    <table class="mw-100 table table-sm table-hover table-striped datatable" style="table-layout: fixed">
         <thead>
         <tr>
             <th class="pl-3"             style="width:10%; max-width: 10%; min-width: 10%" scope="col">Author</th>
