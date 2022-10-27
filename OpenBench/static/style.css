@@ -2,13 +2,13 @@ html, body, header {
     height: 100%;
     line-height: 1.5rem;
     font-weight: 400;
-    font-family: Courier, serif;
 }
 
 
 #content .statblock {
     color: black;
     background-color: #CCCCCC;
+    font-family: Courier, serif;
 }
 
 #content .green {
