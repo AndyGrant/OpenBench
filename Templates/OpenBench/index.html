@@ -4,7 +4,9 @@
 
     {% if paging.page == 1 %}
         {% if pending %}
+            <h4>Pending</h4>
             <table class="table table-sm table-hover table-striped datatable">
+
                 <thead>
                 <tr>
                     <th class="px-3"             style="width:10%;" scope="col">Author</th>
@@ -28,16 +30,7 @@
         {% endif %}
 
         {% if active %}
-            <div class="d-flex w-100">
-                <div class="row w-100">
-                    <div class="col-6">
-                        <h2>Active</h2>
-                    </div>
-                    <div class="col-6 text-right float-end text-end">
-                        <h2>{{ status }}</h2>
-                    </div>
-                </div>
-            </div>
+            <h4>Active {{ status }}</h4>
             <table class="table table-sm table-hover table-striped datatable" style="table-layout: fixed">
                 <thead>
                 <tr>
@@ -57,7 +50,7 @@
     {% endif %}
 
 
-    <h2>Finished</h2>
+    <h4>Finished</h4>
     <table class="mw-100 table table-sm table-hover table-striped datatable" style="table-layout: fixed">
         <thead>
         <tr>

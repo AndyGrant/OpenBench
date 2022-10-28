@@ -1,7 +1,7 @@
 {% load mytags %}
 <tr class="w-100" onclick="location.href='/test/{{ test.id }}'">
     <td>
-        <a class="text-left btn btn-primary-outline btn-block" href="/user/{{ test.author }}" role="button">
+        <a class="text-left btn btn-primary-outline btn-block btn-link text-decoration-none " href="/user/{{ test.author }}" role="button">
             {{ test.author|capfirst|slice:":6" }}
         </a>
     </td>

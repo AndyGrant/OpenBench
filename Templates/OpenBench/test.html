@@ -102,7 +102,7 @@
                         {% elif not test.approved and request.user.is_superuser %}
                             <a class="btn btn-success w-100" id="approvebutton" href="/test/{{ test.id }}/APPROVE" role="button">Approve</a>
                         {% else %}
-                            <a class="btn btn-success w-100 disabled "role="button">Approve</a>
+                            <a class="btn btn-secondary w-100 disabled"role="button">Approve</a>
                         {% endif %}
                     </div>
                     <div class="col-3">
@@ -114,7 +114,7 @@
                         {% elif test.finished %}
                             <a class="btn btn-secondary w-100" role="button">Restart</a>
                         {% else %}
-                            <a class="btn btn-light w-100 disabled " role="button">Restart</a>
+                            <a class="btn btn-secondary w-100 disabled " role="button">Restart</a>
                         {% endif %}
                     </div>
                     <div class="col-3">
@@ -126,7 +126,7 @@
                         {% elif not test.finished %}
                             <a class="btn btn-primary w-100 disabled" role="button">Stop</a>
                         {% else %}
-                            <a class="btn btn-light w-100 disabled" role="button">Stop</a>
+                            <a class="btn btn-secondary w-100 disabled" role="button">Stop</a>
                         {% endif %}
                     </div>
                     <div class="col-3">
