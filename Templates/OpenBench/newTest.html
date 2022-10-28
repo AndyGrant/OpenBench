@@ -196,8 +196,8 @@
                     {#                    <h3>Engine</h3>#}
                     <div class="form">
                         <div class="row">
-                            <div class="col-3">
-                                <label for="enginename">Engine</label>
+                            <div class="col-3 pb-2 d-flex align-items-center">
+                                <span for="enginename">Engine</span>
                             </div>
                             <div class="col-9 mb-2">
                                 <select class="form-control form-select" id="enginename" name="enginename"
@@ -207,7 +207,7 @@
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="col-3">
+                            <div class="col-3 d-flex align-items-center">
                                 <label for="enginesource">Source</label>
                             </div>
                             <div class="col-9">
@@ -220,21 +220,21 @@
                 <div class="container-fluid py-3 px-2 mb-4 border rounded bg-dark">
                     {#                    <h3>Dev Settings</h3>#}
                     <div class="form row">
-                        <div class="col-3">
+                        <div class="col-3 pb-2 d-flex align-items-center">
                             <label for="devbench"> Dev Bench </label>
                         </div>
                         <div class="col-9 mb-2">
                             <input id="devbench" class="form-control"
                                    name="devbench">
                         </div>
-                        <div class="col-3">
+                        <div class="col-3 pb-2 d-flex align-items-center">
                             <label for="devbranch"> Dev Branch </label>
                         </div>
                         <div class="col-9 mb-2">
                             <input id="devbranch" class="form-control"
                                    name="devbranch" autofocus>
                         </div>
-                        <div class="col-3">
+                        <div class="col-3 pb-2 d-flex align-items-center">
                             <label for="devoptions"> Dev Options </label>
                         </div>
                         <div class="col-9 mb-2">
@@ -242,7 +242,7 @@
                                    class="form-control"
                                    name="devoptions">
                         </div>
-                        <div class="col-3">
+                        <div class="col-3 d-flex align-items-center">
                             <label for="devnetwork"> Dev Network </label></div>
                         <div class="col-9">
                             <select id="devnetwork"
@@ -254,26 +254,26 @@
                 <div class="container-fluid py-3 px-2 mb-4 border rounded bg-dark">
                     {#                    <h3>Base Settings</h3>#}
                     <div class="form row">
-                        <div class="col-3">
+                        <div class="col-3 pb-2 d-flex align-items-center">
                             <label for="basebench"> Base Bench </label>
                         </div>
                         <div class="col-9 mb-2">
                             <input id="basebench" class="form-control" name="basebench">
                         </div>
-                        <div class="col-3">
+                        <div class="col-3 pb-2 d-flex align-items-center">
                             <label for="basebranch"> Base Branch </label>
                         </div>
                         <div class="col-9 mb-2">
                             <input id="basebranch" class="form-control" name="basebranch">
                         </div>
-                        <div class="col-3">
+                        <div class="col-3 pb-2 d-flex align-items-center">
                             <label for="baseoptions"> Base Options </label>
                         </div>
                         <div class="col-9 mb-2">
                             <input id="baseoptions"
                                    class="form-control" name="baseoptions">
                         </div>
-                        <div class="col-3">
+                        <div class="col-3 d-flex align-items-center">
                             <label for="basenetwork"> Base Network </label>
                         </div>
                         <div class="col-9">
@@ -285,7 +285,7 @@
             <div class="col-12 col-xl-6">
                 <div class="container-fluid py-3 px-2 mb-4 border rounded bg-dark">
                     <div class="form row">
-                        <div class="col-3">
+                        <div class="col-3 pb-2 d-flex align-items-center">
                             <label for="test_mode"> Test Mode </label>
                         </div>
                         <div class="col-9 mb-2">
@@ -295,20 +295,20 @@
                                 <option value="GAMES"> Fixed Games</option>
                             </select>
                         </div>
-                        <div class="col-3">
+                        <div class="col-3 pb-2 d-flex align-items-center">
                             <label for="test_bounds"> Bounds </label>
                         </div>
                         <div class="col-9 mb-2">
                             <input class="form-control" id="test_bounds"
                                                   name="bounds">
                         </div>
-                        <div class="col-3">
+                        <div class="col-3 pb-2 d-flex align-items-center">
                             <label for="test_confidence"> Confidence </label>
                         </div>
                         <div class="col-9 mb-2">
                             <input class="form-control" id="test_confidence" name="confidence">
                         </div>
-                        <div class="col-3">
+                        <div class="col-3 d-flex align-items-center">
                             <label for="test_max_games"> Max Games </label>
                         </div>
                         <div class="col-9">
@@ -321,19 +321,19 @@
                 </div>
                 <div class="container-fluid py-3 px-2 mb-4 border rounded bg-dark">
                     <div class="form row">
-                        <div class="col-3">
+                        <div class="col-3 pb-2 d-flex align-items-center">
                             <label for="priority"> Priority </label>
                         </div>
                         <div class="col-9 mb-2">
                             <input id="priority" class="form-control" value="0" name="priority">
                         </div>
-                        <div class="col-3">
+                        <div class="col-3 pb-2 d-flex align-items-center">
                             <label for="throughput"> Throughput </label>
                         </div>
                         <div class="col-9 mb-2">
                             <input id="throughput" class="form-control" value="1000" name="throughput">
                         </div>
-                        <div class="col-3">
+                        <div class="col-3 pb-2 d-flex align-items-center">
                             <label for="syzygy_adj"> Syzygy ADJ </label>
                         </div>
                         <div class="col-9 mb-2">
@@ -343,8 +343,7 @@
                                 <option value="DISABLED"> Disabled</option>
                             </select>
                         </div>
-                        <div class="col-3">
-
+                        <div class="col-3 d-flex align-items-center">
                             <label for="syzygy_wdl"> Syzygy WDL </label>
                         </div>
                         <div class="col-9">
@@ -361,7 +360,7 @@
                 <div class="container-fluid py-3 px-2 mb-4 border rounded bg-dark">
                     {#                    <h3>Game Settings</h3>#}
                     <div class="form row">
-                        <div class="col-3">
+                        <div class="col-3 pb-2 d-flex align-items-center">
                         <label for="bookname">Book</label>
                         </div>
                         <div class="col-9 mb-2">
@@ -371,7 +370,7 @@
                             {% endfor %}
                         </select>
                         </div>
-                        <div class="col-3">
+                        <div class="col-3 d-flex align-items-center">
                             <label for="timecontrol">Time</label>
                         </div>
                         <div class="col-9">

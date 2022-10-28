@@ -4,11 +4,11 @@
 
 {% block content %}
 
-    <table class="table table-hover table-sm table-striped">
+    <table class="table table-hover table-sm table-hover table-striped">
         <thead>
 
         <tr>
-            <th>Username</th>
+            <th class="px-2">Username</th>
             <th>Games</th>
             <th>Tests</th>
             <th>Engine</th>
@@ -28,8 +28,8 @@
         {% for profile in profiles %}
             {% if profile.enabled %}
                 {% if profile.games or profile.tests %}
-                    <tr>
-                        <td><a href="/user/{{ profile.user.username }}">{{ profile.user.username|capfirst }}</a></td>
+                    <tr onclick="window.location='/user/{{ profile.user.username }}'">
+                        <td><a class="text-decoration-none text-white px-2" href="/user/{{ profile.user.username }}">{{ profile.user.username|capfirst }}</a></td>
                         <td style="text-align: right">{{ profile.games|insertCommas }}</td>
                         <td style="text-align: right">{{ profile.tests|insertCommas }}</td>
                         <td>{{ profile.engine }}</td>
