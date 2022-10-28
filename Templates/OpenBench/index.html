@@ -28,7 +28,16 @@
         {% endif %}
 
         {% if active %}
-            <h2>Active {{ status }}</h2>
+            <div class="d-flex w-100">
+                <div class="row w-100">
+                    <div class="col-6">
+                        <h2>Active</h2>
+                    </div>
+                    <div class="col-6 text-right float-end text-end">
+                        <h2>{{ status }}</h2>
+                    </div>
+                </div>
+            </div>
             <table class="table table-sm table-hover table-striped datatable" style="table-layout: fixed">
                 <thead>
                 <tr>
