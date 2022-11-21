@@ -5,23 +5,23 @@
 {% block content %}
 
     <table class="table table-hover table-sm table-hover table-striped">
-        <thead>
+        <thead class="bg-black">
 
         <tr>
-            <th class="px-2">Username</th>
-            <th>Games</th>
-            <th>Tests</th>
-            <th>Engine</th>
-            <th>Default Repository</th>
+            <th style="color: green" class="px-2">Username</th>
+            <th style="color: green; text-align: center">Games</th>
+            <th style="color: green; text-align: center">Tests</th>
+            <th style="color: green">Engine</th>
+            <th style="color: green">Default Repository</th>
         </tr>
         </thead>
-        <thead>
+        <thead  class="bg-black">
         <tr style="font-weight: bold">
-            <th></th>
-            <th style="text-align: right">{{ profiles|sumAttributes:"games"|insertCommas }}</th>
-            <th style="text-align: right">{{ profiles|sumAttributes:"tests"|insertCommas }}</th>
-            <th></th>
-            <th></th>
+            <th style="color: green"></th>
+            <th style="color: green; text-align: right">{{ profiles|sumAttributes:"games"|insertCommas }}</th>
+            <th style="color: green; text-align: right">{{ profiles|sumAttributes:"tests"|insertCommas }}</th>
+            <th style="color: green"></th>
+            <th style="color: green"></th>
         </tr>
         </thead>
 

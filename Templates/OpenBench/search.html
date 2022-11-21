@@ -105,18 +105,18 @@
     {% endif %}
 
     <table class="table table-hover table-sm table-striped datatable" style="table-layout: fixed">
-        <thead>
-        {% if tests != empty %}
-            <tr>
-                <th class="text-center" style="width:10%; max-width: 10%; min-width: 10%"  scope="col">Author</th>
-                <th class="text-center" style="width:10%; max-width: 10%; min-width: 10%"  scope="col">Engine</th>
-                <th class="text-center" style="width:25%; max-width: 25%; min-width: 25%"  scope="col">Name</th>
-                <th class="text-center" style="width: 5%; max-width:  5%; min-width:  5%"  scope="col"><i class="fa-brands fa-github"></i></th>
-                <th class="text-center" style="width:12%; max-width: 12%; min-width: 12%"  scope="col">TC <i class="fa-solid fa-clock"></i></th>
-                <th class="text-center" style="width:38%; max-width: 38%; min-width: 38%"  scope="col">Result</th>
-            </tr>
-        {% endif %}
 
+        <thead class="bg-black rounded-top">
+        {% if tests != empty %}
+        <tr>
+            <th class="px-3"             style="width:10%; color:green;" scope="col">Author</th>
+            <th class="px-3"             style="width:10%; color:green;" scope="col">Engine</th>
+            <th class="px-3"             style="           color:green;" scope="col">Name</th>
+            <th class="px-3 text-center" style="width: 5%; color:green;" scope="col"><i class="fa-brands fa-github"></i></th>
+            <th class="px-3 text-center" style="width:12%; color:green;" scope="col">TC <i class="fa-solid fa-clock"></i></th>
+            <th class="px-3"             style="           color:green;" scope="col">Result</th>
+        </tr>
+        {% endif %}
         </thead>
         {% for test in tests %}
             {% include "OpenBench/Blocks/testsummary.html" %}

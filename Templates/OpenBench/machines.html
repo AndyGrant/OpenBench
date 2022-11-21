@@ -5,15 +5,15 @@
 {% block content %}
 
     <table class="table table-striped table-sm table-hover">
-        <thead>
+        <thead class="bg-black">
         <tr>
-            <th>#</th>
-            <th>User</th>
-            <th>System</th>
-            <th>Updated</th>
-            <th>Workload</th>
-            <th>Threads</th>
-            <th>MNPS</th>
+            <th style="color:green;">#</th>
+            <th style="color:green;">User</th>
+            <th style="color:green;">System</th>
+            <th style="color:green;">Updated</th>
+            <th style="color:green;">Workload</th>
+            <th style="color:green;">Threads</th>
+            <th style="color:green;">MNPS</th>
         </tr>
         </thead>
         {% for machine in machines %}

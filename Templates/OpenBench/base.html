@@ -78,62 +78,70 @@
     <div class="container container-xxl" style="max-width: 1540px;">
         <div class="row h-100">
             <div class="col-12 col-md-3 col-xl-2 h-75 pt-5">
-                <label class="mb-2">
-                    <strong>Admin<br></strong>
-                </label>
+                <label class="mb-2" style="color:green;"><strong>Admin<br></strong></label>
                 <ul class="list-unstyled font-weight-normal pb-2 w-100">
                     {% if user.is_authenticated %}
                         <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light"
-                               href="/logout/"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+                               href="/logout/"><i class="fa-solid fa-right-from-bracket fa-fw"></i> Logout</a></li>
                         <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light"
-                               href="/profile/"><i class="fa-solid fa-user"></i> Profile</a></li>
+                               href="/profile/"><i class="fa-solid fa-user fa-fw"></i> Profile</a></li>
                     {% else %}
                         <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light"
-                               href="/login"><i class="fa-solid fa-right-to-bracket"></i> Login</a></li>
+                               href="/login"><i class="fa-solid fa-right-to-bracket fa-fw"></i> Login</a></li>
                         <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light"
-                               href="/register"><i class="fa-solid fa-registered"></i> Register</a></li>
+                               href="/register"><i class="fa-solid fa-registered fa-fw"></i> Register</a></li>
                     {% endif %}
                 </ul>
+
                 <hr>
-                <label class="mb-2"><strong>Tests<br></strong></label>
+
+                <label class="mb-2" style="color:green;"><strong>Tests<br></strong></label>
                 <ul class="list-unstyled font-weight-normal pb-2">
                     <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light" href="/index"><i
-                            class="fa-solid fa-house"></i> Index</a></li>
+                            class="fa-solid fa-house fa-fw"></i> Index</a></li>
                     <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light" href="/greens"><i
-                            class="fa-solid fa-heart"></i> Greens</a></li>
+                            class="fa-solid fa-heart fa-fw"></i> Greens</a></li>
                     <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light" href="/search"><i
-                            class="fa-solid fa-magnifying-glass"></i> Search</a></li>
+                            class="fa-solid fa-magnifying-glass fa-fw"></i> Search</a></li>
                 </ul>
+
                 <hr>
-                <label class="mb-2"><strong>Actions<br></strong></label>
+
+                <label class="mb-2" style="color:green;"><strong>Actions<br></strong></label>
                 <ul class="list-unstyled font-weight-normal pb-2">
                     <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light" href="/newTest"><i
-                            class="fa-solid fa-plus"></i> Create Test</a></li>
+                            class="fa-solid fa-plus fa-fw"></i> Create Test</a></li>
                     <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light"
-                           href="/networks/upload"><i class="fa-solid fa-upload"></i> Upload Network</a></li>
+                           href="/networks/upload"><i class="fa-solid fa-upload fa-fw"></i> Upload Network</a></li>
                 </ul>
+
                 <hr>
-                <label class="mb-2"><strong>Info<br></strong></label>
+
+                <label class="mb-2" style="color:green;"><strong>Info<br></strong></label>
                 <ul class="list-unstyled font-weight-normal pb-2">
                     <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light" href="/users"><i
-                            class="fa-solid fa-users"></i> Users</a></li>
+                            class="fa-solid fa-users fa-fw"></i> Users</a></li>
                     <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light" href="/events"><i
-                            class="fa-solid fa-circle-exclamation"></i> Events</a></li>
+                            class="fa-solid fa-circle-exclamation fa-fw"></i> Events</a></li>
                     <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light" href="/machines"><i
-                            class="fa-solid fa-microchip"></i> Machines</a></li>
+                            class="fa-solid fa-microchip fa-fw"></i> Machines</a></li>
                     <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light" href="/networks"><i
-                            class="fa-solid fa-circle-nodes"></i> Networks</a></li>
+                            class="fa-solid fa-circle-nodes fa-fw"></i> Networks</a></li>
                 </ul>
+
                 <hr>
-                <label class="mb-2"><strong>Support<br></strong></label>
+
+                <label class="mb-2" style="color:green;"><strong>Support<br></strong></label>
                 <ul class="list-unstyled font-weight-normal pb-2">
                     <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light"
-                           href="{{ config.framework }}"><i class="fa-brands fa-github"></i> OpenBench</a></li>
+                           href="{{ config.framework }}"><i class="fa-brands fa-github fa-fw"></i> OpenBench</a></li>
                     <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light"
-                           href="https://discord.gg/9MVg7fBTpM"><i class="fa-brands fa-discord"></i> Discord</a></li>
+                           href="https://discord.gg/9MVg7fBTpM"><i class="fa-brands fa-discord fa-fw"></i> Discord</a></li>
                 </ul>
+
                 <hr>
-                <label class="mb-2"><strong>Engines<br></strong></label>
+
+                <label class="mb-2" style="color:green;"><strong>Engines<br></strong></label>
                 <ul class="list-unstyled font-weight-normal pb-2">
                     {% for engine, data in config.engines.items|dictsort:"0.lower" %}
                         <li><a class="w-100 rounded border-0 btn btn-outline-dark text-start text-light"
@@ -141,7 +149,7 @@
                     {% endfor %}
                 </ul>
             </div>
-            <div class="col-12 col-md-9 col-xl-10  pt-5">
+            <div class="col-12 col-md-9 col-xl-10 pt-5">
                 <div class="w-100 mb-5" id="content">
                     {% block content %}
                     {% endblock %}

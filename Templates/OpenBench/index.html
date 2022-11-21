@@ -4,22 +4,22 @@
 
     {% if paging.page == 1 %}
         {% if pending %}
-            <h4>Pending</h4>
+            <div class="align-self-center w-100 text-center mt-4 bg-black font-weight-bold mb-0 py-2 rounded-top" style="color:green;">
+                <h5>
+                    Pending
+                </h5>
+            </div>
             <table class="table table-sm table-hover table-striped datatable">
-
-                <thead>
+                <thead class="bg-black">
                 <tr>
-                    <th class="px-3"             style="width:10%;" scope="col">Author</th>
-                    <th class="px-3"             style="width:10%;" scope="col">Engine</th>
-                    <th class="px-3"                                scope="col">Name</th>
-                    <th class="px-3 text-center" style="width: 5%;" scope="col"><i class="fa-brands fa-github"></i></th>
-                    <th class="px-3 text-center" style="width:12%;" scope="col">TC <i class="fa-solid fa-clock"></i></th>
-                    <th class="px-3"                                scope="col">Result</th>
+                    <th class="px-3"             style="width:10%; color:green;" scope="col">Author</th>
+                    <th class="px-3"             style="width:10%; color:green;" scope="col">Engine</th>
+                    <th class="px-3"             style="           color:green;" scope="col">Name</th>
+                    <th class="px-3 text-center" style="width: 5%; color:green;" scope="col"><i class="fa-brands fa-github"></i></th>
+                    <th class="px-3 text-center" style="width:12%; color:green;" scope="col">TC <i class="fa-solid fa-clock"></i></th>
+                    <th class="px-3"             style="           color:green;" scope="col">Result</th>
                 </tr>
                 </thead>
-                <tr>
-                    <th colspan='6'>Pending</th>
-                </tr>
                 {% for test in pending %}
                     {% include "OpenBench/Blocks/testsummary.html" %}
                 {% endfor %}
@@ -30,16 +30,20 @@
         {% endif %}
 
         {% if active %}
-            <h4>Active {{ status }}</h4>
+            <div class="align-self-center w-100 text-center mt-4 bg-black font-weight-bold mb-0 py-2 rounded-top" style="color:green;">
+                <h5>
+                    Active {{ status }}
+                </h5>
+            </div>
             <table class="table table-sm table-hover table-striped datatable" style="table-layout: fixed">
-                <thead>
+                <thead class="bg-black">
                 <tr>
-                    <th class="px-3"             style="width:10%;" scope="col">Author</th>
-                    <th class="px-3"             style="width:10%;" scope="col">Engine</th>
-                    <th class="px-3"                                scope="col">Name</th>
-                    <th class="px-3 text-center" style="width: 5%;" scope="col"><i class="fa-brands fa-github"></i></th>
-                    <th class="px-3 text-center" style="width:12%;" scope="col">TC <i class="fa-solid fa-clock"></i></th>
-                    <th class="px-3"                                scope="col">Result</th>
+                    <th class="px-3"             style="width:10%; color:green;" scope="col">Author</th>
+                    <th class="px-3"             style="width:10%; color:green;" scope="col">Engine</th>
+                    <th class="px-3"             style="           color:green;" scope="col">Name</th>
+                    <th class="px-3 text-center" style="width: 5%; color:green;" scope="col"><i class="fa-brands fa-github"></i></th>
+                    <th class="px-3 text-center" style="width:12%; color:green;" scope="col">TC <i class="fa-solid fa-clock"></i></th>
+                    <th class="px-3"             style="           color:green;" scope="col">Result</th>
                 </tr>
                 </thead>
                 {% for test in active %}
@@ -50,16 +54,20 @@
     {% endif %}
 
 
-    <h4>Finished</h4>
+    <div class="align-self-center w-100 text-center mt-4 bg-black font-weight-bold mb-0 py-2 rounded-top" style="color:green;">
+        <h5>
+            Finished
+        </h5>
+    </div>
     <table class="mw-100 table table-sm table-hover table-striped datatable" style="table-layout: fixed">
-        <thead>
+        <thead class="bg-black">
         <tr>
-            <th class="px-3"             style="width:10%;" scope="col">Author</th>
-            <th class="px-3"             style="width:10%;" scope="col">Engine</th>
-            <th class="px-3"                                scope="col">Name</th>
-            <th class="px-3 text-center" style="width: 5%;" scope="col"><i class="fa-brands fa-github"></i></th>
-            <th class="px-3 text-center" style="width:12%;" scope="col">TC <i class="fa-solid fa-clock"></i></th>
-            <th class="px-3"                                scope="col">Result</th>
+            <th class="px-3"             style="width:10%; color:green;" scope="col">Author</th>
+            <th class="px-3"             style="width:10%; color:green;" scope="col">Engine</th>
+            <th class="px-3"             style="           color:green;" scope="col">Name</th>
+            <th class="px-3 text-center" style="width: 5%; color:green;" scope="col"><i class="fa-brands fa-github"></i></th>
+            <th class="px-3 text-center" style="width:12%; color:green;" scope="col">TC <i class="fa-solid fa-clock"></i></th>
+            <th class="px-3"             style="           color:green;" scope="col">Result</th>
         </tr>
         </thead>
         {% for test in completed %}

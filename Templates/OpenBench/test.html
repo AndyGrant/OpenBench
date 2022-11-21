@@ -121,8 +121,6 @@
                         <!-- Stop Button: For Approvers or Test Authors of active tests -->
                         {% if not test.finished and profile.approver %}
                             <a class="btn btn-danger w-100" id="restartbutton" href="/test/{{ test.id }}/STOP" role="button">Stop</a>
-                        {% elif not test.finished and profile.user.username == test.author %}
-                            <a class="btn btn-danger w-100" id="restartbutton" href="/test/{{ test.id }}/STOP" role="button">Stop</a>
                         {% elif not test.finished %}
                             <a class="btn btn-primary w-100 disabled" role="button">Stop</a>
                         {% else %}
