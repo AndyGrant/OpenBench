@@ -4,9 +4,8 @@
 
 {% block content %}
 
-    <table class="table table-hover table-sm table-hover table-striped">
+    <table class="table table-hover table-sm table-hover rounded-top text-light">
         <thead class="bg-black">
-
         <tr>
             <th style="color: green" class="px-2">Username</th>
             <th style="color: green; text-align: center">Games</th>
@@ -15,21 +14,19 @@
             <th style="color: green">Default Repository</th>
         </tr>
         </thead>
-        <thead  class="bg-black">
-        <tr style="font-weight: bold">
-            <th style="color: green"></th>
-            <th style="color: green; text-align: right">{{ profiles|sumAttributes:"games"|insertCommas }}</th>
-            <th style="color: green; text-align: right">{{ profiles|sumAttributes:"tests"|insertCommas }}</th>
-            <th style="color: green"></th>
-            <th style="color: green"></th>
+        <tr class="bg-black" style="font-weight: bold;">
+            <th style=""></th>
+            <th style="text-align: right">{{ profiles|sumAttributes:"games"|insertCommas }}</th>
+            <th style="text-align: right">{{ profiles|sumAttributes:"tests"|insertCommas }}</th>
+            <th style=""></th>
+            <th style=""></th>
         </tr>
-        </thead>
 
         {% for profile in profiles %}
             {% if profile.enabled %}
                 {% if profile.games or profile.tests %}
-                    <tr onclick="window.location='/user/{{ profile.user.username }}'">
-                        <td><a class="text-decoration-none text-white px-2" href="/user/{{ profile.user.username }}">{{ profile.user.username|capfirst }}</a></td>
+                    <tr class="text-light" onclick="window.location='/user/{{ profile.user.username }}'">
+                        <td><a class="text-decoration-none px-2" href="/user/{{ profile.user.username }}">{{ profile.user.username|capfirst }}</a></td>
                         <td style="text-align: right">{{ profile.games|insertCommas }}</td>
                         <td style="text-align: right">{{ profile.tests|insertCommas }}</td>
                         <td>{{ profile.engine }}</td>

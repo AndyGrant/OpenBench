@@ -2,13 +2,15 @@ html, body, header {
     height: 100%;
     line-height: 1.5rem;
     font-weight: 400;
+    font-size: 1.0rem;
+    font-family: monospace;
 }
 
 
 #content .statblock {
     color: black;
     background-color: #CCCCCC;
-    font-family: Courier, serif;
+    font-family: monospace;
 }
 
 #content .green {
@@ -19,6 +21,23 @@ html, body, header {
 #content .yellow {
     background-color: #EEF788
 
+}
+
+
+.w-10{
+    width: 10%;
+}
+
+.w-5{
+    width: 5%;
+}
+
+.w-12{
+    width: 12%;
+}
+
+.mw-30{
+    min-width: 30%;
 }
 
 #content .red {
