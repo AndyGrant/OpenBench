@@ -1,13 +1,48 @@
-<div id="pagebrowse">
+<div class="d-flex justify-content-center mb-5" id="pagebrowse">
+
     {% if paging.prev != paging.next %}
-        <a class="page" href="/{{paging.url}}/{{paging.prev}}">&lt;--</a>
-        {% for page in paging.pages %}
-            {% if page != "..." %}
-                <a class="page" href="/{{paging.url}}/{{page}}">{{page}}</a>
-            {% else %}
-                <a class="page"> {{page}} </a>
-            {% endif %}
-        {% endfor %}
-        <a class="page" href="/{{paging.url}}/{{paging.next}}">--&gt;</a>
+
+        <nav aria-label="Page navigation">
+            <ul class="pagination">
+                <li class="page-item"><a class="page-link" href="/{{paging.url}}/{{paging.prev}}"><i class="fa-solid fa-arrow-left"></i></a></li>
+                {% for page in paging.pages %}
+
+                    {% if page == paging.page %}
+                        <li class="page-item"><a class="page-link bg-light" href="/{{paging.url}}/{{page}}">{{page}}</a></li>
+                    {% elif page != "..." %}
+                        <li class="page-item"><a class="page-link" href="/{{paging.url}}/{{page}}">{{page}}</a></li>
+                    {% else %}
+                        <li class="page-item"><a class="page-link" href="#">{{page}}</a></li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item"><a class="page-link" href="/{{paging.url}}/{{paging.next}}"><i class="fa-solid fa-arrow-right"></i></a></li>
+            </ul>
+        </nav>
+
     {% endif %}
+
+    {#    {% if paging.prev != paging.next %}#}
+    {#        <a class="page" href="/{{paging.url}}/{{paging.prev}}">&lt;--</a>#}
+    {#        {% for page in paging.pages %}#}
+    {#            {% if page != "..." %}#}
+    {#                <a class="page" href="/{{paging.url}}/{{page}}">{{page}}</a>#}
+    {#            {% else %}#}
+    {#                <a class="page"> {{page}} </a>#}
+    {#            {% endif %}#}
+    {#        {% endfor %}#}
+    {#        <a class="page" href="/{{paging.url}}/{{paging.next}}">--&gt;</a>#}
+    {#    {% endif %}#}
+
+    {##}
+    {#    {% if paging.prev != paging.next %}#}
+    {#        <a class="page" href="/{{paging.url}}/{{paging.prev}}">&lt;--</a>#}
+    {#        {% for page in paging.pages %}#}
+    {#            {% if page != "..." %}#}
+    {#                <a class="page" href="/{{paging.url}}/{{page}}">{{page}}</a>#}
+    {#            {% else %}#}
+    {#                <a class="page"> {{page}} </a>#}
+    {#            {% endif %}#}
+    {#        {% endfor %}#}
+    {#        <a class="page" href="/{{paging.url}}/{{paging.next}}">--&gt;</a>#}
+    {#    {% endif %}#}
 </div>

@@ -4,30 +4,55 @@
 
     <form method="POST" action="/profile/">
         {% csrf_token %}
+        <div class="form-group">
+            <div class="row">
+                <div class="col-12 col-xl-6">
+                    <label for="profile-username-input">Username</label>
+                    <input class="form-control" id="profile-username-input" disabled readonly
+                           value="{{ profile.user.username }}"><br>
+                </div>
+                <div class="col-12 col-xl-6">
+                    <label for="profile-email-input">Email</label>
+                    <input class="form-control" id="profile-email-input" name="email" placeholder="name@example.com"
+                           value="{{ profile.user.email }}"><br>
+                </div>
+                <div class="col-12 col-xl-6">
+                    <label for="profile-password-1-input">New Password</label>
+                    <input class="form-control" id="profile-password-1-input" type="password" autocomplete="off" name="password1" placeholder="New password"><br>
+                </div>
+                <div class="col-12 col-xl-6">
+                    <label for="profile-password-2-input">New Password</label>
+                    <input class="form-control" id="profile-password-2-input" type="password" autocomplete="off" name="password2" placeholder="Repeat your password"><br>
+                </div>
+                <div class="col-12 col-xl-6">
+                    <label for="profile-repo-input">Source Repository</label>
+                    <input class="form-control" id="profile-repo-input" name="repo" value="{{ profile.repo }}"><br>
+{#                    <div class="input-group">#}
+{#                        <span class="input-group-text">https://github.com/</span>#}
+{#                    </div>#}
+                </div>
+                <div class="col-12 col-xl-6">
+                    <label for="engine">Engine</label>
+                    <select id="engine" name="engine" class="form-control form-select mb-4"
+                            aria-label="Default select example">
+                        {% for engine in config.engines %}
+                            {% if profile.engine == engine %}
+                                <option selected value="{{ engine }}">{{ engine }}</option>
+                            {% else %}
+                                <option value="{{ engine }}">{{ engine }}</option>
+                            {% endif %}
+                        {% endfor %}
+                        {% if not profile.engine %}
+                            <option selected value=""></option>
+                        {% endif %}
+                    </select>
+                </div>
+                <div class="col-12 mt-2">
+                    <input class="btn btn-primary" type="submit" value="Update Profile">
+                </div>
+            </div>
 
-        <!-- Profile information. Everything may be changed but the Username -->
-        <label>Username</label><input readonly value="{{profile.user.username}}"><br>
-        <label>Email</label><input value="{{profile.user.email}}" name="email"><br>
-        <label>Source Repo</label><input value="{{profile.repo}}" name="repo"><br>
-        <label>New Password</label><input type="password" name="password1"><br>
-        <label>New Password</label><input type="password" name="password2"><br>
-
-        <!-- User's have a default engine. Select the default, otherwise show an empty line -->
-        <label>Engine</label> <select id="engine" name="engine">
-            {% for engine in config.engines %}
-                {% if profile.engine == engine %}
-                    <option selected value="{{engine}}">{{engine}}</option>
-                {% else %}
-                    <option value="{{engine}}">{{engine}}</option>
-                {% endif %}
-            {% endfor %}
-            {% if not profile.engine %}
-                <option selected value=""></option>
-            {% endif %}
-        </select><br>
-
-        <input type="submit" value="Update Profile">
-
+        </div>
     </form>
 
 {% endblock %}

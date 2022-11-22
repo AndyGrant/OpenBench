@@ -4,11 +4,24 @@
 
     <form id="registerForm" method="POST" action="/register/">
         {% csrf_token %}
-        <label>Username</label> <input name="username"><br>
-        <label>Password</label> <input type="password" name="password1"><br>
-        <label>Password</label> <input type="password" name="password2"><br>
-        <label>Email   </label> <input name="email"><br>
-        <input type="submit" name="submit" value="Create User">
+        <form>
+            <div class="row">
+                <div class="col-6">
+                    <label for="username">Username</label> <input class="form-control" id="username" name="username"><br>
+                </div>
+                <div class="col-6">
+                    <label for="email">Email </label> <input class="form-control" id="email" name="email"><br>
+                </div>
+                <div class="col-6">
+                    <label for="password1">Password</label> <input class="form-control" type="password" id="password1" name="password1" autocomplete="off"><br>
+                </div>
+                <div class="col-6">
+                    <label for="password2">Password</label> <input class="form-control" type="password" id="password2" name="password2" autocomplete="off"><br>
+                </div>
+            </div>
+        </form>
+
+        <input class="btn btn-primary" type="submit" name="submit" value="Create User">
     </form>
 
 {% endblock %}
