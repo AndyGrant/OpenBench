@@ -4,21 +4,9 @@
 
     <form method="POST" action="/login/">
         {% csrf_token %}
-        <div class="form-group">
-            <div class="row">
-                <div class="col-12 col-xl-6">
-                    <label for="login-username-input">Username</label>
-                    <input class="form-control" id="login-username-input" type="text" name="username" placeholder="Your Username"><br>
-                </div>
-                 <div class="col-12 col-xl-6">
-                    <label for="login-password-input">Password</label>
-                    <input class="form-control" id="login-username-input" type="password" name="password" placeholder="Your Password"><br>
-                </div>
-            </div>
-            <input class="btn btn-primary" type="submit" name="submit" value="Login">
-        </div>
-{#        <label type="text">Username</label> <input type="text" name="username"><br>#}
-{#        <label type="text">Password</label> <input type="password" name="password"><br>#}
+        <label type="text">Username</label> <input type="text" name="username"><br>
+        <label type="text">Password</label> <input type="password" name="password"><br>
+        <input type="submit" name="submit" value="Login">
     </form>
 
 {% endblock %}

@@ -379,7 +379,7 @@ def machines(request):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    data = {'machines' : OpenBench.utils.getRecentMachines(10080)}
+    data = {'machines' : OpenBench.utils.getRecentMachines()}
     return render(request, 'machines.html', data)
 
 

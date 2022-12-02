@@ -4,54 +4,31 @@
 
 {% block content %}
 
-    <table class="table table-striped table-sm table-hover">
-        <thead class="bg-black">
+    <table>
+
         <tr>
-            <th style="color:green">Date</th>
-            <th style="color:green">User</th>
-            <th style="color:green">Test</th>
-            <th style="color:green">Worker</th>
-            <th style="color:green">TC</th>
-            <th style="color:green">Summary</th>
-            <th style="color:green">Logs</th>
+            <th>Date</th>
+            <th>User</th>
+            <th>Test</th>
+            <th>Worker</th>
+            <th>TC</th>
+            <th>Summary</th>
+            <th>Logs</th>
         </tr>
-        </thead>
 
         {% for event in events %}
             <tr>
-                <td class="timestamp">
-                    {{ event.created|date:'U' }}
-                </td>
-                <td>
-                    {{ event.author|capfirst }}
-                </td>
-                <td>
-                    <a class="text-decoration-none" href="/test/{{ event.test_id }}">
-                        {{ event.test_id|testIdToPrettyName }}
-                    </a>
-                </td>
-                <td>
-                    {% if event.machine_id %}
-                        {{ event.machine_id }}
-                    {% endif %}
-                </td>
-                <td>
-                    {{ event.test_id|testIdToTimeControl }}
-                </td>
-                <td>
-                    {{ event.summary }}
-                </td>
-                <td>
-                    {% if event.log_file %}
-                        <a href='/event/{{ event.id }}'>
-                            <i class="fa fa-download"></i>
-                        </a>
-                    {% endif %}
-                </td>
+                <td class="timestamp">{{event.created|date:'U'}}</td>
+                <td>{{event.author|capfirst}}</td>
+                <td><a href="/test/{{event.test_id}}">{{event.test_id|testIdToPrettyName}}</a></td>
+                <td>{% if event.machine_id %} {{event.machine_id}} {% endif %}</td>
+                <td>{{event.test_id|testIdToTimeControl}}</td>
+                <td>{{event.summary}}</td>
+                <td>{% if event.log_file %}<a href='/event/{{event.id}}'>View</a>{% endif %}</td>
             </tr>
         {% endfor %}
 
-    </table>
+    <table>
 
     {% include "OpenBench/Blocks/pagebrowser.html" %}
 

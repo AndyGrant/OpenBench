@@ -1,27 +1,295 @@
-html, body, header {
-    height: 100%;
-    line-height: 1.5rem;
-    font-weight: 400;
+body {
+    font-family: "Courier Prime";
+    font-size: 18px;
+    background: #303030;
 }
 
+a:link, a:visited, a:hover, a:active {
+    text-decoration: none;
+    color: #FFFFFF;
+}
+
+#sidebar {
+    float: left;
+    margin: 16px;
+    margin-top: 60px;
+}
+
+#sidebar ul {
+    list-style-type: none;
+    padding: 0px 18px;
+}
+
+#sidebar li a {
+    color: #A2A2A2;
+    font-size: 15px;
+}
+
+#sidebar .header {
+    font-size: 15px;
+    color: #00AF00;
+}
+
+#content {
+    float: left;
+    margin-top: 0;
+    color: #EAEAEA;
+}
+
+#content label {
+    width: 128px;
+    padding-right: 10px;
+    text-align: right;
+    display: inline-block;
+    color: #A2A2A2;
+    font-size: 14px;
+}
+
+#content input, #content select {
+    background-color: #BBBBBB;
+    color: #000000;
+    padding: 10px;
+    margin: 1px 0px;
+    width: 320px;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+}
+
+#content button {
+    padding: 8px 0px;
+    margin: 2px 0px;
+    display: inline-block;
+    vertical-align: middle;
+    width: 290px;
+    background-color: #777777;
+    color: black;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+#content button:hover {
+    background-color: #00AF00;
+}
+
+#content input[type=submit] {
+    background-color: #00AF00;
+    color: #000000;
+    border: none;
+    border-radius: 16px;
+    cursor: pointer;
+    width: 100%;
+    font-weight: bold;
+}
+
+#content input:read-only {
+    font-weight: bold;
+}
+
+#content input:-moz-read-only {
+    font-weight: bold;
+}
+
+#content #configuration {
+    float: left;
+    margin-top: 20px;
+}
+
+#content #actions {
+    margin-left: 32px;
+    float: right;
+}
+
+#content #actions h4 {
+    color: #A2A2A2;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+#content #actions .anchorbutton {
+    color: #000000;
+    padding: 8px 8px;
+    margin: 0px 8px;
+    border-radius: 16px;
+    font-weight: bold;
+    text-align: center;
+    display: inline-block;
+    width: 25%;
+}
+
+#content #actions .anchorbutton a:hover {
+    background-color: #00AF00;
+}
+
+#content #actions #approvebutton {
+    background-color: #9DF779;
+}
+
+#content #actions #stopbutton {
+    background-color: #EEF788;
+}
+
+#content #actions #restartbutton {
+    background-color: #EEF788;
+}
+
+#content #actions #deletebutton {
+    background-color: #FA8E8E;
+}
+
+#content #actions .deadbutton {
+    background-color: #808080;
+    pointer-events: none;
+}
+
+#content #actions input {
+    width: 260px;
+}
+
+#content #actions input[type=submit] {
+    width: 100%;
+}
+
+#content .left-align {
+    text-align: left;
+}
+
+#content tr:hover {
+    background-color: #666666;
+}
+
+#content th {
+    color: #00AF00;
+    font-size: 16px;
+    font-weight: 100;
+    padding: 7px 12px 5px 12px;
+    background-color: #000000;
+}
+
+#content td {
+    padding: 7px 12px 5px 12px;
+}
+
+#content .numeric {
+    text-align: right;
+}
+
+#content tr {
+    background-color: #202020;
+}
+
+#content .table-spacer th {
+    background: #303030;
+    height: 16px;
+}
 
 #content .statblock {
+    line-height: 70%;
     color: black;
     background-color: #CCCCCC;
-    font-family: Courier, serif;
+    border-radius: 4px;
+    font-family: "Courier New";
 }
 
 #content .green {
-    background-color: #6bd26b
-    /*background: linear-gradient(to bottom, #75bb76 0%, #44EB44 100%);*/
+    background-color: #9DF779
 }
 
 #content .yellow {
     background-color: #EEF788
-
 }
 
 #content .red {
-    /*background: linear-gradient(to bottom, #FA8E8E 0%, #da7474 100%);*/
     background-color: #FA8E8E
+}
+
+#content #results {
+    display: inline-block;
+    width: inherit;
+}
+
+#content table {
+    line-height: 96%;
+}
+
+#content .textcenter {
+    text-align: center;
+}
+
+#content strong {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+#content a:not(.TitleLink) {
+    font-weight: 100;
+    color: #8BBAD6;
+}
+
+#content a.redlink {
+    color: #FF4D4D;
+}
+
+#content a.unstarred {
+    color: #808080;
+}
+
+#content h1, h2, h3 {
+    color: #a7a7a7;
+    text-align: center;
+}
+
+#content #pagebrowse {
+    text-align: center;
+    margin: 16px 0px 16px 0px;
+}
+
+#content .page {
+    text-align: center;
+    display: inline-block;
+    padding: 8px 0px;
+    width: 5%;
+    background-color: #1A1A1A;
+    border-radius: 8px;
+}
+
+#content .page:hover {
+    background-color: #00AF00;
+}
+
+#error {
+    background-color: #EE7676;
+    padding: 8px;
+    text-align: center;
+}
+
+#content form h3 {
+    margin-left: 110px;
+    margin-bottom: 2px;
+    font-size: 16px;
+    font-weight: normal;
+    color: #00AF00;
+}
+
+#content h4 a {
+    font-size: 18px;
+}
+
+#content form .settings-column {
+    float: left;
+    padding-bottom: 16px;
+}
+
+#content #test-mode-buttons button {
+    width: 49.8%;
+}
+
+#content #test-mode-buttons .left-floated {
+    float: left;
+}
+
+#content #test-mode-buttons .right-floated {
+    float: right;
 }

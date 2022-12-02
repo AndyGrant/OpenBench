@@ -4,39 +4,35 @@
 
 {% block content %}
 
-    <table class="table table-hover table-sm table-hover table-striped">
-        <thead class="bg-black">
+    <table>
 
         <tr>
-            <th style="color: green" class="px-2">Username</th>
-            <th style="color: green; text-align: center">Games</th>
-            <th style="color: green; text-align: center">Tests</th>
-            <th style="color: green">Engine</th>
-            <th style="color: green">Default Repository</th>
+	    <th>Username</th>
+            <th>Games</th>
+            <th>Tests</th>
+	    <th>Engine</th>
+            <th>Default Repository</th>
         </tr>
-        </thead>
-        <thead  class="bg-black">
+
         <tr style="font-weight: bold">
-            <th style="color: green"></th>
-            <th style="color: green; text-align: right">{{ profiles|sumAttributes:"games"|insertCommas }}</th>
-            <th style="color: green; text-align: right">{{ profiles|sumAttributes:"tests"|insertCommas }}</th>
-            <th style="color: green"></th>
-            <th style="color: green"></th>
+            <th>{{profiles|length}}</th>
+            <th>{{profiles|sumAttributes:"games"|insertCommas}}</th>
+            <th>{{profiles|sumAttributes:"tests"|insertCommas}}</th>
+            <th></th><th></th>
         </tr>
-        </thead>
 
         {% for profile in profiles %}
-            {% if profile.enabled %}
-                {% if profile.games or profile.tests %}
-                    <tr onclick="window.location='/user/{{ profile.user.username }}'">
-                        <td><a class="text-decoration-none text-white px-2" href="/user/{{ profile.user.username }}">{{ profile.user.username|capfirst }}</a></td>
-                        <td style="text-align: right">{{ profile.games|insertCommas }}</td>
-                        <td style="text-align: right">{{ profile.tests|insertCommas }}</td>
-                        <td>{{ profile.engine }}</td>
-                        <td><a href="{{ profile.repo }}">{{ profile.repo }}</a></td>
-                    </tr>
-                {% endif %}
+	    {% if profile.enabled %}
+            {% if profile.games or profile.tests %}
+                <tr>
+                    <td><a href="/user/{{profile.user.username}}">{{profile.user.username|capfirst}}</a></td>
+                    <td style="text-align: right">{{profile.games|insertCommas}}</td>
+                    <td style="text-align: right">{{profile.tests|insertCommas}}</td>
+                    <td>{{profile.engine}}</td>
+                    <td><a href="{{profile.repo}}">{{profile.repo}}</a></td>
+                </tr>
             {% endif %}
+	    {% endif %}
         {% endfor %}
 
     </table>
