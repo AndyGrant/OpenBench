@@ -4,6 +4,7 @@
 
     <form id="registerForm" method="POST" action="/register/">
         {% csrf_token %}
+        <form>
             <div class="row">
                 <div class="col-6">
                     <label for="username">Username</label> <input class="form-control" id="username" name="username"><br>
@@ -18,6 +19,8 @@
                     <label for="password2">Password</label> <input class="form-control" type="password" id="password2" name="password2" autocomplete="off"><br>
                 </div>
             </div>
+        </form>
+
         <input class="btn btn-primary" type="submit" name="submit" value="Create User">
     </form>
 
