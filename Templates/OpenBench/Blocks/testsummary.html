@@ -1,45 +1,29 @@
-{#<tr class="my-0 py-0">#}
-{#            <th class="px-3"             style="width:10%;" scope="col"></th>#}
-{#            <th class="px-3"             style="width:10%;" scope="col"></th>#}
-{#            <th class="px-3"                                scope="col"></th>#}
-{#            <th class="px-3 text-center" style="width: 5%;" scope="col"></th>#}
-{#            <th class="px-3 text-center" style="width:12%;" scope="col"></th>#}
-{#            <th class="px-3"                                scope="col"></th>#}
-{#        </tr>#}
-
-
 {% load mytags %}
-<tr class="w-100 text-light" onclick="location.href='/test/{{ test.id }}'">
-    <td class="w-10">
-        <a class="text-left btn btn-primary-outline btn-block btn-link text-decoration-none" href="/user/{{ test.author }}" role="button">
+<tr class="w-100" onclick="location.href='/test/{{ test.id }}'">
+    <td>
+        <a class="text-left btn btn-primary-outline btn-block btn-link text-decoration-none " href="/user/{{ test.author }}" role="button">
             {{ test.author|capfirst|slice:":6" }}
         </a>
     </td>
-    <td class="text-left text-truncate w-10">
-        <a class="text-left btn btn-primary-outline btn-block" role="button">{{ test.engine }}</a>
-    </td>
+    <td class="text-left text-truncate"><a class="text-left btn btn-primary-outline btn-block"
+                                           role="button">{{ test.engine }}</a></td>
     {% if test.error %}
-        <td class="text-left text-truncate mw-30">
-            <a class="text-left btn btn-outline-danger btn-block text-danger" href="/test/{{ test.id }}"
-                                               role="button"><span>[x]</span> {{ test|prettyDevName }}
-            </a>
-        </td>
+        <td class="text-left text-truncate"><a class="text-left btn btn-outline-danger btn-block text-danger"
+                                               href="/test/{{ test.id }}"
+                                               role="button"><span>[x]</span> {{ test|prettyDevName }}</a></td>
     {% elif  test|testIsFRC %}
-        <td class="text-left text-truncate mw-30">
-            <a class="text-left btn btn-primary-outline btn-block" href="/test/{{ test.id }}" role="button">
-                {{ test|prettyDevName }}
-                <span style="color: green">[FRC]</span>
-            </a>
-        </td>
+        <td class="text-left text-truncate"><a class="text-left btn btn-primary-outline btn-block"
+                                               href="/test/{{ test.id }}" role="button">{{ test|prettyDevName }}<span
+                style="color: green">[FRC]</span></a></td>
     {% else %}
-        <td class="text-left text-truncate mw-30"><a class="text-left btn btn-primary-outline btn-block"
+        <td class="text-left text-truncate"><a class="text-left btn btn-primary-outline btn-block"
                                                href="/test/{{ test.id }}" role="button">{{ test|prettyDevName }}</a>
         </td> {% endif %}
 
-    <td class="text-center w-5"><a class="btn btn-primary-outline btn-link btn-block text-decoration-none" href="{{ test|gitDiffLink }}" role="button">diff</a>
+    <td class="text-center"><a class="btn btn-primary-outline btn-link btn-block text-decoration-none" href="{{ test|gitDiffLink }}" role="button">diff</a>
     </td>
 
-    <td class="text-center w-12"><a class="btn btn-primary-outline btn-block" role="button">{{ test.timecontrol }}</a></td>
+    <td class="text-center"><a class="btn btn-primary-outline btn-block" role="button">{{ test.timecontrol }}</a></td>
 
 {#    <td class="align-middle statblock {{ test|testResultColour }}">#}
 {#        <label style="font-size: 0.8rem; line-height:1.1rem" class="align-middle align-text-bottom text-monospace px-0">#}
