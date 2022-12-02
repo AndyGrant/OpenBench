@@ -27,10 +27,19 @@ a:link, a:visited, a:hover, a:active {
     font-size: 1.0rem;
 }
 
+#sidebar li:hover {
+    background-color: #666666;
+    border-radius: 8px;
+}
+
 #sidebar .header {
     color: #00AF00;
     padding: 0px 16px;
     font-size: 1.0rem;
+}
+
+#sidebar .header:hover {
+    background-color: #303030;
 }
 
 #content {
