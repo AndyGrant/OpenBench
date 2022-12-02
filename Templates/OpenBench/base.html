@@ -7,7 +7,7 @@
     <head>
         <link rel="stylesheet" href="{% static 'style.css' %}">
         <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
-        <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css ' rel='stylesheet'>
+        <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css' rel='stylesheet'>
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,400;1,100&amp;display=swap" rel="stylesheet">
         <link rel="preconnect" href="https://fonts.gstatic.com">
         <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
@@ -51,40 +51,50 @@
             <ul>
                 <li class="header">Admin</li>
                 {% if user.is_authenticated %}
-                    <li><a href="/logout/">Logout</a></li>
-                    <li><a href="/profile/">Profile</a></li>
+                    <li><a href="/logout/"><i class="fa-solid fa-right-from-bracket fa-fw"></i> Logout</a></li>
+                    <li><a href="/profile/"><i class="fa-solid fa-user fa-fw"></i> Profile</a></li>
                 {% else %}
-                    <li><a href="/login">Login</a></li>
-                    <li><a href="/register">Register</a></li>
+                    <li><a href="/login"><i class="fa-solid fa-right-to-bracket fa-fw"></i> Login</a></li>
+                    <li><a href="/register"><i class="fa-solid fa-registered fa-fw"></i> Register</a></li>
                 {% endif %}
             </ul>
 
+            <hr>
+
             <ul>
                 <li class="header">Tests</li>
-                <li><a href="/index">Index</a></li>
-                <li><a href="/greens">Greens</a></li>
-                <li><a href="/search">Search</a></li>
+                <li><a href="/index"><i class="fa-solid fa-house fa-fw"></i> Index</a></li>
+                <li><a href="/greens"><i class="fa-solid fa-heart fa-fw"></i> Greens</a></li>
+                <li><a href="/search"><i class="fa-solid fa-magnifying-glass fa-fw"></i> Search</a></li>
             </ul>
+
+            <hr>
 
             <ul>
                 <li class="header">Actions</li>
-                <li><a href="/newTest">Create Test</a></li>
-                <li><a href="/networks/upload">Upload Net</a></li>
+                <li><a href="/newTest"><i class="fa-solid fa-plus fa-fw"></i> Create Test</a></li>
+                <li><a href="/networks/upload"><i class="fa-solid fa-upload fa-fw"></i> Upload Net</a></li>
             </ul>
+
+            <hr>
 
             <ul>
                 <li class="header">Info</li>
-                <li><a href="/users">Users</a></li>
-                <li><a href="/events">Events</a></li>
-                <li><a href="/machines">Machines</a></li>
-                <li><a href="/networks">Networks</a></li>
+                <li><a href="/users"><i class="fa-solid fa-users fa-fw"></i> Users</a></li>
+                <li><a href="/events"><i class="fa-solid fa-circle-exclamation fa-fw"></i> Events</a></li>
+                <li><a href="/machines"><i class="fa-solid fa-microchip fa-fw"></i> Machines</a></li>
+                <li><a href="/networks"><i class="fa-solid fa-circle-nodes fa-fw"></i> Networks</a></li>
             </ul>
+
+            <hr>
 
             <ul>
                 <li class="header">Support</li>
-                <li><a href="{{config.framework}}">OpenBench</a></li>
-                <li><a href="https://discord.gg/9MVg7fBTpM">Discord</a></li>
+                <li><a href="{{config.framework}}"><i class="fa-brands fa-github fa-fw"></i> OpenBench</a></li>
+                <li><a href="https://discord.gg/9MVg7fBTpM"><i class="fa-brands fa-discord fa-fw"></i> Discord</a></li>
             </ul>
+
+            <hr>
 
             <ul>
                 <li class="header">Engines</li>
@@ -92,6 +102,8 @@
                     <li><a href="{{data.source}}">{{engine}}</a></li>
                 {% endfor %}
             </ul>
+
+            <hr>
 
         </div>
 
