@@ -78,6 +78,12 @@ OPENBENCH_CONFIG = {
             'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/Pohl.epd.zip',
         },
 
+        'Pohl.pgn' : {
+            'name'    : 'Pohl.pgn',
+            'sha'     : 'aaa7559c5d94e592fe5cca3586cb099d8fc5f13428d4ce84afc4b97811241c7e',
+            'source'  : 'https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/Pohl.pgn.zip',
+        },
+
         'DFRC.epd' : {
             'name'    : 'DFRC.epd',
             'sha'     : '648c447ef40614a44d13b78911e81470d8ddb0d3b2711c1b180e990871f5db4f',
@@ -464,6 +470,28 @@ OPENBENCH_CONFIG = {
 
             'testmodes' : [
                 { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+            ],
+        },
+
+        '4ku' : {
+
+            'nps'    : 2000000,
+            'base'   : 'master',
+            'book'   : 'Pohl.pgn',
+            'bounds' : '[0.00, 5.00]',
+            'source' : 'https://github.com/kz04px/4ku',
+
+            'build' : {
+                'path'      : '',
+                'compilers' : ['g++'],
+                'cpuflags'  : ['POPCNT'],
+            },
+
+            'testmodes' : [
+                { 'id' : 'STC',     'th' : 1, 'hash' :  64, 'tc' : '8.0+0.08' },
                 { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
                 { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
                 { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
