@@ -48,18 +48,33 @@ def extractOption(options, option):
 
 def parseTimeControl(time_control):
 
-    # Searching for X/Y+Z time controls
+    # Display Nodes as N=, Depth as D=, MoveTime as MT=
+    conversion = {
+        'N'  :  'N', 'nodes'    :  'N',
+        'D'  :  'D', 'depth'    :  'D',
+        'MT' : 'MT', 'movetime' : 'MT',
+    }
+
+    # Searching for "nodes=", "depth=", and "movetime=" Time Controls
+    pattern = '(?P<mode>((N)|(D)|(MT)|(nodes)|(depth)|(movetime)))=(?P<value>(\d+))'
+    if results := re.search(pattern, time_control.upper()):
+        mode, value = results.group('mode', 'value')
+        return '%s=%s' % (conversion[mode], value)
+
+    # Searching for "X/Y+Z" time controls
     pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
-    results = re.search(pattern, time_control)
-    moves, base, inc = results.group('moves', 'base', 'inc')
+    if results := re.search(pattern, time_control):
+        moves, base, inc = results.group('moves', 'base', 'inc')
 
-    # Strip the trailing and leading symbols
-    moves = None if moves == '' else moves.rstrip('/')
-    inc   = 0.0  if inc   is None else inc.lstrip('+')
+        # Strip the trailing and leading symbols
+        moves = None if moves == '' else moves.rstrip('/')
+        inc   = 0.0  if inc   is None else inc.lstrip('+')
 
-    # Format the time control for cutechess
-    if moves is None: return '%.1f+%.2f' % (float(base), float(inc))
-    return '%d/%.1f+%.2f' % (int(moves), float(base), float(inc))
+        # Format the time control for cutechess
+        if moves is None: return '%.1f+%.2f' % (float(base), float(inc))
+        return '%d/%.1f+%.2f' % (int(moves), float(base), float(inc))
+
+    raise Exception('Unable to parse Time Control (%s)' % (time_control))
 
 
 def getPendingTests():

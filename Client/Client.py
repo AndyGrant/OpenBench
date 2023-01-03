@@ -48,7 +48,7 @@ from itertools import combinations_with_replacement
 TIMEOUT_HTTP        = 30    # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR       = 10    # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD    = 30    # Timeout in seconds between workload requests
-CLIENT_VERSION      = '3'   # Client version to send to the Server
+CLIENT_VERSION      = '4'   # Client version to send to the Server
 
 SYZYGY_WDL_PATH     = None  # Pathway to WDL Syzygy Tables
 BASE_GAMES_PER_CORE = 32    # Typical games played per-thread
@@ -271,7 +271,25 @@ def run_bench(engine, outqueue):
 
 def scale_time_control(workload, nps):
 
-    # Searching for X/Y+Z time controls
+    # Searching for Nodes or Depth time controls ("N=", "D=")
+    pattern = '(?P<mode>((N))|(D))=(?P<value>(\d+))'
+    results = re.search(pattern, workload['test']['timecontrol'].upper())
+
+    # No scaling is needed for fixed nodes or fixed depth games
+    if results:
+        mode, value = results.group('mode', 'value')
+        return 'tc=inf %s=%s' % ({'N' : 'nodes', 'D' : 'depth'}[mode], value)
+
+    # Searching for MoveTime or Fixed Time Controls ("MT=")
+    pattern = '(?P<mode>(MT))=(?P<value>(\d+))'
+    results = re.search(pattern, workload['test']['timecontrol'].upper())
+
+    # Scale the time based on this machine's NPS. Add a time Margin to avoid time losses.
+    if results:
+        mode, value = results.group('mode', 'value')
+        return 'st=%.2f timemargin=100' % (float(value) * int(workload['test']['nps']) / (1000 * nps))
+
+    # Searching for "X/Y+Z" time controls
     pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
     results = re.search(pattern, workload['test']['timecontrol'])
     moves, base, inc = results.group('moves', 'base', 'inc')
@@ -280,13 +298,13 @@ def scale_time_control(workload, nps):
     moves = None if moves == '' else moves.rstrip('/')
     inc   = 0.0  if inc   is None else inc.lstrip('+')
 
-    # Scale the time based on this machines NPS
+    # Scale the time based on this machine's NPS
     base = float(base) * int(workload['test']['nps']) / nps
     inc  = float(inc ) * int(workload['test']['nps']) / nps
 
     # Format the time control for cutechess
-    if moves is None: return '%.2f+%.2f' % (base, inc)
-    return '%d/%.2f+%.2f' % (int(moves), base, inc)
+    if moves is None: return 'tc=%.2f+%.2f' % (base, inc)
+    return 'tc=%d/%.2f+%.2f' % (int(moves), base, inc)
 
 def kill_cutechess(cutechess):
 
@@ -770,8 +788,8 @@ def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
 
     flags  = '-repeat -recover -resign %s -draw %s '
     flags += '-srand %d -variant %s -concurrency %d -games %d '
-    flags += '-engine dir=Engines/ cmd=./%s proto=uci tc=%s%s name=%s '
-    flags += '-engine dir=Engines/ cmd=./%s proto=uci tc=%s%s name=%s '
+    flags += '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s '
+    flags += '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s '
     flags += '-openings file=Books/%s format=%s order=random plies=16 '
     flags += '-pgnout PGNs/%s_vs_%s '
 
