@@ -415,7 +415,7 @@ OPENBENCH_CONFIG = {
             'nps'    : 1150000,
             'base'   : 'main',
             'book'   : 'Pohl.epd',
-            'bounds' : '[-1.00, 4.00]',
+            'bounds' : '[0.00, 3.00]',
             'source' : 'https://github.com/jhonnold/berserk',
 
             'build' : {
@@ -425,8 +425,8 @@ OPENBENCH_CONFIG = {
             },
 
             'testmodes' : [
-                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
-                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6' },
                 { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
                 { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
             ],
