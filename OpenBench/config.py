@@ -421,7 +421,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['gcc'],
-                'cpuflags'  : ['POPCNT'],
+                'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
             },
 
             'testmodes' : [
