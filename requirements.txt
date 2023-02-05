@@ -1,0 +1,4 @@
+Django
+django-htmlmin
+django-ipware
+requests
