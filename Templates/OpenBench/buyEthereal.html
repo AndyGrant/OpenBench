@@ -10,13 +10,14 @@
 
         <link rel="preconnect" href="https://fonts.gstatic.com">
         <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital@0;1&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,400;1,100&amp;display=swap" rel="stylesheet">
 
-        <title> Ethereal 13.75 (NNUE) </title>
+        <title> Ethereal 14.00 (NNUE) </title>
 
         <style>
 
             body {
-                background: #202020;
+                background: #202026;
                 transform: scale(1.05);
             }
 
@@ -24,27 +25,47 @@
                 font-family: "Open Sans", sans-serif;
             }
 
+            #content {
+                max-width: 1250px;
+                margin-left: auto;
+                margin-right: auto;
+                float: none
+            }
+
             #content h1 {
-                font-size: 64px;
-                font-weight: bold;
-                margin: 20px 0px;
-                color: #00AF00;
-                font-style: italic;
+                font-size: 48px;
+                font-family: Montserrat;
+                margin-top: 48px;
+                margin-bottom: 0px;
+                color: #408F00;
             }
 
             #content p {
                 font-size: 16px;
                 margin: 16px 100px;
+                text-align: justify;
+                max-width: 1250px;
+            }
+
+            #content ul {
+                font-size: 16px;
+                margin: 16px 100px;
                 text-align: justify
+            }
+
+            #content hr {
+                font-size: 16px;
+                margin: 16px 100px;
             }
 
             #content #buyethereal {
                 font-size: 32px;
+                font-family: Montserrat;
+                font-weight: bold;
                 display: block;
                 border-radius: 8px;
                 color: black;
-                font-weight: bold;
-                background: #00AF00;
+                background: #408F00;
                 text-align: center;
                 margin-top: 20px;
                 line-height: 64px;
@@ -58,23 +79,38 @@
     <body>
         <div id="content">
 
-            <h1> Ethereal 13.75 </h1>
+            <h1> Ethereal 14.00 </h1>
 
-            <p> Ethereal 13.75 (NNUE) has been released. Since 13.50, a large number of changes have been made to improve the search, time management, and NNUE architecture and training methods. Ethereal has received multiple iterations of NNUE updates since 13.50, finally arriving at a pair of newly trained Networks that are larger, but still faster than previous Networks. These Networks are trained using the sum total of training data built up since 13.00.</p>
+            <hr>
 
-            <p> Ethereal 13.75 (NNUE) once again includes two NNUE Networks for evaluation. These Networks continue Ethereal's long standing legacy of original work. These Networks are not trained on, nor duplicated from the works of any other Computer Chess team. With it, Ethereal continues to refine new ideas and techniques, allowing older processors to outperform NNUE implementations found in other engines, while still harnessing the full power of the AVX/AVX2 instruction sets for CPUs with support. </p>
+            <p> Ethereal 14.00 (NNUE) has been released, marking a significant improvement in playing strength, which can be seen in events like TCEC, CCC, and soon to be seen in many rating lists like CCRL, CEGT, SPCC, and FastGM. With this release, Ethereal once again solidifies itself as the leader of the pack of rapidly rising and innovating engines vying to break into the top 3 to join Stockfish, Leela, and Komodo. </p>
 
-            <p> Additionally, Ethereal 13.00 was the first engine to offer a secondary Network trained exclusively for Fischer Random Chess (FRC). Ethereal 13.75 once again provides a secondary Network, updated with all of the improvements found between releases. This Network outperforms the standard Network by significant margins in FRC play, showcasing a creative style by Ethereal, not reliant on Opening Theory.</p>
+            <p> This most recent version has been a massive undertaking. In the process of data generation for the Standard NNUEs, a total of 1.456 billion games were played, ranging from low depth games, to extremely  high node counts. For the Fischer Random NNUEs, an additional 600 million games were played. The results of these efforts are significantly larger, and more powerful NNUEs, with the ability to perform well with an increasingly diverse set of positions.</p>
 
-            <p> The commercial NNUE version requires a CPU with the SSSE3 instruction set (which almost all CPUs have), and will not run on systems lacking these instructions. AVX/AVX2 have become ubiquitous in modern processor design, and are necessary to capitalize on the full strength of Neural Network technology. If you are unsure if your system is supported, please reach out to me via email at <a>andrew@grantnet.us</a> for assistance. </p>
+            <p> Ethereal's NNUE release marked the first time an engine offered a secondary Network trained exclusively for Fischer Random Chess (FRC). Later versions also marked the first use of mirrored-halfkx NNUEs, now a de facto standard. Ethereal 14.00 continues that tradition, offering an exclusively for Fischer Random Network, granting immense gains over the Standard Network, helping Ethereal to create new theory where there is none. </p>
 
-            <p> <a href="https://stripe.com">Stripe</a> will verify your payment of $40 USD. Afterwards, you will receive an email from <a>andrew@grantnet.us</a> or <a>andrewgrantethereal@gmail.com</a> within 24 hours containing a download link for the Standard/Fischer NNUE Networks, as well as the binary or executable files for Windows and Linux. You should select the binary matching your Operating System. Users with Intel CPUs containing BMI2 support (Also known as PEXT), should use the pext binary for optimal performance. AMD CPU users should use the popcnt binary, unless they have a 5XXX series Ryzen. AVX2 binaries will be the fastest, followed by AVX, and finally SSSE3. You should use the fastest your CPU allows. </p>
+            <hr>
 
-            <p> If you purchased Ethereal 13.00, or 13.25, or 13.50, you should have received an email containing updates to 13.75 free of charge. If you did not, and the email cannot be found in your spam folder, please reach out to me via <a>andrew@grantnet.us</a> or <a>andrewgrantethereal@gmail.com.</p>
+            <p> With all of these advances, Ethereal has put up incredible accomplishments since the most recent release... </p>
 
-            <br>
+            <ul>
+                <li>Taking 3rd place on <a href="http://ccrl.chessdom.com/ccrl/404FRC/"> CCRL's Fischer Random Chess Rating List</a>, within striking distance of Dragon </li>
 
-            <a id="buyethereal" href="https://buy.stripe.com/aEU7wz19x7EGbJeaEG"> Buy Ethereal 13.75 (NNUE) </a>
+                <li>Taking 4th place in <a href="https://tcec-chess.com/#div=p&game=1&season=23"> TCECs Season 23 Premier Division </a>, showing superior scaling at long time controls </li>
+
+                <li>Taking 4th place in <a href="https://www.chess.com/computer-chess-championship#event=ccc-19-bullet-semifinals"> Chess.com's CCC 19 Bullet (1|1) </a>, showing strength at even short time controls despite its large NNUEs </li>
+            </ul>
+
+            <hr>
+
+            <p> For new users, <a href="https://stripe.com">Stripe</a> will verify your payment of $60 USD. Afterwards, you will receive an email from <a>andrew@grantnet.us</a> within 24 hours containing a download link for the Standard and Fischer NNUE files, as well as the binary or executable files for Windows and Linux. You will continue to receive updates for versions 14.25, 14.50, and 14.75 as they are available, as well as lifelong bug fixes. </p>
+
+            <p> If you purchased any previous version of Ethereal, you should have received an email containing updates to 14.00 free of charge, with a notice concerning future releases. If you did not, and the email cannot be found in your spam folder, please reach out to me. </p>
+
+            <hr>
+
+            <a id="buyethereal" href="https://buy.stripe.com/00g3gjf0ne3414AcMP"> Buy Ethereal 14.00 (NNUE) </a>
+
         </div>
     </body>
 </html>
