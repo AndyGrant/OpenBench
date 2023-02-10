@@ -425,10 +425,10 @@ OPENBENCH_CONFIG = {
             },
 
             'testmodes' : [
-                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1' },
-                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6' },
-                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
-                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '8.0+0.08' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '40.0+0.4' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '4.0+0.04' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '16.0+0.16' },
             ],
         },
 
