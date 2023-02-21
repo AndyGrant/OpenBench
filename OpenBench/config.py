@@ -23,7 +23,7 @@ USE_CROSS_APPROVAL = False
 OPENBENCH_CONFIG = {
 
     # Server Client version control
-    'client_version' : '4',
+    'client_version' : '5',
 
     # Generic Error Messages useful to those setting up their own instance
     'error' : {
@@ -106,6 +106,9 @@ OPENBENCH_CONFIG = {
             'bounds' : '[0.00, 3.00]',
             'source' : 'https://github.com/AndyGrant/Ethereal',
 
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
+
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['clang', 'gcc'],
@@ -113,14 +116,10 @@ OPENBENCH_CONFIG = {
             },
 
             'testmodes' : [
-                { 'id' : 'STC',                'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1' },
-                { 'id' : 'LTC',                'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6' },
-                { 'id' : 'SMP STC',            'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
-                { 'id' : 'SMP LTC',            'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
-                { 'id' : 'STC Simplification', 'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1', 'bounds' : '[-3.00, 1.00]' },
-                { 'id' : 'LTC Simplification', 'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6', 'bounds' : '[-3.00, 1.00]' },
-                { 'id' : 'STC Regression',     'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1', 'book' : '8moves_v3.epd', 'games' : 40000 },
-                { 'id' : 'LTC Regression',     'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6', 'book' : '8moves_v3.epd', 'games' : 40000 },
+                { 'id' : 'STC',     'th' : 1, 'hash' :   8, 'tc' : '10.0+0.1' },
+                { 'id' : 'LTC',     'th' : 1, 'hash' :  64, 'tc' : '60.0+0.6' },
+                { 'id' : 'SMP STC', 'th' : 8, 'hash' :  64, 'tc' : '5.0+0.05' },
+                { 'id' : 'SMP LTC', 'th' : 8, 'hash' : 256, 'tc' : '20.0+0.2' },
             ],
         },
 
@@ -131,6 +130,9 @@ OPENBENCH_CONFIG = {
             'book'   : 'Pohl.epd',
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/jeffreyan11/uci-chess-engine',
+
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
 
             'build' : {
                 'path'      : 'src',
@@ -154,6 +156,9 @@ OPENBENCH_CONFIG = {
             'bounds' : '[-1.00, 4.00]',
             'source' : 'https://github.com/TerjeKir/weiss',
 
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
+
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['gcc'],
@@ -175,6 +180,9 @@ OPENBENCH_CONFIG = {
             'book'   : 'Pohl.epd',
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/lucasart/Demolito',
+
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
 
             'build' : {
                 'path'      : 'src',
@@ -198,6 +206,9 @@ OPENBENCH_CONFIG = {
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/Matthies/RubiChess',
 
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
+
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
@@ -219,6 +230,9 @@ OPENBENCH_CONFIG = {
             'book'   : 'Pohl.epd',
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/fabianvdW/FabChess',
+
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
 
             'build' : {
                 'path'      : '',
@@ -242,6 +256,9 @@ OPENBENCH_CONFIG = {
             'bounds' : '[0.00, 3.00]',
             'source' : 'https://github.com/vshcherbyna/igel',
 
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
+
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
@@ -263,6 +280,9 @@ OPENBENCH_CONFIG = {
             'book'   : 'Pohl.epd',
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/rosenthj/Winter',
+
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
 
             'build' : {
                 'path'      : '',
@@ -286,6 +306,9 @@ OPENBENCH_CONFIG = {
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/KierenP/Halogen',
 
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
+
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
@@ -307,6 +330,9 @@ OPENBENCH_CONFIG = {
             'book'   : '4moves_noob.epd',
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/mhouppin/stash-bot',
+
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
 
             'build' : {
                 'path'      : 'src',
@@ -330,6 +356,9 @@ OPENBENCH_CONFIG = {
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/connormcmonigle/seer-nnue',
 
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
+
             'build' : {
                 'path'      : 'build',
                 'compilers' : ['g++>=9.0.0'],
@@ -351,6 +380,9 @@ OPENBENCH_CONFIG = {
             'book'   : 'Pohl.epd',
             'bounds' : '[0.00, 2.50]',
             'source' : 'https://github.com/Luecx/Koivisto',
+
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
 
             'build' : {
                 'path'      : 'src_files',
@@ -374,6 +406,9 @@ OPENBENCH_CONFIG = {
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/justNo4b/Drofa',
 
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
+
             'build' : {
                 'path'      : '',
                 'compilers' : ['g++'],
@@ -395,6 +430,9 @@ OPENBENCH_CONFIG = {
             'book'   : 'Pohl.epd',
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/Aryan1508/Bit-Genie',
+
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
 
             'build' : {
                 'path'      : 'src',
@@ -418,6 +456,9 @@ OPENBENCH_CONFIG = {
             'bounds' : '[0.00, 3.00]',
             'source' : 'https://github.com/jhonnold/berserk',
 
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
+
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['gcc'],
@@ -439,6 +480,9 @@ OPENBENCH_CONFIG = {
             'book'   : 'Pohl.epd',
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/amanjpro/zahak',
+
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
 
             'build' : {
                 'path'      : '',
@@ -462,6 +506,9 @@ OPENBENCH_CONFIG = {
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/dsekercioglu/blackmarlin',
 
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
+
             'build' : {
                 'path'     : '',
                 'compilers': ['cargo>=1.57.0'],
@@ -483,6 +530,9 @@ OPENBENCH_CONFIG = {
             'book'   : 'Pohl.pgn',
             'bounds' : '[0.00, 5.00]',
             'source' : 'https://github.com/kz04px/4ku',
+
+            'win_adj'  : 'movecount=3 score=400',
+            'draw_adj' : 'movenumber=40 movecount=8 score=10',
 
             'build' : {
                 'path'      : '',

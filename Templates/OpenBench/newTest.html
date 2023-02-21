@@ -4,21 +4,23 @@
 
     var Configurations = {
         {% for name, data in config.engines.items %}
-            '{{name}}' : {
-                'base'   : "{{data.base}}",
-                'book'   : "{{data.book}}",
-                'bounds' : "{{data.bounds}}",
+            "{{name}}" : {
+                "base"     : "{{data.base}}",
+                "book"     : "{{data.book}}",
+                "bounds"   : "{{data.bounds}}",
+                "win_adj"  : "{{data.win_adj}}",
+                "draw_adj" : "{{data.draw_adj}}",
             },
         {% endfor %}
     };
 
     var TestModes = {
         {% for name, data in config.engines.items %}
-            '{{name}}' : [
+            "{{name}}" : [
                 {% for mode in data.testmodes %}
                 {
                     {% for key, value in mode.items %}
-                        '{{key}}' : '{{value}}',
+                        "{{key}}" : "{{value}}",
                     {% endfor %}
                 },
                 {% endfor %}
@@ -162,13 +164,11 @@
             baseopt.selected = (hasdefault == false); basenet.add(baseopt);
         }
 
-        var base_branch = document.getElementById("basebranch");
-        base_branch.value = Configurations[engine]["base"];
-
-        var book_selection = document.getElementById("bookname");
-        book_selection.value = Configurations[engine]["book"];
+        document.getElementById("basebranch").value = Configurations[engine]["base"];
+        document.getElementById("bookname"  ).value = Configurations[engine]["book"];
+        document.getElementById("win_adj"   ).value = Configurations[engine]["win_adj"];
+        document.getElementById("draw_adj"  ).value = Configurations[engine]["draw_adj"];
     }
-
 
     document.addEventListener(
         'DOMContentLoaded', function () {
@@ -231,17 +231,22 @@
             <label> Priority </label> <input value="0" name="priority"><br>
             <label> Throughput </label> <input value="1000" id="throughput", name="throughput"><br>
 
-            <label> Syzygy ADJ </label> <select name="syzygy_adj">
-                <option selected value="OPTIONAL"> Optional </option>
-                <option value="REQUIRED"> Required </option>
-                <option value="DISABLED"> Disabled </option>
-            </select><br>
-
             <label> Syzygy WDL </label> <select name="syzygy_wdl">
                 <option value="OPTIONAL"> Optional </option>
                 <option value="REQUIRED"> Required </option>
                 <option selected value="DISABLED"> Disabled </option>
             </select><br>
+
+            <h3> Adjudication Settings </h3>
+
+            <label> Syzygy ADJ. </label> <select name="syzygy_adj">
+                <option selected value="OPTIONAL"> Optional </option>
+                <option value="REQUIRED"> Required </option>
+                <option value="DISABLED"> Disabled </option>
+            </select><br>
+
+            <label> Win ADJ. </label> <input id="win_adj" name="win_adj"><br>
+            <label> Draw ADJ. </label> <input id="draw_adj" name="draw_adj"><br>
 
         </div>
 

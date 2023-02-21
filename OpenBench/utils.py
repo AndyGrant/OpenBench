@@ -203,25 +203,35 @@ def verifyNewTest(request):
 
     def verifyInteger(field, fieldName):
         try: int(request.POST[field])
-        except: errors.append('{0} is not an Integer'.format(fieldName))
+        except: errors.append('"{0}" is not an Integer'.format(fieldName))
 
     def verifyGreaterThan(field, fieldName, value, valueName):
         if not float(request.POST[field]) > value:
-            errors.append('{0} is not greater than {1}'.format(fieldName, valueName))
+            errors.append('"{0}" is not greater than {1}'.format(fieldName, valueName))
 
     def verifyOptions(field, option, fieldName):
         if extractOption(request.POST[field], option) == None:
-            errors.append('{0} was not found as an option for {1}'.format(option, fieldName))
+            errors.append('"{0}" was not found as an option for {1}'.format(option, fieldName))
         elif int(extractOption(request.POST[field], option)) < 1:
-            errors.append('{0} needs to be at least 1 for {1}'.format(option, fieldName))
+            errors.append('"{0}" needs to be at least 1 for {1}'.format(option, fieldName))
 
     def verifyConfiguration(field, fieldName, parent):
         if request.POST[field] not in OpenBench.config.OPENBENCH_CONFIG[parent].keys():
-            errors.append('{0} was not found in the configuration'.format(fieldName))
+            errors.append('"{0}" was not found in the configuration'.format(fieldName))
 
     def verifyTimeControl(field, fieldName):
         try: parseTimeControl(request.POST[field])
-        except: errors.append('{0} is not a parsable {1}'.format(request.POST[field], fieldName))
+        except: errors.append('"{0}" is not a parsable {1}'.format(request.POST[field], fieldName))
+
+    def verifyWinAdjudication(field):
+        if (content := request.POST[field]) == 'None': return
+        try: assert re.match('movecount=[0-9]+ score=[0-9]+', content)
+        except: errors.append('"{0}" is not a parsable Win Adjudication Seting'.format(content))
+
+    def verifyDrawAdjudication(field):
+        if (content := request.POST[field]) == 'None': return
+        try: assert re.match('movenumber=[0-9]+ movecount=[0-9]+ score=[0-9]+', content)
+        except: errors.append('"{0}" is not a parsable Draw Adjudication Seting'.format(content))
 
     verifications = [
         (verifyInteger, 'priority', 'Priority'),
@@ -234,6 +244,8 @@ def verifyNewTest(request):
         (verifyConfiguration, 'enginename', 'Engine', 'engines'),
         (verifyConfiguration, 'bookname', 'Book', 'books'),
         (verifyTimeControl, 'timecontrol', 'Time Control'),
+        (verifyWinAdjudication, 'win_adj'),
+        (verifyDrawAdjudication, 'draw_adj'),
     ]
 
     for verification in verifications:
@@ -244,7 +256,7 @@ def verifyNewTest(request):
 
 def createNewTest(request):
 
-    errors = []; verifyNewTest(request)
+    errors = verifyNewTest(request)
     if errors != []: return None, errors
 
     devinfo = getBranch(request, errors, 'dev')
@@ -264,8 +276,10 @@ def createNewTest(request):
     test.timecontrol = parseTimeControl(request.POST['timecontrol'])
     test.priority    = int(request.POST['priority'])
     test.throughput  = int(request.POST['throughput'])
-    test.syzygy_adj  = request.POST['syzygy_adj']
     test.syzygy_wdl  = request.POST['syzygy_wdl']
+    test.syzygy_adj  = request.POST['syzygy_adj']
+    test.win_adj     = request.POST['win_adj']
+    test.draw_adj    = request.POST['draw_adj']
 
     if request.POST['test_mode'] == 'SPRT':
         test.elolower = float(request.POST['bounds'].split(',')[0].lstrip('['))
@@ -430,13 +444,14 @@ def workload_to_dictionary(test, result, machine):
 
         'test'    : {
 
-            'throughput'  : 1000, # HACK: Updated Client's no longer need this value
-
             'id'          : test.id,
             'engine'      : test.engine,
             'timecontrol' : test.timecontrol,
-            'syzygy_adj'  : test.syzygy_adj,
             'syzygy_wdl'  : test.syzygy_wdl,
+
+            'syzygy_adj'  : test.syzygy_adj,
+            'win_adj'     : test.win_adj,
+            'draw_adj'    : test.draw_adj,
 
             'nps'         : OPENBENCH_CONFIG['engines'][test.engine]['nps'],
             'build'       : OPENBENCH_CONFIG['engines'][test.engine]['build'],

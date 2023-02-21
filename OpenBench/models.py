@@ -103,6 +103,9 @@ class Test(Model):
     syzygy_adj  = CharField(max_length=16, default='OPTIONAL')
     syzygy_wdl  = CharField(max_length=16, default='OPTIONAL')
 
+    win_adj     = CharField(max_length=64, default='movecount=3 score=400')
+    draw_adj    = CharField(max_length=64, default='movenumber=40 movecount=8 score=10')
+
     # Only for SPRT Tests
     elolower    = FloatField(default=0.0)
     eloupper    = FloatField(default=0.0)
