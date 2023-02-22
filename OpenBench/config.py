@@ -20,6 +20,8 @@
 
 USE_CROSS_APPROVAL = False
 
+REQUIRE_LOGIN_TO_VIEW = False
+
 OPENBENCH_CONFIG = {
 
     # Server Client version control

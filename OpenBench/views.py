@@ -47,10 +47,17 @@ from htmlmin.decorators import not_minified_response
 class UnableToAuthenticate(Exception):
     pass
 
-def render(request, template, content={}):
+def render(request, template, content={}, always_allow=False):
 
     data = content.copy()
     data.update({'config' : OpenBench.config.OPENBENCH_CONFIG})
+
+    if OpenBench.config.REQUIRE_LOGIN_TO_VIEW:
+
+        if not request.user.is_authenticated and not always_allow:
+            return django.http.HttpResponseRedirect('/login/')
+
+        return django.shortcuts.render(request, 'OpenBench/{0}'.format(template), data)
 
     if request.user.is_authenticated:
 
@@ -123,7 +130,7 @@ def register(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     if request.method == 'GET':
-        return render(request, 'register.html')
+        return render(request, 'register.html', always_allow=True)
 
     if request.POST['password1'] != request.POST['password2']:
         return index(request, error='Passwords Do Not Match')
@@ -156,7 +163,7 @@ def login(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     if request.method == 'GET':
-        return render(request, 'login.html')
+        return render(request, 'login.html', always_allow=True)
 
     try:
         user = authenticate(request)
