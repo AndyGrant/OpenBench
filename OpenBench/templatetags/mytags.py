@@ -19,7 +19,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import re, django
-import OpenBench.utils, OpenBench.stats, OpenBench.models
+import OpenBench.config, OpenBench.utils, OpenBench.stats, OpenBench.models
 
 
 def oneDigitPrecision(value):
@@ -51,14 +51,20 @@ def gitDiffLink(test):
         base    = test['base']['source']
         devsha  = test['dev']['sha']
         basesha = test['base']['sha']
+        engine  = test['engine']
 
     else:
         dev     = test.dev.source
         base    = test.base.source
         devsha  = test.dev.sha
         basesha = test.base.sha
+        engine  = test.engine
 
-    repo = OpenBench.utils.pathjoin(*dev.split('/')[:-2])
+    if OpenBench.config.OPENBENCH_CONFIG['engines'][engine]['private']:
+        repo = OpenBench.config.OPENBENCH_CONFIG['engines'][engine]['source']
+    else:
+        repo = OpenBench.utils.pathjoin(*dev.split('/')[:-2])
+
     return OpenBench.utils.pathjoin(repo, 'compare',
         '{0}...{1}'.format(basesha[:8], devsha[:8]))
 

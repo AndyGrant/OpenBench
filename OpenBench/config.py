@@ -25,7 +25,7 @@ REQUIRE_LOGIN_TO_VIEW = False
 OPENBENCH_CONFIG = {
 
     # Server Client version control
-    'client_version' : '5',
+    'client_version' : '6',
 
     # Generic Error Messages useful to those setting up their own instance
     'error' : {
@@ -114,7 +114,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['clang', 'gcc'],
-                'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
+                'cpuflags'  : ['__AVX2__', '__FMA__', '__POPCNT__'],
             },
 
             'testmodes' : [
@@ -140,7 +140,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
-                'cpuflags'  : ['POPCNT'],
+                'cpuflags'  : ['__POPCNT__'],
             },
 
             'testmodes' : [
@@ -166,7 +166,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['gcc'],
-                'cpuflags'  : ['POPCNT'],
+                'cpuflags'  : ['__POPCNT__'],
             },
 
             'testmodes' : [
@@ -192,7 +192,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['clang', 'gcc'],
-                'cpuflags'  : ['POPCNT'],
+                'cpuflags'  : ['__POPCNT__'],
             },
 
             'testmodes' : [
@@ -218,7 +218,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
-                'cpuflags'  : ['POPCNT'],
+                'cpuflags'  : ['__POPCNT__'],
             },
 
             'testmodes' : [
@@ -244,7 +244,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : '',
                 'compilers' : ['cargo>=1.41.0'],
-                'cpuflags'  : ['POPCNT'],
+                'cpuflags'  : ['__POPCNT__'],
             },
 
             'testmodes' : [
@@ -270,7 +270,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
-                'cpuflags'  : ['POPCNT'],
+                'cpuflags'  : ['__POPCNT__'],
             },
 
             'testmodes' : [
@@ -296,7 +296,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : '',
                 'compilers' : ['clang++', 'g++'],
-                'cpuflags'  : ['POPCNT'],
+                'cpuflags'  : ['__POPCNT__'],
             },
 
             'testmodes' : [
@@ -322,7 +322,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
-                'cpuflags'  : ['POPCNT'],
+                'cpuflags'  : ['__POPCNT__'],
             },
 
             'testmodes' : [
@@ -348,7 +348,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['gcc', 'clang'],
-                'cpuflags'  : ['POPCNT'],
+                'cpuflags'  : ['__POPCNT__'],
             },
 
             'testmodes' : [
@@ -374,7 +374,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : 'build',
                 'compilers' : ['g++>=9.0.0'],
-                'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
+                'cpuflags'  : ['__AVX2__', '__FMA__', '__POPCNT__'],
             },
 
             'testmodes' : [
@@ -400,7 +400,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : 'src_files',
                 'compilers' : ['g++'],
-                'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
+                'cpuflags'  : ['__AVX2__', '__FMA__', '__POPCNT__'],
             },
 
             'testmodes' : [
@@ -426,7 +426,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : '',
                 'compilers' : ['g++'],
-                'cpuflags'  : ['POPCNT'],
+                'cpuflags'  : ['__POPCNT__'],
             },
 
             'testmodes' : [
@@ -452,7 +452,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['g++'],
-                'cpuflags'  : ['POPCNT'],
+                'cpuflags'  : ['__POPCNT__'],
             },
 
             'testmodes' : [
@@ -478,7 +478,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : 'src',
                 'compilers' : ['gcc'],
-                'cpuflags'  : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
+                'cpuflags'  : ['__AVX2__', '__FMA__', '__POPCNT__'],
             },
 
             'testmodes' : [
@@ -504,7 +504,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : '',
                 'compilers' : ['go'],
-                'cpuflags'  : ['AVX', 'POPCNT'],
+                'cpuflags'  : ['__AVX__', '__POPCNT__'],
             },
 
             'testmodes' : [
@@ -530,7 +530,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'     : '',
                 'compilers': ['cargo>=1.57.0'],
-                'cpuflags' : ['AVX2', 'AVX', 'FMA', 'POPCNT', 'SSE2', 'SSE'],
+                'cpuflags'  : ['__AVX2__', '__FMA__', '__POPCNT__'],
             },
 
             'testmodes' : [
@@ -556,7 +556,7 @@ OPENBENCH_CONFIG = {
             'build' : {
                 'path'      : '',
                 'compilers' : ['g++'],
-                'cpuflags'  : ['POPCNT'],
+                'cpuflags'  : ['__POPCNT__'],
             },
 
             'testmodes' : [

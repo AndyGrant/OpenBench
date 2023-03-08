@@ -148,54 +148,135 @@ def getEngine(source, name, sha, bench):
     if engine.first() != None: return engine.first()
     return Engine.objects.create(name=name, source=source, sha=sha, bench=bench)
 
-def getBranch(request, errors, name):
 
-    branch = request.POST['{0}branch'.format(name)]
+def read_git_credentials(request):
+
+    engine = request.POST['enginename'].replace(' ', '').lower()
+    fname  = 'credentials.%s' % (engine)
+
+    if os.path.exists(fname):
+        with open(fname) as fin:
+            return { 'Authorization' : 'token %s' % fin.readlines()[0].rstrip() }
+
+def requests_illegal_fork(request):
+
+    # Strip trailing '/'s for sanity
+    engine  = OPENBENCH_CONFIG['engines'][request.POST['enginename']]
+    eng_src = engine['source'].rstrip('/')
+    tar_src = request.POST['source'].rstrip('/')
+
+    # Illegal if sources do not match for Private engines
+    return engine['private'] and eng_src != tar_src
+
+def determine_bench(request, field, message):
+
+    # Use the provided bench if possible
+    try: return int(request.POST['{0}bench'.format(field)])
+    except: pass
+
+    # Fallback to try to parse the Bench from the commit
+    try:
+        benches = re.findall('(?:BENCH|NODES)[ :=]+([0-9,]+)', message, re.IGNORECASE)
+        return int(benches[-1].replace(',', ''))
+    except: return None
+
+def collect_github_info(request, errors, field):
+
+    # Get branch name, whether it is a commit SHA, and the API path for it
+    branch = request.POST['{0}branch'.format(field)]
     bysha  = bool(re.search('[0-9a-fA-F]{40}', branch))
     url    = 'commits' if bysha else 'branches'
 
-    repo   = request.POST['source']
-    target = repo.replace('github.com', 'api.github.com/repos')
-    target = pathjoin(target, url, branch).rstrip('/')
+    # All API requests will share this common path. Some engines are private.
+    base    = request.POST['source'].replace('github.com', 'api.github.com/repos')
+    private = OPENBENCH_CONFIG['engines'][request.POST['enginename']]['private']
+    headers = {}
 
-    # Avoid leaking our credentials to other sites
-    if not target.startswith('https://api.github.com/'):
+    ## Step 1: Verify the target of the API requests
+    ## [A] We will not attempt to reach any sit other than api.github.com
+    ## [B] Private engines may only use their main repo for sources of tests
+    ## [C] Determine which, if any, credentials we want to pass along
+
+    # Private engines must have a token stored in credentials.enginename
+    if private and not (headers := read_git_credentials(request)):
+        errors.append('Server does not have access tokens for this engine')
+        return (None, None, None, None)
+
+    # Do not allow private engines to use forked repos ( We don't have a token! )
+    if requests_illegal_fork(request):
+        errors.append('Forked Repositories are not allowed for Private engines')
+        return (None, None, None, None)
+
+    # Avoid leaking our credentials to other websites
+    if not base.startswith('https://api.github.com/'):
         errors.append('OpenBench may only reach Github\'s API')
         return (None, None, None, None)
 
-    # Check for a (User, Token) credentials file
-    if os.path.exists('credentials'):
-        with open('credentials') as fin:
-            user, token = fin.readlines()[0].rstrip().split()
-            auth = requests.auth.HTTPBasicAuth(user, token)
-    else: auth = None
+    ## Step 2: Connect to the Github API for the given Branch or Commit SHA.
+    ## [A] We will attempt to parse the most recent commit message for a
+    ##     bench, unless one was supplied.
+    ## [B] We will translate any branch name into a commit SHA for later use,
+    ##     so we may compare branches and generate diff URLs
+    ## [C] If the engine is public, we will construct the URL to download the
+    ##     source code from Github into a .zip file.
+    ## [D] If the engine is private, we will carry onto Step 3.
 
     try: # Fetch data from the Github API
-        data = requests.get(target, auth=auth).json()
+        path = 'commits' if bysha else 'branches'
+        url  = pathjoin(base, path, branch).rstrip('/')
+        data = requests.get(url, headers=headers).json()
         data = data if bysha else data['commit']
 
     except: # Unable to connect for whatever reason
-        lookup = 'Commit Sha' if bysha else 'Branch'
-        errors.append('{0} {1} could not be found'.format(lookup, branch))
+        path = 'Commit Sha' if bysha else 'Branch'
+        errors.append('{0} {1} could not be found'.format(path, branch))
         return (None, None, None, None)
 
-    treeurl = data['commit']['tree']['sha'] + '.zip'
-    source  = pathjoin(repo, 'archive', treeurl).rstrip('/')
-
-    try: # Use the provided Bench if there is one
-        bench = int(request.POST['{0}bench'.format(name)])
-        return (source, branch, data['sha'], bench)
-    except: pass
-
-    try: # Fallback to try to parse the Bench from the commit
-        message = data['commit']['message']
-        benches = re.findall('(?:BENCH|NODES)[ :=]+([0-9,]+)', message, re.IGNORECASE)
-        bench   = int(benches[-1].replace(',', ''))
-        return (source, branch, data['sha'], bench)
-
-    except: # Neither method found a viable Bench
-        errors.append('Unable to parse a Bench for {0}'.format(branch))
+    # Extract the bench from the web form, or from the commit message
+    if not (bench := determine_bench(request, field, data['commit']['message'])):
+        errors.append('Unable to parse a Bench for %s' % (branch))
         return (None, None, None, None)
+
+    # Public Engines: Construct the .zip download and return everything
+    if not OPENBENCH_CONFIG['engines'][request.POST['enginename']]['private']:
+        treeurl = data['commit']['tree']['sha'] + '.zip'
+        source  = pathjoin(request.POST['source'], 'archive', treeurl).rstrip('/')
+        return (source, branch, data['sha'], bench)
+
+    ## Step 3: Construct the URL for the API request to list all Artifacts
+    ## [A] OpenBench artifacts are always run via a file named openbench.yml
+    ## [B] These should contain combinations for windows/linux, avx2/avx512, popcnt/pext
+    ## [C] If those artifacts do not exist, we cannot create the test.
+
+    try: # Fetch the run id for the openbench workflow for this comment
+        url    = pathjoin(base, 'actions', 'workflows', 'openbench.yml', 'runs').rstrip('/')
+        url   += '?head_sha=%s' % (data['sha'])
+        run_id = requests.get(url=url, headers=headers).json()['workflow_runs'][0]['id']
+
+    except: # Unable to determine this for whatever reason
+        errors.append('Failed to idenftify the run_id associated with the OpenBench workflow')
+        return (None, None, None, None)
+
+    try: # Fetch the artifact list for the run_id we determined above
+        url       = pathjoin(base, 'actions', 'runs', str(run_id), 'artifacts').rstrip('/')
+        artifacts = requests.get(url=url, headers=headers).json()['artifacts']
+
+    except: # Unable to fetch the list of artifacts for whatever reason
+        errors.append('Failed to get the Artifact List for run_id = %d' % (run_id))
+        return (None, None, None, None)
+
+    # Verify that all of the artifacts exist and are not expired
+    available = [ f['name'] for f in artifacts if f['expired'] == False ]
+    required  = OPENBENCH_CONFIG['engines'][request.POST['enginename']]['build']['artifacts']
+
+    # Flag any and all missing artifacts
+    for name in required:
+        if '%s-%s' % (data['sha'], name) not in available:
+            errors.append('Missing Artifact (%s)' % (name))
+
+    # Return the API endpoint for artifacts, along with the usual rest
+    return (url, branch, data['sha'], bench)
+
 
 def verifyNewTest(request):
 
@@ -259,8 +340,8 @@ def createNewTest(request):
     errors = verifyNewTest(request)
     if errors != []: return None, errors
 
-    devinfo = getBranch(request, errors, 'dev')
-    baseinfo = getBranch(request, errors, 'base')
+    devinfo  = collect_github_info(request, errors, 'dev')
+    baseinfo = collect_github_info(request, errors, 'base')
     if errors != []: return None, errors
 
     test = Test()
@@ -441,6 +522,10 @@ def workload_to_dictionary(test, result, machine):
         'machine' : { 'id'  : machine.id },
 
         'result'  : { 'id'  : result.id },
+
+        'engine'  : {
+            'private' : OPENBENCH_CONFIG['engines'][test.engine]['private']
+        },
 
         'test'    : {
 

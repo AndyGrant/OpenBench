@@ -48,7 +48,7 @@ from itertools import combinations_with_replacement
 TIMEOUT_HTTP        = 30    # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR       = 10    # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD    = 30    # Timeout in seconds between workload requests
-CLIENT_VERSION      = '5'   # Client version to send to the Server
+CLIENT_VERSION      = '6'   # Client version to send to the Server
 
 SYZYGY_WDL_PATH     = None  # Pathway to WDL Syzygy Tables
 BASE_GAMES_PER_CORE = 32    # Typical games played per-thread
@@ -86,6 +86,7 @@ IS_WINDOWS = platform.system() == 'Windows'
 IS_LINUX   = platform.system() != 'Windows'
 
 COMPILERS = {} # Compiler for each Engine, + CPU Flags
+CPUINFO   = '' # Result of ``echo | gcc -march=native -E -dM -``
 OSNAME    = '%s %s' % (platform.system(), platform.release())
 DEBUG     = True
 
@@ -207,9 +208,9 @@ def try_until_success(mesg):
         return __try_until_success
     return _try_until_success
 
-def download_file(source, outname, post_data=None):
+def download_file(source, outname, post_data=None, headers=None):
 
-    arguments = { 'stream' : True, 'timeout' : TIMEOUT_ERROR }
+    arguments = { 'stream' : True, 'timeout' : TIMEOUT_ERROR, 'headers' : headers }
     function  = [requests.get, requests.post][post_data != None]
     if post_data: arguments['data'] = post_data
 
@@ -260,11 +261,15 @@ def parse_bench_output(stream):
     bench = int(re.search(r'[0-9]+', bench).group()) if bench else None
     return (nps, bench)
 
-def run_bench(engine, outqueue):
+def run_bench(engine, outqueue, private_net=None):
 
     try:
+        # We may need to set an EvalFile via the UCI Options
+        if not private_net: cmd = ['./' + engine, 'bench']
+        else: cmd = ['./' + engine, 'setoption name EvalFile value %s' % (private_net), 'bench', 'quit']
+
         # Launch the engine and parse output for statistics
-        process = Popen(['./' + engine, 'bench'], stdout=PIPE, stderr=PIPE)
+        process = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
         outqueue.put(parse_bench_output(stdout))
     except Exception: outqueue.put((0, 0))
@@ -389,8 +394,6 @@ def server_download_cutechess(arguments):
 @try_until_success(mesg=ERRORS['configure'])
 def server_configure_worker(arguments):
 
-    print ('\nScanning for Compilers...')
-
     # Fetch { Engine -> Compilers } from the server
     target = url_join(arguments.server, 'clientGetBuildInfo')
     data   = requests.get(target, timeout=TIMEOUT_HTTP).json()
@@ -410,8 +413,15 @@ def server_configure_worker(arguments):
             stdout = process.communicate()[0].decode('utf-8')
             return re.search(r'[0-9]+\.[0-9]+\.[0-9]+', stdout).group()
 
+    print ('\nScanning for Compilers...')
+
     # For each engine, attempt to find a valid compiler
     for engine, build_info in data.items():
+
+        # Private engines don't need to be compiled
+        if build_info['private']:
+            continue
+
         for compiler in build_info['compilers']:
 
             # Compilers may require a specific version
@@ -425,32 +435,46 @@ def server_configure_worker(arguments):
 
             # Compiler version was sufficient
             if tuple(map(int, match.split('.'))) >= version:
-                print('%14s | %s (%s)' % (engine, compiler, match))
+                print('%-20s | %-8s (%s)' % (engine, compiler, match))
                 COMPILERS[engine] = compiler
                 break
 
     # Report missing engines in case the User is not expecting it
-    for engine in filter(lambda x: x not in COMPILERS, data):
+    for engine in filter(lambda x: x not in COMPILERS and not data[x]['private'], data):
         compiler = data[engine]['compilers']
-        print('%14s | Missing %s' % (engine, compiler))
+        print('%-20s | Missing %s' % (engine, compiler))
+
+    print ('\nScanning for Private Tokens...')
+
+    # For each engine, attempt to find a valid compiler
+    for engine, build_info in data.items():
+
+        # Public engines don't need access tokens
+        if not build_info['private']:
+            continue
+
+        # Private engines expect a credentials.engine file for the main repo
+        has_token = os.path.exists('credentials.%s' % (engine.replace(' ', '').lower()))
+        print('%-20s | %s' % (engine, ['Missing', 'Found'][has_token]))
+        if has_token: COMPILERS[engine] = True
 
     print('\nScanning for CPU Flags...')
 
     # Use GCC -march=native to find CPU info
-    stdout, stderr = Popen(
+    CPUINFO = str(Popen(
         'echo | gcc -march=native -E -dM -',
         stdout=PIPE, shell=True
-    ).communicate()
+    ).communicate()[0])
 
     # Check for each requested flag using the gcc dump
     desired = [info['cpuflags'] for engine, info in data.items()]
     flags   = set(sum(desired, [])) # Trick to flatten the list
-    actual  = set(f for f in flags if '__%s__ 1' % (f) in str(stdout))
-
-    # Report and save to global configuration
-    print('     Found |', ' '.join(list(actual)))
-    print('   Missing |', ' '.join(list(flags - actual)))
+    actual  = set(f for f in flags if '%s 1' % (f) in CPUINFO)
     COMPILERS['cpuflags'] = ' '.join(list(actual))
+
+    # Print out the results of our search
+    for flag in sorted(flags):
+        print ('%-20s | %s' % (flag, ['Missing', 'Found'][flag in actual]))
 
 @try_until_success(mesg=ERRORS['request'])
 def server_request_workload(arguments):
@@ -477,6 +501,20 @@ def server_request_workload(arguments):
 
     target = url_join(arguments.server, 'clientGetWorkload')
     return requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
+
+def server_report_missing_artifact(arguments, workload, branch, artifact_name, artifact_json):
+
+    payload = {
+        'username'  : arguments.username,
+        'password'  : arguments.password,
+        'testid'    : workload['test']['id'],
+        'machineid' : workload['machine']['id'],
+        'error'     : 'Artifact %s missing' % (artifact_name),
+        'logs'      : json.dumps(artifact_json, indent=2),
+    }
+
+    target = url_join(arguments.server, 'clientSubmitError')
+    requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
 def server_report_build_fail(arguments, workload, branch, compiler_output):
 
@@ -602,17 +640,17 @@ def check_workload_response(arguments, response):
 
 def complete_workload(arguments, workload):
 
-    dev_network  = download_network_weights(arguments, workload, 'dev')
+    dev_network  = download_network_weights(arguments, workload, 'dev' )
     base_network = download_network_weights(arguments, workload, 'base')
 
-    dev_name  = download_engine(arguments, workload, 'dev', dev_network)
+    dev_name  = download_engine(arguments, workload, 'dev' , dev_network )
     base_name = download_engine(arguments, workload, 'base', base_network)
     if dev_name == None or base_name == None: return
 
-    dev_bench,  dev_nps  = run_benchmarks(arguments, workload, 'dev', dev_name)
-    base_bench, base_nps = run_benchmarks(arguments, workload, 'base', base_name)
+    dev_bench,  dev_nps  = run_benchmarks(arguments, workload, 'dev' , dev_name , dev_network )
+    base_bench, base_nps = run_benchmarks(arguments, workload, 'base', base_name, base_network)
 
-    dev_status  = verify_benchmarks(arguments, workload, 'dev', dev_bench)
+    dev_status  = verify_benchmarks(arguments, workload, 'dev' , dev_bench )
     base_status = verify_benchmarks(arguments, workload, 'base', base_bench)
 
     if not dev_status or not base_status: return
@@ -695,37 +733,71 @@ def download_engine(arguments, workload, branch, network):
     commit_sha  = workload['test'][branch]['sha']
     source      = workload['test'][branch]['source']
     build_path  = workload['test']['build']['path']
+    private     = workload['engine']['private']
 
-    if arguments.proxy: source = 'https://ghproxy.com/' + source
-
-    pattern = '\nEngine: [%s] %s\nCommit: %s'
-    print(pattern % (engine, branch_name, commit_sha.upper()))
-
-    # Naming as Engine-SHA256[:8]-NETSHA256[:8]
+    # Naming as Engine-CommitSha[:8]-NetworkSha[:8]
     final_name = '%s-%s' % (engine, commit_sha.upper()[:8])
-    if network: final_name += '-%s' % (network[-8:])
+    if network and not private: final_name += '-%s' % (network[-8:])
 
     # Check to see if we already have the final binary
     final_path = os.path.join('Engines', final_name)
     if os.path.isfile(final_path): return final_name
     if os.path.isfile(final_path + '.exe'): return final_name + '.exe'
 
-    # Download and unzip the source from Github
-    download_file(source, '%s.zip' % (engine))
-    unzip_delete_file('%s.zip' % (engine), 'tmp/')
+    if private:
 
-    # Parse out paths to find the makefile location
-    tokens     = source.split('/')
-    unzip_name = '%s-%s' % (tokens[-3], tokens[-1].rstrip('.zip'))
-    src_path   = os.path.join('tmp', unzip_name, *build_path.split('/'))
+        # Get the candidate artifacts that we can pick from
+        print ('\nFetching Artifacts for %s' % branch_name)
+        with open('credentials.%s' % (engine.replace(' ', '').lower())) as fin:
+            auth_headers = { 'Authorization' : 'token %s' % fin.readlines()[0].rstrip() }
+        artifacts = requests.get(url=source, headers=auth_headers).json()['artifacts']
 
-    # Build the engine and drop it into src_path
-    print('\nBuilding [%s]' % (final_path))
-    output_name = os.path.join(src_path, engine)
-    command = make_command(arguments, engine, src_path, network)
-    process = Popen(command, cwd=src_path, stdout=PIPE, stderr=STDOUT)
-    compiler_output = process.communicate()[0].decode('utf-8')
-    print (compiler_output)
+        # Construct the artifact string for the desired binary
+        old_ryzen  = '__znver1' in str(CPUINFO) or '__znver2' in str(CPUINFO)
+        os_string  = ['windows', 'linux' ][IS_LINUX]
+        avx_string = ['avx2'   , 'avx512']['__AVX512VNNI__ 1' in str(CPUINFO)]
+        bit_string = ['popcnt' , 'pext'  ]['__BMI2__ 1' in str(CPUINFO) and not old_ryzen]
+        desired    = '%s-%s-%s' % (os_string, avx_string, bit_string)
+
+        # Search for our artifact in the list provided
+        artifact_id = None
+        for artifact in artifacts:
+            if artifact['name'] == '%s-%s' % (commit_sha, desired):
+                artifact_id = artifact['id']
+
+        # Artifact was missing, workload cannot be completed
+        if artifact_id == None:
+            server_report_missing_artifact(arguments, workload, branch, desired, artifacts)
+            return None
+
+        # Download the binary that matches our desired artifact
+        print ('Downloading [%s] %s' % (branch_name, desired))
+        base = source.split('/runs/')[0]
+        url  = url_join(base, 'artifacts', str(artifact_id), 'zip').rstrip('/')
+        download_file(url, 'artifact.zip', None, auth_headers)
+
+        # Unzip the binary, and determine where to move the binary
+        unzip_delete_file('artifact.zip', 'tmp/')
+        output_name = os.path.join('tmp', engine)
+
+    if not private:
+
+        # Download and unzip the source from Github
+        download_file(source, '%s.zip' % (engine))
+        unzip_delete_file('%s.zip' % (engine), 'tmp/')
+
+        # Parse out paths to find the makefile location
+        tokens     = source.split('/')
+        unzip_name = '%s-%s' % (tokens[-3], tokens[-1].rstrip('.zip'))
+        src_path   = os.path.join('tmp', unzip_name, *build_path.split('/'))
+
+        # Build the engine and drop it into src_path
+        print('\nBuilding [%s]' % (final_path))
+        output_name = os.path.join(src_path, engine)
+        command     = make_command(arguments, engine, src_path, network)
+        process     = Popen(command, cwd=src_path, stdout=PIPE, stderr=STDOUT)
+        cxx_output  = process.communicate()[0].decode('utf-8')
+        print (cxx_output)
 
     # Move the file to the final location ( Linux )
     if os.path.isfile(output_name):
@@ -739,21 +811,23 @@ def download_engine(arguments, workload, branch, network):
         shutil.rmtree('tmp')
         return final_name + '.exe'
 
-    # Notify the server if the build failed
-    server_report_build_fail(arguments, workload, branch, compiler_output)
-    return None
+    # Manual builds should have exited by now
+    if not private:
+        server_report_build_fail(arguments, workload, branch, cxx_output)
+        return None
 
-def run_benchmarks(arguments, workload, branch, engine):
+def run_benchmarks(arguments, workload, branch, engine, network):
 
-    cores = int(arguments.threads)
-    queue = multiprocessing.Queue()
-    name  = workload['test'][branch]['name']
+    cores   = int(arguments.threads)
+    queue   = multiprocessing.Queue()
+    name    = workload['test'][branch]['name']
+    private = workload['engine']['private']
     print('\nRunning %dx Benchmarks for %s' % (cores, name))
 
     for ii in range(cores):
-        args = (os.path.join('Engines', engine), queue,)
-        proc = multiprocessing.Process(target=run_bench, args=args)
-        proc.start()
+        args = [os.path.join('Engines', engine), queue]
+        if private and network: args.append(network)
+        multiprocessing.Process(target=run_bench, args=args).start()
 
     nps, bench = list(zip(*[queue.get() for ii in range(cores)]))
     if len(set(bench)) > 1: return (0, 0) # Flag an error
@@ -767,7 +841,7 @@ def verify_benchmarks(arguments, workload, branch, bench):
         server_report_bad_bench(arguments, workload, branch, bench)
     return bench == int(workload['test'][branch]['bench'])
 
-def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
+def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps):
 
     dev_options  = workload['test']['dev' ]['options']
     base_options = workload['test']['base']['options']
@@ -775,11 +849,29 @@ def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
     dev_threads  = int(re.search('(?<=Threads=)\d*', dev_options ).group())
     base_threads = int(re.search('(?<=Threads=)\d*', base_options).group())
 
+    dev_name  =  dev_cmd.rstrip('.exe') # Used to name the PGN file and Headers
+    base_name = base_cmd.rstrip('.exe') # Used to name the PGN file and Headers
+
+    # Possibly add SyzygyPath to dev and base options
     if SYZYGY_WDL_PATH and workload['test']['syzygy_wdl'] != 'DISABLED':
         path = SYZYGY_WDL_PATH.replace('\\', '\\\\')
         dev_options  += ' SyzygyPath=%s' % (path)
         base_options += ' SyzygyPath=%s' % (path)
 
+    # Add EvalFile to the options for Private engines using Networks
+    if workload['engine']['private']:
+
+        dev_network  = workload['test']['dev' ]['network']
+        if dev_network and dev_network != 'None':
+            dev_options += ' EvalFile=%s' % (os.path.join('../Networks', dev_network))
+            dev_name    += '-%s' % (dev_network)
+
+        base_network = workload['test']['base']['network']
+        if base_network and base_network != 'None':
+            base_options += ' EvalFile=%s' % (os.path.join('../Networks', base_network))
+            base_name    += '-%s' % (base_network)
+
+    # Join all of the options into a single string
     dev_options  = ' option.'.join([''] +  dev_options.split())
     base_options = ' option.'.join([''] + base_options.split())
 
@@ -810,10 +902,10 @@ def build_cutechess_command(arguments, workload, dev_name, base_name, nps):
     args = (
         win_adj, draw_adj,
         int(time.time()), variant, concurrency, games,
-        dev_name, time_control, dev_options, dev_name.rstrip('.exe'),
-        base_name, time_control, base_options, base_name.rstrip('.exe'),
+        dev_cmd, time_control, dev_options, dev_name,
+        base_cmd, time_control, base_options, base_name,
         book_name, book_name.split('.')[-1],
-        dev_name.rstrip('.exe'), base_name.rstrip('.exe')
+        dev_name, base_name,
     )
 
     if IS_LINUX:
