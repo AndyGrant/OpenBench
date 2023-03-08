@@ -271,10 +271,13 @@ a:link, a:visited, a:hover, a:active {
     background-color: #00AF00;
 }
 
-#error {
+#error pre {
     background-color: #EE7676;
-    padding: 8px;
+    padding: 6px;
+    margin: 0px;
     text-align: center;
+    font-family: "Courier Prime";
+    font-size: 18px;
 }
 
 #content form h3 {

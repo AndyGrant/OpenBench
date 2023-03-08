@@ -53,11 +53,8 @@ def render(request, template, content={}, always_allow=False):
     data.update({'config' : OpenBench.config.OPENBENCH_CONFIG})
 
     if OpenBench.config.REQUIRE_LOGIN_TO_VIEW:
-
         if not request.user.is_authenticated and not always_allow:
-            return django.http.HttpResponseRedirect('/login/')
-
-        return django.shortcuts.render(request, 'OpenBench/{0}'.format(template), data)
+            return login(request, OpenBench.config.OPENBENCH_CONFIG['error']['requires_login'])
 
     if request.user.is_authenticated:
 
@@ -130,7 +127,9 @@ def register(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     if request.method == 'GET':
-        return render(request, 'register.html', always_allow=True)
+        if not OpenBench.config.REQUIRE_MANUAL_REGISTRATION:
+            return render(request, 'register.html', always_allow=True)
+        return login(request, OpenBench.config.OPENBENCH_CONFIG['error']['manual_registration'])
 
     if request.POST['password1'] != request.POST['password2']:
         return index(request, error='Passwords Do Not Match')
@@ -151,7 +150,7 @@ def register(request):
 
     return django.http.HttpResponseRedirect('/index/')
 
-def login(request):
+def login(request, error=''):
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #                                                                         #
@@ -163,7 +162,8 @@ def login(request):
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     if request.method == 'GET':
-        return render(request, 'login.html', always_allow=True)
+        data = { 'error' : error }
+        return render(request, 'login.html', data, always_allow=True)
 
     try:
         user = authenticate(request)

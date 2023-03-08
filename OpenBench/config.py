@@ -20,7 +20,9 @@
 
 USE_CROSS_APPROVAL = False
 
-REQUIRE_LOGIN_TO_VIEW = False
+REQUIRE_LOGIN_TO_VIEW = True
+
+REQUIRE_MANUAL_REGISTRATION = True
 
 OPENBENCH_CONFIG = {
 
@@ -29,8 +31,10 @@ OPENBENCH_CONFIG = {
 
     # Generic Error Messages useful to those setting up their own instance
     'error' : {
-        'disabled' : 'Account has not been enabled. Contact andrew@grantnet.us',
-        'fakeuser' : 'This is not a real OpenBench User. Create an OpenBench account',
+        'disabled'            : 'Account has not been enabled. Contact andrew@grantnet.us',
+        'fakeuser'            : 'This is not a real OpenBench User. Create an OpenBench account',
+        'requires_login'      : 'All pages require a user login to access',
+        'manual_registration' : 'Registration can only be done via an Administrator',
     },
 
     # Link to the repo on the sidebar, as well as the core files
