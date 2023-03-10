@@ -23,7 +23,7 @@
 
         {% for profile in profiles %}
 	    {% if profile.enabled %}
-            {% if profile.games or profile.tests %}
+            {% if profile.games or profile.tests or profile.approver %}
                 <tr>
                     <td><a href="/user/{{profile.user.username}}">{{profile.user.username|capfirst}}</a></td>
                     <td style="text-align: right">{{profile.games|insertCommas}}</td>
