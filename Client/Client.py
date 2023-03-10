@@ -780,6 +780,10 @@ def download_engine(arguments, workload, branch, network):
         unzip_delete_file('artifact.zip', 'tmp/')
         output_name = os.path.join('tmp', engine.replace(' ', '').lower())
 
+        # Binaries don't have execute permissions by default
+        if IS_LINUX:
+            os.system('chmod 777 %s\n' % (output_name))
+
     if not private:
 
         # Download and unzip the source from Github
