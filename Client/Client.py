@@ -778,7 +778,7 @@ def download_engine(arguments, workload, branch, network):
 
         # Unzip the binary, and determine where to move the binary
         unzip_delete_file('artifact.zip', 'tmp/')
-        output_name = os.path.join('tmp', engine)
+        output_name = os.path.join('tmp', engine.replace(' ', '').lower())
 
     if not private:
 
