@@ -161,7 +161,7 @@ def login(request, error=''):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    if request.method == 'GET':
+    if request.method == 'GET' or error:
         data = { 'error' : error }
         return render(request, 'login.html', data, always_allow=True)
 
@@ -171,7 +171,8 @@ def login(request, error=''):
         return django.http.HttpResponseRedirect('/index/')
 
     except UnableToAuthenticate:
-        return index(request, error='Unable to Authenticate User')
+        data = { 'error' : 'Unable to authenticate username and password' }
+        return render(request, 'login.html', data, always_allow=True)
 
 def logout(request):
 
