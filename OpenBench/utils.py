@@ -528,4 +528,69 @@ def updateTest(request, user):
     # Force a refresh of the updated field when finished
     if finished: Test.objects.get(id=testid).save()
 
+    # Send update to webhook, if it exists
+    if finished and os.path.exists('webhook'):
+        with open('webhook') as webhook_file:
+            webhook = webhook_file.readlines()[0]
+
+            lower, elo, upper = OpenBench.stats.ELO(swins, slosses, sdraws)
+            error = max(upper - elo, elo - lower)
+            elo   = OpenBench.templatetags.mytags.twoDigitPrecision(elo)
+            error = OpenBench.templatetags.mytags.twoDigitPrecision(error)
+            h0 = OpenBench.templatetags.mytags.twoDigitPrecision(test.elolower)
+            h1 = OpenBench.templatetags.mytags.twoDigitPrecision(test.eloupper)
+            tokens = test.devoptions.split(' ')
+            threads = tokens[0].split('=')[1]
+            hash = tokens[1].split('=')[1]
+            outcome = 'passed' if passed else 'failed'
+            if test.test_mode == 'GAMES':
+                mode_string = f'{test.max_games} games'
+            else:
+                mode_string = f'SPRT [{h0}, {h1}]'
+            if passed:
+                color = 0x37F769
+            elif swins < slosses:
+                color = 0xFA4E4E
+            else:
+                color = 0xFEFF58
+
+            requests.post(webhook, json={
+                'username': test.engine,
+                'embeds': [{
+                    'title': f'Test `{test.dev.name}` vs `{test.base.name}` {outcome}',
+                    'url': request.build_absolute_uri(f'/test/{testid}'),
+                    'color': color,
+                    'author': { "name": test.author },
+                    'fields': [
+                        {
+                            'name': 'Configuration',
+                            'value': f'{test.timecontrol}s Threads={threads} Hash={hash}MB',
+                        },
+                        {
+                            'name': 'Mode',
+                            'value': mode_string,
+                        },
+                        {
+                            'name': 'Wins',
+                            'value': f'{swins}',
+                            'inline': True,
+                        },
+                        {
+                            'name': 'Losses',
+                            'value': f'{slosses}',
+                            'inline': True,
+                        },
+                        {
+                            'name': 'Draws',
+                            'value': f'{sdraws}',
+                            'inline': True,
+                        },
+                        {
+                            'name': 'Elo',
+                            'value': f'{elo} ± {error} (95%)',
+                        },
+                    ]
+                }]
+            })
+
     return ['None', 'Stop'][finished]
