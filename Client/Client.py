@@ -48,23 +48,11 @@ from itertools import combinations_with_replacement
 TIMEOUT_HTTP        = 30    # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR       = 10    # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD    = 30    # Timeout in seconds between workload requests
-CLIENT_VERSION      = '6'   # Client version to send to the Server
+CLIENT_VERSION      = '7'   # Client version to send to the Server
 
 SYZYGY_WDL_PATH     = None  # Pathway to WDL Syzygy Tables
 BASE_GAMES_PER_CORE = 32    # Typical games played per-thread
 FLEET_MODE          = False # Exit when there are no workloads
-
-CUSTOM_SETTINGS = {
-    'Ethereal'    : [], 'Laser'     : [],
-    'Weiss'       : [], 'Demolito'  : [],
-    'Rubichess'   : [], 'FabChess'  : [],
-    'Igel'        : [], 'Winter'    : [],
-    'Halogen'     : [], 'Stash'     : [],
-    'Seer'        : [], 'Koivisto'  : [],
-    'Drofa'       : [], 'Bit-Genie' : [],
-    'Berserk'     : [], 'Zahak'     : [],
-    'BlackMarlin' : [],
-};
 
 ERRORS = {
     'cutechess'    : 'Unable to fetch Cutechess location and download it!',
@@ -230,9 +218,6 @@ def make_command(arguments, engine, src_path, network_path):
 
     command = 'make %s=%s EXE=%s -j%s' % (
         ['CC', 'CXX']['++' in COMPILERS[engine]], COMPILERS[engine], engine, arguments.threads)
-
-    if engine in CUSTOM_SETTINGS:
-        command += ' '.join(CUSTOM_SETTINGS[engine])
 
     if network_path != None:
         path = os.path.relpath(os.path.abspath(network_path), src_path)
@@ -493,10 +478,10 @@ def server_request_workload(arguments):
 
     payload = {
         'username'   : arguments.username, 'threads'    : arguments.threads,
-        'password'   : arguments.password, 'osname'     : OSNAME,
-        'machineid'  : machine_id,         'syzygy_wdl' : bool(SYZYGY_WDL_PATH),
-        'supported'  : supported,          'cpuflags'   : COMPILERS['cpuflags'],
-        'version'    : CLIENT_VERSION
+        'password'   : arguments.password, 'ncutechess' : arguments.ncutechess,
+        'machineid'  : machine_id,         'osname'     : OSNAME,
+        'supported'  : supported,          'syzygy_wdl' : bool(SYZYGY_WDL_PATH),
+        'version'    : CLIENT_VERSION,     'cpuflags'   : COMPILERS['cpuflags'],
     }
 
     target = url_join(arguments.server, 'clientGetWorkload')
@@ -605,7 +590,7 @@ def check_workload_response(arguments, response):
 
     # No workloads available to our machine
     if raw_text == 'None':
-        print('[Note] Server Has No Work')
+        print('[NOTE] Server Has No Work')
         if not FLEET_MODE: time.sleep(TIMEOUT_WORKLOAD)
         return False
 
@@ -616,7 +601,7 @@ def check_workload_response(arguments, response):
 
     # Bad machine, mostly meaningless but note it
     if raw_text == 'Bad Machine':
-        print('[Note] Replacing Invalid Machine Id')
+        print('[NOTE] Replacing Invalid Machine Id')
         os.remove('machine.txt')
         return False
 
@@ -649,6 +634,7 @@ def complete_workload(arguments, workload):
 
     dev_bench,  dev_nps  = run_benchmarks(arguments, workload, 'dev' , dev_name , dev_network )
     base_bench, base_nps = run_benchmarks(arguments, workload, 'base', base_name, base_network)
+    average_nps          = (dev_nps + base_nps) // 2
 
     dev_status  = verify_benchmarks(arguments, workload, 'dev' , dev_bench )
     base_status = verify_benchmarks(arguments, workload, 'base', base_bench)
@@ -657,11 +643,29 @@ def complete_workload(arguments, workload):
     server_report_nps(arguments, workload, dev_nps, base_nps)
     download_opening_book(arguments, workload)
 
-    avg_nps = (dev_nps + base_nps) // 2
-    concurrency, update_interval, command = build_cutechess_command(
-        arguments, workload, dev_name, base_name, avg_nps)
+    # Construct each individual Cutechess argument, which differs by PGN output
+    cutechess_args = [
+        build_cutechess_command(arguments, workload, dev_name, base_name, average_nps, ii)
+        for ii in range(int(arguments.ncutechess))
+    ]
 
-    run_and_parse_cutechess(arguments, workload, concurrency, update_interval, command)
+    # Create a process for the each copy of run_and_parse_cutechess()
+    processes = [
+        multiprocessing.Process(
+            target=run_and_parse_cutechess,
+            args=(arguments, workload, *cutechess_args[ii], ii))
+        for ii in range(int(arguments.ncutechess))
+    ]
+
+    try:
+        # Launch and wait for each cutechess copy
+        for process in processes: process.start()
+        for process in processes: process.join()
+
+    except KeyboardInterrupt:
+        # Kill everything and pass the error back up
+        for process in processes: process.kill()
+        raise KeyboardInterrupt
 
 def download_opening_book(arguments, workload):
 
@@ -845,7 +849,7 @@ def verify_benchmarks(arguments, workload, branch, bench):
         server_report_bad_bench(arguments, workload, branch, bench)
     return bench == int(workload['test'][branch]['bench'])
 
-def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps):
+def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cutechess_idx):
 
     dev_options  = workload['test']['dev' ]['options']
     base_options = workload['test']['base']['options']
@@ -890,12 +894,13 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps):
     flags += '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s '
     flags += '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s '
     flags += '-openings file=Books/%s format=%s order=random plies=16 '
-    flags += '-pgnout PGNs/%s_vs_%s '
+    flags += '-pgnout PGNs/%s_vs_%s.%d '
 
     if SYZYGY_WDL_PATH and workload['test']['syzygy_adj'] != 'DISABLED':
         flags += '-tb %s' % (SYZYGY_WDL_PATH.replace('\\', '\\\\'))
 
-    concurrency = int(arguments.threads) // max(dev_threads, base_threads)
+    concurrency = int(arguments.threads) / int(arguments.ncutechess)
+    concurrency = concurrency // max(dev_threads, base_threads)
     update_interval = 8 if max(dev_threads, base_threads) == 1 else 1
 
     games = int(concurrency * BASE_GAMES_PER_CORE)
@@ -905,20 +910,20 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps):
 
     args = (
         win_adj, draw_adj,
-        int(time.time()), variant, concurrency, games,
+        int(time.time() + cutechess_idx), variant, concurrency, games,
         dev_cmd, time_control, dev_options, dev_name,
         base_cmd, time_control, base_options, base_name,
         book_name, book_name.split('.')[-1],
-        dev_name, base_name,
+        dev_name, base_name, cutechess_idx,
     )
 
     if IS_LINUX:
         return concurrency, update_interval, './cutechess-ob ' + flags % (args)
     return concurrency, update_interval, 'cutechess-ob.exe ' + flags % (args)
 
-def run_and_parse_cutechess(arguments, workload, concurrency, update_interval, command):
+def run_and_parse_cutechess(arguments, workload, concurrency, update_interval, command, cutechess_idx):
 
-    print('\nLaunching Cutechess...\n%s\n' % (command))
+    print('\n[#%d] Launching Cutechess...\n%s\n' % (cutechess_idx, command))
     cutechess = Popen(command.split(), stdout=PIPE)
 
     crashes = timelosses = 0
@@ -929,7 +934,7 @@ def run_and_parse_cutechess(arguments, workload, concurrency, update_interval, c
 
         # Read each line of output until the pipe closes
         line = cutechess.stdout.readline().strip().decode('ascii')
-        if line != '': print(line)
+        if line != '': print('[#%d] %s' % (cutechess_idx, line))
         else: cutechess.wait(); return
 
         # Real updates contain a colon
@@ -984,14 +989,26 @@ if __name__ == '__main__':
     help_pass = 'Password. May also be passed as OPENBENCH_PASSWORD environment variable'
 
     p = argparse.ArgumentParser()
-    p.add_argument('-U', '--username', help=help_user  , required=req_user)
-    p.add_argument('-P', '--password', help=help_pass  , required=req_pass)
-    p.add_argument('-S', '--server'  , help='Webserver', required=True)
-    p.add_argument('-T', '--threads' , help='Threads'  , required=True)
+
+    # Required arguments
+    p.add_argument('-U', '--username'   , help=help_user           , required=req_user)
+    p.add_argument('-P', '--password'   , help=help_pass           , required=req_pass)
+    p.add_argument('-S', '--server'     , help='Webserver Address' , required=True)
+    p.add_argument('-T', '--threads'    , help='Total Threads'     , required=True)
+    p.add_argument('-N', '--ncutechess' , help='Cutechess Copies'  , required=True)
+
+    # Optional arguments
     p.add_argument('--syzygy', help='Syzygy WDL'  , required=False)
     p.add_argument('--fleet' , help='Fleet Mode'  , action='store_true')
     p.add_argument('--proxy' , help='Github Proxy', action='store_true')
+
     arguments = p.parse_args()
+
+    # Make sure the thread distibution between Cutechess copies is correct
+    assert (int(arguments.threads) >= 1)
+    assert (int(arguments.ncutechess) >= 1)
+    assert (int(arguments.threads) >= int(arguments.ncutechess))
+    assert (int(arguments.threads) % int(arguments.ncutechess) == 0)
 
     if arguments.username is None:
         arguments.username = os.environ['OPENBENCH_USERNAME']

@@ -466,25 +466,25 @@ def get_valid_workloads(machine, request):
         tests = tests.exclude(syzygy_wdl='REQUIRED')
 
     # Skip tests that would waste available Threads or exceed them
-    options = [x for x in tests if test_maps_onto_thread_count(machine, x)]
+    ncutechess = int(request.POST['ncutechess'])
+    options    = [x for x in tests if test_maps_onto_thread_count(machine, x, ncutechess)]
 
     # Finally refine for tests of the highest priority
     if not options: return []
     highest_prio = max(options, key=lambda x: x.priority).priority
     return [test for test in options if test.priority == highest_prio]
 
-def test_maps_onto_thread_count(machine, test):
-
-    # Only assign a workload to a machine if the machine actually has
-    # enough Threads for the test. Furthermore, ensure that there are
-    # no left over threads when assigned. An exception is made for the
-    # case where thread counts differ -- a bad idea to run in general
+def test_maps_onto_thread_count(machine, test, ncutechess):
 
     dev_threads  = int(extractOption(test.devoptions,  'Threads'))
     base_threads = int(extractOption(test.baseoptions, 'Threads'))
 
-    if max(dev_threads, base_threads) > machine.threads: return False
-    return dev_threads != base_threads or machine.threads % dev_threads == 0
+    # Each individual cutechess copy must have access to sufficient Threads
+    if max(dev_threads, base_threads) > (machine.threads / ncutechess):
+        return False
+
+    # Intentional Thread Imbalance, or evenly distributed Threads
+    return dev_threads != base_threads or (machine.threads / ncutechess) % dev_threads == 0
 
 def select_workload(machine, tests, variance=0.25):
 

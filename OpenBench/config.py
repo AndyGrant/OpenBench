@@ -27,7 +27,7 @@ REQUIRE_MANUAL_REGISTRATION = True
 OPENBENCH_CONFIG = {
 
     # Server Client version control
-    'client_version' : '6',
+    'client_version' : '7',
 
     # Generic Error Messages useful to those setting up their own instance
     'error' : {
