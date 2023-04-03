@@ -129,6 +129,7 @@ class Test(Model):
     finished    = BooleanField(default=False)
     deleted     = BooleanField(default=False)
     approved    = BooleanField(default=False)
+    awaiting    = BooleanField(default=False)
 
     creation    = DateTimeField(auto_now_add=True)
     updated     = DateTimeField(auto_now=True)

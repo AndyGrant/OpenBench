@@ -238,16 +238,18 @@ def index(request, page=1, error=''):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    pending   = OpenBench.utils.getPendingTests()
-    active    = OpenBench.utils.getActiveTests()
-    completed = OpenBench.utils.getCompletedTests()
+    pending   = OpenBench.utils.get_pending_tests()
+    active    = OpenBench.utils.get_active_tests()
+    completed = OpenBench.utils.get_completed_tests()
+    awaiting  = OpenBench.utils.get_awaiting_tests()
 
     start, end, paging = OpenBench.utils.getPaging(completed, page, 'index')
 
     data = {
-        'error'  : error,  'pending'   : pending,
-        'active' : active, 'completed' : completed[start:end],
-        'paging' : paging, 'status'    : OpenBench.utils.getMachineStatus(),
+        'pending'   : pending,              'active'   : active,
+        'completed' : completed[start:end], 'awaiting' : awaiting,
+        'paging'    : paging,               'status'   : OpenBench.utils.getMachineStatus(),
+        'error'     : error,
     }
 
     return render(request, 'index.html', data)
@@ -261,7 +263,7 @@ def greens(request, page=1):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    completed = OpenBench.utils.getCompletedTests().filter(passed=True)
+    completed = OpenBench.utils.get_completed_tests().filter(passed=True)
     start, end, paging = OpenBench.utils.getPaging(completed, page, 'greens')
 
     data = {'completed' : completed[start:end], 'paging' : paging}
@@ -323,17 +325,18 @@ def user(request, username, page=1):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    pending   = OpenBench.utils.getPendingTests().filter(author=username)
-    active    = OpenBench.utils.getActiveTests().filter(author=username)
-    completed = OpenBench.utils.getCompletedTests().filter(author=username)
+    pending   = OpenBench.utils.get_pending_tests().filter(author=username)
+    active    = OpenBench.utils.get_active_tests().filter(author=username)
+    completed = OpenBench.utils.get_completed_tests().filter(author=username)
+    awaiting  = OpenBench.utils.get_awaiting_tests().filter(author=username)
 
     url = 'user/{0}'.format(username)
     start, end, paging = OpenBench.utils.getPaging(completed, page, url)
 
     data = {
-        'pending'   : pending,              'active' : active,
-        'completed' : completed[start:end], 'paging' : paging,
-        'status'    : OpenBench.utils.getMachineStatus(username),
+        'pending'   : pending,              'active'   : active,
+        'completed' : completed[start:end], 'awaiting' : awaiting,
+        'paging'    : paging,               'status'   : OpenBench.utils.getMachineStatus(username),
     }
 
     return render(request, 'index.html', data)

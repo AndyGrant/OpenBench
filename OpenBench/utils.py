@@ -77,22 +77,29 @@ def parseTimeControl(time_control):
     raise Exception('Unable to parse Time Control (%s)' % (time_control))
 
 
-def getPendingTests():
-    pending = OpenBench.models.Test.objects.filter(approved=False)
-    pending = pending.exclude(finished=True)
-    pending = pending.exclude(deleted=True)
-    return pending.order_by('-creation')
+def get_pending_tests():
+    t = OpenBench.models.Test.objects.filter(approved=False)
+    t = t.exclude(finished=True)
+    t = t.exclude(deleted=True)
+    return t.order_by('-creation')
 
-def getActiveTests():
-    active = OpenBench.models.Test.objects.filter(approved=True)
-    active = active.exclude(finished=True)
-    active = active.exclude(deleted=True)
-    return active.order_by('-priority', '-currentllr')
+def get_active_tests():
+    t = OpenBench.models.Test.objects.filter(approved=True)
+    t = t.exclude(awaiting=True)
+    t = t.exclude(finished=True)
+    t = t.exclude(deleted=True)
+    return t.order_by('-priority', '-currentllr')
 
-def getCompletedTests():
-    completed = OpenBench.models.Test.objects.filter(finished=True)
-    completed = completed.exclude(deleted=True)
-    return completed.order_by('-updated')
+def get_completed_tests():
+    t = OpenBench.models.Test.objects.filter(finished=True)
+    t = t.exclude(deleted=True)
+    return t.order_by('-updated')
+
+def get_awaiting_tests():
+    t = OpenBench.models.Test.objects.filter(awaiting=True)
+    t = t.exclude(finished=True)
+    t = t.exclude(deleted=True)
+    return t.order_by('-creation')
 
 
 def getRecentMachines(minutes=5):
@@ -149,11 +156,8 @@ def getEngine(source, name, sha, bench):
     return Engine.objects.create(name=name, source=source, sha=sha, bench=bench)
 
 
-def read_git_credentials(request):
-
-    engine = request.POST['enginename'].replace(' ', '').lower()
-    fname  = 'credentials.%s' % (engine)
-
+def read_git_credentials(engine):
+    fname  = 'credentials.%s' % (engine.replace(' ', '').lower())
     if os.path.exists(fname):
         with open(fname) as fin:
             return { 'Authorization' : 'token %s' % fin.readlines()[0].rstrip() }
@@ -198,19 +202,19 @@ def collect_github_info(request, errors, field):
     ## [C] Determine which, if any, credentials we want to pass along
 
     # Private engines must have a token stored in credentials.enginename
-    if private and not (headers := read_git_credentials(request)):
+    if private and not (headers := read_git_credentials(request.POST['enginename'])):
         errors.append('Server does not have access tokens for this engine')
-        return (None, None, None, None)
+        return (None, None)
 
     # Do not allow private engines to use forked repos ( We don't have a token! )
     if requests_illegal_fork(request):
         errors.append('Forked Repositories are not allowed for Private engines')
-        return (None, None, None, None)
+        return (None, None)
 
     # Avoid leaking our credentials to other websites
     if not base.startswith('https://api.github.com/'):
         errors.append('OpenBench may only reach Github\'s API')
-        return (None, None, None, None)
+        return (None, None)
 
     ## Step 2: Connect to the Github API for the given Branch or Commit SHA.
     ## [A] We will attempt to parse the most recent commit message for a
@@ -230,53 +234,51 @@ def collect_github_info(request, errors, field):
     except: # Unable to connect for whatever reason
         path = 'Commit Sha' if bysha else 'Branch'
         errors.append('{0} {1} could not be found'.format(path, branch))
-        return (None, None, None, None)
+        return (None, None)
 
     # Extract the bench from the web form, or from the commit message
     if not (bench := determine_bench(request, field, data['commit']['message'])):
         errors.append('Unable to parse a Bench for %s' % (branch))
-        return (None, None, None, None)
+        return (None, None)
 
     # Public Engines: Construct the .zip download and return everything
     if not OPENBENCH_CONFIG['engines'][request.POST['enginename']]['private']:
         treeurl = data['commit']['tree']['sha'] + '.zip'
         source  = pathjoin(request.POST['source'], 'archive', treeurl).rstrip('/')
-        return (source, branch, data['sha'], bench)
+        return (source, branch, data['sha'], bench), True
 
     ## Step 3: Construct the URL for the API request to list all Artifacts
     ## [A] OpenBench artifacts are always run via a file named openbench.yml
     ## [B] These should contain combinations for windows/linux, avx2/avx512, popcnt/pext
-    ## [C] If those artifacts do not exist, we cannot create the test.
+    ## [C] If those artifacts are not found, we flag the test as awaiting, and try later.
 
-    try: # Fetch the run id for the openbench workflow for this comment
+    engine       = request.POST['enginename']
+    url, has_all = fetch_artifact_url(base, engine, headers, data['sha'])
+    return (url, branch, data['sha'], bench), has_all
+
+def fetch_artifact_url(base, engine, headers, sha):
+
+    try:
+        # Fetch the run id for the openbench workflow for this comment
         url    = pathjoin(base, 'actions', 'workflows', 'openbench.yml', 'runs').rstrip('/')
-        url   += '?head_sha=%s' % (data['sha'])
+        url   += '?head_sha=%s' % (sha)
         run_id = requests.get(url=url, headers=headers).json()['workflow_runs'][0]['id']
 
-    except: # Unable to determine this for whatever reason
-        errors.append('Failed to idenftify the run_id associated with the OpenBench workflow')
-        return (None, None, None, None)
-
-    try: # Fetch the artifact list for the run_id we determined above
+        # Construct the final URL that will be used to look at artifacts
         url       = pathjoin(base, 'actions', 'runs', str(run_id), 'artifacts').rstrip('/')
         artifacts = requests.get(url=url, headers=headers).json()['artifacts']
 
-    except: # Unable to fetch the list of artifacts for whatever reason
-        errors.append('Failed to get the Artifact List for run_id = %d' % (run_id))
-        return (None, None, None, None)
+        # Verify that all of the artifacts exist and are not expired
+        available = [ f['name'] for f in artifacts if f['expired'] == False ]
+        required  = OPENBENCH_CONFIG['engines'][engine]['build']['artifacts']
+        has_all   = all(['%s-%s' % (sha, name) in available for name in required])
 
-    # Verify that all of the artifacts exist and are not expired
-    available = [ f['name'] for f in artifacts if f['expired'] == False ]
-    required  = OPENBENCH_CONFIG['engines'][request.POST['enginename']]['build']['artifacts']
+        # Return the URL iff we found them; otherwise base
+        return (url if has_all else base, has_all)
 
-    # Flag any and all missing artifacts
-    for name in required:
-        if '%s-%s' % (data['sha'], name) not in available:
-            errors.append('Missing Artifact (%s)' % (name))
-
-    # Return the API endpoint for artifacts, along with the usual rest
-    return (url, branch, data['sha'], bench)
-
+    except Exception as error:
+        # If anything goes wrong, retry later with the same base URL
+        return (base, False)
 
 def verifyNewTest(request):
 
@@ -340,8 +342,8 @@ def createNewTest(request):
     errors = verifyNewTest(request)
     if errors != []: return None, errors
 
-    devinfo  = collect_github_info(request, errors, 'dev')
-    baseinfo = collect_github_info(request, errors, 'base')
+    devinfo,  dev_has_all  = collect_github_info(request, errors, 'dev')
+    baseinfo, base_has_all = collect_github_info(request, errors, 'base')
     if errors != []: return None, errors
 
     test = Test()
@@ -379,8 +381,9 @@ def createNewTest(request):
     if request.POST['basenetwork']:
         test.basenetname = Network.objects.get(sha256=request.POST['basenetwork']).name
 
-    test.dev         = getEngine(*devinfo)
-    test.base        = getEngine(*baseinfo)
+    test.dev      = getEngine(*devinfo)
+    test.base     = getEngine(*baseinfo)
+    test.awaiting = not (dev_has_all and base_has_all)
     test.save()
 
     profile = Profile.objects.get(user=request.user)
@@ -445,9 +448,8 @@ def getWorkload(user, request):
 
 def get_valid_workloads(machine, request):
 
-    # Skip finished tests
-    tests = Test.objects.filter(finished=False)
-    tests = tests.filter(deleted=False).filter(approved=True)
+    # Skip anything that is not running
+    tests = get_active_tests()
 
     # Skip engines that the Machine cannot build
     for engine in OPENBENCH_CONFIG['engines'].keys():

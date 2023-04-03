@@ -16,6 +16,15 @@
                 <tr class="table-spacer"><th></th></tr>
             {% endif %}
 
+            <!-- Currently Awaiting tests (Waiting for Artifacts) -->
+            {% if awaiting %}
+                <tr><th colspan='6'>Awaiting Artifacts</th></tr>
+                {% for test in awaiting %}
+                    {% include "OpenBench/Blocks/testsummary.html" %}
+                {% endfor %}
+                <tr class="table-spacer"><th></th></tr>
+            {% endif %}
+
             <!-- Currently Running tests (Waiting to be completed) -->
             {% if active %}
                 <tr><th colspan='6'>Active {{status}}</th></tr>

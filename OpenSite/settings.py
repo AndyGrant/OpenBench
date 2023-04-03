@@ -42,8 +42,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'OpenBench',
     'OpenBench.templatetags',
+    'OpenBench.apps.OpenbenchConfig',
 ]
 
 MIDDLEWARE = [
