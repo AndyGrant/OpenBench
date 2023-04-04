@@ -36,14 +36,14 @@ MEDIA_URL  = '/Media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'Media')
 
 INSTALLED_APPS = [
+    'OpenBench',
+    'OpenBench.templatetags',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'OpenBench.templatetags',
-    'OpenBench.apps.OpenbenchConfig',
 ]
 
 MIDDLEWARE = [
