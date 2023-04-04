@@ -27,17 +27,12 @@ class ArtifactWatcher(threading.Thread):
             test.save()
 
     def run(self):
-
         while True:
-
             for test in OpenBench.utils.get_awaiting_tests():
                 self.update_test(test)
-
             time.sleep(10)
 
 class Command(BaseRunserverCommand):
-
-    help = "Test"
 
     def inner_run(self, *args, **options):
         self.pre_start()
