@@ -1,9 +1,13 @@
 *.pyc
 Client/*
-!Client/cleanup.sh
 OpenBench/migrations/*
+
 credentials
+credentials.*
+db.sqlite3
 
 Scripts/Binaries/*
 Scripts/Networks/*
 Scripts/Repositories/*
+
+Media/*
