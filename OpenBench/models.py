@@ -106,6 +106,10 @@ class Test(Model):
     win_adj     = CharField(max_length=64, default='movecount=3 score=400')
     draw_adj    = CharField(max_length=64, default='movenumber=40 movecount=8 score=10')
 
+    # Client configuration
+    report_rate   = IntegerField(default=8)
+    workload_size = IntegerField(default=32)
+
     # Only for SPRT Tests
     elolower    = FloatField(default=0.0)
     eloupper    = FloatField(default=0.0)

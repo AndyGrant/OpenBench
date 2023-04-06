@@ -40,7 +40,7 @@
     ];
 
 
-    function set_test_type(type) {
+    function set_test_type() {
 
         //// When the test mode is set or changed, run this.
         //// Sets the bounds, confidence intervals, and max games fields.
@@ -72,6 +72,9 @@
         var selection = document.getElementById("enginename");
         var engine    = selection.options[selection.selectedIndex].value;
         var mode      = TestModes[engine][mode_idx];
+
+        document.getElementById("report_rate").value = mode["report_rate"] || 8;
+        document.getElementById("workload_size").value = mode["workload_size"] || 32;
 
         if (mode["th"] != null && mode["hash"] != null) {
             var threads = mode["th"]; var hash = mode["hash"];
@@ -168,6 +171,8 @@
         document.getElementById("bookname"  ).value = Configurations[engine]["book"];
         document.getElementById("win_adj"   ).value = Configurations[engine]["win_adj"];
         document.getElementById("draw_adj"  ).value = Configurations[engine]["draw_adj"];
+
+        set_test_mode(0);
     }
 
     document.addEventListener(
@@ -205,6 +210,10 @@
             <label> Base Branch </label> <input id="basebranch" name="basebranch"><br>
             <label> Base Options </label> <input id="baseoptions" name="baseoptions"><br>
             <label> Base Network </label> <select id="basenetwork" name="basenetwork"></select><br>
+
+            <h3> Workload Settings </h3>
+            <label> Report Rate </label> <input value="8" id="report_rate" name="report_rate"><br>
+            <label> Workload Size </label> <input value="32" id="workload_size" name="workload_size"<br>
 
         </div>
 

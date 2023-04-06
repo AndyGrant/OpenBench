@@ -17,14 +17,14 @@ a:link, a:visited, a:hover, a:active {
 
 #sidebar ul {
     list-style-type: none;
-    padding: 0px 16px 0px 8px;
-    line-height: 1.75;
+    padding: 0px 0px 0px 8px;
+    line-height: 1.50;
 }
 
 #sidebar li a {
     color: #A2A2A2;
     padding: 0px 16px;
-    font-size: 1.0rem;
+    font-size: 16px;
 }
 
 #sidebar li:hover {
@@ -35,7 +35,7 @@ a:link, a:visited, a:hover, a:active {
 #sidebar .header {
     color: #00AF00;
     padding: 0px 16px;
-    font-size: 1.0rem;
+    font-size: 16px;
 }
 
 #sidebar .header:hover {
@@ -58,14 +58,19 @@ a:link, a:visited, a:hover, a:active {
 }
 
 #content input, #content select {
+
     background-color: #BBBBBB;
     color: #000000;
     padding: 10px;
     margin: 1px 0px;
-    width: 320px;
-    box-sizing: border-box;
+    width: 340px;
+
+    border: 2px solid black;
+    border-radius: 6px;
+
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 #content button {

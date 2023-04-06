@@ -39,7 +39,6 @@
             <tr><th>Syzygy ADJ.</th><td>{{test.syzygy_adj}}</td></tr>
             <tr><th>Win ADJ.</th><td>{{test.win_adj}}</td></tr>
             <tr><th>Draw ADJ.</th><td>{{test.draw_adj}}</td></tr>
-
         </table>
     </div>
 
@@ -94,6 +93,8 @@
 
             <label>Priority</label><input value="{{test.priority}}" name="priority"><br>
             <label>Throughput</label><input value="{{test.throughput}}" name="throughput"><br>
+            <label>Report Rate</label><input value="{{test.report_rate}}" name="report_rate"><br>
+            <label>Workload Size</label><input value="{{test.workload_size}}" name="workload_size"><br>
 
             <!-- Edit Button: For Approvers or Test Authors -->
             {% if profile.approver or profile.user.username == test.author %}

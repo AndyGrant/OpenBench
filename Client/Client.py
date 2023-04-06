@@ -51,7 +51,6 @@ TIMEOUT_WORKLOAD    = 30    # Timeout in seconds between workload requests
 CLIENT_VERSION      = '7'   # Client version to send to the Server
 
 SYZYGY_WDL_PATH     = None  # Pathway to WDL Syzygy Tables
-BASE_GAMES_PER_CORE = 32    # Typical games played per-thread
 FLEET_MODE          = False # Exit when there are no workloads
 
 ERRORS = {
@@ -901,9 +900,8 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cuteche
 
     concurrency = int(arguments.threads) / int(arguments.ncutechess)
     concurrency = concurrency // max(dev_threads, base_threads)
-    update_interval = 8 if max(dev_threads, base_threads) == 1 else 1
 
-    games = int(concurrency * BASE_GAMES_PER_CORE)
+    games = int(concurrency * workload['test']['workload_size'])
     games = max(8, concurrency * 2, games - (games % (2 * concurrency)))
 
     time_control = scale_time_control(workload, nps)
@@ -918,10 +916,10 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cuteche
     )
 
     if IS_LINUX:
-        return concurrency, update_interval, './cutechess-ob ' + flags % (args)
-    return concurrency, update_interval, 'cutechess-ob.exe ' + flags % (args)
+        return concurrency, './cutechess-ob ' + flags % (args)
+    return concurrency, 'cutechess-ob.exe ' + flags % (args)
 
-def run_and_parse_cutechess(arguments, workload, concurrency, update_interval, command, cutechess_idx):
+def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess_idx):
 
     print('\n[#%d] Launching Cutechess...\n%s\n' % (cutechess_idx, command))
     cutechess = Popen(command.split(), stdout=PIPE)
@@ -958,7 +956,7 @@ def run_and_parse_cutechess(arguments, workload, concurrency, update_interval, c
 
         # Only report scores after every eight games
         score = list(map(int, score_reason.split()[0:5:2]))
-        if ((sum(score) - sum(sent)) % update_interval != 0): continue
+        if ((sum(score) - sum(sent)) % workload['test']['report_rate'] != 0): continue
 
         # Report to the server but allow failed reports to delay
         wld = [score[ii] - sent[ii] for ii in range(3)]

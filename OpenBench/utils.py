@@ -288,9 +288,9 @@ def verifyNewTest(request):
         try: int(request.POST[field])
         except: errors.append('"{0}" is not an Integer'.format(fieldName))
 
-    def verifyGreaterThan(field, fieldName, value, valueName):
+    def verifyGreaterThan(field, fieldName, value):
         if not float(request.POST[field]) > value:
-            errors.append('"{0}" is not greater than {1}'.format(fieldName, valueName))
+            errors.append('"{0}" is not greater than {1}'.format(fieldName, value))
 
     def verifyOptions(field, option, fieldName):
         if extractOption(request.POST[field], option) == None:
@@ -317,9 +317,18 @@ def verifyNewTest(request):
         except: errors.append('"{0}" is not a parsable Draw Adjudication Seting'.format(content))
 
     verifications = [
-        (verifyInteger, 'priority', 'Priority'),
-        (verifyInteger, 'throughput', 'Throughput'),
-        (verifyGreaterThan, 'throughput', 'Throughput', 0, '0'),
+
+        # Must have all of these values for test settings
+        (verifyInteger, 'priority',      'Priority'     ),
+        (verifyInteger, 'throughput',    'Throughput'   ),
+        (verifyInteger, 'report_rate',   'Report Rate'  ),
+        (verifyInteger, 'workload_size', 'Workload Size'),
+
+        # Can't allow non-natural values for any of these fields
+        (verifyGreaterThan, 'throughput',    'Throughput',    0),
+        (verifyGreaterThan, 'report_rate',   'Report Rate',   0),
+        (verifyGreaterThan, 'workload_size', 'Workload Size', 0),
+
         (verifyOptions, 'devoptions', 'Threads', 'Dev Options'),
         (verifyOptions, 'devoptions', 'Hash', 'Dev Options'),
         (verifyOptions, 'baseoptions', 'Threads', 'Base Options'),
@@ -346,23 +355,25 @@ def createNewTest(request):
     baseinfo, base_has_all = collect_github_info(request, errors, 'base')
     if errors != []: return None, errors
 
-    test = Test()
-    test.author      = request.user.username
-    test.engine      = request.POST['enginename']
-    test.test_mode   = request.POST['test_mode']
-    test.source      = request.POST['source']
-    test.devoptions  = request.POST['devoptions'].rstrip(' ')
-    test.baseoptions = request.POST['baseoptions'].rstrip(' ')
-    test.devnetwork  = request.POST['devnetwork']
-    test.basenetwork = request.POST['basenetwork']
-    test.bookname    = request.POST['bookname']
-    test.timecontrol = parseTimeControl(request.POST['timecontrol'])
-    test.priority    = int(request.POST['priority'])
-    test.throughput  = int(request.POST['throughput'])
-    test.syzygy_wdl  = request.POST['syzygy_wdl']
-    test.syzygy_adj  = request.POST['syzygy_adj']
-    test.win_adj     = request.POST['win_adj']
-    test.draw_adj    = request.POST['draw_adj']
+    test               = Test()
+    test.author        = request.user.username
+    test.engine        = request.POST['enginename']
+    test.test_mode     = request.POST['test_mode']
+    test.source        = request.POST['source']
+    test.devoptions    = request.POST['devoptions'].rstrip(' ')
+    test.baseoptions   = request.POST['baseoptions'].rstrip(' ')
+    test.devnetwork    = request.POST['devnetwork']
+    test.basenetwork   = request.POST['basenetwork']
+    test.bookname      = request.POST['bookname']
+    test.timecontrol   = parseTimeControl(request.POST['timecontrol'])
+    test.priority      = int(request.POST['priority'])
+    test.throughput    = int(request.POST['throughput'])
+    test.syzygy_wdl    = request.POST['syzygy_wdl']
+    test.syzygy_adj    = request.POST['syzygy_adj']
+    test.win_adj       = request.POST['win_adj']
+    test.draw_adj      = request.POST['draw_adj']
+    test.report_rate   = int(request.POST['report_rate'])
+    test.workload_size = int(request.POST['workload_size'])
 
     if request.POST['test_mode'] == 'SPRT':
         test.elolower = float(request.POST['bounds'].split(',')[0].lstrip('['))
@@ -531,18 +542,21 @@ def workload_to_dictionary(test, result, machine):
 
         'test'    : {
 
-            'id'          : test.id,
-            'engine'      : test.engine,
-            'timecontrol' : test.timecontrol,
-            'syzygy_wdl'  : test.syzygy_wdl,
+            'id'            : test.id,
+            'engine'        : test.engine,
+            'timecontrol'   : test.timecontrol,
+            'syzygy_wdl'    : test.syzygy_wdl,
 
-            'syzygy_adj'  : test.syzygy_adj,
-            'win_adj'     : test.win_adj,
-            'draw_adj'    : test.draw_adj,
+            'syzygy_adj'    : test.syzygy_adj,
+            'win_adj'       : test.win_adj,
+            'draw_adj'      : test.draw_adj,
 
-            'nps'         : OPENBENCH_CONFIG['engines'][test.engine]['nps'],
-            'build'       : OPENBENCH_CONFIG['engines'][test.engine]['build'],
-            'book'        : OPENBENCH_CONFIG['books'][test.bookname],
+            'report_rate'   : test.report_rate,
+            'workload_size' : test.workload_size,
+
+            'nps'           : OPENBENCH_CONFIG['engines'][test.engine]['nps'],
+            'build'         : OPENBENCH_CONFIG['engines'][test.engine]['build'],
+            'book'          : OPENBENCH_CONFIG['books'][test.bookname],
 
             'dev'  : {
                 'id'      : test.dev.id,      'name'    : test.dev.name,

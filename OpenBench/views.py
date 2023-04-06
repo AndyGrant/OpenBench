@@ -420,9 +420,9 @@ def test(request, id, action=None):
         return django.http.HttpResponseRedirect('/index/')
 
     if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'MODIFY']:
-        test = Test.objects.get(id=id)
+        test    = Test.objects.get(id=id)
         results = Result.objects.filter(test=test).order_by('machine_id')
-        data = {'test' : test, 'results': results}
+        data    = {'test' : test, 'results': results}
         return render(request, 'test.html', data)
 
     if not request.user.is_authenticated:
@@ -445,11 +445,13 @@ def test(request, id, action=None):
     if action == 'DELETE' : test.deleted  =  True; test.save()
 
     if action == 'MODIFY':
-        test.priority = int(request.POST['priority'])
-        test.throughput = max(1, int(request.POST['throughput']))
+        test.priority      = int(request.POST['priority'])
+        test.throughput    = max(1, int(request.POST['throughput']))
+        test.report_rate   = max(1, int(request.POST['report_rate']))
+        test.workload_size = max(1, int(request.POST['workload_size']))
         test.save()
 
-    action += " P={0} TP={1}".format(test.priority, test.throughput)
+    action += " P=%d TP=%d RR=%d WS=%d" % (test.priority, test.throughput, test.report_rate, test.workload_size)
     LogEvent.objects.create(author=user.username, summary=action, log_file='', test_id=test.id)
     return django.http.HttpResponseRedirect('/index/')
 
