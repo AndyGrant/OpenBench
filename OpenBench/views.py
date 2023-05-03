@@ -479,7 +479,7 @@ def newTest(request):
         return django.http.HttpResponseRedirect('/index/')
 
     if request.method == 'GET':
-        data = { 'networks' : Network.objects.all() }
+        data = { 'networks' : list(Network.objects.all().values()) }
         return render(request, 'newTest.html', data)
 
     test, errors = OpenBench.utils.createNewTest(request)

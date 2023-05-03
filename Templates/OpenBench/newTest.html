@@ -1,44 +1,14 @@
 {% extends "OpenBench/base.html" %}
 
+{% block json %}
+    {{ config.engines|json_script:"json-engines" }}
+    {{ networks|json_script:"json-networks" }}
+{% endblock %}
+
 {% block scripts %}
 
-    var Configurations = {
-        {% for name, data in config.engines.items %}
-            "{{name}}" : {
-                "base"     : "{{data.base}}",
-                "book"     : "{{data.book}}",
-                "bounds"   : "{{data.bounds}}",
-                "win_adj"  : "{{data.win_adj}}",
-                "draw_adj" : "{{data.draw_adj}}",
-            },
-        {% endfor %}
-    };
-
-    var TestModes = {
-        {% for name, data in config.engines.items %}
-            "{{name}}" : [
-                {% for mode in data.testmodes %}
-                {
-                    {% for key, value in mode.items %}
-                        "{{key}}" : "{{value}}",
-                    {% endfor %}
-                },
-                {% endfor %}
-            ],
-        {% endfor %}
-    };
-
-    var Networks = [
-        {% for network in networks %}
-            {
-                "name"    : "{{network.name}}",
-                "sha256"  : "{{network.sha256}}",
-                "engine"  : "{{network.engine}}",
-                "default" : "{{network.default}}",
-            },
-        {% endfor %}
-    ];
-
+    var engines  = JSON.parse(document.getElementById("json-engines" ).textContent);
+    var networks = JSON.parse(document.getElementById("json-networks").textContent);
 
     function set_test_type() {
 
@@ -52,43 +22,30 @@
         var engine  = selectB.options[selectB.selectedIndex].value;
 
         if (mode == "SPRT") {
-            document.getElementById("test_bounds").value     = Configurations[engine]["bounds"]
+            document.getElementById("test_bounds"    ).value = engines[engine].bounds
             document.getElementById("test_confidence").value = "{{config.tests.confidence}}";
-            document.getElementById("test_max_games").value  = "N/A";
+            document.getElementById("test_max_games" ).value = "N/A";
         }
 
         if (mode == "GAMES") {
-            document.getElementById("test_bounds").value     = "N/A";
+            document.getElementById("test_bounds"    ).value = "N/A";
             document.getElementById("test_confidence").value = "N/A";
-            document.getElementById("test_max_games").value  = "{{config.tests.max_games}}";
+            document.getElementById("test_max_games" ).value = "{{config.tests.max_games}}";
         }
     }
 
-    function set_test_mode(mode_idx) {
-
-        //// Sets any of the possible following options:
-        //// Threads, Hash, Book, time Control, Test Mode, Bounds, Games
+    function set_test_mode(mode_str) {
 
         var selection = document.getElementById("enginename");
         var engine    = selection.options[selection.selectedIndex].value;
-        var mode      = TestModes[engine][mode_idx];
+        var mode      = engines[engine].testmodes[mode_str];
 
-        document.getElementById("report_rate").value = mode["report_rate"] || 8;
+        document.getElementById("report_rate"  ).value = mode["report_rate"]   || 8;
         document.getElementById("workload_size").value = mode["workload_size"] || 32;
-
-        if (mode["th"] != null && mode["hash"] != null) {
-            var threads = mode["th"]; var hash = mode["hash"];
-            document.getElementById("devoptions").value   = "Threads=" + threads + " Hash=" + hash;
-            document.getElementById("baseoptions").value  = "Threads=" + threads + " Hash=" + hash;
-        }
-
-        if (mode["book"] != null) {
-            document.getElementById("bookname").value = mode["book"]
-        }
-
-        if (mode["tc"] != null) {
-            document.getElementById("timecontrol").value = mode["tc"];;
-        }
+        document.getElementById("devoptions"   ).value = mode["options"]       || "Threads=1 Hash=8";
+        document.getElementById("baseoptions"  ).value = mode["options"]       || "Threads=1 Hash=8";
+        document.getElementById("timecontrol"  ).value = mode["timecontrol"]   || "10.0+0.1";
+        document.getElementById("bookname"     ).value = mode["book"]          || engines[engine].book;
 
         if (mode["bounds"] != null) {
             document.getElementById("test_mode").value = "SPRT"; set_test_type();
@@ -100,14 +57,8 @@
             document.getElementById("test_max_games").value = mode["games"];
         }
 
-        // Default back when not specified
-
         if (mode["bounds"] == null && mode["games"] == null) {
             document.getElementById("test_mode").value = "SPRT"; set_test_type();
-        }
-
-        if (mode["book"] == null) {
-            document.getElementById("bookname").value = Configurations[engine]["book"];
         }
     }
 
@@ -122,13 +73,15 @@
         document.getElementById("enginename").value = engine;
 
         var button_div = document.getElementById("test-mode-buttons");
-        while (button_div.hasChildNodes()) button_div.removeChild(button_div.lastChild);
+        while (button_div.hasChildNodes())
+            button_div.removeChild(button_div.lastChild);
 
-        for (let i in TestModes[engine]) {
-            const btn = document.createElement('button')
-            btn.innerHTML = TestModes[engine][i]["id"];
-            btn.onclick   = function() { set_test_mode(i); };
-            btn.class     = (i % 2) ? "left-floated" : "right-floated";
+        var index = 0;
+        for (let mode in engines[engine].testmodes) {
+            btn = document.createElement('button')
+            btn.innerHTML = mode;
+            btn.onclick   = function() { set_test_mode(mode); };
+            btn.class     = (++index % 2) ? "left-floated" : "right-floated";
             button_div.append(btn);
         }
 
@@ -139,7 +92,7 @@
         while (devnet.length)  devnet.remove(0);
         while (basenet.length) basenet.remove(0);
 
-        for (const network of Networks) {
+        for (const network of networks) {
 
             if (network.engine !== engine) continue;
 
@@ -149,11 +102,11 @@
             devopt.text  = baseopt.text  = network.name;
             devopt.value = baseopt.value = network.sha256;
 
-            devopt.selected  = network.default == "True";
-            baseopt.selected = network.default == "True";
+            devopt.selected  = network.default;
+            baseopt.selected = network.default;
             devnet.add(devopt); basenet.add(baseopt);
 
-            hasdefault = (hasdefault || (network.default == "True"));
+            hasdefault = hasdefault || network.default;
         }
 
         {
@@ -163,23 +116,23 @@
             devopt.text  = baseopt.text  = "None";
             devopt.value = baseopt.value = "";
 
-            devopt.selected  = (hasdefault == false); devnet.add(devopt);
-            baseopt.selected = (hasdefault == false); basenet.add(baseopt);
+            devopt.selected  = !hasdefault; devnet.add(devopt);
+            baseopt.selected = !hasdefault; basenet.add(baseopt);
         }
 
-        document.getElementById("basebranch").value = Configurations[engine]["base"];
-        document.getElementById("bookname"  ).value = Configurations[engine]["book"];
-        document.getElementById("win_adj"   ).value = Configurations[engine]["win_adj"];
-        document.getElementById("draw_adj"  ).value = Configurations[engine]["draw_adj"];
+        document.getElementById("basebranch").value = engines[engine].base;
+        document.getElementById("bookname"  ).value = engines[engine].book;
+        document.getElementById("win_adj"   ).value = engines[engine].win_adj;
+        document.getElementById("draw_adj"  ).value = engines[engine].draw_adj;
 
-        set_test_mode(0);
+        set_test_mode("STC");
     }
 
     document.addEventListener(
         'DOMContentLoaded', function () {
             set_test_type();
             set_engine("{{profile.engine}}");
-            set_test_mode(0);
+            set_test_mode("STC");
         }, false
     );
 
@@ -212,8 +165,8 @@
             <label> Base Network </label> <select id="basenetwork" name="basenetwork"></select><br>
 
             <h3> Workload Settings </h3>
-            <label> Report Rate </label> <input value="8" id="report_rate" name="report_rate"><br>
-            <label> Workload Size </label> <input value="32" id="workload_size" name="workload_size"<br>
+            <label> Report Rate </label> <input id="report_rate" name="report_rate"><br>
+            <label> Workload Size </label> <input id="workload_size" name="workload_size"<br>
 
         </div>
 

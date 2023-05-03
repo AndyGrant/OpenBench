@@ -1,45 +1,48 @@
 {
-    "nps": 1225000,
-    "base": "master",
-    "book": "Pohl.pgn",
-    "bounds": "[0.00, 5.00]",
-    "source": "https://github.com/kz04px/4ku",
-    "private": false,
-    "win_adj": "movecount=3 score=400",
-    "draw_adj": "movenumber=40 movecount=8 score=10",
-    "build": {
-        "path": "",
-        "compilers": [
-            "g++"
-        ],
-        "cpuflags": [
-            "__POPCNT__"
-        ]
+    "private"  : false,
+    "nps"      : 1225000,
+    "base"     : "master",
+    "source"   : "https://github.com/kz04px/4ku",
+
+    "bounds"   : "[0.00, 5.00]",
+    "book"     : "Pohl.pgn",
+    "win_adj"  : "movecount=3 score=400",
+    "draw_adj" : "movenumber=40 movecount=8 score=10",
+
+    "build" : {
+        "path"      : "",
+        "compilers" : ["g++"],
+        "cpuflags"  : ["__POPCNT__"]
     },
-    "testmodes": [
-        {
-            "id": "STC",
-            "th": 1,
-            "hash": 64,
-            "tc": "8.0+0.08"
+
+    "testmodes" : {
+
+        "STC" : {
+            "options"       : "Threads=1 Hash=8",
+            "timecontrol"   : "8.0+0.08",
+            "report_rate"   : 16,
+            "workload_size" : 32
         },
-        {
-            "id": "LTC",
-            "th": 1,
-            "hash": 64,
-            "tc": "40.0+0.4"
+
+        "LTC" : {
+            "options"       : "Threads=1 Hash=64",
+            "timecontrol"   : "40.0+0.4",
+            "report_rate"   : 4,
+            "workload_size" : 8
         },
-        {
-            "id": "SMP STC",
-            "th": 8,
-            "hash": 64,
-            "tc": "5.0+0.05"
+
+        "SMP STC" : {
+            "options"       : "Threads=8 Hash=64",
+            "timecontrol"   : "5.0+0.05",
+            "report_rate"   : 1,
+            "workload_size" : 64
         },
-        {
-            "id": "SMP LTC",
-            "th": 8,
-            "hash": 256,
-            "tc": "20.0+0.2"
+
+        "SMP LTC" : {
+            "options"       : "Threads=8 Hash=256",
+            "timecontrol"   : "20.0+0.2",
+            "report_rate"   : 1,
+            "workload_size" : 16
         }
-    ]
+    }
 }
