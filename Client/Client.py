@@ -963,8 +963,8 @@ def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess
         stats = wld + [crashes, timelosses]
         status = server_report_results(arguments, workload, stats)
 
-        # Check for the task being aborted
-        if status.upper() == 'STOP':
+        # Check for the task being aborted, or Client being killed
+        if status.upper() == 'STOP' or os.path.isfile('openbench.exit'):
             kill_cutechess(cutechess)
             return
 
