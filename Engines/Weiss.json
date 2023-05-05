@@ -4,7 +4,7 @@
     "base"     : "master",
     "source"   : "https://github.com/TerjeKir/weiss",
 
-    "bounds"   : "[-1.00, 4.00]",
+    "bounds"   : "[0.00, 3.00]",
     "book"     : "Pohl.epd",
     "win_adj"  : "movecount=3 score=400",
     "draw_adj" : "movenumber=40 movecount=8 score=10",
