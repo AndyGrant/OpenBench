@@ -8,37 +8,37 @@
 
 {% block content %}
 
-    <div id="configuration">
-        <table class="datatable left-align">
-            <tr><th>Author</th><td>{{test.author|capfirst}}</td></tr>
-            <tr><th>Creation</th><td class="timestamp">{{test.creation|date:'U'}}</td></tr>
-            <tr><th>Engine</th><td>{{test.engine}}</td></tr>
-            <tr><th>Dev Branch</th><td>{{test.dev.name|prettyName}}</td></tr>
-            <tr><th>Dev Bench</th><td>{{test.dev.bench}}</td></tr>
-            <tr><th>Dev Options</th><td>{{test.devoptions}}</td></tr>
-            <tr><th>Dev Sha</th><td>{{test.dev.sha}}</td></tr>
+    <div id="config">
+        <table class="test-config left-align">
+            <tr><td class="td-label">Author</td><td>{{test.author|capfirst}}</td></tr>
+            <tr><td class="td-label">Creation</td><td class="timestamp">{{test.creation|date:'U'}}</td></tr>
+            <tr><td class="td-label">Engine</td><td>{{test.engine}}</td></tr>
+            <tr><td class="td-label">Dev Branch</td><td>{{test.dev.name|prettyName}}</td></tr>
+            <tr><td class="td-label">Dev Bench</td><td>{{test.dev.bench}}</td></tr>
+            <tr><td class="td-label">Dev Options</td><td>{{test.devoptions}}</td></tr>
+            <tr><td class="td-label">Dev Sha</td><td>{{test.dev.sha}}</td></tr>
             {% if test.devnetwork %}
             <tr>
-                <th>Dev Network</th>
+                <td class="td-label">Dev Network</td>
                 <td><a href="{{test.devnetwork|resolveNetworkURL}}">{{test.devnetname}}</td>
             </tr>
             {% endif %}
-            <tr><th>Base Branch</th><td>{{test.base.name|prettyName}}</td></tr>
-            <tr><th>Base Bench</th><td>{{test.base.bench}}</td></tr>
-            <tr><th>Base Options</th><td>{{test.baseoptions}}</td></tr>
-            <tr><th>Base Sha</th><td>{{test.base.sha}}</td></tr>
+            <tr><td class="td-label">Base Branch</td><td>{{test.base.name|prettyName}}</td></tr>
+            <tr><td class="td-label">Base Bench</td><td>{{test.base.bench}}</td></tr>
+            <tr><td class="td-label">Base Options</td><td>{{test.baseoptions}}</td></tr>
+            <tr><td class="td-label">Base Sha</td><td>{{test.base.sha}}</td></tr>
             {% if test.basenetwork %}
             <tr>
-                <th>Base Network</th>
+                <td class="td-label">Base Network</td>
                 <td><a href="{{test.basenetwork|resolveNetworkURL}}">{{test.basenetname}}</td>
             </tr>
             {% endif %}
-            <tr><th>Source Repo</th><td><a href="{{test.source}}">{{test.source}}</a></td></tr>
-            <tr><th>Opening Book</th><td><a href="{{config.framework}}/raw/master/Books/">{{test.bookname}}</a></td></tr>
-            <tr><th>Syzygy WDL</th><td>{{test.syzygy_wdl}}</td></tr>
-            <tr><th>Syzygy ADJ.</th><td>{{test.syzygy_adj}}</td></tr>
-            <tr><th>Win ADJ.</th><td>{{test.win_adj}}</td></tr>
-            <tr><th>Draw ADJ.</th><td>{{test.draw_adj}}</td></tr>
+            <tr><td class="td-label">Source Repo</td><td><a href="{{test.source}}">{{test.source}}</a></td></tr>
+            <tr><td class="td-label">Opening Book</td><td><a href="{{config.framework}}raw/master/Books/{{test.bookname}}.zip">{{test.bookname}}</a></td></tr>
+            <tr><td class="td-label">Syzygy WDL</td><td>{{test.syzygy_wdl}}</td></tr>
+            <tr><td class="td-label">Syzygy ADJ.</td><td>{{test.syzygy_adj}}</td></tr>
+            <tr><td class="td-label">Win ADJ.</td><td>{{test.win_adj}}</td></tr>
+            <tr><td class="td-label">Draw ADJ.</td><td>{{test.draw_adj}}</td></tr>
         </table>
     </div>
 
@@ -104,7 +104,6 @@
             {% endif %}
 
         </form>
-
     </div>
 
     <br>

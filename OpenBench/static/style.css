@@ -1,225 +1,155 @@
-body {
-    font-family: "Courier Prime";
-    font-size: 18px;
-    background: #303030;
-}
 
 a:link, a:visited, a:hover, a:active {
     text-decoration: none;
-    color: #FFFFFF;
+    color: #8BBAD6;
 }
+
+body {
+    --color1: #222222;
+    --color2: #2D2D2D;
+    --color3: #313438;
+
+    --color-font1: #DBDEE1;
+    --color-font2: #949BA4;
+    --color-font3: #008F11;
+
+    background-color: var(--color1);
+
+    font-size: 18px;
+    font-family: "Courier Prime";
+}
+
+/* Side Bar */
 
 #sidebar {
     float: left;
-    margin: 16px;
-    margin-top: 60px;
+    padding: 60px 16px 16px 16px;
 }
 
 #sidebar ul {
     list-style-type: none;
-    padding: 0px 0px 0px 8px;
-    line-height: 1.50;
+    padding: 0px 16px 0px 8px;
+    line-height: 1.75;
+}
+
+#sidebar li {
+    padding: 2px 16px;
+    font-size: 1.0rem;
+    border-radius: 4px;
+    transition: background-color 0.2s ease-in-out;
 }
 
 #sidebar li a {
-    color: #A2A2A2;
-    padding: 0px 16px;
-    font-size: 16px;
+    color: var(--color-font2);
 }
 
 #sidebar li:hover {
-    background-color: #666666;
-    border-radius: 8px;
-}
-
-#sidebar .header {
-    color: #00AF00;
-    padding: 0px 16px;
-    font-size: 16px;
-}
-
-#sidebar .header:hover {
     background-color: #303030;
 }
 
-#content {
-    float: left;
-    margin-top: 0;
-    color: #EAEAEA;
-}
-
-#content label {
-    width: 128px;
-    padding-right: 10px;
-    text-align: right;
-    display: inline-block;
-    color: #A2A2A2;
-    font-size: 14px;
-}
-
-#content input, #content select {
-
-    background-color: #BBBBBB;
-    color: #000000;
-    padding: 10px;
-    margin: 1px 0px;
-    width: 340px;
-
-    border: 2px solid black;
-    border-radius: 6px;
-
-    -moz-box-sizing: border-box;
-    -webkit-box-sizing: border-box;
-    box-sizing: border-box;
-}
-
-#content button {
-    padding: 8px 0px;
-    margin: 2px 0px;
-    display: inline-block;
-    vertical-align: middle;
-    width: 290px;
-    background-color: #777777;
-    color: black;
-    border: none;
-    border-radius: 16px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-#content button:hover {
-    background-color: #00AF00;
-}
-
-#content input[type=submit] {
-    background-color: #00AF00;
-    color: #000000;
-    border: none;
-    border-radius: 16px;
-    cursor: pointer;
-    width: 100%;
-    font-weight: bold;
-}
-
-#content input:read-only {
-    font-weight: bold;
-}
-
-#content input:-moz-read-only {
-    font-weight: bold;
-}
-
-#content #configuration {
-    float: left;
-    margin-top: 20px;
-}
-
-#content #actions {
-    margin-left: 32px;
-    float: right;
-}
-
-#content #actions h4 {
-    color: #A2A2A2;
-    font-size: 15px;
-    font-weight: bold;
-}
-
-#content #actions .anchorbutton {
-    color: #000000;
-    padding: 8px 8px;
-    margin: 0px 8px;
-    border-radius: 16px;
-    font-weight: bold;
-    text-align: center;
-    display: inline-block;
-    width: 25%;
-}
-
-#content #actions .anchorbutton a:hover {
-    background-color: #00AF00;
-}
-
-#content #actions #approvebutton {
-    background-color: #9DF779;
-}
-
-#content #actions #stopbutton {
-    background-color: #EEF788;
-}
-
-#content #actions #restartbutton {
-    background-color: #EEF788;
-}
-
-#content #actions #deletebutton {
-    background-color: #FA8E8E;
-}
-
-#content #actions .deadbutton {
-    background-color: #808080;
+#sidebar .header {
+    color: var(--color-font3);
+    font-size: 1.1rem;
     pointer-events: none;
 }
 
-#content #actions input {
-    width: 260px;
+#sidebar hr {
+    border: 1px var(--color2) solid;
 }
 
-#content #actions input[type=submit] {
-    width: 100%;
+/* Table Striping, with overriding for the Table Header */
+
+#content .stripes tr:nth-child(odd) {
+    background-color: var(--color1);
 }
 
-#content .left-align {
-    text-align: left;
+#content .stripes tr:nth-child(even) {
+    background-color: var(--color2);
 }
 
-#content tr:hover {
-    background-color: #666666;
+#content .stripes th {
+    background-color: black;
 }
 
-#content th {
-    color: #00AF00;
-    font-size: 16px;
-    font-weight: 100;
+/* Tables that have hoverable table rows */
+
+#content .hoverable tr:nth-child(odd):hover {
+    background-color: #323232;
+}
+
+#content .hoverable tr:nth-child(even):hover {
+    background-color: #323232;
+}
+
+
+/* Table Headers that are a single <th> spanning an entire <tr> */
+
+#content .table-header th {
+    color: var(--color-font3);
+    font-weight: 400;
+    background-color: #0D0208;
     padding: 7px 12px 5px 12px;
-    background-color: #000000;
+    border-radius: 12px 12px 0px 0px;
+    pointer-events: none;
+}
+
+/* Table Spacer for chaining Tables as a hack */
+
+#content .table-spacer th {
+    background-color: var(--color1);
+    height: 1rem;
+}
+
+/* Generic Table CSS for all Tables */
+
+#content table {
+    line-height: 96%;
+    border-collapse: collapse;
 }
 
 #content td {
-    padding: 7px 12px 5px 12px;
+    color: var(--color-font2);
+    border-bottom: 1px #444444 solid;
 }
 
-#content .numeric {
-    text-align: right;
+#content th, #content td {
+    padding: 10px 12px 6px 12px;
 }
 
-#content tr {
-    background-color: #202020;
-}
-
-#content .table-spacer th {
-    background: #303030;
-    height: 16px;
-}
+/* StatBlock to show SPRT and Test Results */
 
 #content .statblock {
-    line-height: 70%;
+    font-size: 13px;
     color: black;
+    line-height: 96%;
     background-color: #CCCCCC;
-    border-radius: 4px;
     font-family: "Courier New";
+    border-radius: 4px;
+    padding: 8px 10px;
 }
 
-#content .green {
-    background-color: #9DF779
+#content .statblock-green {
+    background-color: #76D576;
 }
 
-#content .yellow {
-    background-color: #EEF788
+#content .statblock-yellow {
+    background-color: #EFF891
 }
 
-#content .red {
-    background-color: #FA8E8E
+#content .statblock-red {
+    background-color: #FA9696
+}
+
+
+
+/* */
+
+#content #config {
+    float: left;
+}
+
+#content #actions {
+    float: left;
 }
 
 #content #results {
@@ -227,89 +157,10 @@ a:link, a:visited, a:hover, a:active {
     width: inherit;
 }
 
-#content table {
-    line-height: 96%;
+#content .test-config {
+    font-size: 1.0rem;
 }
 
-#content .textcenter {
-    text-align: center;
-}
-
-#content strong {
-    font-size: 14px;
-    font-weight: bold;
-}
-
-#content a:not(.TitleLink) {
-    font-weight: 100;
-    color: #8BBAD6;
-}
-
-#content a.redlink {
-    color: #FF4D4D;
-}
-
-#content a.unstarred {
-    color: #808080;
-}
-
-#content h1, h2, h3 {
-    color: #a7a7a7;
-    text-align: center;
-}
-
-#content #pagebrowse {
-    text-align: center;
-    margin: 16px 0px 16px 0px;
-}
-
-#content .page {
-    text-align: center;
-    display: inline-block;
-    padding: 8px 0px;
-    width: 5%;
-    background-color: #1A1A1A;
-    border-radius: 8px;
-}
-
-#content .page:hover {
-    background-color: #00AF00;
-}
-
-#error pre {
-    background-color: #EE7676;
-    padding: 6px;
-    margin: 0px;
-    text-align: center;
-    font-family: "Courier Prime";
-    font-size: 18px;
-}
-
-#content form h3 {
-    margin-left: 110px;
-    margin-bottom: 2px;
-    font-size: 16px;
-    font-weight: normal;
-    color: #00AF00;
-}
-
-#content h4 a {
-    font-size: 18px;
-}
-
-#content form .settings-column {
-    float: left;
-    padding-bottom: 16px;
-}
-
-#content #test-mode-buttons button {
-    width: 49.8%;
-}
-
-#content #test-mode-buttons .left-floated {
-    float: left;
-}
-
-#content #test-mode-buttons .right-floated {
-    float: right;
+#content .test-config .td-label {
+    color: var(--color-font1);
 }
