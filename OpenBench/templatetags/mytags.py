@@ -108,21 +108,22 @@ def longStatBlock(test):
 
     if test.test_mode == 'SPRT':
 
-        lowerllr   = twoDigitPrecision(test.lowerllr)
-        currentllr = twoDigitPrecision(test.currentllr)
-        upperllr   = twoDigitPrecision(test.upperllr)
-        elolower   = twoDigitPrecision(test.elolower)
-        eloupper   = twoDigitPrecision(test.eloupper)
+        lowerllr    = twoDigitPrecision(test.lowerllr)
+        currentllr  = twoDigitPrecision(test.currentllr)
+        upperllr    = twoDigitPrecision(test.upperllr)
+        elolower    = twoDigitPrecision(test.elolower)
+        eloupper    = twoDigitPrecision(test.eloupper)
+        timecontrol = test.timecontrol + ['s', '']['=' in test.timecontrol]
 
         return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
-             + 'SPRT  | {0}s Threads={1} Hash={2}MB\n'.format(test.timecontrol, threads, hash) \
+             + 'SPRT  | {0} Threads={1} Hash={2}MB\n'.format(timecontrol, threads, hash) \
              + 'LLR   | {0} ({1}, {2}) [{3}, {4}]\n'.format(currentllr, lowerllr, upperllr, elolower, eloupper) \
              + 'GAMES | N: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
 
     if test.test_mode == 'GAMES':
 
         return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
-             + 'CONF  | {0}s Threads={1} Hash={2}MB\n'.format(test.timecontrol, threads, hash) \
+             + 'CONF  | {0} Threads={1} Hash={2}MB\n'.format(timecontrol, threads, hash) \
              + 'GAMES | N: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
 
 def testResultColour(test):

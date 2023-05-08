@@ -7,7 +7,7 @@ a:link, a:visited, a:hover, a:active {
 body {
     --color1: #222222;
     --color2: #2D2D2D;
-    --color3: #313438;
+    --color3: #3B3B3B;
 
     --color-font1: #DBDEE1;
     --color-font2: #949BA4;
@@ -15,7 +15,7 @@ body {
 
     background-color: var(--color1);
 
-    font-size: 18px;
+    font-size: 16px;
     font-family: "Courier Prime";
 }
 
@@ -82,15 +82,20 @@ body {
 }
 
 
-/* Table Headers that are a single <th> spanning an entire <tr> */
+/* Table Headers in General */
+
+#content .table-header th:first-child {
+    border-top-left-radius: 12px;
+}
+
+#content .table-header th:last-child {
+    border-top-right-radius: 12px;
+}
 
 #content .table-header th {
     color: var(--color-font3);
     font-weight: 400;
-    background-color: #0D0208;
-    padding: 7px 12px 5px 12px;
-    border-radius: 12px 12px 0px 0px;
-    pointer-events: none;
+    background-color: #171717;
 }
 
 /* Table Spacer for chaining Tables as a hack */
@@ -116,7 +121,44 @@ body {
     padding: 10px 12px 6px 12px;
 }
 
-/* StatBlock to show SPRT and Test Results */
+/* Generic Buttons */
+
+#content .anchorbutton {
+    border-radius: 4px;
+    padding: 8px;
+    margin: 0px 4px 0px 0px;
+    color: var(--color-font1);
+    width: 25%;
+    display: inline-block;
+    text-align: center;
+}
+
+#content .btn-blue {
+    background-color: #1C2D40;
+}
+
+#content .btn-yellow {
+    background-color: #7A4E09;
+}
+
+#content .btn-red {
+    background-color: #74261E;
+}
+
+#content .btn-disabled {
+    background-color: var(--color3);
+}
+
+#content .copy-button {
+    color: var(--color-font2);
+    transition: color 0.2s ease-in-out;
+}
+
+#content .copy-button:hover {
+    color: var(--color-font3);
+}
+
+/* Short StatBlock to show SPRT and Test Results */
 
 #content .statblock {
     font-size: 13px;
@@ -140,9 +182,16 @@ body {
     background-color: #FA9696
 }
 
+/* Long StatBlock which we can copy */
 
+#content .long-statblock {
+    background-color: var(--color3);
+    color: var(--color-font2);
+    border-radius: 4px;
+    padding: 0.50rem 0.75rem;
+}
 
-/* */
+/* Test Views */
 
 #content #config {
     float: left;
@@ -164,3 +213,6 @@ body {
 #content .test-config .td-label {
     color: var(--color-font1);
 }
+
+
+

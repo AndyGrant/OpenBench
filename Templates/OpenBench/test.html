@@ -6,6 +6,17 @@
 {% load static %}
 {% endblock %}
 
+{% block scripts %}
+
+    function copy_statblock() {
+        var text = document.getElementById("long-statblock").innerHTML;
+        text = text.replace(/<br>/g, "\n");
+        text += "\n" + window.location.href;
+        navigator.clipboard.writeText(text);
+    }
+
+{% endblock %}
+
 {% block content %}
 
     <div id="config">
@@ -51,40 +62,44 @@
 
         <!-- Approve Button: For Admins, or Cross-approvers -->
         {% if not test.approved and profile.approver and profile.user.username != test.author %}
-        <a class="anchorbutton" id="approvebutton" href="/test/{{test.id}}/APPROVE">Approve</a>
+        <a class="anchorbutton btn-blue" href="/test/{{test.id}}/APPROVE">Approve</a>
         {% elif not test.approved and request.user.is_superuser %}
-        <a class="anchorbutton" id="approvebutton" href="/test/{{test.id}}/APPROVE">Approve</a>
+        <a class="anchorbutton btn-blue" href="/test/{{test.id}}/APPROVE">Approve</a>
         {% else %}
-        <a class="anchorbutton deadbutton">Approve</a>
+        <a class="anchorbutton btn-disabled">Approve</a>
         {% endif %}
 
         <!-- Restart Button: For Approvers or Test Authors of finished tests -->
         {% if test.finished and profile.approver %}
-        <a class="anchorbutton" id="stopbutton" href="/test/{{test.id}}/RESTART">Restart</a>
+        <a class="anchorbutton btn-yellow" href="/test/{{test.id}}/RESTART">Restart</a>
         {% elif test.finished and profile.user.username == test.author %}
-        <a class="anchorbutton" id="stopbutton" href="/test/{{test.id}}/RESTART">Restart</a>
+        <a class="anchorbutton btn-yellow" href="/test/{{test.id}}/RESTART">Restart</a>
         {% elif test.finished %}
-        <a class="anchorbutton deadbutton">Restart</a>
+        <a class="anchorbutton btn-disabled">Restart</a>
         {% endif %}
 
         <!-- Stop Button: For Approvers or Test Authors of active tests -->
         {% if not test.finished and profile.approver %}
-        <a class="anchorbutton" id="restartbutton" href="/test/{{test.id}}/STOP">Stop</a>
+        <a class="anchorbutton btn-yellow" href="/test/{{test.id}}/STOP">Stop</a>
         {% elif not test.finished and profile.user.username == test.author %}
-        <a class="anchorbutton" id="restartbutton" href="/test/{{test.id}}/STOP">Stop</a>
+        <a class="anchorbutton btn-yellow" href="/test/{{test.id}}/STOP">Stop</a>
         {% elif not test.finished %}
-        <a class="anchorbutton deadbutton">Stop</a>
+        <a class="anchorbutton btn-disabled">Stop</a>
         {% endif %}
 
         <!-- Delete Button: For Approvers or Test Authors -->
         {% if profile.approver or profile.user.username == test.author %}
-        <a class="anchorbutton" id="deletebutton" href="/test/{{test.id}}/DELETE">Delete</a>
+        <a class="anchorbutton btn-red" href="/test/{{test.id}}/DELETE">Delete</a>
         {% else %}
-        <a class="anchorbutton deadbutton">Delete</a>
+        <a class="anchorbutton btn-disabled">Delete</a>
         {% endif %}
 
+        <a class="copy-button" onclick="copy_statblock()">
+            <i class="fa-regular fa-clone copy-button"></i>
+        </a>
+
         <!-- Elo, (SPRT/LRR if SPRT, otherwise CONF), Games -->
-        <pre>{{test|longStatBlock|linebreaksbr}}</pre>
+        <pre class="long-statblock" id="long-statblock">{{test|longStatBlock|linebreaksbr}}</pre>
 
         <!-- Forum to modify the Priority or Throughput -->
         <form method="POST" action="/test/{{test.id}}/MODIFY">
@@ -110,9 +125,9 @@
 
     <div id="results">
 
-        <table class="datatable">
+        <table class="results-list stripes">
 
-            <tr>
+            <tr class="table-header">
                 <th>#</th>
                 <th>User</th>
                 <th>OS</th>
