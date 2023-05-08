@@ -214,5 +214,23 @@ body {
     color: var(--color-font1);
 }
 
+/* Test Creation */
+
+#content .settings-column {
+    padding: 2rem;
+    float: left;
+}
+
+#content h3 {
+
+}
+
+#content label {
+
+}
+
+#content input, #content select {
+
+}
 
 
