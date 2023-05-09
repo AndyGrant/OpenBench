@@ -19,8 +19,8 @@
 
 {% block content %}
 
-    <div id="config">
-        <table class="test-config left-align">
+    <div id="config" style="display: block; overflow-x: auto;">
+        <table class="test-config left-align wrappable" style="table-layout: auto; width: 100%;">
             <tr><td class="td-label">Author</td><td>{{test.author|capfirst}}</td></tr>
             <tr><td class="td-label">Creation</td><td class="timestamp">{{test.creation|date:'U'}}</td></tr>
             <tr><td class="td-label">Engine</td><td>{{test.engine}}</td></tr>
@@ -53,7 +53,7 @@
         </table>
     </div>
 
-    <div id="actions">
+    <div id="actions" class="ml-3">
 
         <!-- Dev vs Base [Git Diff Link] -->
         <h4><a href="{{test|gitDiffLink}}">
@@ -62,36 +62,36 @@
 
         <!-- Approve Button: For Admins, or Cross-approvers -->
         {% if not test.approved and profile.approver and profile.user.username != test.author %}
-        <a class="anchorbutton btn-blue" href="/test/{{test.id}}/APPROVE">Approve</a>
+        <a class="w-25 mr-2 anchorbutton btn-blue" href="/test/{{test.id}}/APPROVE">Approve</a>
         {% elif not test.approved and request.user.is_superuser %}
-        <a class="anchorbutton btn-blue" href="/test/{{test.id}}/APPROVE">Approve</a>
+        <a class="w-25 mr-2 anchorbutton btn-blue" href="/test/{{test.id}}/APPROVE">Approve</a>
         {% else %}
-        <a class="anchorbutton btn-disabled">Approve</a>
+        <a class="w-25 mr-2 anchorbutton btn-disabled">Approve</a>
         {% endif %}
 
         <!-- Restart Button: For Approvers or Test Authors of finished tests -->
         {% if test.finished and profile.approver %}
-        <a class="anchorbutton btn-yellow" href="/test/{{test.id}}/RESTART">Restart</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/RESTART">Restart</a>
         {% elif test.finished and profile.user.username == test.author %}
-        <a class="anchorbutton btn-yellow" href="/test/{{test.id}}/RESTART">Restart</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/RESTART">Restart</a>
         {% elif test.finished %}
-        <a class="anchorbutton btn-disabled">Restart</a>
+        <a class="w-25 mr-2 anchorbutton btn-disabled">Restart</a>
         {% endif %}
 
         <!-- Stop Button: For Approvers or Test Authors of active tests -->
         {% if not test.finished and profile.approver %}
-        <a class="anchorbutton btn-yellow" href="/test/{{test.id}}/STOP">Stop</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/STOP">Stop</a>
         {% elif not test.finished and profile.user.username == test.author %}
-        <a class="anchorbutton btn-yellow" href="/test/{{test.id}}/STOP">Stop</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/STOP">Stop</a>
         {% elif not test.finished %}
-        <a class="anchorbutton btn-disabled">Stop</a>
+        <a class="w-25 mr-2 anchorbutton btn-disabled">Stop</a>
         {% endif %}
 
         <!-- Delete Button: For Approvers or Test Authors -->
         {% if profile.approver or profile.user.username == test.author %}
-        <a class="anchorbutton btn-red" href="/test/{{test.id}}/DELETE">Delete</a>
+        <a class="w-25 mr-2 anchorbutton btn-red" href="/test/{{test.id}}/DELETE">Delete</a>
         {% else %}
-        <a class="anchorbutton btn-disabled">Delete</a>
+        <a class="w-25 mr-2 anchorbutton btn-disabled">Delete</a>
         {% endif %}
 
         <a class="copy-button" onclick="copy_statblock()">
@@ -103,30 +103,34 @@
 
         <!-- Forum to modify the Priority or Throughput -->
         <form method="POST" action="/test/{{test.id}}/MODIFY">
-
             {% csrf_token %}
-
-            <label>Priority</label><input value="{{test.priority}}" name="priority"><br>
-            <label>Throughput</label><input value="{{test.throughput}}" name="throughput"><br>
-            <label>Report Rate</label><input value="{{test.report_rate}}" name="report_rate"><br>
-            <label>Workload Size</label><input value="{{test.workload_size}}" name="workload_size"><br>
-
-            <!-- Edit Button: For Approvers or Test Authors -->
-            {% if profile.approver or profile.user.username == test.author %}
-            <input type="submit" name="submit" value="Modify">
-            {% else %}
-            <input class="deadbutton" type="submit" name="submit" value="Modify">
-            {% endif %}
-
+            <div class="form">
+                <div class="col-full">
+                    <div class="row">
+                        <label>Priority</label><input value="{{test.priority}}" name="priority">
+                    </div>
+                    <div class="row">
+                        <label>Throughput</label><input value="{{test.throughput}}" name="throughput">
+                    </div>
+                    <div class="row">
+                        <label>Report Rate</label><input value="{{test.report_rate}}" name="report_rate">
+                    </div>
+                    <div class="row">
+                        <label>Workload Size</label><input value="{{test.workload_size}}" name="workload_size">
+                    </div>
+                    <!-- Edit Button: For Approvers or Test Authors -->
+                    {% if profile.approver or profile.user.username == test.author %}
+                    <input class="anchorbutton btn-blue w-100" type="submit" name="submit" value="Modify">
+                    {% else %}
+                    <input class="anchorbutton btn-disabled w-100" type="submit" name="submit" value="Modify">
+                    {% endif %}
+                </div>
+            </div>
         </form>
     </div>
 
-    <br>
-
-    <div id="results">
-
-        <table class="results-list stripes">
-
+    <div id="results" class="w-100 mt-3" style="float:left;">
+        <table class="stripes wrappable">
             <tr class="table-header">
                 <th>#</th>
                 <th>User</th>

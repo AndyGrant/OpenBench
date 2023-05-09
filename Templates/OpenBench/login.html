@@ -4,9 +4,17 @@
 
     <form method="POST" action="/login/">
         {% csrf_token %}
-        <label type="text">Username</label> <input type="text" name="username"><br>
-        <label type="text">Password</label> <input type="password" name="password"><br>
-        <input type="submit" name="submit" value="Login">
+        <div class="form">
+            <div class="col">
+                <div class="row">
+                    <label type="text">Username</label> <input type="text" name="username"><br>
+                </div>
+                <div class="row">
+                    <label type="text">Password</label> <input type="password" name="password"><br>
+                </div>
+                <input type="submit" name="submit" value="Login" class="anchorbutton btn-blue w-100">
+            </div>
+        </div>
     </form>
 
 {% endblock %}

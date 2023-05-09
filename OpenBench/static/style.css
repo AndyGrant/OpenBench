@@ -17,14 +17,59 @@ body {
 
     font-size: 16px;
     font-family: "Courier Prime";
+    display:flex;
 }
 
-/* Side Bar */
+body, html, main{
+    padding: 0;
+    margin: 0;
+    min-width: 100%;
+    max-width: 100%;
+    white-space: nowrap;
+}
 
 #sidebar {
-    float: left;
+    /*float: left;*/
     padding: 60px 16px 16px 16px;
+    flex-basis: calc(min(300px, max(200px, 15%)));
 }
+
+#content-parent{
+    flex-grow: 1;
+    justify-content: left;
+    height: 100%;
+
+    box-sizing: border-box;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+#content{
+    max-width: calc(min(100%,1200px));
+    width: 100%;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+
+/* Styles for screen widths less than 600px */
+@media (max-width: 599px) {
+    #sidebar {
+        flex-basis: 100%;
+        padding: 16px;
+    }
+
+    #content-parent {
+        height: auto;
+        flex-grow: 0;
+        flex-basis: 100%;
+    }
+
+    body {
+        flex-direction: column;
+    }
+}
+
 
 #sidebar ul {
     list-style-type: none;
@@ -59,11 +104,11 @@ body {
 
 /* Table Striping, with overriding for the Table Header */
 
-#content .stripes tr:nth-child(odd) {
+#content .stripes tr:nth-child(odd):not(.table-header) {
     background-color: var(--color1);
 }
 
-#content .stripes tr:nth-child(even) {
+#content .stripes tr:nth-child(even):not(.table-header) {
     background-color: var(--color2);
 }
 
@@ -73,14 +118,25 @@ body {
 
 /* Tables that have hoverable table rows */
 
-#content .hoverable tr:nth-child(odd):hover {
+#content .hoverable tr:nth-child(odd):hover:not(.table-header) {
     background-color: #323232;
 }
 
-#content .hoverable tr:nth-child(even):hover {
+#content .hoverable tr:nth-child(even):hover:not(.table-header) {
     background-color: #323232;
 }
 
+#content .hoverable tr:hover{
+    background-color: var(--color1);
+}
+
+/* Tables that are too long can wrap words*/
+
+#content .wrappable td{
+    white-space: pre-wrap;
+    word-break: break-word;
+    word-wrap: break-word;
+}
 
 /* Table Headers in General */
 
@@ -121,16 +177,14 @@ body {
     padding: 10px 12px 6px 12px;
 }
 
-/* Generic Buttons */
-
 #content .anchorbutton {
     border-radius: 4px;
     padding: 8px;
-    margin: 0px 4px 0px 0px;
+    border-color: transparent;
     color: var(--color-font1);
-    width: 25%;
     display: inline-block;
     text-align: center;
+    transition: background-color 0.3s ease;
 }
 
 #content .btn-blue {
@@ -147,6 +201,24 @@ body {
 
 #content .btn-disabled {
     background-color: var(--color3);
+}
+
+#content .btn-blue:hover {
+    background-color: #2E3F57;
+}
+
+#content .btn-yellow:hover {
+    background-color: #9B6B0F;
+}
+
+#content .btn-red:hover {
+    background-color: #8E3D28;
+}
+
+#content .btn-disabled:hover {
+    background-color: var(--color3);
+    cursor: not-allowed;
+    transform: none;
 }
 
 #content .copy-button {
@@ -214,23 +286,6 @@ body {
     color: var(--color-font1);
 }
 
-/* Test Creation */
 
-#content .settings-column {
-    padding: 2rem;
-    float: left;
-}
-
-#content h3 {
-
-}
-
-#content label {
-
-}
-
-#content input, #content select {
-
-}
 
 
