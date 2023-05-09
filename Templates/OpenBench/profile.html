@@ -4,29 +4,44 @@
 
     <form method="POST" action="/profile/">
         {% csrf_token %}
+        <div class="form">
+            <div class="col">
+                <div class="row">
+                    <label>Username</label><input readonly value="{{profile.user.username}}">
+                </div>
+                <div class="row">
+                    <label>Email</label><input value="{{profile.user.email}}" name="email">
+                </div>
+                <div class="row">
+                    <label>Source Repo</label><input value="{{profile.repo}}" name="repo">
+                </div>
+                <div class="row">
+                    <label>New Password</label><input type="password" name="password1">
+                </div>
+                <div class="row">
+                    <label>New Password</label><input type="password" name="password2">
+                </div>
+                <div class="row">
+                    <label>Engine</label>
+                    <select id="engine" name="engine">
+                        {% for engine in config.engines %}
+                            {% if profile.engine == engine %}
+                                <option selected value="{{engine}}">{{engine}}</option>
+                            {% else %}
+                                <option value="{{engine}}">{{engine}}</option>
+                            {% endif %}
+                        {% endfor %}
+                        {% if not profile.engine %}
+                            <option selected value=""></option>
+                        {% endif %}
+                    </select>
+                </div>
+                <input class="anchorbutton btn-blue w-100" type="submit" value="Update Profile">
+            </div>
+        </div>
 
-        <!-- Profile information. Everything may be changed but the Username -->
-        <label>Username</label><input readonly value="{{profile.user.username}}"><br>
-        <label>Email</label><input value="{{profile.user.email}}" name="email"><br>
-        <label>Source Repo</label><input value="{{profile.repo}}" name="repo"><br>
-        <label>New Password</label><input type="password" name="password1"><br>
-        <label>New Password</label><input type="password" name="password2"><br>
 
-        <!-- User's have a default engine. Select the default, otherwise show an empty line -->
-        <label>Engine</label> <select id="engine" name="engine">
-            {% for engine in config.engines %}
-                {% if profile.engine == engine %}
-                    <option selected value="{{engine}}">{{engine}}</option>
-                {% else %}
-                    <option value="{{engine}}">{{engine}}</option>
-                {% endif %}
-            {% endfor %}
-            {% if not profile.engine %}
-                <option selected value=""></option>
-            {% endif %}
-        </select><br>
 
-        <input type="submit" value="Update Profile">
 
     </form>
 

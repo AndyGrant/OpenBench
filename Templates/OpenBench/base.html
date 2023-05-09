@@ -6,6 +6,8 @@
 
     <head>
         <link rel="stylesheet" href="{% static 'style.css' %}">
+        <link rel="stylesheet" href="{% static 'base.css' %}">
+        <link rel="stylesheet" href="{% static 'form.css' %}">
         <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
         <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css' rel='stylesheet'>
         <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,400;1,100&amp;display=swap" rel="stylesheet">
@@ -42,7 +44,6 @@
     </head>
 
     <body>
-
         <!-- Views may return an error message -->
         {% if error %}
             <div id="error">
@@ -111,11 +112,14 @@
 
         </div>
 
-        <div id="content">
-            <h2> <a class="TitleLink" href="/">OpenBench Testing Framework</a></h2>
-            {% block content %}
-            {% endblock %}
+        <div id="content-parent">
+            <div id="content">
+                <h2> <a class="TitleLink" href="/">OpenBench Testing Framework</a></h2>
+                {% block content %}
+                {% endblock %}
+            </div>
         </div>
+
 
     </body>
 </html>
