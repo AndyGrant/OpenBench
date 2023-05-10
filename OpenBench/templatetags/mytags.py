@@ -122,6 +122,8 @@ def longStatBlock(test):
 
     if test.test_mode == 'GAMES':
 
+        timecontrol = test.timecontrol + ['s', '']['=' in test.timecontrol]
+
         return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
              + 'CONF  | {0} Threads={1} Hash={2}MB\n'.format(timecontrol, threads, hash) \
              + 'GAMES | N: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
