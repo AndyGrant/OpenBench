@@ -9,10 +9,31 @@
 {% block scripts %}
 
     function copy_statblock() {
+
         var text = document.getElementById("long-statblock").innerHTML;
         text = text.replace(/<br>/g, "\n");
         text += "\n" + window.location.href;
-        navigator.clipboard.writeText(text);
+
+        // navigator.clipboard.writeText(text); // Optimal solution
+
+        // Suboptimal, HTTP solution
+
+        var area = document.createElement("textarea");
+        area.value = text;
+        document.body.append(area);
+
+        area.focus();
+        area.select();
+
+        try {
+            document.execCommand("copy");
+            document.body.removeChild(area);
+        }
+
+        catch (err) {
+            document.body.removeChild(area);
+            console.error("Unable to copy to Clipboard");
+        }
     }
 
 {% endblock %}
