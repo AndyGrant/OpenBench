@@ -153,11 +153,12 @@
 
                 <h3> Engine </h3>
                 <div class="row">
-                    <label> Engine </label> <select id="enginename" name="enginename" onchange="set_engine(value);">
-                    {% for engine in config.engines %}
-                        <option value="{{ engine }}">{{ engine }}</option>
-                    {% endfor %}
-                </select>
+                    <label> Engine </label>
+                    <select id="enginename" name="enginename" onchange="set_engine(value);">
+                        {% for engine in config.engines %}
+                            <option value="{{ engine }}">{{ engine }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
 
                 <div class="row">
