@@ -43,6 +43,7 @@ urlpatterns = [
     django.urls.path(r'events/', OpenBench.views.events),
     django.urls.path(r'events/<int:page>/', OpenBench.views.events),
     django.urls.path(r'machines/', OpenBench.views.machines),
+    django.urls.path(r'machines/<int:machineid>/', OpenBench.views.machines),
 
     # Links for viewing and managing tests (maintain Legacy)
     django.urls.path(r'test/<int:id>/', OpenBench.views.test),
@@ -61,6 +62,7 @@ urlpatterns = [
     # Links for the Client to work with the Server
     django.urls.path(r'clientGetFiles/', OpenBench.views.clientGetFiles),
     django.urls.path(r'clientGetBuildInfo/', OpenBench.views.clientGetBuildInfo),
+    django.urls.path(r'clientWorkerInfo/', OpenBench.views.clientWorkerInfo),
     django.urls.path(r'clientGetWorkload/', OpenBench.views.clientGetWorkload),
     django.urls.path(r'clientGetNetwork/<str:sha256>/', OpenBench.views.clientGetNetwork),
     django.urls.path(r'clientWrongBench/', OpenBench.views.clientWrongBench),
@@ -71,6 +73,6 @@ urlpatterns = [
     # Redirect anything else to the Index
     django.urls.path(r'', OpenBench.views.index),
 
-    # Link for Ethereal 13.00 PRO Sales
+    # Link for Ethereal Sales
     django.urls.path(r'Ethereal/', OpenBench.views.buyEthereal),
 ]

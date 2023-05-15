@@ -1,0 +1,50 @@
+{% extends "OpenBench/base.html" %}
+
+{% load mytags %}
+
+{% block style %}
+{% load static %}
+{% endblock %}
+
+{% block content %}
+
+    <div id="config" style="display: block; overflow-x: auto;">
+
+        <table class="test-config left-align wrappable" style="table-layout: auto; width: 100%;">
+
+            <tr><td class="td-label">User</td><td>{{machine.user.username}}</td></tr>
+            <tr><td class="td-label">Client Version</td><td>{{machine.info.client_ver}}</td></tr>
+            <tr><td class="td-label">Python Version</td><td>{{machine.info.python_ver}}</td></tr>
+            <tr><td class="td-label">System Version</td><td>{{machine.info.os_name}} {{machine.info.os_ver}}</td></tr>
+
+            <tr><td class="td-label"></td><td><br></td></tr>
+
+            <tr><td class="td-label">CPU Name</td><td>{{machine.info.cpu_name}}</td></tr>
+            <tr><td class="td-label">CPU Flags</td><td><pre>{{machine|cpuflagsBlock}}</pre></td></tr>
+            <tr><td class="td-label">Logical Cores</td><td>{{machine.info.logical_cores}}</td></tr>
+            <tr><td class="td-label">Physical Cores</td><td>{{machine.info.physical_cores}}</td></tr>
+            <tr><td class="td-label">Total RAM (MB)</td><td>{{machine.info.ram_total_mb}}</td></tr>
+            <tr><td class="td-label">Syzygy WDL-6</td><td>{{machine.info.syzygy_wdl}}</td></tr>
+
+            <tr><td class="td-label"></td><td><br></td></tr>
+
+            {% if machine.info.tokens|length > 0 %}
+                <tr><td class="td-label">Tokens</td><td>{{machine.info.tokens|join:" "}}</td></tr>
+            {% endif %}
+
+            {% if machine.info.compilers|length > 0 %}
+                <tr><td class="td-label">Compilers</td><td><pre>{{machine|compilerBlock}}</pre></td></tr>
+            {% endif %}
+
+        </table>
+
+    </div>
+
+{% endblock %}
+
+
+    system_info = {
+        'compilers'      : SYSTEM_COMPILERS,      # Key: Engine, Value: (Compiler, Version)
+        'tokens'         : SYSTEM_GIT_TOKENS,     # Key: Engine, Value: True, for tokens we have
+        'cpu_flags'      : SYSTEM_CPU_FLAGS,      # List of CPU flags found in the Client or Server
+    }

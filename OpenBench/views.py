@@ -18,7 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import os, hashlib, mimetypes, datetime, json, random
+import os, hashlib, datetime, json, secrets
 
 import django.http
 import django.shortcuts
@@ -34,7 +34,7 @@ from OpenSite.settings import MEDIA_ROOT
 from ipware import get_client_ip
 from wsgiref.util import FileWrapper
 from django.db.models import F
-from django.http import HttpResponse, FileResponse
+from django.http import HttpResponse, FileResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
 from django.core.files.base import ContentFile
@@ -381,7 +381,7 @@ def events(request, page=1):
     data = {'events' : events[start:end], 'paging' : paging};
     return render(request, 'events.html', data)
 
-def machines(request):
+def machines(request, machineid=None):
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #                                                                         #
@@ -390,8 +390,13 @@ def machines(request):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    data = {'machines' : OpenBench.utils.getRecentMachines()}
-    return render(request, 'machines.html', data)
+    if machineid == None:
+        data = {'machines' : OpenBench.utils.getRecentMachines()}
+        return render(request, 'machines.html', data)
+
+    else:
+        data = {'machine' : OpenBench.models.Machine.objects.get(id=machineid)}
+        return render(request, 'machine.html', data)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -624,29 +629,46 @@ def scripts(request):
 @not_minified_response
 def clientGetFiles(request):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Return a URL to the location of Cutechess for Windows and Linux #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    ## Location of static compile of Cutechess for Windows and Linux.
+    ## OpenBench does not serve these files, but points to a repo ideally.
 
     return HttpResponse(OpenBench.config.OPENBENCH_CONFIG['corefiles'])
 
 @not_minified_response
 def clientGetBuildInfo(request):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Return a Dictionary of all of the Engines that are present in   #
-    #         config.py, as well as the required compilation tools for them   #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    ## Information pulled from the config about how to build each engine.
+    ## Toss in a private flag as well to indicate the need for Github Tokens.
 
     data = {}
     for engine, config in OpenBench.config.OPENBENCH_CONFIG['engines'].items():
         data[engine] = config['build']
         data[engine]['private'] = config['private']
-    return HttpResponse(json.dumps(data))
+    return JsonResponse(data)
+
+@csrf_exempt
+@not_minified_response
+def clientWorkerInfo(request):
+
+    # Verify the User's credentials
+    try: user = authenticate(request, True)
+    except UnableToAuthenticate:
+        return JsonResponse({ 'error' : 'Bad Credentials' })
+
+    # Attempt to fetch the Machine, or create a new one
+    info    = json.loads(request.POST['system_info'])
+    machine = OpenBench.utils.get_machine(info['machine_id'], user, info)
+
+    # Indicate invalid request
+    if not machine:
+        return JsonResponse({ 'error' : 'Bad Machine Id' })
+
+    # Save the machine's latest information
+    machine.secret = secrets.token_hex(32)
+    machine.save()
+
+    # Pass back the Machine Id, and Secret Token for this session
+    return JsonResponse({ 'machine_id' : machine.id, 'secret' : machine.secret })
 
 @csrf_exempt
 @not_minified_response

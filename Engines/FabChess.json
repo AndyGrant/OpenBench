@@ -12,7 +12,7 @@
     "build" : {
         "path"      : "",
         "compilers" : ["cargo>=1.41.0"],
-        "cpuflags"  : ["__POPCNT__"]
+        "cpuflags"  : ["POPCNT"]
     },
 
     "testmodes" : {

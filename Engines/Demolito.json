@@ -12,7 +12,7 @@
     "build" : {
         "path"      : "src",
         "compilers" : ["clang", "gcc"],
-        "cpuflags"  : ["__POPCNT__"]
+        "cpuflags"  : ["POPCNT"]
     },
 
     "testmodes" : {

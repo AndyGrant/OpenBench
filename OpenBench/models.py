@@ -19,7 +19,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 from django.db.models import CharField, IntegerField, BooleanField, FloatField
-from django.db.models import ForeignKey, DateTimeField, OneToOneField
+from django.db.models import JSONField, ForeignKey, DateTimeField, OneToOneField
 from django.db.models import CASCADE, PROTECT, Model
 from django.contrib.auth.models import User
 
@@ -50,15 +50,14 @@ class Profile(Model):
 class Machine(Model):
 
     user     = ForeignKey(User, PROTECT, related_name='owner')
-    osname   = CharField(max_length=128)
-    threads  = IntegerField(default=0)
     mnps     = FloatField(default=0.00)
     updated  = DateTimeField(auto_now=True)
-    lastaddr = CharField(max_length=64, default='None')
+    secret   = CharField(max_length=64, default='None')
+    info     = JSONField()
     workload = ForeignKey('Test', PROTECT, related_name='workload', default=1)
 
     def __str__(self):
-        return '{0}-{1} ({2})'.format(self.user.username, self.osname, self.id)
+        return '[%d] %s' % (self.id, self.user.username)
 
 class Result(Model):
 

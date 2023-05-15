@@ -12,7 +12,7 @@
     "build" : {
         "path"      : "src_files",
         "compilers" : ["g++"],
-        "cpuflags"  : ["__AVX2__", "__FMA__", "__POPCNT__"]
+        "cpuflags"  : ["AVX2", "FMA", "POPCNT"]
     },
 
     "testmodes" : {

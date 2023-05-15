@@ -10,7 +10,7 @@
             <th>#</th>
             <th>User</th>
             <th>System</th>
-            <th>Updated</th>
+            <th>CPU</th>
             <th>Workload</th>
             <th>Threads</th>
             <th>MNPS</th>
@@ -18,15 +18,17 @@
 
         {% for machine in machines %}
             <tr>
-                <td class="numeric">{{machine.id}}</td>
+                <td class="numeric"><a href="/machines/{{machine.id}}/">{{machine.id}}</a></td>
                 <td>{{machine.user.username|capfirst}}</td>
-                <td>{{machine.osname|truncatewords:1|slice:":-2"}}</td>
-                <td class="timestamp">{{machine.updated|date:'U'}}</td>
+                <td>{{machine.info.os_name}}</td>
+                <td>{{machine.info.cpu_name}}</td>
                 <td> <a href="/test/{{machine.workload.id}}">{{machine.workload.dev.name|prettyName}}</a></td>
-                <td class="numeric">{{machine.threads}}</td>
+                <td class="numeric">{{machine.info.concurrency}}</td>
                 <td class="numeric">{{machine.mnps|twoDigitPrecision}}</td>
             </tr>
         {% endfor %}
+
+
 
     </table>
 

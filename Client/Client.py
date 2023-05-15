@@ -19,17 +19,21 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import argparse
+import cpuinfo
 import hashlib
+import json
+import multiprocessing
 import os
 import platform
+import psutil
 import re
 import requests
+import shutil
 import sys
 import time
 import traceback
+import uuid
 import zipfile
-import shutil
-import multiprocessing
 
 from subprocess import PIPE, Popen, call, STDOUT
 from itertools import combinations_with_replacement
@@ -45,18 +49,18 @@ from itertools import combinations_with_replacement
 #                                                                           #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-TIMEOUT_HTTP        = 30    # Timeout in seconds for HTTP requests
-TIMEOUT_ERROR       = 10    # Timeout in seconds when any errors are thrown
-TIMEOUT_WORKLOAD    = 30    # Timeout in seconds between workload requests
-CLIENT_VERSION      = '7'   # Client version to send to the Server
+TIMEOUT_HTTP     = 30    # Timeout in seconds for HTTP requests
+TIMEOUT_ERROR    = 10    # Timeout in seconds when any errors are thrown
+TIMEOUT_WORKLOAD = 30    # Timeout in seconds between workload requests
+CLIENT_VERSION   = '7'   # Client version to send to the Server
 
-SYZYGY_WDL_PATH     = None  # Pathway to WDL Syzygy Tables
-FLEET_MODE          = False # Exit when there are no workloads
+SYZYGY_WDL_PATH  = None  # Pathway to WDL Syzygy Tables
+FLEET_MODE       = False # Exit when there are no workloads
 
 ERRORS = {
-    'cutechess'    : 'Unable to fetch Cutechess location and download it!',
-    'configure'    : 'Unable to fetch and determine acceptable workloads!',
-    'request'      : 'Unable to reach server for workload request!',
+    'cutechess' : 'Unable to fetch Cutechess location and download it!',
+    'configure' : 'Unable to fetch and determine acceptable workloads!',
+    'request'   : 'Unable to reach server for workload request!',
 }
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -77,15 +81,42 @@ CPUINFO   = '' # Result of ``echo | gcc -march=native -E -dM -``
 OSNAME    = '%s %s' % (platform.system(), platform.release())
 DEBUG     = True
 
-def locate_utility(util, force_exit=True, report_error=True):
+SYSTEM_COMPILERS      = {}
+SYSTEM_GIT_TOKENS     = {}
+SYSTEM_CPU_FLAGS      = []
+SYSTEM_CPU_NAME       = ''
+SYSTEM_OS_NAME        = platform.system()
+SYSTEM_OS_VER         = platform.release()
+SYSTEM_PYTHON_VER     = platform.python_version()
+SYSTEM_MAC_ADDRESS    = hex(uuid.getnode()).upper()[2:]
+SYSTEM_LOGICAL_CORES  = psutil.cpu_count(logical=True)
+SYSTEM_PHYSICAL_CORES = psutil.cpu_count(logical=False)
+SYSTEM_RAM_TOTAL_MB   = psutil.virtual_memory().total // (1024 ** 2)
+SYSTEM_MACHINE_ID     = 'None'
+SYSTEM_SECRET_TOKEN   = 'None'
+
+def get_version(program):
+
+    # Try to execute the program from the command line
+    # First with `--version`, and again with just `version`
 
     try:
-        process = Popen([util, '--version'], stdout=PIPE)
-        stdout, stderr = process.communicate()
+        process = Popen([program, '--version'], stdout=PIPE, stderr=PIPE)
+        stdout = process.communicate()[0].decode('utf-8')
+        return re.search(r'\d+\.\d+(\.\d+)?', stdout).group()
 
-        ver = re.search('[0-9]+.[0-9]+.[0-9]+', str(stdout))
-        print('Located %s (%s)' % (util, ver.group()))
-        return True
+    except:
+        process = Popen([program, 'version'], stdout=PIPE, stderr=PIPE)
+        stdout = process.communicate()[0].decode('utf-8')
+        return re.search(r'\d+\.\d+(\.\d+)?', stdout).group()
+
+def locate_utility(util, force_exit=True, report_error=True, report_found=True):
+
+    try:
+        version = get_version(util)
+        if report_found:
+            print('Located %s (%s)' % (util, version))
+        return version
 
     except Exception:
         if report_error:
@@ -94,14 +125,100 @@ def locate_utility(util, force_exit=True, report_error=True):
             sys.exit()
         return False
 
-def check_for_utilities():
 
-    print('\nScanning For Basic Utilities...')
-    for utility in ['gcc', 'make']:
-        locate_utility(utility)
+def scan_for_compilers(data):
+
+    print ('\nScanning for Compilers...')
+
+    # For each engine, attempt to find a valid compiler
+    for engine, build_info in data.items():
+
+        # Private engines don't need to be compiled
+        if build_info['private']: continue
+
+        # Try to find at least one working compiler
+        for compiler in build_info['compilers']:
+
+            # Compilers may require a specific version
+            if '>=' in compiler:
+                compiler, version = compiler.split('>=')
+                version = tuple(map(int, version.split('.')))
+            else: version = (0, 0, 0)
+
+            # Try to confirm this compiler is present, and new enough
+            try:
+                match = get_version(compiler)
+                if tuple(map(int, match.split('.'))) >= version:
+                    print('%-16s | %-8s (%s)' % (engine, compiler, match))
+                    SYSTEM_COMPILERS[engine] = (compiler, match)
+                    break
+            except: continue # Unable to execute compiler
+
+        # Report missing engines in case the User is not expecting it
+        if engine not in SYSTEM_COMPILERS:
+            print('%-16s | Missing %s' % (engine, data[engine]['compilers']))
+
+def scan_for_private_tokens(data):
+
+    print ('\nScanning for Private Tokens...')
+
+    # For each engine, attempt to find a valid compiler
+    for engine, build_info in data.items():
+
+        # Public engines don't need access tokens
+        if not build_info['private']: continue
+
+        # Private engines expect a credentials.engine file for the main repo
+        has_token = os.path.exists('credentials.%s' % (engine.replace(' ', '').lower()))
+        print('%-16s | %s' % (engine, ['Missing', 'Found'][has_token]))
+        if has_token: SYSTEM_GIT_TOKENS[engine] = True
+
+def scan_for_cpu_flags(data):
+
+    print('\nScanning for CPU Flags...')
+
+    # Get all flags, and for sanity uppercase them
+    info   = cpuinfo.get_cpu_info()
+    actual = [x.upper() for x in info['flags']]
+
+    # Set the CPU name which has to be done via global
+    global SYSTEM_CPU_NAME, SYSTEM_CPU_FLAGS
+    SYSTEM_CPU_NAME = info['brand_raw']
+
+    # This should cover virtually all compiler flags that we would care about
+    desired  = ['POPCNT', 'BMI2']
+    desired += ['SSSE3', 'SSE4_1', 'SSE4_2', 'SSE4A', 'AVX', 'AVX2', 'FMA']
+    desired += ['AVX512_VNNI', 'AVX512BW', 'AVX512CD', 'AVX512DQ', 'AVX512F']
+
+    # Add any custom flags from the OpenBench configs, just in case we missed one
+    requested = set(sum([info['cpuflags'] for engine, info in data.items()], []))
+    for flag in [x for x in requested if x not in desired]: desired.append(flag)
+    SYSTEM_CPU_FLAGS = [x for x in desired if x in actual]
+
+    # Report the results of our search, including any "missing flags
+    print ('Found   | ', ' '.join(SYSTEM_CPU_FLAGS))
+    print ('Missing | ', ' '.join([x for x in desired if x not in actual]))
+
+def scan_for_machine_id():
+
+    # If we don't have one, the server will give us one, and then include it
+    # in future HTTP responses. We simply need to save the a .txt file, later
+
+    global SYSTEM_MACHINE_ID
+
+    if os.path.isfile('machine.txt'):
+        with open('machine.txt') as fin:
+            SYSTEM_MACHINE_ID = fin.readlines()[0]
+
+    if SYSTEM_MACHINE_ID == 'None':
+        print('[NOTE] This machine is currently unregistered')
 
 
 def init_client(arguments):
+
+    # Verify that we have make installed
+    print('\nScanning For Basic Utilities...')
+    locate_utility('make')
 
     # Use Client.py's path as the base pathway
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -142,17 +259,14 @@ def validate_syzygy_exists():
     for filename in tablebase_names():
 
         # Build the paths when the configuration enables Syzygy
-
         if SYZYGY_WDL_PATH:
             wdlpath = os.path.join(SYZYGY_WDL_PATH, filename + '.rtbw')
 
         # Reset the configuration if the file is missing
-
         if SYZYGY_WDL_PATH and not os.path.isfile(wdlpath):
             SYZYGY_WDL_PATH = None
 
     # Report final results, which may conflict with the original configuration
-
     if SYZYGY_WDL_PATH:
         print('Verified Syzygy WDL (%s)' % (SYZYGY_WDL_PATH))
     else: print('Syzygy WDL Not Found')
@@ -215,8 +329,8 @@ def unzip_delete_file(source, outdir):
 
 def make_command(arguments, engine, src_path, network_path):
 
-    command = 'make %s=%s EXE=%s -j%s' % (
-        ['CC', 'CXX']['++' in COMPILERS[engine]], COMPILERS[engine], engine, arguments.threads)
+    command = 'make %s=%s EXE=%s -j%d' % (
+        ['CC', 'CXX']['++' in SYSTEM_COMPILERS[engine]], SYSTEM_COMPILERS[engine], engine, arguments.threads)
 
     if network_path != None:
         path = os.path.relpath(os.path.abspath(network_path), src_path)
@@ -378,100 +492,61 @@ def server_download_cutechess(arguments):
 @try_until_success(mesg=ERRORS['configure'])
 def server_configure_worker(arguments):
 
-    # Fetch { Engine -> Compilers } from the server
+    # Server tells us how to build or obtain binaries
     target = url_join(arguments.server, 'clientGetBuildInfo')
     data   = requests.get(target, timeout=TIMEOUT_HTTP).json()
 
-    def get_version(compiler):
+    scan_for_compilers(data)      # Public engines
+    scan_for_private_tokens(data) # Private engines
+    scan_for_cpu_flags(data)      # For executing binaries
+    scan_for_machine_id()         # None, or the content of machine.txt
 
-        # Try to execute the compiler from the command line
-        # First with `--version`, and again with just `version`
+    system_info = {
+        'compilers'      : SYSTEM_COMPILERS,      # Key: Engine, Value: (Compiler, Version)
+        'tokens'         : SYSTEM_GIT_TOKENS,     # Key: Engine, Value: True, for tokens we have
+        'cpu_flags'      : SYSTEM_CPU_FLAGS,      # List of CPU flags found in the Client or Server
+        'cpu_name'       : SYSTEM_CPU_NAME,       # Raw CPU name as per py-cpuinfo
+        'os_name'        : SYSTEM_OS_NAME,        # Should be Windows, Linux, or Darwin
+        'os_ver'         : SYSTEM_OS_VER,         # Release version of the OS
+        'python_ver'     : SYSTEM_PYTHON_VER,     # Python version running the Client
+        'mac_address'    : SYSTEM_MAC_ADDRESS,    # Used to softly verify the Machine IDs
+        'logical_cores'  : SYSTEM_LOGICAL_CORES,  # Logical cores, to differentiate hyperthreads
+        'physical_cores' : SYSTEM_PHYSICAL_CORES, # Physical cores, to differentiate hyperthreads
+        'ram_total_mb'   : SYSTEM_RAM_TOTAL_MB,   # Total RAM on the system, to avoid over assigning
+        'machine_id'     : SYSTEM_MACHINE_ID,     # Assigned value, or None. Will be replaced if wrong
+        'concurrency'    : arguments.threads,     # Threads to use to play games
+        'ncutechesses'   : arguments.ncutechess,  # Cutechess copies, usually equal to Socket count
+        'client_ver'     : CLIENT_VERSION,        # Version of the Client, which the server may reject
+        'syzygy_wdl'     : bool(SYZYGY_WDL_PATH), # Whether or not the machine has Syzygy support
+    }
 
-        try:
-            process = Popen([compiler, '--version'], stdout=PIPE, stderr=PIPE)
-            stdout = process.communicate()[0].decode('utf-8')
-            return re.search(r'[0-9]+\.[0-9]+\.[0-9]+', stdout).group()
+    payload = {
+        'username'    : arguments.username,
+        'password'    : arguments.password,
+        'system_info' : json.dumps(system_info),
+    }
 
-        except:
-            process = Popen([compiler, 'version'], stdout=PIPE, stderr=PIPE)
-            stdout = process.communicate()[0].decode('utf-8')
-            return re.search(r'[0-9]+\.[0-9]+\.[0-9]+', stdout).group()
+    # Send all of this to the server, and get a Machine Id + Secret Token
+    target   = url_join(arguments.server, 'clientWorkerInfo')
+    response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
 
-    print ('\nScanning for Compilers...')
+    # The 'error' header is included if there was an issue
+    if 'error' in response:
+        print('[Error] %s\n' % (response['error']))
+        sys.exit()
 
-    # For each engine, attempt to find a valid compiler
-    for engine, build_info in data.items():
+    # Save the machine id, to avoid re-registering every time
+    with open('machine.txt', 'w') as fout:
+        fout.write(str(response['machine_id']))
 
-        # Private engines don't need to be compiled
-        if build_info['private']:
-            continue
-
-        for compiler in build_info['compilers']:
-
-            # Compilers may require a specific version
-            if '>=' in compiler:
-                compiler, version = compiler.split('>=')
-                version = tuple(map(int, version.split('.')))
-            else: version = (0, 0, 0)
-
-            try: match = get_version(compiler)
-            except: continue # Unable to execute compiler
-
-            # Compiler version was sufficient
-            if tuple(map(int, match.split('.'))) >= version:
-                print('%-20s | %-8s (%s)' % (engine, compiler, match))
-                COMPILERS[engine] = compiler
-                break
-
-    # Report missing engines in case the User is not expecting it
-    for engine in filter(lambda x: x not in COMPILERS and not data[x]['private'], data):
-        compiler = data[engine]['compilers']
-        print('%-20s | Missing %s' % (engine, compiler))
-
-    print ('\nScanning for Private Tokens...')
-
-    # For each engine, attempt to find a valid compiler
-    for engine, build_info in data.items():
-
-        # Public engines don't need access tokens
-        if not build_info['private']:
-            continue
-
-        # Private engines expect a credentials.engine file for the main repo
-        has_token = os.path.exists('credentials.%s' % (engine.replace(' ', '').lower()))
-        print('%-20s | %s' % (engine, ['Missing', 'Found'][has_token]))
-        if has_token: COMPILERS[engine] = True
-
-    print('\nScanning for CPU Flags...')
-
-    # Use GCC -march=native to find CPU info
-    CPUINFO = str(Popen(
-        'echo | gcc -march=native -E -dM -',
-        stdout=PIPE, shell=True
-    ).communicate()[0])
-
-    # Check for each requested flag using the gcc dump
-    desired = [info['cpuflags'] for engine, info in data.items()]
-    flags   = set(sum(desired, [])) # Trick to flatten the list
-    actual  = set(f for f in flags if '%s 1' % (f) in CPUINFO)
-    COMPILERS['cpuflags'] = ' '.join(list(actual))
-
-    # Print out the results of our search
-    for flag in sorted(flags):
-        print ('%-20s | %s' % (flag, ['Missing', 'Found'][flag in actual]))
+    # Save the secret token, to send with all future requests
+    global SYSTEM_SECRET_TOKEN
+    SYSTEM_SECRET_TOKEN = response['secret']
 
 @try_until_success(mesg=ERRORS['request'])
 def server_request_workload(arguments):
 
     print('\nRequesting Workload from Server...')
-
-    machine_id = 'None'
-    if os.path.isfile('machine.txt'):
-        with open('machine.txt') as fin:
-            machine_id = fin.readlines()[0]
-
-    if machine_id == 'None':
-        print('[NOTE] This machine is currently unregistered')
 
     supported  = ' '.join(COMPILERS.keys() - ['cpuflags'])
 
@@ -825,7 +900,7 @@ def download_engine(arguments, workload, branch, network):
 
 def run_benchmarks(arguments, workload, branch, engine, network):
 
-    cores   = int(arguments.threads)
+    cores   = arguments.threads
     queue   = multiprocessing.Queue()
     name    = workload['test'][branch]['name']
     private = workload['engine']['private']
@@ -898,7 +973,7 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cuteche
     if SYZYGY_WDL_PATH and workload['test']['syzygy_adj'] != 'DISABLED':
         flags += '-tb %s' % (SYZYGY_WDL_PATH.replace('\\', '\\\\'))
 
-    concurrency = int(arguments.threads) / int(arguments.ncutechess)
+    concurrency = arguments.threads / arguments.ncutechess
     concurrency = concurrency // max(dev_threads, base_threads)
 
     games = int(concurrency * workload['test']['workload_size'])
@@ -1002,11 +1077,14 @@ if __name__ == '__main__':
 
     arguments = p.parse_args()
 
+    arguments.threads = int(arguments.threads)
+    arguments.ncutechess = int(arguments.ncutechess)
+
     # Make sure the thread distibution between Cutechess copies is correct
-    assert (int(arguments.threads) >= 1)
-    assert (int(arguments.ncutechess) >= 1)
-    assert (int(arguments.threads) >= int(arguments.ncutechess))
-    assert (int(arguments.threads) % int(arguments.ncutechess) == 0)
+    assert (arguments.threads >= 1)
+    assert (arguments.ncutechess >= 1)
+    assert (arguments.threads >= arguments.ncutechess)
+    assert (arguments.threads % arguments.ncutechess == 0)
 
     if arguments.username is None:
         arguments.username = os.environ['OPENBENCH_USERNAME']
@@ -1020,10 +1098,11 @@ if __name__ == '__main__':
     if arguments.fleet:
         FLEET_MODE = True
 
-    check_for_utilities()
     init_client(arguments)
     server_download_cutechess(arguments)
     server_configure_worker(arguments)
+
+    exit(1)
 
     while True:
 

@@ -12,7 +12,7 @@
     "build" : {
         "path"      : "",
         "compilers" : ["cargo>=1.57.0"],
-        "cpuflags"  : [ "__AVX2__", "__FMA__", "__POPCNT__"]
+        "cpuflags"  : [ "AVX2", "FMA", "POPCNT"]
     },
 
     "testmodes" : {

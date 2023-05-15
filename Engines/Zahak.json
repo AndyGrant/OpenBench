@@ -12,7 +12,7 @@
     "build" : {
         "path"      : "",
         "compilers" : ["go"],
-        "cpuflags"  : ["__AVX__", "__POPCNT__"]
+        "cpuflags"  : ["AVX", "POPCNT"]
     },
 
     "testmodes" : {

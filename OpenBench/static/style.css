@@ -288,4 +288,11 @@ body, html, main{
 
 
 
+/* ??? */
+
+td pre {
+    margin: 0px;
+    padding: 0px;
+}
+
 

@@ -2,7 +2,7 @@ import django.apps
 import threading, time
 import OpenBench.utils
 
-from django.core.management.commands.runserver import BaseRunserverCommand
+from django.core.management.commands.runserver import Command as BaseRunserverCommand
 
 class ArtifactWatcher(threading.Thread):
 

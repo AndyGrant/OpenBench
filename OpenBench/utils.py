@@ -116,8 +116,8 @@ def getMachineStatus(username=None):
         machines = machines.filter(user__username=username)
 
     return ": {0} Machines / ".format(len(machines)) + \
-           "{0} Threads / ".format(sum([f.threads for f in machines])) + \
-           "{0} MNPS ".format(round(sum([f.threads * f.mnps for f in machines]), 2))
+           "{0} Threads / ".format(sum([f.info['concurrency'] for f in machines])) + \
+           "{0} MNPS ".format(round(sum([f.info['concurrency'] * f.mnps for f in machines]), 2))
 
 def getPaging(content, page, url, pagelen=25):
 
@@ -402,6 +402,27 @@ def createNewTest(request):
     profile.save()
 
     return test, None
+
+
+def get_machine(machineid, user, info):
+
+    # Create a new machine if we don't have an id
+    if machineid == 'None':
+        return Machine(user=user, info=info)
+
+    # Fetch the requested machine, which hopefully exists
+    try: machine = Machine.objects.get(id=int(machineid))
+    except: return None
+
+    # Workload requests should always contain a MAC
+    if 'mac_address' not in machine.info:
+        return None
+
+    # Soft-verify by checking if the MAC addresses match
+    if machine.info['mac_address'] != info['mac_address']:
+        return None
+
+    return machine
 
 
 def getMachine(machineid, user, osname, threads):

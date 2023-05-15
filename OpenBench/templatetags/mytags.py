@@ -168,6 +168,37 @@ def testIdToPrettyName(test_id):
 def testIdToTimeControl(test_id):
     return OpenBench.models.Test.objects.get(id=test_id).timecontrol
 
+def cpuflagsBlock(machine, N=8):
+
+
+    reported = []
+    flags    = machine.info['cpu_flags']
+
+    general_flags   = ['BMI2', 'POPCNT']
+    broad_avx_flags = ['AVX2', 'AVX', 'SSE4_2', 'SSE4_1', 'SSSE3']
+
+    for flag in general_flags:
+        if flag in flags:
+            reported.append(flag)
+            break
+
+    for flag in broad_avx_flags:
+        if flag in flags:
+            reported.append(flag)
+            break
+
+    for flag in flags:
+        if flag not in general_flags and flag not in broad_avx_flags:
+            reported.append(flag)
+
+    return ' '.join(reported)
+
+def compilerBlock(machine):
+    string = ''
+    for engine, info in machine.info['compilers'].items():
+        string += '%-16s %-8s (%s)\n' % (engine, info[0], info[1])
+    return string
+
 register = django.template.Library()
 register.filter('oneDigitPrecision', oneDigitPrecision)
 register.filter('twoDigitPrecision', twoDigitPrecision)
@@ -183,3 +214,5 @@ register.filter('testIsFRC', testIsFRC)
 register.filter('resolveNetworkURL', resolveNetworkURL)
 register.filter('testIdToPrettyName', testIdToPrettyName)
 register.filter('testIdToTimeControl', testIdToTimeControl)
+register.filter('cpuflagsBlock', cpuflagsBlock)
+register.filter('compilerBlock', compilerBlock)
