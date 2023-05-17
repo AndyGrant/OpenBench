@@ -671,7 +671,7 @@ def client_worker_info(request):
             continue
 
         # Private engines must have, or think they have, a Git Token
-        if data['private'] and engine not in machine.info['tokens']:
+        if data['private'] and engine not in machine.info['tokens'].keys():
             continue
 
         # Public engines must have a compiler of a sufficient version
