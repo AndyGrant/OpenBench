@@ -424,101 +424,61 @@ def get_machine(machineid, user, info):
 
     return machine
 
-
-def getMachine(machineid, user, osname, threads):
-
-    # Create a new Machine if needed
-    if machineid == 'None':
-        return Machine(user=user, osname=osname, threads=threads)
-
-    # Fetch and verify the requested Machine
-    try: machine = Machine.objects.get(id=int(machineid))
-    except: return 'Bad Machine'
-    if machine.user != user: return 'Bad Machine'
-    if machine.osname != osname: return 'Bad Machine'
-
-    # Update the Machine's running status
-    machine.threads = threads
-    machine.mnps = 0.00
-    return machine
-
-def getResult(test, machine):
-
-    # Try to find an already existing Result
-    results = Result.objects.filter(test=test)
-    results = list(results.filter(machine=machine))
-    if results != []: return results[0]
-
-    # Create a new Result if none is found
-    return Result(test=test, machine=machine)
-
-def getWorkload(user, request):
-
-    # Extract worker information
-    machineid = request.POST['machineid']
-    osname    = request.POST['osname'   ]
-    threads   = request.POST['threads'  ]
-
-    # If we don't get a Machine back, there was an error
-    machine = getMachine(machineid, user, osname, int(threads))
-    if type(machine) == str: return machine
+def get_workload(machine):
 
     # Check to make sure we have a potential workload
-    tests = get_valid_workloads(machine, request)
-    if not tests: return 'None'
+    if not (tests := get_valid_workloads(machine)):
+        return {}
 
     # Select from valid workloads and create a Result object
-    test = select_workload(machine, tests)
-    result = getResult(test, machine)
+    test     = select_workload(machine, tests)
+    result   = Result(test=test, machine=machine)
 
-    # Success. Update the Machine's status and save everything
+    # Update the Machine's status and save everything
     machine.workload = test; machine.save(); result.save()
-    return str(workload_to_dictionary(test, result, machine))
+    return { 'workload' : workload_to_dictionary(test, result) }
 
 
-# Purely Helper functions for getWorkload()
+# Purely Helper functions for get_workload()
 
-def get_valid_workloads(machine, request):
+def get_valid_workloads(machine):
 
     # Skip anything that is not running
     tests = get_active_tests()
 
-    # Skip engines that the Machine cannot build
+    # Skip engines that the Machine cannot handle
     for engine in OPENBENCH_CONFIG['engines'].keys():
-        if engine not in request.POST['supported'].split():
+        if engine not in machine.info['supported']:
             tests = tests.exclude(engine=engine)
 
-    # Skip engines that the Machine cannot run
-    for engine, data in OPENBENCH_CONFIG['engines'].items():
-        for flag in data['build']['cpuflags']:
-            if flag not in request.POST['cpuflags'].split():
-                tests = tests.exclude(engine=engine)
-
     # Skip tests with unmet Syzygy requirments
-    if request.POST['syzygy_wdl'] == 'False':
+    if not machine.info['syzygy_wdl']:
         tests = tests.exclude(syzygy_adj='REQUIRED')
         tests = tests.exclude(syzygy_wdl='REQUIRED')
 
     # Skip tests that would waste available Threads or exceed them
-    ncutechess = int(request.POST['ncutechess'])
-    options    = [x for x in tests if test_maps_onto_thread_count(machine, x, ncutechess)]
+    threads      = machine.info['concurrency']
+    ncutechess   = machine.info['ncutechesses']
+    hyperthreads = machine.info['physical_cores'] < threads
+    options = [x for x in tests if
+        test_maps_onto_thread_count(x, threads, ncutechess, hyperthreads)]
 
     # Finally refine for tests of the highest priority
     if not options: return []
     highest_prio = max(options, key=lambda x: x.priority).priority
     return [test for test in options if test.priority == highest_prio]
 
-def test_maps_onto_thread_count(machine, test, ncutechess):
+def test_maps_onto_thread_count(test, threads, ncutechess, hyperthreads):
 
     dev_threads  = int(extractOption(test.devoptions,  'Threads'))
     base_threads = int(extractOption(test.baseoptions, 'Threads'))
 
     # Each individual cutechess copy must have access to sufficient Threads
-    if max(dev_threads, base_threads) > (machine.threads / ncutechess):
+    if max(dev_threads, base_threads) > (threads / ncutechess):
         return False
 
-    # Intentional Thread Imbalance, or evenly distributed Threads
-    return dev_threads != base_threads or (machine.threads / ncutechess) % dev_threads == 0
+    # Intentional Thread Imbalance, or real cores, or evenly distributed
+    return dev_threads != base_threads or not hyperthreads or (threads / ncutechess) % dev_threads == 0
 
 def select_workload(machine, tests, variance=0.25):
 
@@ -526,7 +486,7 @@ def select_workload(machine, tests, variance=0.25):
     table = { test : 0 for test in tests }
     for m in getRecentMachines():
         if m.workload in tests and m != machine:
-            table[m.workload] = table[m.workload] + m.threads
+            table[m.workload] = table[m.workload] + m.info['concurrency']
 
     # Find the tests most deserving of resources currently
     ratios = [table[test] / test.throughput for test in tests]
@@ -545,36 +505,22 @@ def select_workload(machine, tests, variance=0.25):
     # Fallback to simply doing the least attention given test
     return tests[random.choice(lowest_idxs)]
 
-def workload_to_dictionary(test, result, machine):
+def workload_to_dictionary(test, result):
 
-    # Convert the workload into a Dictionary to be used by the Client.
-    # The Client must know his Machine ID, his Result ID, and his Test
-    # ID. Also, all information about the Test and the associated engines
+    return {
 
-    return json.dumps({
+        'result' : { 'id'  : result.id },
 
-        'machine' : { 'id'  : machine.id },
-
-        'result'  : { 'id'  : result.id },
-
-        'engine'  : {
-            'private' : OPENBENCH_CONFIG['engines'][test.engine]['private']
-        },
-
-        'test'    : {
-
+        'test'   : {
             'id'            : test.id,
             'engine'        : test.engine,
             'timecontrol'   : test.timecontrol,
             'syzygy_wdl'    : test.syzygy_wdl,
-
             'syzygy_adj'    : test.syzygy_adj,
             'win_adj'       : test.win_adj,
             'draw_adj'      : test.draw_adj,
-
             'report_rate'   : test.report_rate,
             'workload_size' : test.workload_size,
-
             'nps'           : OPENBENCH_CONFIG['engines'][test.engine]['nps'],
             'build'         : OPENBENCH_CONFIG['engines'][test.engine]['build'],
             'book'          : OPENBENCH_CONFIG['books'][test.bookname],
@@ -593,28 +539,28 @@ def workload_to_dictionary(test, result, machine):
                 'network' : test.basenetwork,
             },
         },
-    })
+    }
 
 
-def updateTest(request, user):
+def update_test(request, machine):
 
     # New results from the Worker
-    wins     = int(request.POST['wins'])
-    losses   = int(request.POST['losses'])
-    draws    = int(request.POST['draws'])
-    crashes  = int(request.POST['crashes'])
+    wins     = int(request.POST['wins'    ])
+    losses   = int(request.POST['losses'  ])
+    draws    = int(request.POST['draws'   ])
+    crashes  = int(request.POST['crashes' ])
     timeloss = int(request.POST['timeloss'])
     games    = wins + losses + draws
 
     # Worker knows where to save the results
-    machineid = int(request.POST['machineid'])
-    resultid  = int(request.POST['resultid'])
-    testid    = int(request.POST['testid'])
+    machineid = int(request.POST['machine_id'])
+    resultid  = int(request.POST['result_id' ])
+    testid    = int(request.POST['test_id'   ])
 
     # Prevent updating a finished test
     test = Test.objects.get(id=testid)
     if test.finished or test.deleted:
-        return 'Stop'
+        return { 'stop' : True }
 
     # Tally up the updated WLD stats
     swins   = test.wins   + wins
@@ -642,11 +588,11 @@ def updateTest(request, user):
         sprt     = 0.0 # Hack to "update" the currentllr
 
     # Update total games played by the Player
-    Profile.objects.filter(user=user).update(games=F('games') + games)
-    Profile.objects.get(user=user).save()
+    Profile.objects.filter(user=machine.user).update(games=F('games') + games)
+    Profile.objects.get(user=machine.user).save()
 
     # Update the datetime in the Machine
-    Machine.objects.get(id=machineid).save()
+    machine.save()
 
     # Update individual Result entry for the Player
     Result.objects.filter(id=resultid).update(
@@ -665,4 +611,4 @@ def updateTest(request, user):
     # Force a refresh of the updated field when finished
     if finished: Test.objects.get(id=testid).save()
 
-    return ['None', 'Stop'][finished]
+    return [{}, {'stop' : True}][finished]

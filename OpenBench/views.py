@@ -31,7 +31,6 @@ from OpenBench.models import *
 from django.contrib.auth.models import User
 from OpenSite.settings import MEDIA_ROOT
 
-from ipware import get_client_ip
 from wsgiref.util import FileWrapper
 from django.db.models import F
 from django.http import HttpResponse, FileResponse, JsonResponse
@@ -87,28 +86,6 @@ def authenticate(request, requireEnabled=False):
         raise UnableToAuthenticate()
 
     return user
-
-def authenticate_client(request):
-
-    # Fetch the Machine associated with the Client Request
-    try: machine = Machine.objects.get(id=int(request.POST['machineid']))
-    except: raise Exception('Bad Machine')
-
-    # Try to compare the saved IP address of the machine
-    client_ip, _ = get_client_ip(request)
-
-    # Authenticate via comparing current to recent IP addresses ( Fast )
-    if client_ip and machine.lastaddr == str(client_ip):
-        return User.objects.get(username=request.POST['username']), machine
-
-    # Authenticate the User associated with the Client Request ( Slow )
-    try: user = authenticate(request, True)
-    except: raise Exception('Bad Credentials')
-
-    # After Authentication, we may save the Client's IP Address for later
-    if client_ip: machine.lastaddr = str(client_ip); machine.save()
-
-    return user, machine
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                            ADMINISTRATIVE VIEWS                             #
@@ -626,16 +603,36 @@ def scripts(request):
 #                              CLIENT HOOK VIEWS                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-@not_minified_response
-def clientGetFiles(request):
+def client_verify_worker(request):
+
+    ## Returns the machine, or None. Returns a JsonResponse or None.
+    ## Presence of a JsonResponse indicates a failure to verify
+
+    # Get the machine, assuming it exists
+    try: machine = Machine.objects.get(id=int(request.POST['machine_id']))
+    except: return None, JsonResponse({ 'error' : 'Bad Machine Id' })
+
+    # Ensure the Client is using the same version as the Server
+    if machine.info['client_ver'] != OpenBench.config.OPENBENCH_CONFIG['client_version']:
+        expected_ver = OpenBench.config.OPENBENCH_CONFIG['client_version']
+        return machine, JsonResponse({ 'error' : 'Bad Client Version: Expected %s' % (expected_ver)})
+
+    # Use the secret token as our soft verification
+    if machine.secret != request.POST['secret']:
+        return machine, JsonResponse({ 'error' : 'Invalid Secret Token' })
+
+    return machine, None
+
+@csrf_exempt
+def client_get_files(request):
 
     ## Location of static compile of Cutechess for Windows and Linux.
     ## OpenBench does not serve these files, but points to a repo ideally.
 
-    return HttpResponse(OpenBench.config.OPENBENCH_CONFIG['corefiles'])
+    return JsonResponse( {'location' : OpenBench.config.OPENBENCH_CONFIG['corefiles'] })
 
-@not_minified_response
-def clientGetBuildInfo(request):
+@csrf_exempt
+def client_get_build_info(request):
 
     ## Information pulled from the config about how to build each engine.
     ## Toss in a private flag as well to indicate the need for Github Tokens.
@@ -643,12 +640,10 @@ def clientGetBuildInfo(request):
     data = {}
     for engine, config in OpenBench.config.OPENBENCH_CONFIG['engines'].items():
         data[engine] = config['build']
-        data[engine]['private'] = config['private']
     return JsonResponse(data)
 
 @csrf_exempt
-@not_minified_response
-def clientWorkerInfo(request):
+def client_worker_info(request):
 
     # Verify the User's credentials
     try: user = authenticate(request, True)
@@ -663,45 +658,47 @@ def clientWorkerInfo(request):
     if not machine:
         return JsonResponse({ 'error' : 'Bad Machine Id' })
 
-    # Save the machine's latest information
+    # Save the machine's latest information and Secret Token for this session
+    machine.info   = info
     machine.secret = secrets.token_hex(32)
+
+    # Tag engines that the Machine can build and/or run with binaries
+    machine.info['supported'] = []
+    for engine, data in OpenBench.config.OPENBENCH_CONFIG['engines'].items():
+
+        # Must have all CPU flags, for both Public and Private engines
+        if any([flag not in machine.info['cpu_flags'] for flag in data['build']['cpuflags']]):
+            continue
+
+        # Private engines must have, or think they have, a Git Token
+        if data['private'] and engine not in machine.info['tokens']:
+            continue
+
+        # Public engines must have a compiler of a sufficient version
+        if not data['private'] and engine not in machine.info['compilers'].keys():
+            continue
+
+        # All requirements are met, and this Machine can play with the given engine
+        machine.info['supported'].append(engine)
+
+    # Finish up
     machine.save()
 
     # Pass back the Machine Id, and Secret Token for this session
     return JsonResponse({ 'machine_id' : machine.id, 'secret' : machine.secret })
 
 @csrf_exempt
-@not_minified_response
-def clientGetWorkload(request):
+def client_get_workload(request):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  POST : Return a Dictionary of data in order to complete a workload. If #
-    #         there are no tests for the User, 'None' will be returned. If we #
-    #         cannot authenticate the User, 'Bad Credentials' is returned. If #
-    #         the posted Machine does not belong the the User, 'Bad Machine'  #
-    #         is returned.                                                    #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # Pass along any error messages if they appear
+    machine, response = client_verify_worker(request)
+    if response != None: return response
 
-    # Verify the User's credentials
-    try: user = authenticate(request, True)
-    except UnableToAuthenticate: return HttpResponse('Bad Credentials')
-
-    # Make sure the Client passed its version number
-    if 'version' not in request.POST:
-        return HttpResponse('Bad Client Version')
-
-    # Make sure the Client & Server version numbers match
-    if request.POST['version'] != OpenBench.config.OPENBENCH_CONFIG['client_version']:
-        return HttpResponse('Bad Client Version')
-
-    # getWorkload() will verify the integrity of the request
-    return HttpResponse(OpenBench.utils.getWorkload(user, request))
+    # Contains keys 'workload', otherwise none
+    return JsonResponse(OpenBench.utils.get_workload(machine))
 
 @csrf_exempt
-@not_minified_response
-def clientGetNetwork(request, sha256):
+def client_get_network(request, sha256):
 
     # Verify the User's credentials
     try: django.contrib.auth.login(request, authenticate(request, True))
@@ -711,8 +708,7 @@ def clientGetNetwork(request, sha256):
     return networks(request, action='DOWNLOAD', sha256=sha256, client=True)
 
 @csrf_exempt
-@not_minified_response
-def clientWrongBench(request):
+def client_wrong_bench(request):
 
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
     #                                                                         #
@@ -722,99 +718,84 @@ def clientWrongBench(request):
     #                                                                         #
     # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    # Authenticate the User/Machine combination
-    try: user, machine = authenticate_client(request)
-    except Exception as error: return HttpResponse(str(error))
+    # Pass along any error messages if they appear
+    machine, response = client_verify_worker(request)
+    if response != None: return response
 
     # Find and stop the test with the bad bench
     if int(request.POST['wrong']) != 0:
-        test = Test.objects.get(id=int(request.POST['testid']))
+        test = Test.objects.get(id=int(request.POST['test_id']))
         test.finished = True; test.save()
 
     # Collect information on the Error
-    wrong   = request.POST['wrong']
-    correct = request.POST['correct']
+    wrong   = int(request.POST['wrong'])
+    correct = int(request.POST['correct'])
     name    = request.POST['engine']
-
-    # Format a nice Error message
-    message = 'Got {0} Expected {1} for {2}'
-    message = message.format(wrong, correct, name)
 
     # Log the error into the Events table
     LogEvent.objects.create(
-        author     = user.username,
-        summary    = message,
+        author     = machine.user.username,
+        summary    = 'Got %d Expected %d for %s' % (wrong, correct, name),
         log_file   = '',
-        machine_id = int(request.POST['machineid']),
-        test_id    = int(request.POST['testid']))
+        machine_id = int(request.POST['machine_id']),
+        test_id    = int(request.POST['test_id']))
 
-    return HttpResponse('None')
+    return JsonResponse({})
 
 @csrf_exempt
-@not_minified_response
-def clientSubmitNPS(request):
+def client_submit_nps(request):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  POST : Report the speed of the engines in the currently running Test   #
-    #         for the User and his Machine. We save this value to display     #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    # Pass along any error messages if they appear
+    machine, response = client_verify_worker(request)
+    if response != None: return response
 
-    # Authenticate the User/Machine combination
-    try: user, machine = authenticate_client(request)
-    except Exception as error: return HttpResponse(str(error))
-
-    # Update the NPS and return 'None' to signal no errors
+    # Update the NPS counter for the GUI views
     machine.mnps = float(request.POST['nps']) / 1e6; machine.save()
-    return HttpResponse('None')
+
+    # Pass back an empty JSON response
+    return JsonResponse({})
 
 @csrf_exempt
-@not_minified_response
-def clientSubmitError(request):
+def client_submit_error(request):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  POST : Report en Engine error to the server. This could be a crash, a  #
-    #         timeloss, a disconnect, or an illegal move. Log the Error into  #
-    #         the Events table.                                               #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+    ## Report an error when working on test. This could be one three kinds.
+    ## 1. Error building the engine. Does not compile, for whatever reason.
+    ## 2. Error getting the artifacts. Does not exist, lacks credentials.
+    ## 3. Error during actual gameplay. Timeloss, Disconnect, Crash, etc.
 
-    # Authenticate the User/Machine combination
-    try: user, machine = authenticate_client(request)
-    except Exception as error: return HttpResponse(str(error))
+    # Pass along any error messages if they appear
+    machine, response = client_verify_worker(request)
+    if response != None: return response
 
     # Flag the Test as having an error except for time losses
-    test = Test.objects.get(id=int(request.POST['testid']))
+    test = Test.objects.get(id=int(request.POST['test_id']))
     if 'loses on time' not in request.POST['error']:
         test.error = True; test.save()
 
     # Log the Error into the Events table
     event = LogEvent.objects.create(
-        author     = user.username,
+        author     = machine.user.username,
         summary    = request.POST['error'],
         log_file   = '',
-        machine_id = int(request.POST['machineid']),
-        test_id    = int(request.POST['testid']))
+        machine_id = int(request.POST['machine_id']),
+        test_id    = int(request.POST['test_id']))
 
     # Save the Logs to /Media/ to be viewed later
     logfile = ContentFile(request.POST['logs'])
     FileSystemStorage().save('event%d.log' % (event.id), logfile)
     event.log_file = 'event%d.log' % (event.id); event.save()
 
-    return HttpResponse('None')
+    return JsonResponse({})
 
 @csrf_exempt
-@not_minified_response
-def clientSubmitResults(request):
+def client_submit_results(request):
 
-    # Authenticate the User/Machine combination
-    try: user, machine = authenticate_client(request)
-    except Exception as error: return HttpResponse(str(error))
+    # Pass along any error messages if they appear
+    machine, response = client_verify_worker(request)
+    if response != None: return response
 
-    # updateTest() will return 'None' or 'Stop'
-    return HttpResponse(OpenBench.utils.updateTest(request, user))
+    # Returns {}, or { 'stop' : True }
+    return JsonResponse(OpenBench.utils.update_test(request, machine))
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                BUSINESS VIEWS                               #

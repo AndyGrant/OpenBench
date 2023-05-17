@@ -155,7 +155,6 @@
             <tr class="table-header">
                 <th>#</th>
                 <th>User</th>
-                <th>OS</th>
                 <th>Updated</th>
                 <th style="width: 60px">Games</th>
                 <th style="width: 60px">Won</th>
@@ -169,7 +168,6 @@
                 <tr>
                     <td>{{result.machine.id}}</td>
                     <td>{{result.machine.user.username|capfirst|slice:"6"}}</td>
-                    <td>{{result.machine.osname|truncatewords:1|slice:":-2"}}</td>
                     <td class="timestamp">{{result.updated|date:'U'}}</td>
                     <td class="numeric">{{result.games}}</td>
                     <td class="numeric">{{result.wins}}</td>

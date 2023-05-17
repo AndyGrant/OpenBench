@@ -52,7 +52,7 @@ from itertools import combinations_with_replacement
 TIMEOUT_HTTP     = 30    # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10    # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30    # Timeout in seconds between workload requests
-CLIENT_VERSION   = '7'   # Client version to send to the Server
+CLIENT_VERSION   = '8'   # Client version to send to the Server
 
 SYZYGY_WDL_PATH  = None  # Pathway to WDL Syzygy Tables
 FLEET_MODE       = False # Exit when there are no workloads
@@ -76,11 +76,6 @@ ERRORS = {
 IS_WINDOWS = platform.system() == 'Windows'
 IS_LINUX   = platform.system() != 'Windows'
 
-COMPILERS = {} # Compiler for each Engine, + CPU Flags
-CPUINFO   = '' # Result of ``echo | gcc -march=native -E -dM -``
-OSNAME    = '%s %s' % (platform.system(), platform.release())
-DEBUG     = True
-
 SYSTEM_COMPILERS      = {}
 SYSTEM_GIT_TOKENS     = {}
 SYSTEM_CPU_FLAGS      = []
@@ -102,28 +97,28 @@ def get_version(program):
 
     try:
         process = Popen([program, '--version'], stdout=PIPE, stderr=PIPE)
-        stdout = process.communicate()[0].decode('utf-8')
+        stdout  = process.communicate()[0].decode('utf-8')
         return re.search(r'\d+\.\d+(\.\d+)?', stdout).group()
 
     except:
         process = Popen([program, 'version'], stdout=PIPE, stderr=PIPE)
-        stdout = process.communicate()[0].decode('utf-8')
+        stdout  = process.communicate()[0].decode('utf-8')
         return re.search(r'\d+\.\d+(\.\d+)?', stdout).group()
 
-def locate_utility(util, force_exit=True, report_error=True, report_found=True):
+def locate_utility(util, force_exit=True, report_error=True):
 
     try:
-        version = get_version(util)
-        if report_found:
-            print('Located %s (%s)' % (util, version))
-        return version
+        return get_version(util)
 
     except Exception:
+
         if report_error:
             print('[Error] Unable to locate %s' % (util))
+
         if force_exit:
             sys.exit()
-        return False
+
+    return False
 
 
 def scan_for_compilers(data):
@@ -134,7 +129,7 @@ def scan_for_compilers(data):
     for engine, build_info in data.items():
 
         # Private engines don't need to be compiled
-        if build_info['private']: continue
+        if 'artifacts' in build_info: continue
 
         # Try to find at least one working compiler
         for compiler in build_info['compilers']:
@@ -166,7 +161,7 @@ def scan_for_private_tokens(data):
     for engine, build_info in data.items():
 
         # Public engines don't need access tokens
-        if not build_info['private']: continue
+        if not 'artifacts' in build_info: continue
 
         # Private engines expect a credentials.engine file for the main repo
         has_token = os.path.exists('credentials.%s' % (engine.replace(' ', '').lower()))
@@ -234,7 +229,8 @@ def init_client(arguments):
 def cleanup_client():
 
     SECONDS_PER_DAY   = 60 * 60 * 24
-    SECONDS_PER_MONTH = SECONDS_PER_DAY * 30
+    SECONDS_PER_WEEK  = SECONDS_PER_DAY * 7
+    SECONDS_PER_MONTH = SECONDS_PER_WEEK * 4
 
     file_age = lambda x: time.time() - os.path.getmtime(x)
 
@@ -243,7 +239,7 @@ def cleanup_client():
             os.remove(os.path.join('PGNs', file))
 
     for file in os.listdir('Engines'):
-        if file_age(os.path.join('Engines', file)) > SECONDS_PER_DAY:
+        if file_age(os.path.join('Engines', file)) > SECONDS_PER_WEEK:
             os.remove(os.path.join('Engines', file))
 
     for file in os.listdir('Networks'):
@@ -305,7 +301,7 @@ def try_until_success(mesg):
                     print('[Error]', mesg);
                     if FLEET_MODE: sys.exit()
                     time.sleep(TIMEOUT_ERROR)
-                    if DEBUG: traceback.print_exc()
+                    traceback.print_exc()
         return __try_until_success
     return _try_until_success
 
@@ -330,7 +326,7 @@ def unzip_delete_file(source, outdir):
 def make_command(arguments, engine, src_path, network_path):
 
     command = 'make %s=%s EXE=%s -j%d' % (
-        ['CC', 'CXX']['++' in SYSTEM_COMPILERS[engine]], SYSTEM_COMPILERS[engine], engine, arguments.threads)
+        ['CC', 'CXX']['++' in SYSTEM_COMPILERS[engine][0]], SYSTEM_COMPILERS[engine][0], engine, arguments.threads)
 
     if network_path != None:
         path = os.path.relpath(os.path.abspath(network_path), src_path)
@@ -461,7 +457,7 @@ def server_download_cutechess(arguments):
         # Fetch the source location if we are missing the binary
         source = requests.get(
             url_join(arguments.server, 'clientGetFiles'),
-            timeout=TIMEOUT_HTTP).content.decode('utf-8')
+            timeout=TIMEOUT_HTTP).json()['location']
 
         if arguments.proxy: source = 'https://ghproxy.com/' + source
 
@@ -477,7 +473,7 @@ def server_download_cutechess(arguments):
         # Fetch the source location if we are missing the binary
         source = requests.get(
             url_join(arguments.server, 'clientGetFiles'),
-            timeout=TIMEOUT_HTTP).content.decode('utf-8')
+            timeout=TIMEOUT_HTTP).json()['location']
 
         if arguments.proxy: source = 'https://ghproxy.com/' + source
 
@@ -491,6 +487,8 @@ def server_download_cutechess(arguments):
 
 @try_until_success(mesg=ERRORS['configure'])
 def server_configure_worker(arguments):
+
+    global SYSTEM_MACHINE_ID, SYSTEM_SECRET_TOKEN
 
     # Server tells us how to build or obtain binaries
     target = url_join(arguments.server, 'clientGetBuildInfo')
@@ -539,8 +537,10 @@ def server_configure_worker(arguments):
     with open('machine.txt', 'w') as fout:
         fout.write(str(response['machine_id']))
 
+    # Save it within the code as well for future requests
+    SYSTEM_MACHINE_ID = str(response['machine_id'])
+
     # Save the secret token, to send with all future requests
-    global SYSTEM_SECRET_TOKEN
     SYSTEM_SECRET_TOKEN = response['secret']
 
 @try_until_success(mesg=ERRORS['request'])
@@ -548,28 +548,43 @@ def server_request_workload(arguments):
 
     print('\nRequesting Workload from Server...')
 
-    supported  = ' '.join(COMPILERS.keys() - ['cpuflags'])
+    payload  = { 'machine_id' : SYSTEM_MACHINE_ID, 'secret' : SYSTEM_SECRET_TOKEN }
+    target   = url_join(arguments.server, 'clientGetWorkload')
+    response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
+
+    # The 'error' header is included if there was an issue
+    if 'error' in response:
+        print('[Error] %s\n' % (response['error']))
+        sys.exit()
+
+    # Log the start of a new Workload
+    if 'workload' in response:
+        engine = response['workload']['test']['engine']
+        dev    = response['workload']['test']['dev'   ]['name']
+        base   = response['workload']['test']['base'  ]['name']
+        print('Workload [%s] %s vs %s\n' % (engine, dev, base))
+
+    return None if 'workload' not in response else response['workload']
+
+def server_report_nps(arguments, workload, dev_nps, base_nps):
 
     payload = {
-        'username'   : arguments.username, 'threads'    : arguments.threads,
-        'password'   : arguments.password, 'ncutechess' : arguments.ncutechess,
-        'machineid'  : machine_id,         'osname'     : OSNAME,
-        'supported'  : supported,          'syzygy_wdl' : bool(SYZYGY_WDL_PATH),
-        'version'    : CLIENT_VERSION,     'cpuflags'   : COMPILERS['cpuflags'],
+        'machine_id' : SYSTEM_MACHINE_ID,
+        'secret'     : SYSTEM_SECRET_TOKEN,
+        'nps'        : (dev_nps + base_nps) // 2
     }
 
-    target = url_join(arguments.server, 'clientGetWorkload')
-    return requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
+    target   = url_join(arguments.server, 'clientSubmitNPS')
+    response = requests.post(target, data=payload, timeout=TIMEOUT_ERROR)
 
 def server_report_missing_artifact(arguments, workload, branch, artifact_name, artifact_json):
 
     payload = {
-        'username'  : arguments.username,
-        'password'  : arguments.password,
-        'testid'    : workload['test']['id'],
-        'machineid' : workload['machine']['id'],
-        'error'     : 'Artifact %s missing' % (artifact_name),
-        'logs'      : json.dumps(artifact_json, indent=2),
+        'machine_id' : SYSTEM_MACHINE_ID,
+        'secret'     : SYSTEM_SECRET_TOKEN,
+        'test_id'    : workload['test']['id'],
+        'error'      : 'Artifact %s missing' % (artifact_name),
+        'logs'       : json.dumps(artifact_json, indent=2),
     }
 
     target = url_join(arguments.server, 'clientSubmitError')
@@ -578,42 +593,15 @@ def server_report_missing_artifact(arguments, workload, branch, artifact_name, a
 def server_report_build_fail(arguments, workload, branch, compiler_output):
 
     payload = {
-        'username'  : arguments.username,
-        'password'  : arguments.password,
-        'testid'    : workload['test']['id'],
-        'machineid' : workload['machine']['id'],
-        'error'     : '%s build failed' % (workload['test'][branch]['name']),
-        'logs'      : compiler_output,
+        'machine_id' : SYSTEM_MACHINE_ID,
+        'secret'     : SYSTEM_SECRET_TOKEN,
+        'test_id'    : workload['test']['id'],
+        'error'      : '%s build failed' % (workload['test'][branch]['name']),
+        'logs'       : compiler_output,
     }
 
     target = url_join(arguments.server, 'clientSubmitError')
     requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
-
-def server_report_bad_bench(arguments, workload, branch, bench):
-
-    branch = workload['test'][branch]
-
-    data = {
-        'username' : arguments.username, 'testid'    : workload['test']['id'],
-        'password' : arguments.password, 'machineid' : workload['machine']['id'],
-        'correct'  : branch['bench'],    'engine'    : branch['name'],
-        'wrong'    : bench,
-    }
-
-    target = url_join(arguments.server, 'clientWrongBench')
-    requests.post(target, data=data, timeout=TIMEOUT_HTTP)
-
-def server_report_nps(arguments, workload, dev_nps, base_nps):
-
-    data = {
-        'username'  : arguments.username,
-        'password'  : arguments.password,
-        'machineid' : workload['machine']['id'],
-        'nps'       : (dev_nps + base_nps) // 2
-    }
-
-    target = url_join(arguments.server, 'clientSubmitNPS')
-    requests.post(target, data=data, timeout=TIMEOUT_ERROR)
 
 def server_report_engine_error(arguments, workload, cutechess_str, pgn):
 
@@ -625,15 +613,28 @@ def server_report_engine_error(arguments, workload, cutechess_str, pgn):
     error = error.replace('Black', '-'.join(black.split('-')[1:]).rstrip())
 
     payload = {
-        'username'  : arguments.username,
-        'password'  : arguments.password,
-        'testid'    : workload['test']['id'],
-        'machineid' : workload['machine']['id'],
-        'error'     : error,
-        'logs'      : pgn,
+        'machine_id' : SYSTEM_MACHINE_ID,
+        'secret'     : SYSTEM_SECRET_TOKEN,
+        'test_id'    : workload['test']['id'],
+        'error'      : error,
+        'logs'       : pgn,
     }
 
     target = url_join(arguments.server, 'clientSubmitError')
+    requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
+
+def server_report_bad_bench(arguments, workload, branch, bench):
+
+    payload = {
+        'machine_id' : SYSTEM_MACHINE_ID,
+        'secret'     : SYSTEM_SECRET_TOKEN,
+        'test_id'    : workload['test']['id'],
+        'engine'     : workload['test'][branch]['name'],
+        'correct'    : workload['test'][branch]['bench'],
+        'wrong'      : bench,
+    }
+
+    target = url_join(arguments.server, 'clientWrongBench')
     requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
 def server_report_results(arguments, workload, stats):
@@ -641,61 +642,25 @@ def server_report_results(arguments, workload, stats):
     wins, losses, draws, crashes, timelosses = stats
 
     payload = {
-        'username'  : arguments.username,        'wins'      : wins,
-        'password'  : arguments.password,        'losses'    : losses,
-        'machineid' : workload['machine']['id'], 'draws'     : draws,
-        'resultid'  : workload['result']['id'],  'crashes'   : crashes,
-        'testid'    : workload['test']['id'],    'timeloss'  : timelosses,
+        'machine_id' : SYSTEM_MACHINE_ID,
+        'secret'     : SYSTEM_SECRET_TOKEN,
+        'test_id'    : workload['test']['id'],
+        'result_id'  : workload['result']['id'],
+        'wins'       : wins,
+        'losses'     : losses,
+        'draws'      : draws,
+        'crashes'    : crashes,
+        'timeloss'   : timelosses,
     }
 
     target = url_join(arguments.server, 'clientSubmitResults')
-    try: return requests.post(target, data=payload, timeout=TIMEOUT_HTTP).text
-    except: print('[NOTE] Unable To Reach Server'); return 'Unable'
+    return requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                           #
 #                                                                           #
 #                                                                           #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-def check_workload_response(arguments, response):
-
-    raw_text = response.content.decode('utf-8')
-
-    # No workloads available to our machine
-    if raw_text == 'None':
-        print('[NOTE] Server Has No Work')
-        if not FLEET_MODE: time.sleep(TIMEOUT_WORKLOAD)
-        return False
-
-    # Bad login, kill the worker since all requests will fail
-    if raw_text == 'Bad Credentials':
-        print('[Error] Invalid Login Credentials')
-        sys.exit()
-
-    # Bad machine, mostly meaningless but note it
-    if raw_text == 'Bad Machine':
-        print('[NOTE] Replacing Invalid Machine Id')
-        os.remove('machine.txt')
-        return False
-
-    # We must match the server's version number
-    if raw_text == 'Bad Client Version':
-        print('[ERROR] Client Version Outdated')
-        sys.exit()
-
-    # Final check that we may parse the workload JSON
-    data = response.json()
-    with open('machine.txt', 'w') as fout:
-        fout.write(str(data['machine']['id']))
-
-    # Log the start of the new workload
-    engine = data['test']['engine']
-    dev    = data['test']['dev'   ]['name']
-    base   = data['test']['base'  ]['name']
-    print('Workload [%s] %s vs %s\n' % (engine, dev, base))
-
-    return data
 
 def complete_workload(arguments, workload):
 
@@ -811,7 +776,7 @@ def download_engine(arguments, workload, branch, network):
     commit_sha  = workload['test'][branch]['sha']
     source      = workload['test'][branch]['source']
     build_path  = workload['test']['build']['path']
-    private     = workload['engine']['private']
+    private     = 'artifacts' in workload['test']['build']
 
     # Naming as Engine-CommitSha[:8]-NetworkSha[:8]
     final_name = '%s-%s' % (engine, commit_sha.upper()[:8])
@@ -830,11 +795,14 @@ def download_engine(arguments, workload, branch, network):
             auth_headers = { 'Authorization' : 'token %s' % fin.readlines()[0].rstrip() }
         artifacts = requests.get(url=source, headers=auth_headers).json()['artifacts']
 
+        # For sanity, just avoid using PEXT/BMI2 on AMD Chips
+        ryzen = 'AMD' in SYSTEM_CPU_NAME.upper()
+        ryzen = 'RYZEN' in SYSTEM_CPU_NAME.upper() or ryzen
+
         # Construct the artifact string for the desired binary
-        old_ryzen  = '__znver1' in str(CPUINFO) or '__znver2' in str(CPUINFO)
         os_string  = ['windows', 'linux' ][IS_LINUX]
-        avx_string = ['avx2'   , 'avx512']['__AVX512VNNI__ 1' in str(CPUINFO)]
-        bit_string = ['popcnt' , 'pext'  ]['__BMI2__ 1' in str(CPUINFO) and not old_ryzen]
+        avx_string = ['avx2'   , 'avx512']['AVX512_VNNI' in str(SYSTEM_CPU_FLAGS)]
+        bit_string = ['popcnt' , 'pext'  ]['BMI2' in str(SYSTEM_CPU_FLAGS) and not ryzen]
         desired    = '%s-%s-%s' % (os_string, avx_string, bit_string)
 
         # Search for our artifact in the list provided
@@ -903,7 +871,7 @@ def run_benchmarks(arguments, workload, branch, engine, network):
     cores   = arguments.threads
     queue   = multiprocessing.Queue()
     name    = workload['test'][branch]['name']
-    private = workload['engine']['private']
+    private = 'artifacts' in workload['test']['build']
     print('\nRunning %dx Benchmarks for %s' % (cores, name))
 
     for ii in range(cores):
@@ -941,7 +909,7 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cuteche
         base_options += ' SyzygyPath=%s' % (path)
 
     # Add EvalFile to the options for Private engines using Networks
-    if workload['engine']['private']:
+    if 'artifacts' in workload['test']['build']:
 
         dev_network  = workload['test']['dev' ]['network']
         if dev_network and dev_network != 'None':
@@ -1031,22 +999,26 @@ def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess
 
         # Only report scores after every eight games
         score = list(map(int, score_reason.split()[0:5:2]))
-        if ((sum(score) - sum(sent)) % workload['test']['report_rate'] != 0): continue
+        if ((sum(score) - sum(sent)) % workload['test']['report_rate'] != 0):
+            continue
 
-        # Report to the server but allow failed reports to delay
-        wld = [score[ii] - sent[ii] for ii in range(3)]
-        stats = wld + [crashes, timelosses]
-        status = server_report_results(arguments, workload, stats)
+        try:
+            # Report new results to the server
+            wld    = [score[ii] - sent[ii] for ii in range(3)]
+            stats  = wld + [crashes, timelosses]
+            status = server_report_results(arguments, workload, stats)
 
-        # Check for the task being aborted, or Client being killed
-        if status.upper() == 'STOP' or os.path.isfile('openbench.exit'):
-            kill_cutechess(cutechess)
-            return
-
-        # If the update was succesful reset the results
-        if status.upper() != 'UNABLE':
+        except:
+            # Failed to connect, but we can delay the reports until later
+            print('[NOTE] Unable To Reach Server');
             crashes = timelosses = 0
             sent = score[::]
+            continue
+
+        # Check for openbench.exit, or server instructing us to exit
+        if os.path.isfile('openbench.exit') or 'stop' in status:
+            kill_cutechess(cutechess)
+            return
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                           #
@@ -1102,19 +1074,16 @@ if __name__ == '__main__':
     server_download_cutechess(arguments)
     server_configure_worker(arguments)
 
-    exit(1)
-
     while True:
-
         try:
-            # Request a new workload
+            # Cleanup on each workload request
             cleanup_client()
-            response = server_request_workload(arguments)
-            workload = check_workload_response(arguments, response)
 
             # Fleet workers exit when there are no workloads
-            if workload: complete_workload(arguments, workload)
+            if workload := server_request_workload(arguments):
+                complete_workload(arguments, workload)
             elif FLEET_MODE: break
+            else: time.sleep(TIMEOUT_WORKLOAD)
 
             # Check for exit signal via openbench.exit
             if os.path.isfile('openbench.exit'):

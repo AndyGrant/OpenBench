@@ -60,15 +60,15 @@ urlpatterns = [
     django.urls.path(r'scripts/', OpenBench.views.scripts),
 
     # Links for the Client to work with the Server
-    django.urls.path(r'clientGetFiles/', OpenBench.views.clientGetFiles),
-    django.urls.path(r'clientGetBuildInfo/', OpenBench.views.clientGetBuildInfo),
-    django.urls.path(r'clientWorkerInfo/', OpenBench.views.clientWorkerInfo),
-    django.urls.path(r'clientGetWorkload/', OpenBench.views.clientGetWorkload),
-    django.urls.path(r'clientGetNetwork/<str:sha256>/', OpenBench.views.clientGetNetwork),
-    django.urls.path(r'clientWrongBench/', OpenBench.views.clientWrongBench),
-    django.urls.path(r'clientSubmitNPS/', OpenBench.views.clientSubmitNPS),
-    django.urls.path(r'clientSubmitError/', OpenBench.views.clientSubmitError),
-    django.urls.path(r'clientSubmitResults/', OpenBench.views.clientSubmitResults),
+    django.urls.path(r'clientGetFiles/', OpenBench.views.client_get_files),
+    django.urls.path(r'clientGetBuildInfo/', OpenBench.views.client_get_build_info),
+    django.urls.path(r'clientWorkerInfo/', OpenBench.views.client_worker_info),
+    django.urls.path(r'clientGetWorkload/', OpenBench.views.client_get_workload),
+    django.urls.path(r'clientGetNetwork/<str:sha256>/', OpenBench.views.client_get_network),
+    django.urls.path(r'clientWrongBench/', OpenBench.views.client_wrong_bench),
+    django.urls.path(r'clientSubmitNPS/', OpenBench.views.client_submit_nps),
+    django.urls.path(r'clientSubmitError/', OpenBench.views.client_submit_error),
+    django.urls.path(r'clientSubmitResults/', OpenBench.views.client_submit_results),
 
     # Redirect anything else to the Index
     django.urls.path(r'', OpenBench.views.index),
