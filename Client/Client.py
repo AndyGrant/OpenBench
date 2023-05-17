@@ -1008,12 +1008,13 @@ def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess
             stats  = wld + [crashes, timelosses]
             status = server_report_results(arguments, workload, stats)
 
+            # Reset the reporting since this report was a success
+            crashes = timelosses = 0
+            sent    = score[::]
+
         except:
             # Failed to connect, but we can delay the reports until later
             print('[NOTE] Unable To Reach Server');
-            crashes = timelosses = 0
-            sent = score[::]
-            continue
 
         # Check for openbench.exit, or server instructing us to exit
         if os.path.isfile('openbench.exit') or 'stop' in status:
