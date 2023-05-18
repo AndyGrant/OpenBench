@@ -343,20 +343,21 @@ def users(request):
     data = {'profiles' : Profile.objects.order_by('-games', '-tests')}
     return render(request, 'users.html', data)
 
-def events(request, page=1):
+def events_actions(request, page=1):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Return information about the events taken on the Framework.     #
-    #         Only show those events for the requested page.                  #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-    events = LogEvent.objects.all().order_by('-id')
+    events = LogEvent.objects.all().filter(machine_id=0).order_by('-id')
     start, end, paging = OpenBench.utils.getPaging(events, page, 'events')
 
     data = {'events' : events[start:end], 'paging' : paging};
     return render(request, 'events.html', data)
+
+def events_errors(request, page=1):
+
+    events = LogEvent.objects.all().exclude(machine_id=0).order_by('-id')
+    start, end, paging = OpenBench.utils.getPaging(events, page, 'errors')
+
+    data = {'events' : events[start:end], 'paging' : paging};
+    return render(request, 'errors.html', data)
 
 def machines(request, machineid=None):
 

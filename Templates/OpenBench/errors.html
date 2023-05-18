@@ -8,19 +8,22 @@
 
         <tr class="table-header">
             <th>Date</th>
+            <th>Worker</th>
             <th>User</th>
             <th>Test</th>
-            <th>TC</th>
             <th>Summary</th>
+            <th>Logs</th>
         </tr>
 
         {% for event in events %}
             <tr>
                 <td class="timestamp">{{event.created|date:'U'}}</td>
+                <td><a href="/machines/{{event.machine_id}}">{{event.machine_id}}</a></td>
                 <td>{{event.author|capfirst}}</td>
                 <td><a href="/test/{{event.test_id}}">{{event.test_id|testIdToPrettyName}}</a></td>
-                <td>{{event.test_id|testIdToTimeControl}}</td>
+
                 <td>{{event.summary}}</td>
+                <td>{% if event.log_file %}<a href='/event/{{event.id}}'>View</a>{% endif %}</td>
             </tr>
         {% endfor %}
 
