@@ -1,11 +1,6 @@
-
-#content .form {
-
-}
-
 #content .form .col {
     display: inline-block;
-    width: 50%;
+    width: 42%;
     white-space: normal;
     margin-left: 0;
     box-sizing: border-box;
@@ -22,6 +17,7 @@
 }
 
 /* Styles for screen widths less than 600px */
+
 @media (max-width: 1024px) {
     #content .form .col {
         display: block;
@@ -30,11 +26,12 @@
 }
 
 #content .form h3 {
-    font-weight: 700;
+    font-weight: 500;
+    font-size: 14px;
     width: 100%;
     display: inline-block;
     box-sizing: border-box;
-    padding-left: 2rem;
+    padding-left: 1rem;
     text-align: left;
     color: var(--color-font3)
 }
@@ -46,45 +43,51 @@
 }
 
 #content .row label {
+    font-size: 14px;
     width: 25%;
     min-width: 128px;
     margin-right: 1rem;
     text-align: right;
-    font-weight: 600;
+    font-weight: 400;
     color: var(--color-font2)
 }
 
-#content .row input,
-#content .row select {
+#content .row input, #content .row select {
     flex-grow: 1;
     min-width: 0;
     border: 1px solid var(--color3);
     border-radius: 4px;
-    padding: 6px;
+    padding: 9px 6px 6px;
     background-color: var(--color2);
-    color: var(--color-font2)
+    color: var(--color-font2);
+    font-family: "Courier Prime", serif;
 }
+
 #content .row input[type="file"]{
      padding: 2px 2px;
 }
 
-#content .row input:focus,
-#content .row select:focus {
+#content .row input:focus, #content .row select:focus {
     outline: none;
     border-color: var(--color3);
     box-shadow: 0 0 0 3px rgba(77, 144, 254, 0.25);
     background-color: var(--color2);
-    color: var(--color-font2)
+    color: var(--color-font2);
+}
+
+#content .row select > option{
+    font-family: "Helvetica", serif;
 }
 
 #content .row input[type="file"]::file-selector-button {
     background-color: var(--color3);
     border: 1px solid var(--color2);
     border-radius: 4px;
-    padding: 4px 6px;
+    padding: 6px 6px 3px;
     color: var(--color-font2);
     cursor: pointer;
     transition: background-color 0.3s, border-color 0.3s;
+    font-family: "Courier Prime", serif;
 }
 
 #content .row input[type="file"]::file-selector-button:hover {
@@ -102,4 +105,3 @@
 #content .form .flex button{
     max-width: 100%;
 }
-

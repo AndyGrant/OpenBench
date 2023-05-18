@@ -16,7 +16,7 @@ body {
     background-color: var(--color1);
 
     font-size: 16px;
-    font-family: "Courier Prime";
+    font-family: "Courier Prime", serif;
     display:flex;
 }
 
@@ -78,7 +78,7 @@ body, html, main{
 }
 
 #sidebar li {
-    padding: 2px 16px;
+    padding: 4px 16px 2px;
     font-size: 1.0rem;
     border-radius: 4px;
     transition: background-color 0.2s ease-in-out;
@@ -179,12 +179,13 @@ body, html, main{
 
 #content .anchorbutton {
     border-radius: 4px;
-    padding: 8px;
+    padding: 8px 8px 6px;
     border-color: transparent;
     color: var(--color-font1);
     display: inline-block;
     text-align: center;
     transition: background-color 0.3s ease;
+    font-family: "Courier Prime", serif;
 }
 
 #content .btn-blue {
@@ -239,7 +240,7 @@ body, html, main{
     background-color: #CCCCCC;
     font-family: "Courier New";
     border-radius: 4px;
-    padding: 8px 10px;
+    padding: 9px 10px 6px;
 }
 
 #content .statblock-green {
@@ -252,6 +253,10 @@ body, html, main{
 
 #content .statblock-red {
     background-color: #FA9696
+}
+
+#content .redlink {
+    color: #FF4D4D;
 }
 
 /* Long StatBlock which we can copy */
@@ -286,8 +291,6 @@ body, html, main{
     color: var(--color-font1);
 }
 
-
-
 /* ??? */
 
 td pre {
@@ -295,4 +298,10 @@ td pre {
     padding: 0px;
 }
 
+#content .error {
+    color: red;
+}
 
+#content .site-title {
+    color: var(--color-font3);
+}

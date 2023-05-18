@@ -44,12 +44,6 @@
     </head>
 
     <body>
-        <!-- Views may return an error message -->
-        {% if error %}
-            <div id="error">
-                <pre>{{error}}</pre>
-            </div>
-        {% endif %}
 
         <div id="sidebar">
 
@@ -115,7 +109,8 @@
 
         <div id="content-parent">
             <div id="content">
-                <h2> <a class="TitleLink" href="/">OpenBench Testing Framework</a></h2>
+                <h2><a class="site-title" href="/">OpenBench Testing Framework</a></h2>
+                {% if error %}<div class="error"><pre>{{error}}</pre></div>{% endif %}
                 {% block content %}
                 {% endblock %}
             </div>

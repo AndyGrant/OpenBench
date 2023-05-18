@@ -2,9 +2,11 @@
 <tr>
     <td><a href="/user/{{test.author}}">{{test.author|capfirst|slice:":6"}}</a></td>
     <td>{{test.engine}}</td>
-    {% if test.error %} <td><a href="/test/{{test.id}}"><span style="color: red">[x]</span> {{test|prettyDevName}}</a></td>
-    {% elif  test|testIsFRC %} <td><a href="/test/{{test.id}}">{{test|prettyDevName}}<span style="color: green">[FRC]</span></a></td>
-    {% else %} <td><a href="/test/{{test.id}}">{{test|prettyDevName}}</a></td> {% endif %}
+    <td>
+        <a href="/test/{{test.id}}">{{test|prettyDevName}}</a>
+        {% if test.error %} <span style="color: red">*</span> {% endif %}
+        {% if test|testIsFRC %} <span style="color: green">[FRC]</span> {% endif %}
+    </td>
     <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
     <td>{{test.timecontrol}}</td>
     <td class='statblock statblock-{{test|testResultColour}}'><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
