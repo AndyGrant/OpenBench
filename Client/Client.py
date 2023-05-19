@@ -531,6 +531,8 @@ def server_configure_worker(arguments):
     # The 'error' header is included if there was an issue
     if 'error' in response:
         print('[Error] %s\n' % (response['error']))
+        if (response['error'].lower() == "bad machine id"):
+            os.remove('./machine.txt')
         sys.exit()
 
     # Save the machine id, to avoid re-registering every time
