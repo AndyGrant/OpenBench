@@ -528,11 +528,13 @@ def server_configure_worker(arguments):
     target   = url_join(arguments.server, 'clientWorkerInfo')
     response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
 
+    # Delete the machine.txt if we have saved an invalid machine number
+    if 'error' in response and response['error'].lower() == "bad machine id":
+        os.remove('machine.txt')
+
     # The 'error' header is included if there was an issue
     if 'error' in response:
         print('[Error] %s\n' % (response['error']))
-        if (response['error'].lower() == "bad machine id"):
-            os.remove('./machine.txt')
         sys.exit()
 
     # Save the machine id, to avoid re-registering every time
