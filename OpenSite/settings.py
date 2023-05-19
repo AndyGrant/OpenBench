@@ -25,6 +25,8 @@ DEBUG = True
 ALLOWED_HOSTS = ['*']
 HTML_MINIFY = True
 
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
+
 # Application definition
 
 SETTINGS_DIR  = os.path.dirname(__file__)
