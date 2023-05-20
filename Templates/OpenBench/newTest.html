@@ -83,7 +83,7 @@
     btn.onclick   = function() { set_test_mode(mode); };
     {#            btn.class     = (++index % 2) ? "left-floated" : "right-floated";#}
     btn.classList.add("anchorbutton")
-    btn.classList.add("btn-yellow")
+    btn.classList.add("btn-preset")
     btn.classList.add("mr-2")
     btn.classList.add("mt-2")
     button_div.append(btn);
@@ -272,7 +272,7 @@
             </div>
         </div>
 
-        <input type="submit" class="anchorbutton btn-blue mt-3 ml-3" name="submit" value="Create Engine Test">
+        <input type="submit" class="anchorbutton btn-start mt-3 ml-3 w-100" name="submit" value="Create Engine Test">
     </form>
 
     <div class="form">

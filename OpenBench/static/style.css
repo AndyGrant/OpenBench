@@ -45,7 +45,7 @@ body, html, main{
 }
 
 #content{
-    max-width: calc(min(100%,1200px));
+    max-width: calc(min(100%,1100px));
     width: 100%;
     white-space: nowrap;
     display: inline-block;
@@ -192,6 +192,14 @@ body, html, main{
     background-color: #1C2D40;
 }
 
+#content .btn-start {
+    background-color: #384A5F;
+}
+
+#content .btn-preset {
+    background-color: #046c52;
+}
+
 #content .btn-yellow {
     background-color: #7A4E09;
 }
@@ -206,6 +214,14 @@ body, html, main{
 
 #content .btn-blue:hover {
     background-color: #2E3F57;
+}
+
+#content .btn-start:hover {
+    background-color: #2E3F57;
+}
+
+#content .btn-preset:hover {
+    background-color: #11a983;
 }
 
 #content .btn-yellow:hover {
