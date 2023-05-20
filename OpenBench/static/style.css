@@ -194,6 +194,7 @@ body, html, main{
 
 #content .btn-start {
     background-color: #384A5F;
+    width: 100%;
 }
 
 #content .btn-preset {

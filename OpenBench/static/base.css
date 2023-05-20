@@ -2,12 +2,24 @@
     width: 25%;
 }
 
+.w-21 {
+    width: 21%;
+}
+
+.w-42 {
+    width: 42%;
+}
+
 .w-50 {
     width: 50%;
 }
 
 .w-75 {
     width: 75%;
+}
+
+.w-84 {
+    width: 84%;
 }
 
 .w-100 {
@@ -26,8 +38,16 @@
     max-width: 75%;
 }
 
+.mw-84 {
+    max-width: 84%;
+}
+
 .mw-100 {
     max-width: 100%;
+}
+
+.mt-0 {
+    margin-top: 0.00rem;
 }
 
 .mt-1 {
@@ -50,6 +70,10 @@
     margin-top: 3rem;
 }
 
+.mb-0 {
+    margin-bottom: 0.00rem;
+}
+
 .mb-1 {
     margin-bottom: 0.25rem;
 }
@@ -70,6 +94,10 @@
     margin-bottom: 3rem;
 }
 
+.ml-0 {
+    margin-left: 0.00rem;
+}
+
 .ml-1 {
     margin-left: 0.25rem;
 }
@@ -88,6 +116,10 @@
 
 .ml-5 {
     margin-left: 3rem;
+}
+
+.mr-0 {
+    margin-right: 0.00rem;
 }
 
 .mr-1 {

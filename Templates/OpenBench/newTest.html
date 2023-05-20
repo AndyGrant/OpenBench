@@ -12,132 +12,146 @@
 
     function set_test_type() {
 
-    //// When the test mode is set or changed, run this.
-    //// Sets the bounds, confidence intervals, and max games fields.
+        //// When the test mode is set or changed, run this.
+        //// Sets the bounds, confidence intervals, and max games fields.
 
-    var selectA = document.getElementById("test_mode");
-    var mode    = selectA.options[selectA.selectedIndex].value;
+        var selectA = document.getElementById("test_mode");
+        var mode    = selectA.options[selectA.selectedIndex].value;
 
-    var selectB = document.getElementById("enginename");
-    var engine  = selectB.options[selectB.selectedIndex].value;
+        var selectB = document.getElementById("enginename");
+        var engine  = selectB.options[selectB.selectedIndex].value;
 
-    if (mode == "SPRT") {
-    document.getElementById("test_bounds"    ).value = engines[engine].bounds
-    document.getElementById("test_confidence").value = "{{ config.tests.confidence }}";
-    document.getElementById("test_max_games" ).value = "N/A";
-    }
+        if (mode == "SPRT") {
+            document.getElementById("test_bounds"    ).value = engines[engine].bounds
+            document.getElementById("test_confidence").value = "{{ config.tests.confidence }}";
+            document.getElementById("test_max_games" ).value = "N/A";
+        }
 
-    if (mode == "GAMES") {
-    document.getElementById("test_bounds"    ).value = "N/A";
-    document.getElementById("test_confidence").value = "N/A";
-    document.getElementById("test_max_games" ).value = "{{ config.tests.max_games }}";
-    }
+        if (mode == "GAMES") {
+            document.getElementById("test_bounds"    ).value = "N/A";
+            document.getElementById("test_confidence").value = "N/A";
+            document.getElementById("test_max_games" ).value = "{{ config.tests.max_games }}";
+        }
     }
 
     function set_test_mode(mode_str) {
 
-    var selection = document.getElementById("enginename");
-    var engine    = selection.options[selection.selectedIndex].value;
-    var mode      = engines[engine].testmodes[mode_str];
+        var selection = document.getElementById("enginename");
+        var engine    = selection.options[selection.selectedIndex].value;
+        var mode      = engines[engine].testmodes[mode_str];
 
-    document.getElementById("report_rate"  ).value = mode["report_rate"]   || 8;
-    document.getElementById("workload_size").value = mode["workload_size"] || 32;
-    document.getElementById("devoptions"   ).value = mode["options"]       || "Threads=1 Hash=8";
-    document.getElementById("baseoptions"  ).value = mode["options"]       || "Threads=1 Hash=8";
-    document.getElementById("timecontrol"  ).value = mode["timecontrol"]   || "10.0+0.1";
-    document.getElementById("bookname"     ).value = mode["book"]          || engines[engine].book;
+        document.getElementById("report_rate"  ).value = mode["report_rate"]   || 8;
+        document.getElementById("workload_size").value = mode["workload_size"] || 32;
+        document.getElementById("devoptions"   ).value = mode["options"]       || "Threads=1 Hash=8";
+        document.getElementById("baseoptions"  ).value = mode["options"]       || "Threads=1 Hash=8";
+        document.getElementById("timecontrol"  ).value = mode["timecontrol"]   || "10.0+0.1";
+        document.getElementById("bookname"     ).value = mode["book"]          || engines[engine].book;
 
-    if (mode["bounds"] != null) {
-    document.getElementById("test_mode").value = "SPRT"; set_test_type();
-    document.getElementById("test_bounds").value = mode["bounds"];
-    }
+        if (mode["bounds"] != null) {
+            document.getElementById("test_mode").value = "SPRT"; set_test_type();
+            document.getElementById("test_bounds").value = mode["bounds"];
+        }
 
-    if (mode["games"] != null) {
-    document.getElementById("test_mode").value = "GAMES"; set_test_type();
-    document.getElementById("test_max_games").value = mode["games"];
-    }
+        if (mode["games"] != null) {
+            document.getElementById("test_mode").value = "GAMES"; set_test_type();
+            document.getElementById("test_max_games").value = mode["games"];
+        }
 
-    if (mode["bounds"] == null && mode["games"] == null) {
-    document.getElementById("test_mode").value = "SPRT"; set_test_type();
-    }
+        if (mode["bounds"] == null && mode["games"] == null) {
+            document.getElementById("test_mode").value = "SPRT"; set_test_type();
+        }
     }
 
     function set_engine(engine) {
 
-    //// Creates a button to setup test modes, as specififed in the Engine's
-    //// entry in config.py. Also sets the opening book, and default base branch
-    //// based on the same config entry. Finally, creates a list of all uploaded
-    //// Network files that can be selected. The default Network is set as such,
-    //// if it exists. In all cases, a blank Network is included in the options.
+        //// Creates a button to setup test modes, as specififed in the Engine's
+        //// entry in config.py. Also sets the opening book, and default base branch
+        //// based on the same config entry. Finally, creates a list of all uploaded
+        //// Network files that can be selected. The default Network is set as such,
+        //// if it exists. In all cases, a blank Network is included in the options.
 
-    document.getElementById("enginename").value = engine;
+        document.getElementById("enginename").value = engine;
 
-    var button_div = document.getElementById("test-mode-buttons");
-    while (button_div.hasChildNodes())
-    button_div.removeChild(button_div.lastChild);
+        var button_div = document.getElementById("test-mode-buttons");
+        while (button_div.hasChildNodes())
+            button_div.removeChild(button_div.lastChild);
 
-    var index = 0;
-    for (let mode in engines[engine].testmodes) {
-    btn = document.createElement('button')
-    btn.innerHTML = mode;
-    btn.onclick   = function() { set_test_mode(mode); };
-    {#            btn.class     = (++index % 2) ? "left-floated" : "right-floated";#}
-    btn.classList.add("anchorbutton")
-    btn.classList.add("btn-preset")
-    btn.classList.add("mr-2")
-    btn.classList.add("mt-2")
-    button_div.append(btn);
-    }
+        var index = -1;
+        for (let mode in engines[engine].testmodes) {
 
-    var devnet  = document.getElementById("devnetwork");
-    var basenet = document.getElementById("basenetwork");
-    var hasdefault = false;
+            index++;
 
-    while (devnet.length)  devnet.remove(0);
-    while (basenet.length) basenet.remove(0);
+            btn = document.createElement('button')
+            btn.innerHTML = mode;
+            btn.onclick   = function() { set_test_mode(mode); };
 
-    for (const network of networks) {
+            btn.classList.add("anchorbutton");
+            btn.classList.add("btn-preset");
+            btn.classList.add("mt-2");
+            btn.classList.add("w-100");
 
-    if (network.engine !== engine) continue;
+            div = document.createElement('div')
+            div.appendChild(btn)
+            div.classList.add("col-half");
 
-    var devopt  = document.createElement("option");
-    var baseopt = document.createElement("option");
+            if ((index % 4) != 0)
+                div.classList.add("pl-1");
 
-    devopt.text  = baseopt.text  = network.name;
-    devopt.value = baseopt.value = network.sha256;
+            if ((index % 4) != 3)
+                div.classList.add("pr-1");
 
-    devopt.selected  = network.default;
-    baseopt.selected = network.default;
-    devnet.add(devopt); basenet.add(baseopt);
+            button_div.append(div);
+        }
 
-    hasdefault = hasdefault || network.default;
-    }
+        var devnet  = document.getElementById("devnetwork");
+        var basenet = document.getElementById("basenetwork");
+        var hasdefault = false;
 
-    {
-    var devopt  = document.createElement("option");
-    var baseopt = document.createElement("option");
+        while (devnet.length)  devnet.remove(0);
+        while (basenet.length) basenet.remove(0);
 
-    devopt.text  = baseopt.text  = "None";
-    devopt.value = baseopt.value = "";
+        for (const network of networks) {
 
-    devopt.selected  = !hasdefault; devnet.add(devopt);
-    baseopt.selected = !hasdefault; basenet.add(baseopt);
-    }
+            if (network.engine !== engine) continue;
 
-    document.getElementById("basebranch").value = engines[engine].base;
-    document.getElementById("bookname"  ).value = engines[engine].book;
-    document.getElementById("win_adj"   ).value = engines[engine].win_adj;
-    document.getElementById("draw_adj"  ).value = engines[engine].draw_adj;
+            var devopt  = document.createElement("option");
+            var baseopt = document.createElement("option");
 
-    set_test_mode("STC");
+            devopt.text  = baseopt.text  = network.name;
+            devopt.value = baseopt.value = network.sha256;
+
+            devopt.selected  = network.default;
+            baseopt.selected = network.default;
+            devnet.add(devopt); basenet.add(baseopt);
+
+            hasdefault = hasdefault || network.default;
+        }
+
+        {
+            var devopt  = document.createElement("option");
+            var baseopt = document.createElement("option");
+
+            devopt.text  = baseopt.text  = "None";
+            devopt.value = baseopt.value = "";
+
+            devopt.selected  = !hasdefault; devnet.add(devopt);
+            baseopt.selected = !hasdefault; basenet.add(baseopt);
+        }
+
+        document.getElementById("basebranch").value = engines[engine].base;
+        document.getElementById("bookname"  ).value = engines[engine].book;
+        document.getElementById("win_adj"   ).value = engines[engine].win_adj;
+        document.getElementById("draw_adj"  ).value = engines[engine].draw_adj;
+
+        set_test_mode("STC");
     }
 
     document.addEventListener(
-    'DOMContentLoaded', function () {
-    set_test_type();
-    set_engine("{{ profile.engine }}");
-    set_test_mode("STC");
-    }, false
+        'DOMContentLoaded', function () {
+            set_test_type();
+            set_engine("{{ profile.engine }}");
+            set_test_mode("STC");
+        }, false
     );
 
 {% endblock %}
@@ -146,7 +160,6 @@
 
     <form method="POST" action="/newTest/">
         {% csrf_token %}
-
 
         <div class="form w-100">
             <div class="col">
@@ -272,17 +285,17 @@
             </div>
         </div>
 
-        <input type="submit" class="anchorbutton btn-start mt-3 ml-3 w-100" name="submit" value="Create Engine Test">
-    </form>
+        <input type="submit" class="anchorbutton btn-start mt-3 mw-84" name="submit" value="Create Engine Test">
 
-    <div class="form">
-        <div class="col-full">
-            <div class="row flex">
-                <div class="ml-3" id="test-mode-buttons">
+        <div class="form">
+            <div class="col-full">
+                <div id="test-mode-buttons">
                     <!-- Generated based on the selected Engine -->
                 </div>
             </div>
         </div>
-    </div>
+    </form>
+
+
 
 {% endblock %}

@@ -1,3 +1,11 @@
+#content .form .col-half {
+    display: inline-block;
+    width: 21%;
+    white-space: normal;
+    box-sizing: border-box;
+    vertical-align: top;
+}
+
 #content .form .col {
     display: inline-block;
     width: 42%;
