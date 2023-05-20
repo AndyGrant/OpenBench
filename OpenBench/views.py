@@ -403,9 +403,35 @@ def test(request, id, action=None):
         return django.http.HttpResponseRedirect('/index/')
 
     if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'MODIFY']:
+
+        # Select the Test, and all Result objects attached
         test    = Test.objects.get(id=id)
         results = Result.objects.filter(test=test).order_by('machine_id')
-        data    = {'test' : test, 'results': results}
+        data    = { 'test' : test, 'results': {} }
+
+        for result in results:
+
+            # Insert the Result into the results
+            if result.machine.id not in data['results'].keys():
+                data['results'][result.machine.id] = {
+                    'games'      : 0, 'wins'       : 0,
+                    'losses'     : 0, 'draws'      : 0,
+                    'timeloss'   : 0, 'crashes'    : 0,
+                }
+
+            # Always use the latest Time stamp, by virtue of sorting Results
+            data['results'][result.machine.id]['machine_id'] = result.machine.id
+            data['results'][result.machine.id]['username'  ] = result.machine.user.username
+            data['results'][result.machine.id]['updated'   ] = result.updated
+
+            # Sum up all results from a given machine into a single value
+            data['results'][result.machine.id]['games'     ] += result.games
+            data['results'][result.machine.id]['wins'      ] += result.wins
+            data['results'][result.machine.id]['losses'    ] += result.losses
+            data['results'][result.machine.id]['draws'     ] += result.draws
+            data['results'][result.machine.id]['timeloss'  ] += result.timeloss
+            data['results'][result.machine.id]['crashes'   ] += result.crashes
+
         return render(request, 'test.html', data)
 
     if not request.user.is_authenticated:
