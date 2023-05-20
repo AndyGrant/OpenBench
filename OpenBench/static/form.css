@@ -1,6 +1,6 @@
 #content .form .col {
     display: inline-block;
-    width: 50%;
+    width: 42%;
     white-space: normal;
     margin-left: 0;
     box-sizing: border-box;
@@ -31,7 +31,7 @@
     width: 100%;
     display: inline-block;
     box-sizing: border-box;
-    padding-left: 3rem;
+    padding-left: 1rem;
     text-align: left;
     color: var(--color-font3)
 }
@@ -44,7 +44,7 @@
 
 #content .row label {
     font-size: 14px;
-    width: 32%;
+    width: 25%;
     min-width: 128px;
     margin-right: 1rem;
     text-align: right;
