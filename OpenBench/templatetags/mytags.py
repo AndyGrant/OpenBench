@@ -149,9 +149,18 @@ def prettyName(name):
     return name
 
 def prettyDevName(test):
+
+    # If testing different Networks, possibly use the Network name
     if test.dev.name == test.base.name and test.devnetname != '':
+
+        # Nets match as well, so revert back to the branch name
+        if test.devnetwork == test.basenetwork:
+            return prettyName(test.dev.name)
+
+        # Use the network's name, if we still have it saved
         try: return OpenBench.models.Network.objects.get(sha256=test.devnetwork).name
         except: return test.devnetname # File has since been deleted ?
+
     return prettyName(test.dev.name)
 
 def testIsFRC(test):
