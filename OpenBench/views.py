@@ -18,7 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import os, hashlib, datetime, json, secrets
+import os, hashlib, datetime, json, secrets, re
 
 import django.http
 import django.shortcuts
@@ -557,12 +557,19 @@ def networks(request, action=None, sha256=None, client=False):
         if request.method == 'GET':
             return render(request, 'uploadnet.html', {})
 
+        name    = request.POST['name']
         engine  = request.POST['engine']
         netfile = request.FILES['netfile']
         sha256  = hashlib.sha256(netfile.file.read()).hexdigest()[:8].upper()
 
+        if not re.match(r'^[a-zA-Z0-9_.-]+$', name):
+            return index(request, error='Name may only contain letters, numbers, dashes, underscores, and dots')
+
         if Network.objects.filter(sha256=sha256):
             return index(request, error='Network with that hash already exists')
+
+        if Network.objects.filter(engine=engine, name=sha256):
+            return index(request, error='Network with that name already exists for that engine')
 
         if engine not in OpenBench.utils.OPENBENCH_CONFIG['engines'].keys():
             return index(request, error='No Engine found with matching name')
@@ -570,7 +577,7 @@ def networks(request, action=None, sha256=None, client=False):
         FileSystemStorage().save(sha256, netfile)
 
         Network.objects.create(
-            sha256=sha256, name=request.POST['name'],
+            sha256=sha256, name=name,
             engine=engine, author=request.user.username)
 
         return index(request)
@@ -725,14 +732,20 @@ def client_get_workload(request):
     return JsonResponse(OpenBench.utils.get_workload(machine))
 
 @csrf_exempt
-def client_get_network(request, sha256):
+def client_get_network(request, identifier, engine=None):
 
     # Verify the User's credentials
     try: django.contrib.auth.login(request, authenticate(request, True))
     except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
+    # Return the requested Neural Network, after resolving the Network name
+    if engine is not None:
+        try: sha256 = Network.objects.get(name=identifier, engine=engine).sha256
+        except: return HttpResponse('Unable to find associated Network')
+        return networks(request, action='DOWNLOAD', sha256=sha256, client=True)
+
     # Return the requested Neural Network file for the Client
-    return networks(request, action='DOWNLOAD', sha256=sha256, client=True)
+    return networks(request, action='DOWNLOAD', sha256=identifier, client=True)
 
 @csrf_exempt
 def client_wrong_bench(request):
