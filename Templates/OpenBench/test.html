@@ -3,38 +3,41 @@
 {% load mytags %}
 
 {% block style %}
-{% load static %}
 {% endblock %}
 
 {% block scripts %}
 
-    function copy_statblock() {
+    <script>
 
-        var text = document.getElementById("long-statblock").innerHTML;
-        text = text.replace(/<br>/g, "\n");
-        text += "\n" + window.location.href;
+        function copy_statblock() {
 
-        // navigator.clipboard.writeText(text); // Optimal solution
+            var text = document.getElementById("long-statblock").innerHTML;
+            text = text.replace(/<br>/g, "\n");
+            text += "\n" + window.location.href;
 
-        // Suboptimal, HTTP solution
+            // navigator.clipboard.writeText(text); // Optimal solution
 
-        var area = document.createElement("textarea");
-        area.value = text;
-        document.body.append(area);
+            // Suboptimal, HTTP solution
 
-        area.focus();
-        area.select();
+            var area = document.createElement("textarea");
+            area.value = text;
+            document.body.append(area);
 
-        try {
-            document.execCommand("copy");
-            document.body.removeChild(area);
+            area.focus();
+            area.select();
+
+            try {
+                document.execCommand("copy");
+                document.body.removeChild(area);
+            }
+
+            catch (err) {
+                document.body.removeChild(area);
+                console.error("Unable to copy to Clipboard");
+            }
         }
 
-        catch (err) {
-            document.body.removeChild(area);
-            console.error("Unable to copy to Clipboard");
-        }
-    }
+    </script>
 
 {% endblock %}
 
@@ -44,29 +47,33 @@
         <table class="test-config left-align wrappable" style="table-layout: auto; width: 100%;">
             <tr><td class="td-label">Author</td><td>{{test.author|capfirst}}</td></tr>
             <tr><td class="td-label">Creation</td><td class="timestamp">{{test.creation|date:'U'}}</td></tr>
-            <tr><td class="td-label">Engine</td><td>{{test.engine}}</td></tr>
+
+            <tr><td class="td-label">Dev Engine</td><td>{{test.dev_engine}}</td></tr>
+            <tr><td class="td-label">Dev Source</td><td><a href="{{test.dev_repo}}">{{test.dev_repo}}</a></td></tr>
+            <tr><td class="td-label">Dev Sha</td><td>{{test.dev.sha}}</td></tr>
             <tr><td class="td-label">Dev Branch</td><td>{{test.dev.name|prettyName}}</td></tr>
             <tr><td class="td-label">Dev Bench</td><td>{{test.dev.bench}}</td></tr>
-            <tr><td class="td-label">Dev Options</td><td>{{test.devoptions}}</td></tr>
-            <tr><td class="td-label">Dev Sha</td><td>{{test.dev.sha}}</td></tr>
-            {% if test.devnetwork %}
+            {% if test.dev_network %}
             <tr>
                 <td class="td-label">Dev Network</td>
-                <td><a href="{{test.devnetwork|resolveNetworkURL}}">{{test.devnetname}}</td>
-            </tr>
-            {% endif %}
-            <tr><td class="td-label">Base Branch</td><td>{{test.base.name|prettyName}}</td></tr>
-            <tr><td class="td-label">Base Bench</td><td>{{test.base.bench}}</td></tr>
-            <tr><td class="td-label">Base Options</td><td>{{test.baseoptions}}</td></tr>
+                <td><a href="{{test.devnetwork|resolveNetworkURL}}">{{test.dev_netname}}</td>
+            </tr> {% endif %}
+            <tr><td class="td-label">Dev Options</td><td>{{test.dev_options}}</td></tr>
+            <tr><td class="td-label">Dev Time</td><td>{{test.dev_time_control}}</td></tr>
+
+            <tr><td class="td-label">Base Engine</td><td>{{test.base_engine}}</td></tr>
+            <tr><td class="td-label">Base Source</td><td><a href="{{test.base_repo}}">{{test.base_repo}}</a></td></tr>
             <tr><td class="td-label">Base Sha</td><td>{{test.base.sha}}</td></tr>
-            {% if test.basenetwork %}
+            <tr><td class="td-label">Base Bench</td><td>{{test.base.bench}}</td></tr>
+            {% if test.base_network %}
             <tr>
                 <td class="td-label">Base Network</td>
-                <td><a href="{{test.basenetwork|resolveNetworkURL}}">{{test.basenetname}}</td>
-            </tr>
-            {% endif %}
-            <tr><td class="td-label">Source Repo</td><td><a href="{{test.source}}">{{test.source}}</a></td></tr>
-            <tr><td class="td-label">Opening Book</td><td><a href="{{config.framework}}raw/master/Books/{{test.bookname}}.zip">{{test.bookname}}</a></td></tr>
+                <td><a href="{{test.basenetwork|resolveNetworkURL}}">{{test.base_netname}}</td>
+            </tr> {% endif %}
+            <tr><td class="td-label">Base Options</td><td>{{test.base_options}}</td></tr>
+            <tr><td class="td-label">Base Time</td><td>{{test.base_time_control}}</td></tr>
+
+            <tr><td class="td-label">Opening Book</td><td><a href="{{config.framework}}raw/master/Books/{{test.bookname}}.zip">{{test.book_name}}</a></td></tr>
             <tr><td class="td-label">Syzygy WDL</td><td>{{test.syzygy_wdl}}</td></tr>
             <tr><td class="td-label">Syzygy ADJ.</td><td>{{test.syzygy_adj}}</td></tr>
             <tr><td class="td-label">Win ADJ.</td><td>{{test.win_adj}}</td></tr>

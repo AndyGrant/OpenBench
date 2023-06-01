@@ -51,21 +51,21 @@ def gitDiffLink(test):
         base    = test['base']['source']
         devsha  = test['dev']['sha']
         basesha = test['base']['sha']
-        engine  = test['engine']
+        engine  = test['dev_engine']
 
     else:
         dev     = test.dev.source
         base    = test.base.source
         devsha  = test.dev.sha
         basesha = test.base.sha
-        engine  = test.engine
+        engine  = test.dev_engine
 
     if OpenBench.config.OPENBENCH_CONFIG['engines'][engine]['private']:
         repo = OpenBench.config.OPENBENCH_CONFIG['engines'][engine]['source']
     else:
-        repo = OpenBench.utils.pathjoin(*dev.split('/')[:-2])
+        repo = OpenBench.utils.path_join(*dev.split('/')[:-2])
 
-    return OpenBench.utils.pathjoin(repo, 'compare',
+    return OpenBench.utils.path_join(repo, 'compare',
         '{0}...{1}'.format(basesha[:8], devsha[:8]))
 
 def shortStatBlock(test):
@@ -96,9 +96,8 @@ def shortStatBlock(test):
 
 def longStatBlock(test):
 
-    tokens = test.devoptions.split(' ')
-    threads = tokens[0].split('=')[1]
-    hash = tokens[1].split('=')[1]
+    threads = OpenBench.utils.extract_option(test.dev_options, 'Threads')
+    hash    = OpenBench.utils.extract_option(test.dev_options, 'Hash')
 
     lower, elo, upper = OpenBench.stats.ELO(test.wins, test.losses, test.draws)
     error = max(upper - elo, elo - lower)
@@ -113,7 +112,7 @@ def longStatBlock(test):
         upperllr    = twoDigitPrecision(test.upperllr)
         elolower    = twoDigitPrecision(test.elolower)
         eloupper    = twoDigitPrecision(test.eloupper)
-        timecontrol = test.timecontrol + ['s', '']['=' in test.timecontrol]
+        timecontrol = test.dev_time_control + ['s', '']['=' in test.dev_time_control]
 
         return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
              + 'SPRT  | {0} Threads={1} Hash={2}MB\n'.format(timecontrol, threads, hash) \
@@ -122,7 +121,7 @@ def longStatBlock(test):
 
     if test.test_mode == 'GAMES':
 
-        timecontrol = test.timecontrol + ['s', '']['=' in test.timecontrol]
+        timecontrol = test.dev_time_control + ['s', '']['=' in test.dev_time_control]
 
         return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
              + 'CONF  | {0} Threads={1} Hash={2}MB\n'.format(timecontrol, threads, hash) \
@@ -150,21 +149,25 @@ def prettyName(name):
 
 def prettyDevName(test):
 
+    # If engines are different, use the base name + branch
+    if test.dev_engine != test.base_engine:
+        return '[%s] %s' % (test.base_engine, test.base.name)
+
     # If testing different Networks, possibly use the Network name
-    if test.dev.name == test.base.name and test.devnetname != '':
+    if test.dev.name == test.base.name and test.dev_netname != '':
 
         # Nets match as well, so revert back to the branch name
-        if test.devnetwork == test.basenetwork:
+        if test.dev_network == test.base_network:
             return prettyName(test.dev.name)
 
         # Use the network's name, if we still have it saved
-        try: return OpenBench.models.Network.objects.get(sha256=test.devnetwork).name
-        except: return test.devnetname # File has since been deleted ?
+        try: return OpenBench.models.Network.objects.get(sha256=test.dev_network).name
+        except: return test.dev_netname # File has since been deleted ?
 
     return prettyName(test.dev.name)
 
 def testIsFRC(test):
-    return "FRC" in test.bookname.upper() or "960" in test.bookname.upper()
+    return "FRC" in test.book_name.upper() or "960" in test.book_name.upper()
 
 def resolveNetworkURL(sha256):
     if OpenBench.models.Network.objects.filter(sha256=sha256):
@@ -175,10 +178,9 @@ def testIdToPrettyName(test_id):
     return prettyName(OpenBench.models.Test.objects.get(id=test_id).dev.name)
 
 def testIdToTimeControl(test_id):
-    return OpenBench.models.Test.objects.get(id=test_id).timecontrol
+    return OpenBench.models.Test.objects.get(id=test_id).dev_time_control
 
 def cpuflagsBlock(machine, N=8):
-
 
     reported = []
     flags    = machine.info['cpu_flags']

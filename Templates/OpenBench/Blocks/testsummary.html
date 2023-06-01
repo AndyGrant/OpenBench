@@ -1,13 +1,19 @@
 {% load mytags %}
 <tr>
     <td><a href="/user/{{test.author}}">{{test.author|capfirst|slice:":6"}}</a></td>
-    <td>{{test.engine}}</td>
+    <td>
+        {{test.dev_engine}}
+        {% if test.dev_engine != test.base_engine %} <span style="color: yellow">*</span> {% endif %}
+    </td>
     <td>
         <a href="/test/{{test.id}}">{{test|prettyDevName}}</a>
         {% if test.error %} <span style="color: red">*</span> {% endif %}
-        {% if test|testIsFRC %} <span style="color: green">[FRC]</span> {% endif %}
+        {% if test|testIsFRC %} <span style="color: green">*</span> {% endif %}
     </td>
     <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
-    <td>{{test.timecontrol}}</td>
+    <td>
+        {{test.dev_time_control}}
+        {% if test.dev_time_control != test.base_time_control %} <span style="color: yellow">*</span> {% endif %}
+    </td>
     <td class='statblock statblock-{{test|testResultColour}}'><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
 </tr>

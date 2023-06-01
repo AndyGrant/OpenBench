@@ -1,159 +1,23 @@
 {% extends "OpenBench/base.html" %}
 
-{% block json %}
-    {{ config.engines|json_script:"json-engines" }}
-    {{ networks|json_script:"json-networks" }}
-{% endblock %}
+{% load static %}
 
 {% block scripts %}
+    {{ config|json_script:"json-config" }}
+    {{ networks|json_script:"json-networks" }}
 
-    var engines  = JSON.parse(document.getElementById("json-engines" ).textContent);
-    var networks = JSON.parse(document.getElementById("json-networks").textContent);
+    <script src="{% static 'create_test.js' %}"></script>
 
-    function set_test_type() {
-
-        //// When the test mode is set or changed, run this.
-        //// Sets the bounds, confidence intervals, and max games fields.
-
-        var selectA = document.getElementById("test_mode");
-        var mode    = selectA.options[selectA.selectedIndex].value;
-
-        var selectB = document.getElementById("enginename");
-        var engine  = selectB.options[selectB.selectedIndex].value;
-
-        if (mode == "SPRT") {
-            document.getElementById("test_bounds"    ).value = engines[engine].bounds
-            document.getElementById("test_confidence").value = "{{ config.tests.confidence }}";
-            document.getElementById("test_max_games" ).value = "N/A";
-        }
-
-        if (mode == "GAMES") {
-            document.getElementById("test_bounds"    ).value = "N/A";
-            document.getElementById("test_confidence").value = "N/A";
-            document.getElementById("test_max_games" ).value = "{{ config.tests.max_games }}";
-        }
-    }
-
-    function set_test_mode(mode_str) {
-
-        var selection = document.getElementById("enginename");
-        var engine    = selection.options[selection.selectedIndex].value;
-        var mode      = engines[engine].testmodes[mode_str];
-
-        document.getElementById("report_rate"  ).value = mode["report_rate"]   || 8;
-        document.getElementById("workload_size").value = mode["workload_size"] || 32;
-        document.getElementById("devoptions"   ).value = mode["options"]       || "Threads=1 Hash=8";
-        document.getElementById("baseoptions"  ).value = mode["options"]       || "Threads=1 Hash=8";
-        document.getElementById("timecontrol"  ).value = mode["timecontrol"]   || "10.0+0.1";
-        document.getElementById("bookname"     ).value = mode["book"]          || engines[engine].book;
-
-        if (mode["bounds"] != null) {
-            document.getElementById("test_mode").value = "SPRT"; set_test_type();
-            document.getElementById("test_bounds").value = mode["bounds"];
-        }
-
-        if (mode["games"] != null) {
-            document.getElementById("test_mode").value = "GAMES"; set_test_type();
-            document.getElementById("test_max_games").value = mode["games"];
-        }
-
-        if (mode["bounds"] == null && mode["games"] == null) {
-            document.getElementById("test_mode").value = "SPRT"; set_test_type();
-        }
-    }
-
-    function set_engine(engine) {
-
-        //// Creates a button to setup test modes, as specififed in the Engine's
-        //// entry in config.py. Also sets the opening book, and default base branch
-        //// based on the same config entry. Finally, creates a list of all uploaded
-        //// Network files that can be selected. The default Network is set as such,
-        //// if it exists. In all cases, a blank Network is included in the options.
-
-        document.getElementById("enginename").value = engine;
-
-        var button_div = document.getElementById("test-mode-buttons");
-        while (button_div.hasChildNodes())
-            button_div.removeChild(button_div.lastChild);
-
-        var index = -1;
-        for (let mode in engines[engine].testmodes) {
-
-            index++;
-
-            btn = document.createElement('button')
-            btn.innerHTML = mode;
-            btn.onclick   = function() { set_test_mode(mode); };
-
-            btn.classList.add("anchorbutton");
-            btn.classList.add("btn-preset");
-            btn.classList.add("mt-2");
-            btn.classList.add("w-100");
-
-            div = document.createElement('div')
-            div.appendChild(btn)
-            div.classList.add("col-half");
-
-            if ((index % 4) != 0)
-                div.classList.add("pl-1");
-
-            if ((index % 4) != 3)
-                div.classList.add("pr-1");
-
-            button_div.append(div);
-        }
-
-        var devnet  = document.getElementById("devnetwork");
-        var basenet = document.getElementById("basenetwork");
-        var hasdefault = false;
-
-        while (devnet.length)  devnet.remove(0);
-        while (basenet.length) basenet.remove(0);
-
-        for (const network of networks) {
-
-            if (network.engine !== engine) continue;
-
-            var devopt  = document.createElement("option");
-            var baseopt = document.createElement("option");
-
-            devopt.text  = baseopt.text  = network.name;
-            devopt.value = baseopt.value = network.sha256;
-
-            devopt.selected  = network.default;
-            baseopt.selected = network.default;
-            devnet.add(devopt); basenet.add(baseopt);
-
-            hasdefault = hasdefault || network.default;
-        }
-
-        {
-            var devopt  = document.createElement("option");
-            var baseopt = document.createElement("option");
-
-            devopt.text  = baseopt.text  = "None";
-            devopt.value = baseopt.value = "";
-
-            devopt.selected  = !hasdefault; devnet.add(devopt);
-            baseopt.selected = !hasdefault; basenet.add(baseopt);
-        }
-
-        document.getElementById("basebranch").value = engines[engine].base;
-        document.getElementById("bookname"  ).value = engines[engine].book;
-        document.getElementById("win_adj"   ).value = engines[engine].win_adj;
-        document.getElementById("draw_adj"  ).value = engines[engine].draw_adj;
-
-        set_test_mode("STC");
-    }
-
-    document.addEventListener(
-        'DOMContentLoaded', function () {
-            set_test_type();
-            set_engine("{{ profile.engine }}");
-            set_test_mode("STC");
-        }, false
-    );
-
+    <script>
+        document.addEventListener(
+            'DOMContentLoaded', function () {
+                set_test_type();
+                set_engine("{{ profile.engine }}", "dev");
+                set_engine("{{ profile.engine }}", "base");
+                set_test_mode("STC");
+            }, false
+        );
+    </script>
 {% endblock %}
 
 {% block content %}
@@ -164,76 +28,81 @@
         <div class="form w-100">
             <div class="col">
 
-                <h3> Engine </h3>
+                <h3> Engines </h3>
+
                 <div class="row">
-                    <label> Engine </label>
-                    <select id="enginename" name="enginename" onchange="set_engine(value);">
+                    <label> Dev Engine </label>
+                    <select id="dev_engine" name="dev_engine" onchange="set_engine(value, 'dev');">
                         {% for engine in config.engines %}
                             <option value="{{ engine }}">{{ engine }}</option>
                         {% endfor %}
                     </select>
                 </div>
-
                 <div class="row">
-                    <label> Source </label> <input value="{{ profile.repo }}" name="source">
+                    <label> Dev Source </label> <input value="{{ profile.repo }}" name="dev_repo">
+                </div>
+                <div class="row">
+                    <label> Base Engine </label>
+                    <select id="base_engine" name="base_engine" onchange="set_engine(value, 'base');">
+                        {% for engine in config.engines %}
+                            <option value="{{ engine }}">{{ engine }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="row">
+                    <label> Base Source </label> <input value="{{ profile.repo }}" name="base_repo">
                 </div>
 
                 <h3> Dev Settings </h3>
+
                 <div class="row">
-                    <label> Dev Bench </label> <input name="devbench">
+                    <label> Dev Branch </label> <input id="dev_branch" name="dev_branch" autofocus>
                 </div>
                 <div class="row">
-                    <label> Dev Branch </label> <input name="devbranch" autofocus>
+                    <label> Dev Bench </label> <input value="Autofill" name="dev_bench">
                 </div>
                 <div class="row">
-                    <label> Dev Options </label> <input id="devoptions" name="devoptions">
+                    <label> Dev Network </label> <select id="dev_network" name="dev_network"></select>
                 </div>
                 <div class="row">
-                    <label> Dev Network </label> <select id="devnetwork" name="devnetwork"></select>
+                    <label> Dev Options </label> <input id="dev_options" name="dev_options">
+                </div>
+                <div class="row">
+                    <label> Dev Time </label> <input id="dev_time_control" name="dev_time_control">
                 </div>
 
                 <h3> Base Settings </h3>
 
                 <div class="row">
-                    <label> Base Bench </label> <input name="basebench">
+                    <label> Base Branch </label> <input id="base_branch" name="base_branch">
                 </div>
                 <div class="row">
-                    <label> Base Branch </label> <input id="basebranch" name="basebranch">
+                    <label> Base Bench </label> <input value="Autofill" name="base_bench">
                 </div>
                 <div class="row">
-                    <label> Base Options </label> <input id="baseoptions" name="baseoptions">
+                    <label> Base Network </label> <select id="base_network" name="base_network"></select>
                 </div>
                 <div class="row">
-                    <label> Base Network </label> <select id="basenetwork" name="basenetwork"></select>
+                    <label> Base Options </label> <input id="base_options" name="base_options">
+                </div>
+                <div class="row">
+                    <label> Base Time </label> <input id="base_time_control" name="base_time_control">
                 </div>
 
-
-                <h3> Workload Settings </h3>
-                <div class="row">
-                    <label> Report Rate </label> <input id="report_rate" name="report_rate">
-                </div>
-                <div class="row">
-                    <label> Workload Size </label> <input id="workload_size" name="workload_size">
-                </div>
             </div>
 
             <div class="col">
 
-                <h3> Game Settings </h3>
+                <h3> Test Settings </h3>
 
                 <div class="row">
-                    <label> Book </label> <select id="bookname" name="bookname">
+                    <label> Opening Book </label> <select id="book_name" name="book_name">
                     {% for name, data in config.books.items %}
                         <option value="{{ name }}">{{ name }}</option>
                     {% endfor %}
                 </select>
                 </div>
-                <div class="row">
-                    <label> Time </label> <input id="timecontrol" name="timecontrol">
-                </div>
 
-
-                <h3> Test Settings </h3>
                 <div class="row">
                     <label> Test Mode </label>
                     <select onchange='set_test_type()' id="test_mode" name="test_mode">
@@ -242,15 +111,14 @@
                     </select>
                 </div>
                 <div class="row">
-                    <label> Bounds </label> <input id="test_bounds" name="bounds">
+                    <label> Bounds </label> <input id="test_bounds" name="test_bounds">
                 </div>
                 <div class="row">
-                    <label> Confidence </label> <input id="test_confidence" name="confidence">
+                    <label> Confidence </label> <input id="test_confidence" name="test_confidence">
                 </div>
                 <div class="row">
-                    <label> Max Games </label> <input id="test_max_games" name="max_games">
+                    <label> Max Games </label> <input id="test_max_games" name="test_max_games">
                 </div>
-
 
                 <h3> General Settings </h3>
                 <div class="row">
@@ -259,12 +127,21 @@
                 <div class="row">
                     <label> Throughput </label> <input value="1000" id="throughput" , name="throughput">
                 </div>
+
                 <div class="row">
                     <label> Syzygy WDL </label> <select name="syzygy_wdl">
-                    <option value="OPTIONAL"> Optional</option>
-                    <option value="REQUIRED"> Required</option>
-                    <option selected value="DISABLED"> Disabled</option>
-                </select>
+                        <option value="OPTIONAL"> Optional</option>
+                        <option value="REQUIRED"> Required</option>
+                        <option selected value="DISABLED"> Disabled</option>
+                    </select>
+                </div>
+
+                <h3> Workload Settings </h3>
+                <div class="row">
+                    <label> Report Rate </label> <input id="report_rate" name="report_rate">
+                </div>
+                <div class="row">
+                    <label> Workload Size </label> <input id="workload_size" name="workload_size">
                 </div>
 
                 <h3> Adjudication Settings </h3>

@@ -38,7 +38,7 @@ REQUIRE_MANUAL_REGISTRATION = True  # Disable the public facing registration pag
 OPENBENCH_CONFIG = {
 
     # Server Client version control
-    'client_version' : '8',
+    'client_version' : '9',
 
     # Generic Error Messages useful to those setting up their own instance
     'error' : {
@@ -54,7 +54,7 @@ OPENBENCH_CONFIG = {
 
     # Test Configuration. For both SPRT and Fixed Games Tests
     'tests' : {
-        'max_games'  : '20000',        # Default for Fixed Games
+        'max_games'  : '40000',        # Default for Fixed Games
         'confidence' : '[0.05, 0.05]', # SPRT Type I/II Confidence
     },
 
