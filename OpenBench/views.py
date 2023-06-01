@@ -491,7 +491,7 @@ def newTest(request):
         data = { 'networks' : list(Network.objects.all().values()) }
         return render(request, 'newTest.html', data)
 
-    test, errors = OpenBench.utils.createNewTest(request)
+    test, errors = OpenBench.utils.create_new_test(request)
     if errors != [] and errors != None:
         errors = ["[{0}]: {1}".format(i, e) for i, e in enumerate(errors)]
         longest = max([len(e) for e in errors])

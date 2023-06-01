@@ -52,7 +52,7 @@ from itertools import combinations_with_replacement
 TIMEOUT_HTTP     = 30    # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10    # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30    # Timeout in seconds between workload requests
-CLIENT_VERSION   = '8'   # Client version to send to the Server
+CLIENT_VERSION   = '9'   # Client version to send to the Server
 
 SYZYGY_WDL_PATH  = None  # Pathway to WDL Syzygy Tables
 FLEET_MODE       = False # Exit when there are no workloads
@@ -191,8 +191,8 @@ def scan_for_cpu_flags(data):
     SYSTEM_CPU_FLAGS = [x for x in desired if x in actual]
 
     # Report the results of our search, including any "missing flags
-    print ('Found   | ', ' '.join(SYSTEM_CPU_FLAGS))
-    print ('Missing | ', ' '.join([x for x in desired if x not in actual]))
+    print ('Found   |', ' '.join(SYSTEM_CPU_FLAGS))
+    print ('Missing |', ' '.join([x for x in desired if x not in actual]))
 
 def scan_for_machine_id():
 
@@ -339,21 +339,26 @@ def parse_bench_output(stream):
     nps = bench = None # Search through output Stream
     for line in stream.decode('ascii').strip().split('\n')[::-1]:
 
-        # Try to match a wide array of patterns
+        # Convert non alpha-numerics to spaces
         line = re.sub(r'[^a-zA-Z0-9 ]+', ' ', line)
-        nps_pattern = r'([0-9]+ NPS)|(NPS[ ]+[0-9]+)'
-        bench_pattern = r'([0-9]+ NODES)|(NODES[ ]+[0-9]+)'
-        re_nps = re.search(nps_pattern, line.upper())
-        re_bench = re.search(bench_pattern, line.upper())
 
-        # Replace only if not already found earlier
-        if not nps and re_nps: nps = re_nps.group()
-        if not bench and re_bench: bench = re_bench.group()
+        # Multiple methods, including Ethereal and Stockfish
+        nps_pattern   = r'(\d+\s+nps)|(nps\s+\d+)|(nodes second\s+\d+)'
+        bench_pattern = r'(\d+\s+nodes)|(nodes\s+\d+)|(nodes searched\s+\d+)'
+
+        # Search for and set only once the NPS value
+        if (re_nps := re.search(nps_pattern, line, re.IGNORECASE)):
+            nps = nps if nps else re_nps.group()
+
+        # Search for and set only once the Bench value
+        if (re_bench := re.search(bench_pattern, line, re.IGNORECASE)):
+            bench = bench if bench else re_bench.group()
 
     # Parse out the integer portion from our matches
-    nps = int(re.search(r'[0-9]+', nps).group()) if nps else None
-    bench = int(re.search(r'[0-9]+', bench).group()) if bench else None
-    return (nps, bench)
+    nps   = int(re.search(r'\d+', nps  ).group()) if nps   else None
+    bench = int(re.search(r'\d+', bench).group()) if bench else None
+
+    return (bench, nps)
 
 def run_bench(engine, outqueue, private_net=None):
 
@@ -363,16 +368,19 @@ def run_bench(engine, outqueue, private_net=None):
         else: cmd = ['./' + engine, 'setoption name EvalFile value %s' % (private_net), 'bench', 'quit']
 
         # Launch the engine and parse output for statistics
-        process = Popen(cmd, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
+        stdout, stderr = Popen(cmd, stdout=PIPE, stderr=STDOUT).communicate()
         outqueue.put(parse_bench_output(stdout))
     except Exception: outqueue.put((0, 0))
 
-def scale_time_control(workload, nps):
+def scale_time_control(workload, nps, branch):
+
+    # Extract everything from the workload dictionary
+    reference_nps = workload['test'][branch]['nps']
+    time_control  = workload['test'][branch]['time_control']
 
     # Searching for Nodes or Depth time controls ("N=", "D=")
     pattern = '(?P<mode>((N))|(D))=(?P<value>(\d+))'
-    results = re.search(pattern, workload['test']['timecontrol'].upper())
+    results = re.search(pattern, time_control.upper())
 
     # No scaling is needed for fixed nodes or fixed depth games
     if results:
@@ -381,16 +389,16 @@ def scale_time_control(workload, nps):
 
     # Searching for MoveTime or Fixed Time Controls ("MT=")
     pattern = '(?P<mode>(MT))=(?P<value>(\d+))'
-    results = re.search(pattern, workload['test']['timecontrol'].upper())
+    results = re.search(pattern, time_control.upper())
 
     # Scale the time based on this machine's NPS. Add a time Margin to avoid time losses.
     if results:
         mode, value = results.group('mode', 'value')
-        return 'st=%.2f timemargin=100' % (float(value) * int(workload['test']['nps']) / (1000 * nps))
+        return 'st=%.2f timemargin=100' % ((float(value) * reference_nps) / (1000 * nps))
 
     # Searching for "X/Y+Z" time controls
     pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
-    results = re.search(pattern, workload['test']['timecontrol'])
+    results = re.search(pattern, time_control)
     moves, base, inc = results.group('moves', 'base', 'inc')
 
     # Strip the trailing and leading symbols
@@ -398,8 +406,8 @@ def scale_time_control(workload, nps):
     inc   = 0.0  if inc   is None else inc.lstrip('+')
 
     # Scale the time based on this machine's NPS
-    base = float(base) * int(workload['test']['nps']) / nps
-    inc  = float(inc ) * int(workload['test']['nps']) / nps
+    base = float(base) * reference_nps / nps
+    inc  = float(inc ) * reference_nps / nps
 
     # Format the time control for cutechess
     if moves is None: return 'tc=%.2f+%.2f' % (base, inc)
@@ -563,10 +571,11 @@ def server_request_workload(arguments):
 
     # Log the start of a new Workload
     if 'workload' in response:
-        engine = response['workload']['test']['engine']
-        dev    = response['workload']['test']['dev'   ]['name']
-        base   = response['workload']['test']['base'  ]['name']
-        print('Workload [%s] %s vs %s\n' % (engine, dev, base))
+        dev_engine  = response['workload']['test']['dev' ]['engine']
+        dev_name    = response['workload']['test']['dev' ]['name'  ]
+        base_engine = response['workload']['test']['base']['engine']
+        base_name   = response['workload']['test']['base']['name'  ]
+        print('Workload [%s] %s vs [%s] %s\n' % (dev_engine, dev_name, base_engine, base_name))
 
     return None if 'workload' not in response else response['workload']
 
@@ -596,11 +605,15 @@ def server_report_missing_artifact(arguments, workload, branch, artifact_name, a
 
 def server_report_build_fail(arguments, workload, branch, compiler_output):
 
+    name = workload['test'][branch]['name']
+    if workload['test']['dev']['engine'] != workload['test']['base']['engine']:
+        name = '[%s] %s' % (workload['test'][branch]['engine'], name)
+
     payload = {
         'machine_id' : SYSTEM_MACHINE_ID,
         'secret'     : SYSTEM_SECRET_TOKEN,
         'test_id'    : workload['test']['id'],
-        'error'      : '%s build failed' % (workload['test'][branch]['name']),
+        'error'      : '%s build failed' % (name),
         'logs'       : compiler_output,
     }
 
@@ -775,12 +788,12 @@ def download_network_weights(arguments, workload, branch):
 
 def download_engine(arguments, workload, branch, network):
 
-    engine      = workload['test']['engine']
+    engine      = workload['test'][branch]['engine']
     branch_name = workload['test'][branch]['name']
     commit_sha  = workload['test'][branch]['sha']
     source      = workload['test'][branch]['source']
-    build_path  = workload['test']['build']['path']
-    private     = 'artifacts' in workload['test']['build']
+    build_path  = workload['test'][branch]['build']['path']
+    private     = 'artifacts' in workload['test'][branch]['build']
 
     # Naming as Engine-CommitSha[:8]-NetworkSha[:8]
     final_name = '%s-%s' % (engine, commit_sha.upper()[:8])
@@ -875,7 +888,7 @@ def run_benchmarks(arguments, workload, branch, engine, network):
     cores   = arguments.threads
     queue   = multiprocessing.Queue()
     name    = workload['test'][branch]['name']
-    private = 'artifacts' in workload['test']['build']
+    private = 'artifacts' in workload['test'][branch]['build']
     print('\nRunning %dx Benchmarks for %s' % (cores, name))
 
     for ii in range(cores):
@@ -903,8 +916,14 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cuteche
     dev_threads  = int(re.search('(?<=Threads=)\d*', dev_options ).group())
     base_threads = int(re.search('(?<=Threads=)\d*', base_options).group())
 
-    dev_name  =  dev_cmd.rstrip('.exe') # Used to name the PGN file and Headers
-    base_name = base_cmd.rstrip('.exe') # Used to name the PGN file and Headers
+    dev_network  = workload['test']['base']['network'] # Could be empty strings
+    base_network = workload['test']['base']['network'] # Could be empty strings
+
+    dev_time     = scale_time_control(workload, nps, 'dev')
+    base_time    = scale_time_control(workload, nps, 'base')
+
+    dev_name     =  dev_cmd.rstrip('.exe') # Used to name the PGN file and Headers
+    base_name    = base_cmd.rstrip('.exe') # Used to name the PGN file and Headers
 
     # Possibly add SyzygyPath to dev and base options
     if SYZYGY_WDL_PATH and workload['test']['syzygy_wdl'] != 'DISABLED':
@@ -912,18 +931,15 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cuteche
         dev_options  += ' SyzygyPath=%s' % (path)
         base_options += ' SyzygyPath=%s' % (path)
 
-    # Add EvalFile to the options for Private engines using Networks
-    if 'artifacts' in workload['test']['build']:
+    # Private engines may need extra options to set their NNUE files
+    if 'artifacts' in workload['test']['dev']['build'] and dev_network and dev_network != 'None':
+        dev_options += ' EvalFile=%s' % (os.path.join('../Networks', dev_network))
+        dev_name    += '-%s' % (dev_network)
 
-        dev_network  = workload['test']['dev' ]['network']
-        if dev_network and dev_network != 'None':
-            dev_options += ' EvalFile=%s' % (os.path.join('../Networks', dev_network))
-            dev_name    += '-%s' % (dev_network)
-
-        base_network = workload['test']['base']['network']
-        if base_network and base_network != 'None':
-            base_options += ' EvalFile=%s' % (os.path.join('../Networks', base_network))
-            base_name    += '-%s' % (base_network)
+    # Private engines may need extra options to set their NNUE files
+    if 'artifacts' in workload['test']['base']['build'] and base_network and base_network != 'None':
+        base_options += ' EvalFile=%s' % (os.path.join('../Networks', base_network))
+        base_name    += '-%s' % (base_network)
 
     # Join all of the options into a single string
     dev_options  = ' option.'.join([''] +  dev_options.split())
@@ -951,13 +967,11 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cuteche
     games = int(concurrency * workload['test']['workload_size'])
     games = max(8, concurrency * 2, games - (games % (2 * concurrency)))
 
-    time_control = scale_time_control(workload, nps)
-
     args = (
         win_adj, draw_adj,
         int(time.time() + cutechess_idx), variant, concurrency, games,
-        dev_cmd, time_control, dev_options, dev_name,
-        base_cmd, time_control, base_options, base_name,
+        dev_cmd, dev_time, dev_options, dev_name,
+        base_cmd, base_time, base_options, base_name,
         book_name, book_name.split('.')[-1],
         dev_name, base_name, cutechess_idx,
     )

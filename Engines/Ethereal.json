@@ -1,6 +1,6 @@
 {
     "private"  : false,
-    "nps"      : 1050000,
+    "nps"      : 1128000,
     "base"     : "master",
     "source"   : "https://github.com/AndyGrant/Ethereal",
 

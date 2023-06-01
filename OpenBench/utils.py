@@ -32,10 +32,10 @@ from OpenBench.config import *
 from OpenBench.models import Engine, Profile, Machine, Result, Test, Network
 
 
-def pathjoin(*args):
-    return "/".join([f.lstrip("/").rstrip("/") for f in args]) + "/"
+def path_join(*args):
+    return "/".join([f.lstrip("/").rstrip("/") for f in args]).rstrip('/')
 
-def extractOption(options, option):
+def extract_option(options, option):
 
     match = re.search('(?<={0}=")[^"]*'.format(option), options)
     if match: return match.group()
@@ -46,7 +46,7 @@ def extractOption(options, option):
     match = re.search('(?<={0}=)[^ ]*'.format(option), options)
     if match: return match.group()
 
-def parseTimeControl(time_control):
+def parse_time_control(timecontrol):
 
     # Display Nodes as N=, Depth as D=, MoveTime as MT=
     conversion = {
@@ -57,13 +57,13 @@ def parseTimeControl(time_control):
 
     # Searching for "nodes=", "depth=", and "movetime=" Time Controls
     pattern = '(?P<mode>((N)|(D)|(MT)|(nodes)|(depth)|(movetime)))=(?P<value>(\d+))'
-    if results := re.search(pattern, time_control.upper()):
+    if results := re.search(pattern, timecontrol.upper()):
         mode, value = results.group('mode', 'value')
         return '%s=%s' % (conversion[mode], value)
 
     # Searching for "X/Y+Z" time controls
     pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
-    if results := re.search(pattern, time_control):
+    if results := re.search(pattern, timecontrol):
         moves, base, inc = results.group('moves', 'base', 'inc')
 
         # Strip the trailing and leading symbols
@@ -74,7 +74,7 @@ def parseTimeControl(time_control):
         if moves is None: return '%.1f+%.2f' % (float(base), float(inc))
         return '%d/%.1f+%.2f' % (int(moves), float(base), float(inc))
 
-    raise Exception('Unable to parse Time Control (%s)' % (time_control))
+    raise Exception('Unable to parse Time Control (%s)' % (timecontrol))
 
 
 def get_pending_tests():
@@ -157,17 +157,17 @@ def getEngine(source, name, sha, bench):
 
 
 def read_git_credentials(engine):
-    fname  = 'credentials.%s' % (engine.replace(' ', '').lower())
+    fname = 'credentials.%s' % (engine.replace(' ', '').lower())
     if os.path.exists(fname):
         with open(fname) as fin:
             return { 'Authorization' : 'token %s' % fin.readlines()[0].rstrip() }
 
-def requests_illegal_fork(request):
+def requests_illegal_fork(request, field):
 
     # Strip trailing '/'s for sanity
-    engine  = OPENBENCH_CONFIG['engines'][request.POST['enginename']]
+    engine  = OPENBENCH_CONFIG['engines'][request.POST['%s_engine' % (field)]]
     eng_src = engine['source'].rstrip('/')
-    tar_src = request.POST['source'].rstrip('/')
+    tar_src = request.POST['%s_repo' % (field)].rstrip('/')
 
     # Illegal if sources do not match for Private engines
     return engine['private'] and eng_src != tar_src
@@ -175,7 +175,7 @@ def requests_illegal_fork(request):
 def determine_bench(request, field, message):
 
     # Use the provided bench if possible
-    try: return int(request.POST['{0}bench'.format(field)])
+    try: return int(request.POST['{0}_bench'.format(field)])
     except: pass
 
     # Fallback to try to parse the Bench from the commit
@@ -187,27 +187,28 @@ def determine_bench(request, field, message):
 def collect_github_info(request, errors, field):
 
     # Get branch name, whether it is a commit SHA, and the API path for it
-    branch = request.POST['{0}branch'.format(field)]
+    branch = request.POST['{0}_branch'.format(field)]
     bysha  = bool(re.search('[0-9a-fA-F]{40}', branch))
     url    = 'commits' if bysha else 'branches'
 
     # All API requests will share this common path. Some engines are private.
-    base    = request.POST['source'].replace('github.com', 'api.github.com/repos')
-    private = OPENBENCH_CONFIG['engines'][request.POST['enginename']]['private']
+    base    = request.POST['%s_repo' % (field)].replace('github.com', 'api.github.com/repos')
+    engine  = request.POST['%s_engine' % (field)]
+    private = OPENBENCH_CONFIG['engines'][engine]['private']
     headers = {}
 
     ## Step 1: Verify the target of the API requests
-    ## [A] We will not attempt to reach any sit other than api.github.com
+    ## [A] We will not attempt to reach any site other than api.github.com
     ## [B] Private engines may only use their main repo for sources of tests
     ## [C] Determine which, if any, credentials we want to pass along
 
     # Private engines must have a token stored in credentials.enginename
-    if private and not (headers := read_git_credentials(request.POST['enginename'])):
+    if private and not (headers := read_git_credentials(engine)):
         errors.append('Server does not have access tokens for this engine')
         return (None, None)
 
     # Do not allow private engines to use forked repos ( We don't have a token! )
-    if requests_illegal_fork(request):
+    if requests_illegal_fork(request, field):
         errors.append('Forked Repositories are not allowed for Private engines')
         return (None, None)
 
@@ -227,7 +228,7 @@ def collect_github_info(request, errors, field):
 
     try: # Fetch data from the Github API
         path = 'commits' if bysha else 'branches'
-        url  = pathjoin(base, path, branch).rstrip('/')
+        url  = path_join(base, path, branch)
         data = requests.get(url, headers=headers).json()
         data = data if bysha else data['commit']
 
@@ -242,9 +243,9 @@ def collect_github_info(request, errors, field):
         return (None, None)
 
     # Public Engines: Construct the .zip download and return everything
-    if not OPENBENCH_CONFIG['engines'][request.POST['enginename']]['private']:
+    if not OPENBENCH_CONFIG['engines'][engine]['private']:
         treeurl = data['commit']['tree']['sha'] + '.zip'
-        source  = pathjoin(request.POST['source'], 'archive', treeurl).rstrip('/')
+        source  = path_join(request.POST['%s_repo' % (field)], 'archive', treeurl)
         return (source, branch, data['sha'], bench), True
 
     ## Step 3: Construct the URL for the API request to list all Artifacts
@@ -252,7 +253,6 @@ def collect_github_info(request, errors, field):
     ## [B] These should contain combinations for windows/linux, avx2/avx512, popcnt/pext
     ## [C] If those artifacts are not found, we flag the test as awaiting, and try later.
 
-    engine       = request.POST['enginename']
     url, has_all = fetch_artifact_url(base, engine, headers, data['sha'])
     return (url, branch, data['sha'], bench), has_all
 
@@ -260,12 +260,12 @@ def fetch_artifact_url(base, engine, headers, sha):
 
     try:
         # Fetch the run id for the openbench workflow for this comment
-        url    = pathjoin(base, 'actions', 'workflows', 'openbench.yml', 'runs').rstrip('/')
+        url    = path_join(base, 'actions', 'workflows', 'openbench.yml', 'runs')
         url   += '?head_sha=%s' % (sha)
         run_id = requests.get(url=url, headers=headers).json()['workflow_runs'][0]['id']
 
         # Construct the final URL that will be used to look at artifacts
-        url       = pathjoin(base, 'actions', 'runs', str(run_id), 'artifacts').rstrip('/')
+        url       = path_join(base, 'actions', 'runs', str(run_id), 'artifacts')
         artifacts = requests.get(url=url, headers=headers).json()['artifacts']
 
         # Verify that all of the artifacts exist and are not expired
@@ -280,121 +280,187 @@ def fetch_artifact_url(base, engine, headers, sha):
         # If anything goes wrong, retry later with the same base URL
         return (base, False)
 
-def verifyNewTest(request):
+def verify_test_creation(request):
 
     errors = []
 
-    def verifyInteger(field, fieldName):
+    def verify_integer(field, field_name):
         try: int(request.POST[field])
-        except: errors.append('"{0}" is not an Integer'.format(fieldName))
+        except: errors.append('"{0}" is not an Integer'.format(field_name))
 
-    def verifyGreaterThan(field, fieldName, value):
-        if not float(request.POST[field]) > value:
-            errors.append('"{0}" is not greater than {1}'.format(fieldName, value))
+    def verify_greater_than(field, field_name, value):
+        try: assert int(request.POST[field]) > value
+        except: errors.append('"{0}" is not greater than {1}'.format(field_name, value))
 
-    def verifyOptions(field, option, fieldName):
-        if extractOption(request.POST[field], option) == None:
-            errors.append('"{0}" was not found as an option for {1}'.format(option, fieldName))
-        elif int(extractOption(request.POST[field], option)) < 1:
-            errors.append('"{0}" needs to be at least 1 for {1}'.format(option, fieldName))
+    def verify_options(field, option, field_name):
+        try: assert int(extract_option(request.POST[field], option)) >= 1
+        except: errors.append('"{0}" needs to be at least 1 for {1}'.format(option, field_name))
 
-    def verifyConfiguration(field, fieldName, parent):
-        if request.POST[field] not in OpenBench.config.OPENBENCH_CONFIG[parent].keys():
-            errors.append('"{0}" was not found in the configuration'.format(fieldName))
+    def verify_configuration(field, field_name, parent):
+        try: assert request.POST[field] in OpenBench.config.OPENBENCH_CONFIG[parent].keys()
+        except: errors.append('{0} was not found in the configuration'.format(field_name))
 
-    def verifyTimeControl(field, fieldName):
-        try: parseTimeControl(request.POST[field])
-        except: errors.append('"{0}" is not a parsable {1}'.format(request.POST[field], fieldName))
+    def verify_time_control(field, field_name):
+        try: parse_time_control(request.POST[field])
+        except: errors.append('{0} is not a parsable'.format(field_name))
 
-    def verifyWinAdjudication(field):
-        if (content := request.POST[field]) == 'None': return
-        try: assert re.match('movecount=[0-9]+ score=[0-9]+', content)
-        except: errors.append('"{0}" is not a parsable Win Adjudication Seting'.format(content))
+    def verify_win_adj(field):
+        try:
+            if (content := request.POST[field]) == 'None': return
+            assert re.match('movecount=[0-9]+ score=[0-9]+', content)
+        except: errors.append('Invalid Win Adjudication Setting. Try "None"?')
 
-    def verifyDrawAdjudication(field):
-        if (content := request.POST[field]) == 'None': return
-        try: assert re.match('movenumber=[0-9]+ movecount=[0-9]+ score=[0-9]+', content)
-        except: errors.append('"{0}" is not a parsable Draw Adjudication Seting'.format(content))
+    def verify_draw_adj(field):
+        try:
+            if (content := request.POST[field]) == 'None': return
+            assert re.match('movenumber=[0-9]+ movecount=[0-9]+ score=[0-9]+', content)
+        except: errors.append('Invalid Draw Adjudication Setting. Try "None"?')
+
+    def verify_github_repo(field):
+        try: assert request.POST[field].startswith('https://github.com/')
+        except: errors.append('Sources must be found on https://github.com/')
+
+    def verify_network(field, fieldName):
+        try:
+            if request.POST[field] == '': return
+            Network.objects.get(sha256=request.POST[field])
+        except: errors.append('Unknown Network Provided for {0}'.format(fieldName))
+
+    def verify_test_mode(field):
+        try: assert request.POST[field] in ['SPRT', 'GAMES']
+        except: errors.append('Unknown Test Mode')
+
+    def verify_sprt_bounds(field):
+        try:
+            if request.POST['test_mode'] != 'SPRT': return
+            pattern = r'^\[(-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?)\]$'
+            match   = re.match(pattern, request.POST['test_bounds'])
+            assert float(match.group(1)) < float(match.group(2))
+        except: errors.append('SPRT Bounds must be formatted as [float1, float2]')
+
+    def verify_sprt_conf(field):
+        try:
+            if request.POST['test_mode'] != 'SPRT': return
+            pattern = r'^\[(-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?)\]$'
+            match   = re.match(pattern, request.POST['test_confidence'])
+            assert 0.00 < float(match.group(1)) < 1.00
+            assert 0.00 < float(match.group(2)) < 1.00
+        except: errors.append('Confidence Bounds must be formatted as [float1, float2], within (0.00, 1.00)')
+
+    def verify_max_games(field):
+        try:
+            if request.POST['test_mode'] != 'GAMES': return
+            assert int(request.POST['test_max_games']) > 0
+        except: errors.append('Fixed Games Tests must last at least one game')
+
+    def verify_syzygy_field(field, field_name):
+        try: assert request.POST[field] in ['OPTIONAL', 'REQUIRED', 'DISABLED']
+        except: errors.append('{0} must be OPTIONAL, REQUIRED, or DISABLED'.format(field_name))
 
     verifications = [
 
-        # Must have all of these values for test settings
-        (verifyInteger, 'priority',      'Priority'     ),
-        (verifyInteger, 'throughput',    'Throughput'   ),
-        (verifyInteger, 'report_rate',   'Report Rate'  ),
-        (verifyInteger, 'workload_size', 'Workload Size'),
+        # Verify everything about the Dev Engine
+        (verify_configuration, 'dev_engine', 'Dev Engine', 'engines'),
+        (verify_github_repo  , 'dev_repo'),
+        (verify_network      , 'dev_network', 'Dev Network'),
+        (verify_options      , 'dev_options', 'Threads', 'Dev Options'),
+        (verify_options      , 'dev_options', 'Hash', 'Dev Options'),
+        (verify_time_control , 'dev_time_control', 'Dev Time Control'),
 
-        # Can't allow non-natural values for any of these fields
-        (verifyGreaterThan, 'throughput',    'Throughput',    0),
-        (verifyGreaterThan, 'report_rate',   'Report Rate',   0),
-        (verifyGreaterThan, 'workload_size', 'Workload Size', 0),
+        # Verify everything about the Base Engine
+        (verify_configuration, 'base_engine', 'Base Engine', 'engines'),
+        (verify_github_repo  , 'base_repo'),
+        (verify_network      , 'base_network', 'Base Network'),
+        (verify_options      , 'base_options', 'Threads', 'Base Options'),
+        (verify_options      , 'base_options', 'Hash', 'Base Options'),
+        (verify_time_control , 'base_time_control', 'Base Time Control'),
 
-        (verifyOptions, 'devoptions', 'Threads', 'Dev Options'),
-        (verifyOptions, 'devoptions', 'Hash', 'Dev Options'),
-        (verifyOptions, 'baseoptions', 'Threads', 'Base Options'),
-        (verifyOptions, 'baseoptions', 'Hash', 'Base Options'),
-        (verifyConfiguration, 'enginename', 'Engine', 'engines'),
-        (verifyConfiguration, 'bookname', 'Book', 'books'),
-        (verifyTimeControl, 'timecontrol', 'Time Control'),
-        (verifyWinAdjudication, 'win_adj'),
-        (verifyDrawAdjudication, 'draw_adj'),
+        # Verify everything about the Test Settings
+        (verify_configuration, 'book_name', 'Book', 'books'),
+        (verify_test_mode    , 'test_mode'),
+        (verify_sprt_bounds  , 'test_bounds'),
+        (verify_sprt_conf    , 'test_confidence'),
+        (verify_max_games    , 'test_max_games'),
+
+        # Verify everything about the General Settings
+        (verify_integer      , 'priority', 'Priority'),
+        (verify_greater_than , 'throughput', 'Throughput', 0),
+        (verify_syzygy_field , 'syzygy_wdl', 'Syzygy WDL'),
+
+        # Verify everything about the Workload Settings
+        (verify_greater_than , 'report_rate', 'Report Rate', 0),
+        (verify_greater_than , 'workload_size', 'Workload Size', 0),
+
+        # Verify everything about the Adjudicaton Settings
+        (verify_syzygy_field , 'syzygy_adj', 'Syzygy Adjudication'),
+        (verify_win_adj      , 'win_adj'),
+        (verify_draw_adj     , 'draw_adj'),
     ]
 
     for verification in verifications:
-        try: verification[0](*verification[1:])
-        except: pass
+        verification[0](*verification[1:])
 
     return errors
 
-def createNewTest(request):
+def create_new_test(request):
 
-    errors = verifyNewTest(request)
-    if errors != []: return None, errors
+    # Verify all of the fields in the request
+    if (errors := verify_test_creation(request)):
+        return None, errors
 
+    # Collect Github meta information (Shas, Sources, Benches)
     devinfo,  dev_has_all  = collect_github_info(request, errors, 'dev')
     baseinfo, base_has_all = collect_github_info(request, errors, 'base')
     if errors != []: return None, errors
 
-    test               = Test()
-    test.author        = request.user.username
-    test.engine        = request.POST['enginename']
-    test.test_mode     = request.POST['test_mode']
-    test.source        = request.POST['source']
-    test.devoptions    = request.POST['devoptions'].rstrip(' ')
-    test.baseoptions   = request.POST['baseoptions'].rstrip(' ')
-    test.devnetwork    = request.POST['devnetwork']
-    test.basenetwork   = request.POST['basenetwork']
-    test.bookname      = request.POST['bookname']
-    test.timecontrol   = parseTimeControl(request.POST['timecontrol'])
-    test.priority      = int(request.POST['priority'])
-    test.throughput    = int(request.POST['throughput'])
-    test.syzygy_wdl    = request.POST['syzygy_wdl']
-    test.syzygy_adj    = request.POST['syzygy_adj']
-    test.win_adj       = request.POST['win_adj']
-    test.draw_adj      = request.POST['draw_adj']
-    test.report_rate   = int(request.POST['report_rate'])
-    test.workload_size = int(request.POST['workload_size'])
+    test                   = Test()
+    test.author            = request.user.username
+    test.book_name         = request.POST['book_name']
 
-    if request.POST['test_mode'] == 'SPRT':
-        test.elolower = float(request.POST['bounds'].split(',')[0].lstrip('['))
-        test.eloupper = float(request.POST['bounds'].split(',')[1].rstrip(']'))
-        test.alpha    = float(request.POST['confidence'].split(',')[1].rstrip(']'))
-        test.beta     = float(request.POST['confidence'].split(',')[0].lstrip('['))
+    test.dev               = getEngine(*devinfo)
+    test.dev_repo          = request.POST['dev_repo']
+    test.dev_engine        = request.POST['dev_engine']
+    test.dev_options       = request.POST['dev_options']
+    test.dev_network       = request.POST['dev_network']
+    test.dev_time_control  = request.POST['dev_time_control']
+
+    test.base              = getEngine(*baseinfo)
+    test.base_repo         = request.POST['base_repo']
+    test.base_engine       = request.POST['base_engine']
+    test.base_options      = request.POST['base_options']
+    test.base_network      = request.POST['base_network']
+    test.base_time_control = request.POST['base_time_control']
+
+    test.report_rate       = int(request.POST['report_rate'])
+    test.workload_size     = int(request.POST['workload_size'])
+    test.priority          = int(request.POST['priority'])
+    test.throughput        = int(request.POST['throughput'])
+
+    test.syzygy_wdl        = request.POST['syzygy_wdl']
+    test.syzygy_adj        = request.POST['syzygy_adj']
+    test.win_adj           = request.POST['win_adj']
+    test.draw_adj          = request.POST['draw_adj']
+
+    test.test_mode         = request.POST['test_mode']
+    test.awaiting          = not (dev_has_all and base_has_all)
+
+    if test.test_mode == 'SPRT':
+        test.elolower = float(request.POST['test_bounds'].split(',')[0].lstrip('['))
+        test.eloupper = float(request.POST['test_bounds'].split(',')[1].rstrip(']'))
+        test.alpha    = float(request.POST['test_confidence'].split(',')[1].rstrip(']'))
+        test.beta     = float(request.POST['test_confidence'].split(',')[0].lstrip('['))
         test.lowerllr = math.log(test.beta / (1.0 - test.alpha))
         test.upperllr = math.log((1.0 - test.beta) / test.alpha)
 
-    if request.POST['test_mode'] == 'GAMES':
-        test.max_games = int(request.POST['max_games'])
+    if test.test_mode == 'GAMES':
+        test.max_games = int(request.POST['test_max_games'])
 
-    if request.POST['devnetwork']:
-        test.devnetname = Network.objects.get(sha256=request.POST['devnetwork']).name
+    if test.dev_network:
+        test.dev_netname  = Network.objects.get(sha256=test.dev_network ).name
 
-    if request.POST['basenetwork']:
-        test.basenetname = Network.objects.get(sha256=request.POST['basenetwork']).name
+    if test.base_network:
+        test.base_netname = Network.objects.get(sha256=test.base_network).name
 
-    test.dev      = getEngine(*devinfo)
-    test.base     = getEngine(*baseinfo)
-    test.awaiting = not (dev_has_all and base_has_all)
     test.save()
 
     profile = Profile.objects.get(user=request.user)
@@ -435,7 +501,7 @@ def get_workload(machine):
     result   = Result(test=test, machine=machine)
 
     # Update the Machine's status and save everything
-    machine.workload = test; machine.save(); result.save()
+    machine.workload = test.id; machine.save(); result.save()
     return { 'workload' : workload_to_dictionary(test, result) }
 
 
@@ -449,7 +515,8 @@ def get_valid_workloads(machine):
     # Skip engines that the Machine cannot handle
     for engine in OPENBENCH_CONFIG['engines'].keys():
         if engine not in machine.info['supported']:
-            tests = tests.exclude(engine=engine)
+            tests = tests.exclude(dev_engine=engine)
+            tests = tests.exclude(base_engine=engine)
 
     # Skip tests with unmet Syzygy requirments
     if not machine.info['syzygy_wdl']:
@@ -470,8 +537,8 @@ def get_valid_workloads(machine):
 
 def test_maps_onto_thread_count(test, threads, ncutechess, hyperthreads):
 
-    dev_threads  = int(extractOption(test.devoptions,  'Threads'))
-    base_threads = int(extractOption(test.baseoptions, 'Threads'))
+    dev_threads  = int(extract_option(test.dev_options,  'Threads'))
+    base_threads = int(extract_option(test.base_options, 'Threads'))
 
     # Each individual cutechess copy must have access to sufficient Threads
     if max(dev_threads, base_threads) > (threads / ncutechess):
@@ -482,10 +549,13 @@ def test_maps_onto_thread_count(test, threads, ncutechess, hyperthreads):
 
 def select_workload(machine, tests, variance=0.25):
 
+    # For reference for later
+    test_ids = [test.id for test in tests]
+
     # Determine how many threads are assigned to each workload
     table = { test : 0 for test in tests }
     for m in getRecentMachines():
-        if m.workload in tests and m != machine:
+        if m.workload in test_ids and m != machine:
             table[m.workload] = table[m.workload] + m.info['concurrency']
 
     # Find the tests most deserving of resources currently
@@ -493,14 +563,14 @@ def select_workload(machine, tests, variance=0.25):
     lowest_idxs = [i for i, r in enumerate(ratios) if r == min(ratios)]
 
     # Machine is out of date; or there is an unassigned test
-    if machine.workload not in tests or min(ratios) == 0:
+    if machine.workload not in test_ids or min(ratios) == 0:
         return tests[random.choice(lowest_idxs)]
 
     # No test has less than (1-variance)% of its deserved resources, and
     # therefore we may have this machine repeat its existing workload again
     ideal_ratio = sum(table.values()) / sum([x.throughput for x in tests])
     if min(ratios) / ideal_ratio > 1 - variance:
-        return machine.workload
+        return OpenBench.models.Test.objects(id=machine.workload)
 
     # Fallback to simply doing the least attention given test
     return tests[random.choice(lowest_idxs)]
@@ -509,34 +579,46 @@ def workload_to_dictionary(test, result):
 
     return {
 
-        'result' : { 'id'  : result.id },
+        'result' : {
+            'id'  : result.id
+        },
 
-        'test'   : {
+        'test' : {
             'id'            : test.id,
-            'engine'        : test.engine,
-            'timecontrol'   : test.timecontrol,
             'syzygy_wdl'    : test.syzygy_wdl,
             'syzygy_adj'    : test.syzygy_adj,
             'win_adj'       : test.win_adj,
             'draw_adj'      : test.draw_adj,
             'report_rate'   : test.report_rate,
             'workload_size' : test.workload_size,
-            'nps'           : OPENBENCH_CONFIG['engines'][test.engine]['nps'],
-            'build'         : OPENBENCH_CONFIG['engines'][test.engine]['build'],
-            'book'          : OPENBENCH_CONFIG['books'][test.bookname],
+            'book'          : OPENBENCH_CONFIG['books'][test.book_name],
 
-            'dev'  : {
-                'id'      : test.dev.id,      'name'    : test.dev.name,
-                'source'  : test.dev.source,  'sha'     : test.dev.sha,
-                'bench'   : test.dev.bench,   'options' : test.devoptions,
-                'network' : test.devnetwork,
+            'dev' : {
+                'id'           : test.dev.id,
+                'name'         : test.dev.name,
+                'source'       : test.dev.source,
+                'sha'          : test.dev.sha,
+                'bench'        : test.dev.bench,
+                'engine'       : test.dev_engine,
+                'options'      : test.dev_options,
+                'network'      : test.dev_network,
+                'time_control' : test.dev_time_control,
+                'nps'          : OPENBENCH_CONFIG['engines'][test.dev_engine]['nps'],
+                'build'        : OPENBENCH_CONFIG['engines'][test.dev_engine]['build'],
             },
 
-            'base' : {
-                'id'      : test.base.id,     'name'    : test.base.name,
-                'source'  : test.base.source, 'sha'     : test.base.sha,
-                'bench'   : test.base.bench,  'options' : test.baseoptions,
-                'network' : test.basenetwork,
+           'base' : {
+                'id'           : test.base.id,
+                'name'         : test.base.name,
+                'source'       : test.base.source,
+                'sha'          : test.base.sha,
+                'bench'        : test.base.bench,
+                'engine'       : test.base_engine,
+                'options'      : test.base_options,
+                'network'      : test.base_network,
+                'time_control' : test.base_time_control,
+                'nps'          : OPENBENCH_CONFIG['engines'][test.base_engine]['nps'],
+                'build'        : OPENBENCH_CONFIG['engines'][test.base_engine]['build'],
             },
         },
     }

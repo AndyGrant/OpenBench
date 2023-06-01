@@ -5,25 +5,22 @@
     {% load static %}
 
     <head>
+        <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
         <link rel="stylesheet" href="{% static 'style.css' %}">
         <link rel="stylesheet" href="{% static 'base.css' %}">
         <link rel="stylesheet" href="{% static 'form.css' %}">
         <link rel="stylesheet" href="{% static 'paging.css' %}">
-        <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
         <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css' rel='stylesheet'>
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,400;1,100&amp;display=swap" rel="stylesheet">
+
         <link rel="preconnect" href="https://fonts.gstatic.com">
         <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
 
         <title>OpenBench</title>
 
-        {% block json %}
+        {% block scripts %}
         {% endblock %}
 
         <script>
-            {% block scripts %}
-            {% endblock %}
-
             document.addEventListener('DOMContentLoaded', function() {
 
                 var timestamps = document.getElementsByClassName('timestamp');
@@ -99,7 +96,7 @@
 
             <ul>
                 <li class="header">Engines</li>
-                {% for engine, data in config.engines.items|dictsort:"0.lower" %}
+                {% for engine, data in config.engines.items %}
                     <li><a href="{{data.source}}">{{engine}}</a></li>
                 {% endfor %}
             </ul>

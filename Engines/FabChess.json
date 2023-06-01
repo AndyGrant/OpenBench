@@ -1,6 +1,6 @@
 {
     "private"  : false,
-    "nps"      : 1000000,
+    "nps"      : 1012000,
     "base"     : "master",
     "source"   : "https://github.com/fabianvdW/FabChess",
 
