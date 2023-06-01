@@ -1,6 +1,6 @@
 {
     "private"  : false,
-    "nps"      : 935000,
+    "nps"      : 941000,
     "base"     : "master",
     "source"   : "https://github.com/jeffreyan11/uci-chess-engine",
 

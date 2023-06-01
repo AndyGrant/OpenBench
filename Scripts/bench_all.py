@@ -101,6 +101,9 @@ def build_all_engines():
 
     for engine, config in OPENBENCH_CONFIG['engines'].items():
 
+        if engine == 'Heron':
+            continue
+
         if USE_OLD_BINARIES and os.path.isfile('Binaries/' + engine):
             continue
 

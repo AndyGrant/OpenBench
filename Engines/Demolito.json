@@ -1,6 +1,6 @@
 {
     "private"  : false,
-    "nps"      : 1300000,
+    "nps"      : 1395000,
     "base"     : "master",
     "source"   : "https://github.com/lucasart/Demolito",
 

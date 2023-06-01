@@ -1,6 +1,6 @@
 {
     "private"  : false,
-    "nps"      : 925000,
+    "nps"      : 937000,
     "base"     : "master",
     "source"   : "https://github.com/Matthies/RubiChess",
 

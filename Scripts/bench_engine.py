@@ -9,34 +9,35 @@ def parse_stream_output(stream):
     nps = bench = None # Search through output Stream
     for line in stream.decode('ascii').strip().split('\n')[::-1]:
 
-        # Try to match a wide array of patterns
+        # Convert non alpha-numerics to spaces
         line = re.sub(r'[^a-zA-Z0-9 ]+', ' ', line)
-        nps_pattern = r'([0-9]+ NPS)|(NPS[ ]+[0-9]+)'
-        bench_pattern = r'([0-9]+ NODES)|(NODES[ ]+[0-9]+)'
-        re_nps = re.search(nps_pattern, line.upper())
-        re_bench = re.search(bench_pattern, line.upper())
 
-        # Replace only if not already found earlier
-        if not nps and re_nps: nps = re_nps.group()
-        if not bench and re_bench: bench = re_bench.group()
+        # Multiple methods, including Ethereal and Stockfish
+        nps_pattern   = r'(\d+\s+nps)|(nps\s+\d+)|(nodes second\s+\d+)'
+        bench_pattern = r'(\d+\s+nodes)|(nodes\s+\d+)|(nodes searched\s+\d+)'
+
+        # Search for and set only once the NPS value
+        if (re_nps := re.search(nps_pattern, line, re.IGNORECASE)):
+            nps = nps if nps else re_nps.group()
+
+        # Search for and set only once the Bench value
+        if (re_bench := re.search(bench_pattern, line, re.IGNORECASE)):
+            bench = bench if bench else re_bench.group()
 
     # Parse out the integer portion from our matches
-    nps = int(re.search(r'[0-9]+', nps).group()) if nps else None
-    bench = int(re.search(r'[0-9]+', bench).group()) if bench else None
+    nps   = int(re.search(r'\d+', nps  ).group()) if nps   else None
+    bench = int(re.search(r'\d+', bench).group()) if bench else None
+
     return (bench, nps)
 
 def single_core_bench(engine, outqueue):
 
     # Launch the bench and wait for results
     stdout, stderr = subprocess.Popen(
-        "./{0} bench".format(engine).split(),
+        './{0} bench'.format(engine).split(),
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
 
-    # Parse output streams for the benchmark data
-    bench, speed = parse_stream_output(stdout)
-    if bench is None or speed is None:
-        bench, speed = parse_stream_output(stderr)
-    outqueue.put((int(bench), int(speed)))
+    outqueue.put(parse_stream_output(stdout))
 
 def multi_core_bench(engine, threads):
 

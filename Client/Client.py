@@ -339,21 +339,26 @@ def parse_bench_output(stream):
     nps = bench = None # Search through output Stream
     for line in stream.decode('ascii').strip().split('\n')[::-1]:
 
-        # Try to match a wide array of patterns
+        # Convert non alpha-numerics to spaces
         line = re.sub(r'[^a-zA-Z0-9 ]+', ' ', line)
-        nps_pattern = r'([0-9]+ NPS)|(NPS[ ]+[0-9]+)'
-        bench_pattern = r'([0-9]+ NODES)|(NODES[ ]+[0-9]+)'
-        re_nps = re.search(nps_pattern, line.upper())
-        re_bench = re.search(bench_pattern, line.upper())
 
-        # Replace only if not already found earlier
-        if not nps and re_nps: nps = re_nps.group()
-        if not bench and re_bench: bench = re_bench.group()
+        # Multiple methods, including Ethereal and Stockfish
+        nps_pattern   = r'(\d+\s+nps)|(nps\s+\d+)|(nodes second\s+\d+)'
+        bench_pattern = r'(\d+\s+nodes)|(nodes\s+\d+)|(nodes searched\s+\d+)'
+
+        # Search for and set only once the NPS value
+        if (re_nps := re.search(nps_pattern, line, re.IGNORECASE)):
+            nps = nps if nps else re_nps.group()
+
+        # Search for and set only once the Bench value
+        if (re_bench := re.search(bench_pattern, line, re.IGNORECASE)):
+            bench = bench if bench else re_bench.group()
 
     # Parse out the integer portion from our matches
-    nps = int(re.search(r'[0-9]+', nps).group()) if nps else None
-    bench = int(re.search(r'[0-9]+', bench).group()) if bench else None
-    return (nps, bench)
+    nps   = int(re.search(r'\d+', nps  ).group()) if nps   else None
+    bench = int(re.search(r'\d+', bench).group()) if bench else None
+
+    return (bench, nps)
 
 def run_bench(engine, outqueue, private_net=None):
 
@@ -363,8 +368,7 @@ def run_bench(engine, outqueue, private_net=None):
         else: cmd = ['./' + engine, 'setoption name EvalFile value %s' % (private_net), 'bench', 'quit']
 
         # Launch the engine and parse output for statistics
-        process = Popen(cmd, stdout=PIPE, stderr=PIPE)
-        stdout, stderr = process.communicate()
+        stdout, stderr = Popen(cmd, stdout=PIPE, stderr=STDOUT).communicate()
         outqueue.put(parse_bench_output(stdout))
     except Exception: outqueue.put((0, 0))
 
@@ -934,8 +938,8 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cuteche
 
     # Private engines may need extra options to set their NNUE files
     if 'artifacts' in workload['test']['base']['build'] and base_network and base_network != 'None':
-        dev_options += ' EvalFile=%s' % (os.path.join('../Networks', base_network))
-        dev_name    += '-%s' % (base_network)
+        base_options += ' EvalFile=%s' % (os.path.join('../Networks', base_network))
+        base_name    += '-%s' % (base_network)
 
     # Join all of the options into a single string
     dev_options  = ' option.'.join([''] +  dev_options.split())
