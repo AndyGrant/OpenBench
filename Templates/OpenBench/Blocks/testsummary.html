@@ -1,10 +1,7 @@
 {% load mytags %}
 <tr>
     <td><a href="/user/{{test.author}}">{{test.author|capfirst|slice:":6"}}</a></td>
-    <td>
-        {{test.dev_engine}}
-        {% if test.dev_engine != test.base_engine %} <span style="color: yellow">*</span> {% endif %}
-    </td>
+    <td>{{test.dev_engine}}</td>
     <td>
         <a href="/test/{{test.id}}">{{test|prettyDevName}}</a>
         {% if test.error %} <span style="color: red">*</span> {% endif %}

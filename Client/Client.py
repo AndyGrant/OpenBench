@@ -896,7 +896,7 @@ def run_benchmarks(arguments, workload, branch, engine, network):
         if private and network: args.append(network)
         multiprocessing.Process(target=run_bench, args=args).start()
 
-    nps, bench = list(zip(*[queue.get() for ii in range(cores)]))
+    bench, nps = list(zip(*[queue.get() for ii in range(cores)]))
     if len(set(bench)) > 1: return (0, 0) # Flag an error
 
     print('Bench for %s is %d' % (name, bench[0]))
@@ -916,7 +916,7 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cuteche
     dev_threads  = int(re.search('(?<=Threads=)\d*', dev_options ).group())
     base_threads = int(re.search('(?<=Threads=)\d*', base_options).group())
 
-    dev_network  = workload['test']['base']['network'] # Could be empty strings
+    dev_network  = workload['test']['dev' ]['network'] # Could be empty strings
     base_network = workload['test']['base']['network'] # Could be empty strings
 
     dev_time     = scale_time_control(workload, nps, 'dev')

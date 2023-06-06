@@ -46,7 +46,7 @@ def extract_option(options, option):
     match = re.search('(?<={0}=)[^ ]*'.format(option), options)
     if match: return match.group()
 
-def parse_time_control(timecontrol):
+def parse_time_control(time_control):
 
     # Display Nodes as N=, Depth as D=, MoveTime as MT=
     conversion = {
@@ -57,13 +57,13 @@ def parse_time_control(timecontrol):
 
     # Searching for "nodes=", "depth=", and "movetime=" Time Controls
     pattern = '(?P<mode>((N)|(D)|(MT)|(nodes)|(depth)|(movetime)))=(?P<value>(\d+))'
-    if results := re.search(pattern, timecontrol.upper()):
+    if results := re.search(pattern, time_control.upper()):
         mode, value = results.group('mode', 'value')
         return '%s=%s' % (conversion[mode], value)
 
     # Searching for "X/Y+Z" time controls
     pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
-    if results := re.search(pattern, timecontrol):
+    if results := re.search(pattern, time_control):
         moves, base, inc = results.group('moves', 'base', 'inc')
 
         # Strip the trailing and leading symbols
@@ -74,7 +74,7 @@ def parse_time_control(timecontrol):
         if moves is None: return '%.1f+%.2f' % (float(base), float(inc))
         return '%d/%.1f+%.2f' % (int(moves), float(base), float(inc))
 
-    raise Exception('Unable to parse Time Control (%s)' % (timecontrol))
+    raise Exception('Unable to parse Time Control (%s)' % (time_control))
 
 
 def get_pending_tests():
@@ -422,14 +422,14 @@ def create_new_test(request):
     test.dev_engine        = request.POST['dev_engine']
     test.dev_options       = request.POST['dev_options']
     test.dev_network       = request.POST['dev_network']
-    test.dev_time_control  = request.POST['dev_time_control']
+    test.dev_time_control  = parse_time_control(request.POST['dev_time_control'])
 
     test.base              = getEngine(*baseinfo)
     test.base_repo         = request.POST['base_repo']
     test.base_engine       = request.POST['base_engine']
     test.base_options      = request.POST['base_options']
     test.base_network      = request.POST['base_network']
-    test.base_time_control = request.POST['base_time_control']
+    test.base_time_control = parse_time_control(request.POST['base_time_control'])
 
     test.report_rate       = int(request.POST['report_rate'])
     test.workload_size     = int(request.POST['workload_size'])
