@@ -549,13 +549,10 @@ def test_maps_onto_thread_count(test, threads, ncutechess, hyperthreads):
 
 def select_workload(machine, tests, variance=0.25):
 
-    # For reference for later
-    test_ids = [test.id for test in tests]
-
     # Determine how many threads are assigned to each workload
-    table = { test : 0 for test in tests }
+    table = { test.id : 0 for test in tests }
     for m in getRecentMachines():
-        if m.workload in test_ids and m != machine:
+        if m.workload in table and m != machine:
             table[m.workload] = table[m.workload] + m.info['concurrency']
 
     # Find the tests most deserving of resources currently
@@ -563,7 +560,7 @@ def select_workload(machine, tests, variance=0.25):
     lowest_idxs = [i for i, r in enumerate(ratios) if r == min(ratios)]
 
     # Machine is out of date; or there is an unassigned test
-    if machine.workload not in test_ids or min(ratios) == 0:
+    if machine.workload not in table or min(ratios) == 0:
         return tests[random.choice(lowest_idxs)]
 
     # No test has less than (1-variance)% of its deserved resources, and
