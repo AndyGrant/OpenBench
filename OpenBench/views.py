@@ -27,6 +27,8 @@ import django.contrib.auth
 import OpenBench.config
 import OpenBench.utils
 
+from OpenBench.config import OPENBENCH_CONFIG
+
 from OpenBench.models import *
 from django.contrib.auth.models import User
 from OpenSite.settings import MEDIA_ROOT
@@ -37,7 +39,6 @@ from django.http import HttpResponse, FileResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
 from django.core.files.base import ContentFile
-from htmlmin.decorators import not_minified_response
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              GENERAL UTILITIES                              #
@@ -49,11 +50,11 @@ class UnableToAuthenticate(Exception):
 def render(request, template, content={}, always_allow=False):
 
     data = content.copy()
-    data.update({'config' : OpenBench.config.OPENBENCH_CONFIG})
+    data.update({ 'config' : OPENBENCH_CONFIG })
 
     if OpenBench.config.REQUIRE_LOGIN_TO_VIEW:
         if not request.user.is_authenticated and not always_allow:
-            return login(request, OpenBench.config.OPENBENCH_CONFIG['error']['requires_login'])
+            return redirect(request, '/login/',  error=data['config']['error']['requires_login'])
 
     if request.user.is_authenticated:
 
@@ -61,12 +62,27 @@ def render(request, template, content={}, always_allow=False):
         data.update({'profile' : profile.first()})
 
         if profile.first() and not profile.first().enabled:
-            data.update({'error' : data['config']['error']['disabled']})
+            request.session['error_message'] = data['config']['error']['disabled']
 
-        if request.user.is_authenticated and not profile.first():
-            data.update({'error' : data['config']['error']['fakeuser']})
+        elif request.user.is_authenticated and not profile.first():
+            request.session['error_message'] = data['config']['error']['fakeuser']
 
-    return django.shortcuts.render(request, 'OpenBench/{0}'.format(template), data)
+    response = django.shortcuts.render(request, 'OpenBench/{0}'.format(template), data)
+
+    for key in ['status_message', 'error_message']:
+        if key in request.session: del request.session[key]
+
+    return response
+
+def redirect(request, destination, error=None, status=None):
+
+    if error:
+        request.session['error_message'] = error
+
+    if status:
+        request.session['status_message'] = status
+
+    return django.http.HttpResponseRedirect(destination)
 
 def authenticate(request, requireEnabled=False):
 
@@ -93,29 +109,19 @@ def authenticate(request, requireEnabled=False):
 
 def register(request):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Return the HTML template used for registering a new User        #
-    #                                                                         #
-    #  POST : Enforce matching alpha-numeric passwords, and then attempt to   #
-    #         generate a new User and Profile. Return to the homepage after   #
-    #         after logging the User in. Share any errors with the viewer     #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
     if request.method == 'GET':
         if not OpenBench.config.REQUIRE_MANUAL_REGISTRATION:
             return render(request, 'register.html', always_allow=True)
-        return login(request, OpenBench.config.OPENBENCH_CONFIG['error']['manual_registration'])
+        return redirect(request, '/login/', error=OPENBENCH_CONFIG['error']['manual_registration'])
 
     if request.POST['password1'] != request.POST['password2']:
-        return render(request, 'register.html', {'error_message': 'Passwords Do Not Match'})
+        return redirect(request, '/register/', error='Passwords do not match')
 
     if not request.POST['username'].isalnum():
-        return render(request, 'register.html', {'error_message': 'Alpha Numeric Usernames Only'})
+        return redirect(request, '/register/', error='Alpha-numeric usernames Only')
 
     if User.objects.filter(username=request.POST['username']):
-        return render(request, 'register.html', {'error_message': 'That Username is taken'})
+        return redirect(request, '/register/', error='That username is already taken')
 
     email    = request.POST['email']
     username = request.POST['username']
@@ -125,161 +131,99 @@ def register(request):
     django.contrib.auth.login(request, user)
     Profile.objects.create(user=user)
 
-    return django.http.HttpResponseRedirect('/index/')
+    return redirect(request, '/index/')
 
-def login(request, error=''):
+def login(request):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Return the HTML template used for logging in a User             #
-    #                                                                         #
-    #  POST : Attempt to login the User. If their login is invalid, let them  #
-    #         know. In all cases, return the User back to the main page       #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-    if request.method == 'GET' or error:
-        data = { 'error' : error }
-        return render(request, 'login.html', data, always_allow=True)
+    if request.method == 'GET':
+        return render(request, 'login.html', always_allow=True)
 
     try:
-        user = authenticate(request)
-        django.contrib.auth.login(request, user)
-        return django.http.HttpResponseRedirect('/index/')
+        django.contrib.auth.login(request, authenticate(request))
+        return redirect(request, '/index/')
 
     except UnableToAuthenticate:
-        data = { 'error' : 'Unable to authenticate username and password' }
-        return render(request, 'login.html', data, always_allow=True)
+        return redirect(request, '/login/', error='Unable to authenticate user')
 
 def logout(request):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Logout the User if they are logged in. Return to the main page  #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
     django.contrib.auth.logout(request)
-    return django.http.HttpResponseRedirect('/index/')
+    return redirect(request, '/index/', status='Logged out')
 
 def profile(request):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : If the User is logged in, return the HTML template which shows  #
-    #         all of the information about the User, and a form to change the #
-    #         email address, password, and default engine of the User. If the #
-    #         User is not logged in, return them to the main page             #
-    #                                                                         #
-    #  POST : Modify the User's email address and selected Engine, if the     #
-    #         User has requested this. Update the password for the User if    #
-    #         they have requested a change and provided a new set of matching #
-    #         passwords. Return the User to the main page                     #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
     if not request.user.is_authenticated:
-        return django.http.HttpResponseRedirect('/login/')
+        return redirect(request, '/login/')
+
+    if not Profile.objects.filter(user=request.user).first():
+        return redirect(request, '/index/')
 
     if request.method == 'GET':
         return render(request, 'profile.html')
 
-    profile = Profile.objects.filter(user=request.user)
-
-    #profile.update(engine=request.POST['engine'], repo=request.POST['repo'])
-
     changes_message = ''
-
     if request.user.email != request.POST['email']:
-        changes_message += 'Updated Email!\n'
-
-    request.user.email = request.POST['email']
-    request.user.save()
+        changes_message += 'Updated email address to %s' % (request.POST['email'])
+        request.user.email = request.POST['email']
+        request.user.save()
 
     if request.POST['password1'] != request.POST['password2']:
-        return render(request, 'profile.html', {'error_message': "Passwords Do Not Match!", 'status_message': changes_message})
+        return redirect(request, '/profile/', status=changes_message, error='Passwords do not match')
 
-    if request.POST['password1'] != '':
+    if request.POST['password1']:
         request.user.set_password(request.POST['password1'])
-        django.contrib.auth.login(request, request.user)
         request.user.save()
-        changes_message += 'Updated Password!\n'
+        django.contrib.auth.login(request, request.user)
+        changes_message += '\nUpdated password'
 
-    return render(request, 'profile.html', {'status_message': changes_message})
+    return redirect(request, '/profile/', status=changes_message.removeprefix('\n'))
 
 def profile_config(request):
 
     if not request.user.is_authenticated:
-        return django.http.HttpResponseRedirect('/login/')
+        return redirect(request, '/login/')
+
+    if not (profile := Profile.objects.filter(user=request.user).first()):
+        return redirect(request, 'index')
 
     if request.method == 'GET':
         return render(request, 'profile.html')
 
-    profile = Profile.objects.get(user=request.user)
+    changes = ''
 
-    changes = False # To check if any changes are made.
-    changes_message = ''
+    if (engine := request.POST.get('default-status', profile.engine)) != profile.engine:
+        changes += 'Set %s as the default, replacing %s\n' % (engine, profile.engine)
+        profile.engine = engine
 
-    default_status = request.POST.get('default-status', '')
-
-    if default_status != '':
-        if default_status != profile.engine:
-            changes_message += f'Removed {profile.engine} as default engine\n'
-            # update the default engine
-            profile.engine = default_status
-            changes_message += f'Set {profile.engine} as default engine\n'
-            changes = True
-        
-
-    deleted_repos = request.POST.get('deleted-repos', '[]')
-    deleted_repos_array = json.loads(deleted_repos)
-
-    for engine in deleted_repos_array:
-        if engine in profile.repos:
-            del profile.repos[engine]
-            changes_message += f'Deleted engine: {engine}!\n'
-
-
-    if len(deleted_repos_array) != 0:
-        changes = True
-
-    if 'new-engine-name' in request.POST:
-        if request.POST['new-engine-name'] != "None" and not request.POST['new-engine-repo'].startswith('https://github.com/'):
-            return render(request, 'profile.html', {'error_message': "Not a valid repository!"})
-        elif request.POST['new-engine-name'] != "None" and request.POST['new-engine-repo'].startswith('https://github.com/'):
-            engine_name = request.POST['new-engine-name']
-            engine_repo = request.POST['new-engine-repo']
-
-            if profile.engine == '':
-                profile.engine = engine_name
-
-            # Append the new engine and repo to the profile's repos field
-            engine_repo = engine_repo.removesuffix('/')
-            profile.repos[engine_name] = engine_repo
-            if profile.engine == '':
-                profile.engine = engine_name
-            
-            changes_message += f'Added engine: {engine_name} with repository {engine_repo}!\n'
-            changes = True
+    for engine in json.loads(request.POST.get('deleted-repos', '[]')):
+        profile.repos.pop(engine, False)
+        changes += 'Deleted Engine: %s\n' % (engine)
 
     if changes:
-        profile.save() # Save if any changes are made
+        profile.save()
 
-    return render(request, 'profile.html', {'status_message': changes_message})
+    engine_name = request.POST.get('new-engine-name', 'None')
+    engine_repo = request.POST.get('new-engine-repo', '').removesuffix('/')
+
+    if engine_name != 'None' and engine_repo:
+
+        if not engine_repo.startswith('https://github.com/'):
+            return redirect(request, '/profile/', error='Repositories must be on Github')
+
+        if not profile.engine:
+            profile.engine = engine_name
+
+        changes += 'Added Engine: %s at %s' % (engine_name, engine_repo)
+        profile.repos[engine_name] = engine_repo
+        profile.save()
+
+    return redirect(request, '/profile/', status=changes)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                               TEST LIST VIEWS                               #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def index(request, page=1, error=''):
-
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Return all pending, active, and completed tests. Limit the      #
-    #         display of tests by the requested page number. Also display the #
-    #         status for connected machines.                                  #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+def index(request, page=1):
 
     pending   = OpenBench.utils.get_pending_tests()
     active    = OpenBench.utils.get_active_tests()
@@ -289,39 +233,45 @@ def index(request, page=1, error=''):
     start, end, paging = OpenBench.utils.getPaging(completed, page, 'index')
 
     data = {
-        'pending'   : pending,              'active'   : active,
-        'completed' : completed[start:end], 'awaiting' : awaiting,
-        'paging'    : paging,               'status'   : OpenBench.utils.getMachineStatus(),
-        'error_message'     : error,
+        'pending'   : pending,
+        'active'    : active,
+        'completed' : completed[start:end],
+        'awaiting'  : awaiting,
+        'paging'    : paging,
+        'status'    : OpenBench.utils.getMachineStatus(),
+    }
+
+    return render(request, 'index.html', data)
+
+def user(request, username, page=1):
+
+    pending   = OpenBench.utils.get_pending_tests().filter(author=username)
+    active    = OpenBench.utils.get_active_tests().filter(author=username)
+    completed = OpenBench.utils.get_completed_tests().filter(author=username)
+    awaiting  = OpenBench.utils.get_awaiting_tests().filter(author=username)
+
+    start, end, paging = OpenBench.utils.getPaging(completed, page, 'user/%s' % (username))
+
+    data = {
+        'pending'   : pending,
+        'active'    : active,
+        'completed' : completed[start:end],
+        'awaiting'  : awaiting,
+        'paging'    : paging,
+        'status'    : OpenBench.utils.getMachineStatus(username),
     }
 
     return render(request, 'index.html', data)
 
 def greens(request, page=1):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Return all tests both passed and completed. Limit the display   #
-    #         of tests by the requested page number.                          #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
     completed = OpenBench.utils.get_completed_tests().filter(passed=True)
     start, end, paging = OpenBench.utils.getPaging(completed, page, 'greens')
 
-    data = {'completed' : completed[start:end], 'paging' : paging}
+    data = { 'completed' : completed[start:end], 'paging' : paging }
     return render(request, 'index.html', data)
 
 def search(request):
-
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Return the HTML template for searching tests on the framework.  #
-    #                                                                         #
-    #  POST : Filter the tests by the provided criteria, and return a display #
-    #         with the filtered results. Keywords are case insensitive        #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     if request.method == 'GET':
         return render(request, 'search.html', {})
@@ -358,31 +308,14 @@ def search(request):
 
     return render(request, 'search.html', {'tests' : filtered})
 
-def user(request, username, page=1):
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                           GENERAL DATA TABLE VIEWS                          #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Return all pending, active, and completed tests for the User    #
-    #         that has been requested. Limit the display of completed tests   #
-    #         by the requested page number. Also display the User's machines  #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+def users(request):
 
-    pending   = OpenBench.utils.get_pending_tests().filter(author=username)
-    active    = OpenBench.utils.get_active_tests().filter(author=username)
-    completed = OpenBench.utils.get_completed_tests().filter(author=username)
-    awaiting  = OpenBench.utils.get_awaiting_tests().filter(author=username)
-
-    url = 'user/{0}'.format(username)
-    start, end, paging = OpenBench.utils.getPaging(completed, page, url)
-
-    data = {
-        'pending'   : pending,              'active'   : active,
-        'completed' : completed[start:end], 'awaiting' : awaiting,
-        'paging'    : paging,               'status'   : OpenBench.utils.getMachineStatus(username),
-    }
-
-    return render(request, 'index.html', data)
+    data = { 'profiles' : Profile.objects.order_by('-games', '-tests') }
+    return render(request, 'users.html', data)
 
 def event(request, id):
 
@@ -390,31 +323,14 @@ def event(request, id):
         with open(os.path.join(MEDIA_ROOT, LogEvent.objects.get(id=id).log_file)) as fin:
             return render(request, 'event.html', { 'content' : fin.read() })
     except:
-        return HttpResponseRedirect('/index/')
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#                           GENERAL DATA TABLE VIEWS                          #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-def users(request):
-
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Return information about all users on the Framework. Sort the   #
-    #         Users by games completed, tests created. The HTML template will #
-    #         filter out disabled users later.                                #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-    data = {'profiles' : Profile.objects.order_by('-games', '-tests')}
-    return render(request, 'users.html', data)
+        return redirect(request, '/index/', error='No logs for event exist')
 
 def events_actions(request, page=1):
 
     events = LogEvent.objects.all().filter(machine_id=0).order_by('-id')
     start, end, paging = OpenBench.utils.getPaging(events, page, 'events')
 
-    data = {'events' : events[start:end], 'paging' : paging};
+    data = { 'events' : events[start:end], 'paging' : paging };
     return render(request, 'events.html', data)
 
 def events_errors(request, page=1):
@@ -422,25 +338,21 @@ def events_errors(request, page=1):
     events = LogEvent.objects.all().exclude(machine_id=0).order_by('-id')
     start, end, paging = OpenBench.utils.getPaging(events, page, 'errors')
 
-    data = {'events' : events[start:end], 'paging' : paging};
+    data = { 'events' : events[start:end], 'paging' : paging };
     return render(request, 'errors.html', data)
 
 def machines(request, machineid=None):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Return information about all of the machines that have been     #
-    #         active on the Framework within the last fifteen minutes         #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
     if machineid == None:
-        data = {'machines' : OpenBench.utils.getRecentMachines()}
+        data = { 'machines' : OpenBench.utils.getRecentMachines() }
         return render(request, 'machines.html', data)
 
-    else:
-        data = {'machine' : OpenBench.models.Machine.objects.get(id=machineid)}
+    try:
+        data = { 'machine' : OpenBench.models.Machine.objects.get(id=machineid) }
         return render(request, 'machine.html', data)
+
+    except:
+        return redirect(request, '/machines/', error='Machine does not exist')
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -449,29 +361,12 @@ def machines(request, machineid=None):
 
 def test(request, id, action=None):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : The User is either trying to view the status of the selected    #
-    #         test, or adjust the running state of the test in some way. When #
-    #         viewing a test, collect the results and return an HTML template #
-    #         using that data. Otherwise, look to adjust the running state of #
-    #         the test. We throw out any invalid requests. Create a LogEvent  #
-    #         if the we attempt to modify the test's state in any way         #
-    #                                                                         #
-    #  POST : The only valid POST request is for the action MODIFY. Requests  #
-    #         to modify contain an updated Priority and Throughput parameter  #
-    #         for the selected test. Bound the updated values, and log the    #
-    #         modification of the test with the creation of a new LogEvent    #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-    if not Test.objects.filter(id=id):
+    if not (test := Test.objects.filter(id=id).first()):
         return django.http.HttpResponseRedirect('/index/')
 
     if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'MODIFY']:
 
         # Select the Test, and all Result objects attached
-        test    = Test.objects.get(id=id)
         results = Result.objects.filter(test=test).order_by('machine_id')
         data    = { 'test' : test, 'results': {} }
 
@@ -504,7 +399,6 @@ def test(request, id, action=None):
         return django.http.HttpResponseRedirect('/login/')
 
     user = request.user
-    test = Test.objects.get(id=id)
     profile = Profile.objects.get(user=user)
 
     if not profile.approver and test.author != profile.user.username:
@@ -556,7 +450,7 @@ def newTest(request):
     if request.method == 'GET':
         data = { 'networks' : list(Network.objects.all().values()) }
         return render(request, 'newTest.html', data)
-    
+
 
     test, errors = OpenBench.utils.create_new_test(request)
     if errors != [] and errors != None:
@@ -638,7 +532,7 @@ def networks(request, action=None, sha256=None, client=False):
         if Network.objects.filter(engine=engine, name=sha256):
             return render(request, "uploadnet.html",  {'error_message':'Network with that name already exists for that engine'})
 
-        if engine not in OpenBench.utils.OPENBENCH_CONFIG['engines'].keys():
+        if engine not in OPENBENCH_CONFIG['engines'].keys():
             return render(request, "uploadnet.html", {'error_message':'No Engine found with matching name'})
 
         FileSystemStorage().save(sha256, netfile)
@@ -714,8 +608,8 @@ def client_verify_worker(request):
     except: return None, JsonResponse({ 'error' : 'Bad Machine Id' })
 
     # Ensure the Client is using the same version as the Server
-    if machine.info['client_ver'] != OpenBench.config.OPENBENCH_CONFIG['client_version']:
-        expected_ver = OpenBench.config.OPENBENCH_CONFIG['client_version']
+    if machine.info['client_ver'] != OPENBENCH_CONFIG['client_version']:
+        expected_ver = OPENBENCH_CONFIG['client_version']
         return machine, JsonResponse({ 'error' : 'Bad Client Version: Expected %s' % (expected_ver)})
 
     # Use the secret token as our soft verification
@@ -730,7 +624,7 @@ def client_get_files(request):
     ## Location of static compile of Cutechess for Windows and Linux.
     ## OpenBench does not serve these files, but points to a repo ideally.
 
-    return JsonResponse( {'location' : OpenBench.config.OPENBENCH_CONFIG['corefiles'] })
+    return JsonResponse( {'location' : OPENBENCH_CONFIG['corefiles'] })
 
 @csrf_exempt
 def client_get_build_info(request):
@@ -739,7 +633,7 @@ def client_get_build_info(request):
     ## Toss in a private flag as well to indicate the need for Github Tokens.
 
     data = {}
-    for engine, config in OpenBench.config.OPENBENCH_CONFIG['engines'].items():
+    for engine, config in OPENBENCH_CONFIG['engines'].items():
         data[engine] = config['build']
     return JsonResponse(data)
 
@@ -765,7 +659,7 @@ def client_worker_info(request):
 
     # Tag engines that the Machine can build and/or run with binaries
     machine.info['supported'] = []
-    for engine, data in OpenBench.config.OPENBENCH_CONFIG['engines'].items():
+    for engine, data in OPENBENCH_CONFIG['engines'].items():
 
         # Must have all CPU flags, for both Public and Private engines
         if any([flag not in machine.info['cpu_flags'] for flag in data['build']['cpuflags']]):

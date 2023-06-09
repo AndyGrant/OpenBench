@@ -107,9 +107,22 @@
 
         <div id="content-parent">
             <div id="content" class="pb-5">
-                <h2><a class="site-title" href="/">OpenBench Testing Framework</a></h2>
-                {% if error_message %}<div class="error-message"><pre>{{error_message}}</pre></div>{% endif %}
-                {% if status_message %}<div class="status-message"><pre>{{status_message}}</pre></div>{% endif %}
+                <h2>
+                    <a class="site-title" href="/">OpenBench Testing Framework</a>
+                </h2>
+
+                {% if request.session.error_message %}
+                    <div class="error-message">
+                        <pre>{{request.session.error_message}}</pre>
+                    </div>
+                {% endif %}
+
+                {% if request.session.status_message %}
+                    <div class="status-message">
+                        <pre>{{request.session.status_message}}</pre>
+                    </div>
+                {% endif %}
+
                 {% block content %}
                 {% endblock %}
             </div>

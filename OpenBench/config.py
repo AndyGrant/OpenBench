@@ -33,7 +33,7 @@ def load_folder_of_configs(*path):
 
 USE_CROSS_APPROVAL          = False # Require a second user to approve patches
 REQUIRE_LOGIN_TO_VIEW       = True  # Block all content but Login and Regiser by default
-REQUIRE_MANUAL_REGISTRATION = True  # Disable the public facing registration page
+REQUIRE_MANUAL_REGISTRATION = False # Disable the public facing registration page
 
 OPENBENCH_CONFIG = {
 

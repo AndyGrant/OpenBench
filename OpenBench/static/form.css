@@ -108,3 +108,12 @@
 #content .form .flex button{
     max-width: 100%;
 }
+
+#content #engines-container span {
+    margin: 0px 4px 0px 4px;
+    cursor: pointer;
+}
+
+#content #engines-container span input {
+    cursor: pointer;
+}
