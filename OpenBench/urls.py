@@ -22,12 +22,12 @@ import django.urls, OpenBench.views
 
 urlpatterns = [
 
-    # Links for account managment
+    # Links for account management
     django.urls.path(r'register/', OpenBench.views.register),
     django.urls.path(r'login/', OpenBench.views.login),
     django.urls.path(r'logout/', OpenBench.views.logout),
     django.urls.path(r'profile/', OpenBench.views.profile),
-    django.urls.path(r'profileConfig/', OpenBench.views.profileConfig),
+    django.urls.path(r'profileConfig/', OpenBench.views.profile_config),
 
     # Links for viewing test tables
     django.urls.path(r'index/', OpenBench.views.index),

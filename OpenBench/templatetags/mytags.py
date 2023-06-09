@@ -210,6 +210,9 @@ def compilerBlock(machine):
         string += '%-16s %-8s (%s)\n' % (engine, info[0], info[1])
     return string
 
+def removePrefix(value, prefix):
+    return value.removeprefix(prefix)
+
 register = django.template.Library()
 register.filter('oneDigitPrecision', oneDigitPrecision)
 register.filter('twoDigitPrecision', twoDigitPrecision)
@@ -227,3 +230,4 @@ register.filter('testIdToPrettyName', testIdToPrettyName)
 register.filter('testIdToTimeControl', testIdToTimeControl)
 register.filter('cpuflagsBlock', cpuflagsBlock)
 register.filter('compilerBlock', compilerBlock)
+register.filter('removePrefix', removePrefix)
