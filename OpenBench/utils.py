@@ -567,7 +567,7 @@ def select_workload(machine, tests, variance=0.25):
     # therefore we may have this machine repeat its existing workload again
     ideal_ratio = sum([x['cores'] for x in table.values()]) / sum([x['throughput'] for x in table.values()])
     if min(ratios) / ideal_ratio > 1 - variance:
-        return OpenBench.models.Test.objects(id=machine.workload)
+        return OpenBench.models.Test.objects.get(id=machine.workload)
 
     # Fallback to simply doing the least attention given test
     return tests[random.choice(lowest_idxs)]
