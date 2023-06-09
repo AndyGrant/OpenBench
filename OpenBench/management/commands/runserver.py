@@ -10,16 +10,18 @@ class ArtifactWatcher(threading.Thread):
 
         dev_has_all  = test.dev.source.endswith('artifacts')
         base_has_all = test.base.source.endswith('artifacts')
-        headers      = OpenBench.utils.read_git_credentials(test.engine)
 
-        if headers and not dev_has_all:
+        dev_headers  = OpenBench.utils.read_git_credentials(test.dev_engine)
+        base_headers = OpenBench.utils.read_git_credentials(test.base_engine)
+
+        if dev_headers and not dev_has_all:
             test.dev.source, dev_has_all = OpenBench.utils.fetch_artifact_url(
-                test.dev.source, test.engine, headers, test.dev.sha)
+                test.dev.source, test.dev_engine, dev_headers, test.dev.sha)
             test.dev.save()
 
-        if headers and not base_has_all:
+        if base_headers and not base_has_all:
             test.base.source, base_has_all = OpenBench.utils.fetch_artifact_url(
-                test.base.source, test.engine, headers, test.base.sha)
+                test.base.source, test.base_engine, base_headers, test.base.sha)
             test.base.save()
 
         if dev_has_all and base_has_all:
