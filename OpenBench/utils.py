@@ -550,13 +550,13 @@ def test_maps_onto_thread_count(test, threads, ncutechess, hyperthreads):
 def select_workload(machine, tests, variance=0.25):
 
     # Determine how many threads are assigned to each workload
-    table = { test.id : 0 for test in tests }
+    table = { test.id : { 'cores' : 0, 'throughput' : test.throughput } for test in tests }
     for m in getRecentMachines():
         if m.workload in table and m != machine:
-            table[m.workload] = table[m.workload] + m.info['concurrency']
+            table[m.workload]['cores'] += m.info['concurrency']
 
     # Find the tests most deserving of resources currently
-    ratios = [table[test] / test.throughput for test in tests]
+    ratios = [table[x]['cores'] / table[x]['throughput'] for x in table]
     lowest_idxs = [i for i, r in enumerate(ratios) if r == min(ratios)]
 
     # Machine is out of date; or there is an unassigned test
@@ -565,7 +565,7 @@ def select_workload(machine, tests, variance=0.25):
 
     # No test has less than (1-variance)% of its deserved resources, and
     # therefore we may have this machine repeat its existing workload again
-    ideal_ratio = sum(table.values()) / sum([x.throughput for x in tests])
+    ideal_ratio = sum([x['cores'] for x in table]) / sum([x['throughput'] for x in table])
     if min(ratios) / ideal_ratio > 1 - variance:
         return OpenBench.models.Test.objects(id=machine.workload)
 
