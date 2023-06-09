@@ -109,13 +109,13 @@ def register(request):
         return login(request, OpenBench.config.OPENBENCH_CONFIG['error']['manual_registration'])
 
     if request.POST['password1'] != request.POST['password2']:
-        return index(request, error='Passwords Do Not Match')
+        return render(request, 'register.html', {'error_message': 'Passwords Do Not Match'})
 
     if not request.POST['username'].isalnum():
-        return index(request, error='Alpha Numeric Usernames Only')
+        return render(request, 'register.html', {'error_message': 'Alpha Numeric Usernames Only'})
 
     if User.objects.filter(username=request.POST['username']):
-        return index(request, error='That Username is taken')
+        return render(request, 'register.html', {'error_message': 'That Username is taken'})
 
     email    = request.POST['email']
     username = request.POST['username']
@@ -185,20 +185,27 @@ def profile(request):
         return render(request, 'profile.html')
 
     profile = Profile.objects.filter(user=request.user)
-    profile.update(engine=request.POST['engine'], repo=request.POST['repo'])
+
+    #profile.update(engine=request.POST['engine'], repo=request.POST['repo'])
+
+    changes_message = ''
+
+    if request.user.email != request.POST['email']:
+        changes_message += 'Updated Email!\n'
 
     request.user.email = request.POST['email']
     request.user.save()
 
     if request.POST['password1'] != request.POST['password2']:
-        return index(request, error='Passwords Do Not Match')
+        return render(request, 'profile.html', {'error_message': "Passwords Do Not Match!", 'status_message': changes_message})
 
     if request.POST['password1'] != '':
         request.user.set_password(request.POST['password1'])
         django.contrib.auth.login(request, request.user)
         request.user.save()
+        changes_message += 'Updated Password!\n'
 
-    return django.http.HttpResponseRedirect('/index/')
+    return render(request, 'profile.html', {'status_message': changes_message})
 
 def profile_config(request):
 
@@ -211,13 +218,18 @@ def profile_config(request):
     profile = Profile.objects.get(user=request.user)
 
     changes = False # To check if any changes are made.
+    changes_message = ''
 
     default_status = request.POST.get('default-status', '')
 
     if default_status != '':
-        # update the default engine
-        profile.engine = default_status
-        changes = True
+        if default_status != profile.engine:
+            changes_message += f'Removed {profile.engine} as default engine\n'
+            # update the default engine
+            profile.engine = default_status
+            changes_message += f'Set {profile.engine} as default engine\n'
+            changes = True
+        
 
     deleted_repos = request.POST.get('deleted-repos', '[]')
     deleted_repos_array = json.loads(deleted_repos)
@@ -225,27 +237,35 @@ def profile_config(request):
     for engine in deleted_repos_array:
         if engine in profile.repos:
             del profile.repos[engine]
+            changes_message += f'Deleted engine: {engine}!\n'
+
 
     if len(deleted_repos_array) != 0:
         changes = True
 
     if 'new-engine-name' in request.POST:
-        if request.POST['new-engine-name'] == "None":
-            return index(request, error="Choose engine can't be None.")
-        elif request.POST['new-engine-name'] != "None" and not request.POST['new-engine-repo'].startswith('https://github.com/'):
-            return index(request, error="Not a valid repository!")
+        if request.POST['new-engine-name'] != "None" and not request.POST['new-engine-repo'].startswith('https://github.com/'):
+            return render(request, 'profile.html', {'error_message': "Not a valid repository!"})
         elif request.POST['new-engine-name'] != "None" and request.POST['new-engine-repo'].startswith('https://github.com/'):
             engine_name = request.POST['new-engine-name']
             engine_repo = request.POST['new-engine-repo']
 
+            if profile.engine == '':
+                profile.engine = engine_name
+
             # Append the new engine and repo to the profile's repos field
+            engine_repo = engine_repo.removesuffix('/')
             profile.repos[engine_name] = engine_repo
+            if profile.engine == '':
+                profile.engine = engine_name
+            
+            changes_message += f'Added engine: {engine_name} with repository {engine_repo}!\n'
             changes = True
 
     if changes:
         profile.save() # Save if any changes are made
 
-    return render(request, 'profile.html')
+    return render(request, 'profile.html', {'status_message': changes_message})
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                               TEST LIST VIEWS                               #
@@ -272,7 +292,7 @@ def index(request, page=1, error=''):
         'pending'   : pending,              'active'   : active,
         'completed' : completed[start:end], 'awaiting' : awaiting,
         'paging'    : paging,               'status'   : OpenBench.utils.getMachineStatus(),
-        'error'     : error,
+        'error_message'     : error,
     }
 
     return render(request, 'index.html', data)
@@ -536,13 +556,14 @@ def newTest(request):
     if request.method == 'GET':
         data = { 'networks' : list(Network.objects.all().values()) }
         return render(request, 'newTest.html', data)
+    
 
     test, errors = OpenBench.utils.create_new_test(request)
     if errors != [] and errors != None:
         errors = ["[{0}]: {1}".format(i, e) for i, e in enumerate(errors)]
         longest = max([len(e) for e in errors])
         errors = ["{0}{1}".format(e, ' ' * (longest-len(e))) for e in errors]
-        return index(request, error='\n'.join(errors))
+        return render(request, 'newTest.html', {'error_message': '\n'.join(errors)})
 
     username = request.user.username
     profile  = Profile.objects.get(user=request.user)
@@ -609,16 +630,16 @@ def networks(request, action=None, sha256=None, client=False):
         sha256  = hashlib.sha256(netfile.file.read()).hexdigest()[:8].upper()
 
         if not re.match(r'^[a-zA-Z0-9_.-]+$', name):
-            return index(request, error='Name may only contain letters, numbers, dashes, underscores, and dots')
+            return render(request, "uploadnet.html", {'error_message': 'Name may only contain letters, numbers, dashes, underscores, and dots'})
 
         if Network.objects.filter(sha256=sha256):
-            return index(request, error='Network with that hash already exists')
+            return render(request, "uploadnet.html",  {'error_message':'Network with that hash already exists'})
 
         if Network.objects.filter(engine=engine, name=sha256):
-            return index(request, error='Network with that name already exists for that engine')
+            return render(request, "uploadnet.html",  {'error_message':'Network with that name already exists for that engine'})
 
         if engine not in OpenBench.utils.OPENBENCH_CONFIG['engines'].keys():
-            return index(request, error='No Engine found with matching name')
+            return render(request, "uploadnet.html", {'error_message':'No Engine found with matching name'})
 
         FileSystemStorage().save(sha256, netfile)
 
@@ -626,12 +647,12 @@ def networks(request, action=None, sha256=None, client=False):
             sha256=sha256, name=name,
             engine=engine, author=request.user.username)
 
-        return index(request)
+        return render(request, "uploadnet.html", {'status_message': f"Created a network for engine {engine}, Network Name: {name} , SHA: {sha256}"})
 
     if action.upper() == 'DEFAULT':
 
         if not Network.objects.filter(sha256=sha256):
-            return index(request, error='No Network found with matching SHA256')
+            return HttpResponse('No network found with matching SHA256')
 
         network = Network.objects.get(sha256=sha256)
         Network.objects.filter(engine=network.engine).update(default=False)
@@ -642,7 +663,7 @@ def networks(request, action=None, sha256=None, client=False):
     if action.upper() == 'DELETE':
 
         if not Network.objects.filter(sha256=sha256):
-            return index(request, error='No Network found with matching SHA256')
+            return HttpResponse('No network found with matching SHA256')
 
         Network.objects.get(sha256=sha256).delete()
         FileSystemStorage().delete(sha256)
@@ -652,7 +673,7 @@ def networks(request, action=None, sha256=None, client=False):
     if action.upper() == 'DOWNLOAD':
 
         if not Network.objects.filter(sha256=sha256):
-            return index(request, error='No Network found with matching SHA256')
+            return HttpResponse('No network found with matching SHA256')
 
         netfile  = os.path.join(MEDIA_ROOT, sha256)
         fwrapper = FileWrapper(open(netfile, 'rb'), 8192)

@@ -314,8 +314,12 @@ td pre {
     padding: 0px;
 }
 
-#content .error {
+#content .error-message {
     color: red;
+}   
+
+#content .status-message {
+    color: green;
 }
 
 #content .site-title {
