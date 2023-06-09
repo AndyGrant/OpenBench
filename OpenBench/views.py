@@ -365,48 +365,18 @@ def test(request, id, action=None):
         return django.http.HttpResponseRedirect('/index/')
 
     if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'MODIFY']:
-
-        # Select the Test, and all Result objects attached
-        results = Result.objects.filter(test=test).order_by('machine_id')
-        data    = { 'test' : test, 'results': {} }
-
-        for result in results:
-
-            # Insert the Result into the results
-            if result.machine.id not in data['results'].keys():
-                data['results'][result.machine.id] = {
-                    'games'      : 0, 'wins'       : 0,
-                    'losses'     : 0, 'draws'      : 0,
-                    'timeloss'   : 0, 'crashes'    : 0,
-                }
-
-            # Always use the latest Time stamp, by virtue of sorting Results
-            data['results'][result.machine.id]['machine_id'] = result.machine.id
-            data['results'][result.machine.id]['username'  ] = result.machine.user.username
-            data['results'][result.machine.id]['updated'   ] = result.updated
-
-            # Sum up all results from a given machine into a single value
-            data['results'][result.machine.id]['games'     ] += result.games
-            data['results'][result.machine.id]['wins'      ] += result.wins
-            data['results'][result.machine.id]['losses'    ] += result.losses
-            data['results'][result.machine.id]['draws'     ] += result.draws
-            data['results'][result.machine.id]['timeloss'  ] += result.timeloss
-            data['results'][result.machine.id]['crashes'   ] += result.crashes
-
-        return render(request, 'test.html', data)
+        return render(request, 'test.html', OpenBench.utils.get_test_context(test))
 
     if not request.user.is_authenticated:
-        return django.http.HttpResponseRedirect('/login/')
+        return redirect(request, '/login/', error='Only users may interact with tests')
 
-    user = request.user
-    profile = Profile.objects.get(user=user)
-
-    if not profile.approver and test.author != profile.user.username:
-        return django.http.HttpResponseRedirect('/index/')
+    profile = Profile.objects.get(user=request.user)
+    if not profile.approver and test.author != request.user.username:
+        return redirect(request, '/index/', error='You cannot interact with another user\'s test')
 
     if action == 'APPROVE':
-        if test.author == user.username and not user.is_superuser:
-            return django.http.HttpResponseRedirect('/index/')
+        if test.author == request.user.username and not user.is_superuser:
+            return redirect(request, '/index/', error='You cannot approve your own test')
 
     if action == 'APPROVE': test.approved =  True; test.save()
     if action == 'RESTART': test.finished = False; test.save()
@@ -421,36 +391,20 @@ def test(request, id, action=None):
         test.save()
 
     action += " P=%d TP=%d RR=%d WS=%d" % (test.priority, test.throughput, test.report_rate, test.workload_size)
-    LogEvent.objects.create(author=user.username, summary=action, log_file='', test_id=test.id)
+    LogEvent.objects.create(author=request.user.username, summary=action, log_file='', test_id=test.id)
     return django.http.HttpResponseRedirect('/index/')
 
 def newTest(request):
 
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  GET  : Return the HTML template for creating a new test when the User  #
-    #         is both logged in, and enabled. Otherwise, we redirect those    #
-    #         requests to either login, or the index where they are told that #
-    #         their account has not yet been enabled                          #
-    #                                                                         #
-    #  POST : Enabled Users may create new tests. Fields are error checked.   #
-    #         If an error is found, the creation is aborted and the list of   #
-    #         errors is prestented back to the User on the homepage. If both  #
-    #         versions of the Engine in the Test have been seen, then we will #
-    #         automatically approve the Test                                  #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
     if not request.user.is_authenticated:
-        return django.http.HttpResponseRedirect('/login/')
+        return redirect(request, '/login/', error='Only enabled users can create tests')
 
     if not Profile.objects.get(user=request.user).enabled:
-        return django.http.HttpResponseRedirect('/index/')
+        return redirect(request, '/login/', error='Only enabled users can create tests')
 
     if request.method == 'GET':
         data = { 'networks' : list(Network.objects.all().values()) }
         return render(request, 'newTest.html', data)
-
 
     test, errors = OpenBench.utils.create_new_test(request)
     if errors != [] and errors != None:
@@ -486,7 +440,7 @@ def newTest(request):
 #                          NETWORK MANAGEMENT VIEWS                           #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def networks(request, action=None, sha256=None, client=False):
+def networks(request, target=None, sha256=None, client=False):
 
     # *** GET Requests:
     # [1] Fetch a view of all the Networks on the framework (/networks/)
@@ -502,9 +456,9 @@ def networks(request, action=None, sha256=None, client=False):
     # Any user may look at the list of Networks, for all or some engines
     # Only authenticated and approved Users may interact in the remaining ways
 
-    if not action or action.upper() not in ['UPLOAD', 'DEFAULT', 'DELETE', 'DOWNLOAD']:
+    if not target or target.upper() not in ['UPLOAD', 'DEFAULT', 'DELETE', 'DOWNLOAD']:
         networks = Network.objects.all()
-        if action: networks = networks.filter(engine=action)
+        if target: networks = networks.filter(engine=target)
         return render(request, 'networks.html', { 'networks' : networks.order_by('-id') })
 
     if not request.user.is_authenticated:
@@ -513,7 +467,7 @@ def networks(request, action=None, sha256=None, client=False):
     if not client and not Profile.objects.get(user=request.user).approver:
         return django.http.HttpResponseRedirect('/index/')
 
-    if action.upper() == 'UPLOAD':
+    if target.upper() == 'UPLOAD':
 
         if request.method == 'GET':
             return render(request, 'uploadnet.html', {})
@@ -524,16 +478,16 @@ def networks(request, action=None, sha256=None, client=False):
         sha256  = hashlib.sha256(netfile.file.read()).hexdigest()[:8].upper()
 
         if not re.match(r'^[a-zA-Z0-9_.-]+$', name):
-            return render(request, "uploadnet.html", {'error_message': 'Name may only contain letters, numbers, dashes, underscores, and dots'})
+            return redirect(request, '/uploadnet/', error='Valid characters are [a-zA-Z0-9_.-]')
 
         if Network.objects.filter(sha256=sha256):
-            return render(request, "uploadnet.html",  {'error_message':'Network with that hash already exists'})
+            return redirect(request, '/uploadnet/', error='Network with that hash already exists')
 
-        if Network.objects.filter(engine=engine, name=sha256):
-            return render(request, "uploadnet.html",  {'error_message':'Network with that name already exists for that engine'})
+        if Network.objects.filter(engine=engine, name=name):
+            return redirect(request, '/uploadnet/', error='Network with that name already exists for that engine')
 
         if engine not in OPENBENCH_CONFIG['engines'].keys():
-            return render(request, "uploadnet.html", {'error_message':'No Engine found with matching name'})
+            return redirect(request, '/uploadnet/', error='No Engine found with matching name')
 
         FileSystemStorage().save(sha256, netfile)
 
@@ -541,33 +495,37 @@ def networks(request, action=None, sha256=None, client=False):
             sha256=sha256, name=name,
             engine=engine, author=request.user.username)
 
-        return render(request, "uploadnet.html", {'status_message': f"Created a network for engine {engine}, Network Name: {name} , SHA: {sha256}"})
+        return redirect(request, '/networks/', status='Uploaded %s for %s' % (engine, name))
 
-    if action.upper() == 'DEFAULT':
+    if target.upper() == 'DEFAULT':
 
         if not Network.objects.filter(sha256=sha256):
-            return HttpResponse('No network found with matching SHA256')
+            return redirect(request, '/networks/', error='No network found with matching Sha')
 
         network = Network.objects.get(sha256=sha256)
         Network.objects.filter(engine=network.engine).update(default=False)
         network.default = True; network.save()
 
-        return django.http.HttpResponseRedirect('/networks/')
+        status = 'Set %s as default for %s' % (network.name, network.engine)
+        return redirect(request, '/networks/', status=status)
 
-    if action.upper() == 'DELETE':
+    if target.upper() == 'DELETE':
 
         if not Network.objects.filter(sha256=sha256):
-            return HttpResponse('No network found with matching SHA256')
+            return redirect(request, '/networks/', error='No network found with matching Sha')
 
-        Network.objects.get(sha256=sha256).delete()
+        network = Network.objects.get(sha256=sha256)
+        status  = 'Deleted %s for %s' % (network.name, network.engine)
+
+        network.delete()
         FileSystemStorage().delete(sha256)
 
-        return django.http.HttpResponseRedirect('/networks/')
+        return redirect(request, '/networks/', status=status)
 
-    if action.upper() == 'DOWNLOAD':
+    if target.upper() == 'DOWNLOAD':
 
         if not Network.objects.filter(sha256=sha256):
-            return HttpResponse('No network found with matching SHA256')
+            return redirect(request, '/networks/', error='No network found with matching Sha')
 
         netfile  = os.path.join(MEDIA_ROOT, sha256)
         fwrapper = FileWrapper(open(netfile, 'rb'), 8192)
@@ -701,23 +659,14 @@ def client_get_network(request, identifier, engine=None):
 
     # Return the requested Neural Network, after resolving the Network name
     if engine is not None:
-        try: sha256 = Network.objects.get(name=identifier, engine=engine).sha256
+        try: identifier = Network.objects.get(name=identifier, engine=engine).sha256
         except: return HttpResponse('Unable to find associated Network')
-        return networks(request, action='DOWNLOAD', sha256=sha256, client=True)
 
     # Return the requested Neural Network file for the Client
     return networks(request, action='DOWNLOAD', sha256=identifier, client=True)
 
 @csrf_exempt
 def client_wrong_bench(request):
-
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-    #                                                                         #
-    #  POST : Inform the server that an Engine reported an incorrect Bench    #
-    #         value during the init process for a Test. We stop the Test and  #
-    #         log an Error into the Events table to indicate what happened    #
-    #                                                                         #
-    # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
     # Pass along any error messages if they appear
     machine, response = client_verify_worker(request)

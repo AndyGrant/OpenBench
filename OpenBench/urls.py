@@ -56,8 +56,8 @@ urlpatterns = [
 
     # Links for viewing and managing Networks
     django.urls.path(r'networks/', OpenBench.views.networks),
-    django.urls.path(r'networks/<str:action>/', OpenBench.views.networks),
-    django.urls.path(r'networks/<str:action>/<str:sha256>/', OpenBench.views.networks),
+    django.urls.path(r'networks/<str:target>/', OpenBench.views.networks),
+    django.urls.path(r'networks/<str:target>/<str:sha256>/', OpenBench.views.networks),
 
     # Links for interacting with OpenBench via scripting
     django.urls.path(r'scripts/', OpenBench.views.scripts),
