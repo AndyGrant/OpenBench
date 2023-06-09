@@ -200,6 +200,52 @@ def profile(request):
 
     return django.http.HttpResponseRedirect('/index/')
 
+def profileConfig(request):
+    if not request.user.is_authenticated:
+        return django.http.HttpResponseRedirect('/login/')
+    
+    if request.method == 'GET':
+        return render(request, 'profile.html')
+
+    profile = Profile.objects.filter(user=request.user)
+    profile = profile.first()
+
+    changes = False # To check if any changes are made.
+    
+    default_status = request.POST.get('default-status', '')
+
+    if default_status != '':
+        # update the default engine
+        profile.engine = default_status
+        changes = True
+    
+    deleted_repos = request.POST.get('deleted-repos', '[]')
+    deleted_repos_array = json.loads(deleted_repos)
+
+    for engine in deleted_repos_array:
+        if engine in profile.repos:
+            del profile.repos[engine]
+            
+    if len(deleted_repos_array) != 0:
+        changes = True
+
+    if 'new-engine-name' in request.POST:
+        if request.POST['new-engine-name'] == "None":
+            return index(request, error="Choose engine can't be None.")
+        elif request.POST['new-engine-name'] != "None" and not request.POST['new-engine-repo'].startswith('https://github.com/'):
+            return index(request, error="Not a valid repository!")
+        elif request.POST['new-engine-name'] != "None" and request.POST['new-engine-repo'].startswith('https://github.com/'):
+            engine_name = request.POST['new-engine-name']
+            engine_repo = request.POST['new-engine-repo']
+            
+            # Append the new engine and repo to the profile's repos field
+            profile.repos[engine_name] = engine_repo
+            changes = True
+    
+    if changes:
+        profile.save() # Save if any changes are made
+
+    return django.http.HttpResponseRedirect('/index/')
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                               TEST LIST VIEWS                               #

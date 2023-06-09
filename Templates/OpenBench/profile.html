@@ -7,42 +7,87 @@
         <div class="form">
             <div class="col">
                 <div class="row">
-                    <label>Username</label><input readonly value="{{profile.user.username}}">
+                    <label>Username</label><input readonly value="{{ profile.user.username }}">
                 </div>
                 <div class="row">
-                    <label>Email</label><input value="{{profile.user.email}}" name="email">
+                    <label>Email</label><input value="{{ profile.user.email }}" name="email">
                 </div>
-                <div class="row">
-                    <label>Source Repo</label><input value="{{profile.repo}}" name="repo">
-                </div>
+                
                 <div class="row">
                     <label>New Password</label><input type="password" name="password1">
                 </div>
                 <div class="row">
                     <label>New Password</label><input type="password" name="password2">
                 </div>
-                <div class="row">
-                    <label>Engine</label>
-                    <select id="engine" name="engine">
-                        {% for engine in config.engines %}
-                            {% if profile.engine == engine %}
-                                <option selected value="{{engine}}">{{engine}}</option>
-                            {% else %}
-                                <option value="{{engine}}">{{engine}}</option>
-                            {% endif %}
-                        {% endfor %}
-                        {% if not profile.engine %}
-                            <option selected value=""></option>
-                        {% endif %}
-                    </select>
-                </div>
                 <input class="anchorbutton btn-blue w-100" type="submit" value="Update Profile">
             </div>
         </div>
-
-
-
-
     </form>
+    <hr>
+    <br>
+    
+    <form method="POST" action="/profileConfig/">
+        {% csrf_token %}
+        <div class="col" id="engines-container">
+            {% for engine, repo in profile.repos.items %}
+            <div class="row" id="engine-row-{{ engine }}">
+                <label>{{ engine }}</label>
+                <input type="text" name="engine-repo-{{ engine }}" value="{{ repo }}">
+                <input id="radio-{{engine}}" type="radio" name="default-status" value="{{ engine }}" {% if profile.engine == engine %}checked{% endif %}>
+                <span onclick="deleteRow(event)">
+                    <i class="fa-solid fa-trash-can" style="color: #ff0000;" data-engine="{{ engine }}"></i>
+                </span>
+            </div>
+            {% endfor %}
+    
+            <div class="row">
+                <select name="new-engine-name">
+                    <option value="None">None</option>
+                    <option selected disabled hidden>Choose an engine</option>
+                    {% for engine in config.engines.keys %}
+                        {% if engine not in profile.repos %}
+                            <option value="{{ engine }}">{{ engine }}</option>
+                        {% endif %}
+                    {% endfor %}
+                </select>
+                <input name="new-engine-repo">
+            </div>
+
+            <input type="hidden" name="deleted-repos" id="deleted-repos" value="[]">
+            <input class="anchorbutton btn-blue w-100" type="submit" name="add-engine" value="Update Engine">
+        </div>
+    </form>
+    
+    <script>
+        function deleteRow(event) {
+            const button = event.currentTarget.querySelector('i');
+            const engine = button.getAttribute('data-engine');
+            const radioId = 'radio-' + engine;
+            const radio = document.getElementById(radioId);
+            
+            if (engine && radio && radio.checked) {
+                // Don't delete default engine.
+                return;
+            }
+            
+            if (engine) {
+                // Perform the delete action here
+                console.log(`Deleting engine: ${engine}`);
+    
+                // Remove the corresponding row from the DOM
+                const row = button.parentNode.parentNode;
+                row.parentNode.removeChild(row);
+
+                // Update the deleted-repos hidden input field with the deleted engine
+                const deletedReposInput = document.getElementById('deleted-repos');
+                let deletedRepos = JSON.parse(deletedReposInput.value);
+                
+                deletedRepos.push(engine);
+                deletedReposInput.value = JSON.stringify(deletedRepos);
+                console.log(deletedRepos);
+            }
+        }
+    </script>
+    
 
 {% endblock %}

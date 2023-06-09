@@ -38,7 +38,7 @@ class Profile(Model):
     user     = ForeignKey(User, PROTECT, related_name='user')
     games    = IntegerField(default=0)
     tests    = IntegerField(default=0)
-    repo     = CharField(max_length=256, blank=True)
+    repos = JSONField()
     engine   = CharField(max_length=128, blank=True)
     enabled  = BooleanField(default=False)
     approver = BooleanField(default=False)

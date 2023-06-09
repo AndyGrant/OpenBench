@@ -27,6 +27,7 @@ urlpatterns = [
     django.urls.path(r'login/', OpenBench.views.login),
     django.urls.path(r'logout/', OpenBench.views.logout),
     django.urls.path(r'profile/', OpenBench.views.profile),
+    django.urls.path(r'profileConfig/', OpenBench.views.profileConfig),
 
     # Links for viewing test tables
     django.urls.path(r'index/', OpenBench.views.index),
