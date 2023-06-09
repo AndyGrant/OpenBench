@@ -141,7 +141,7 @@ class Test(Model):
     updated     = DateTimeField(auto_now=True)
 
     def __str__(self):
-        return '{0} vs {1} @ {2}'.format(self.dev.name, self.base.name, self.dev_timecontrol)
+        return '{0} vs {1} @ {2}'.format(self.dev.name, self.base.name, self.dev_time_control)
 
 class LogEvent(Model):
 
