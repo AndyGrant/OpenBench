@@ -130,7 +130,6 @@ function set_test_mode(mode_str) {
 function set_engine(engine, target) {
 
     document.getElementById(target + "_engine").value = engine;
-    document.getElementById(target + "_branch").value = config.engines[engine].base;
     document.getElementById(target + "_repo"  ).value = repos[engine] || "https://github.com/";
 
     if (target == 'dev') {
@@ -145,6 +144,9 @@ function set_engine(engine, target) {
         document.getElementById("win_adj"    ).value = config.engines[engine].win_adj;
         document.getElementById("draw_adj"   ).value = config.engines[engine].draw_adj;
     }
+
+    else
+        document.getElementById(target + "_branch").value = config.engines[engine].base;
 }
 
 
