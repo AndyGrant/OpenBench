@@ -1,19 +1,74 @@
-body {
-    font-family: "Courier Prime";
-    font-size: 18px;
-    background: #303030;
-}
 
 a:link, a:visited, a:hover, a:active {
     text-decoration: none;
-    color: #FFFFFF;
+    color: #8BBAD6;
+}
+
+body {
+    --color1: #222222;
+    --color2: #2D2D2D;
+    --color3: #3B3B3B;
+
+    --color-font1: #DBDEE1;
+    --color-font2: #949BA4;
+    --color-font3: #008F11;
+
+    background-color: var(--color1);
+
+    font-size: 16px;
+    font-family: "Courier Prime", serif;
+    display:flex;
+}
+
+body, html, main{
+    padding: 0;
+    margin: 0;
+    min-width: 100%;
+    max-width: 100%;
+    white-space: nowrap;
 }
 
 #sidebar {
-    float: left;
-    margin: 16px;
-    margin-top: 60px;
+    padding: 60px 16px 16px 16px;
+    flex-basis: calc(min(300px, max(200px, 15%)));
 }
+
+#content-parent{
+    flex-grow: 1;
+    justify-content: left;
+    height: 100%;
+
+    box-sizing: border-box;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+#content{
+    max-width: calc(min(100%,1000px));
+    width: 100%;
+    white-space: nowrap;
+    display: inline-block;
+}
+
+
+/* Styles for screen widths less than 600px */
+@media (max-width: 599px) {
+    #sidebar {
+        flex-basis: 100%;
+        padding: 16px;
+    }
+
+    #content-parent {
+        height: auto;
+        flex-grow: 0;
+        flex-basis: 100%;
+    }
+
+    body {
+        flex-direction: column;
+    }
+}
+
 
 #sidebar ul {
     list-style-type: none;
@@ -21,200 +76,222 @@ a:link, a:visited, a:hover, a:active {
     line-height: 1.75;
 }
 
-#sidebar li a {
-    color: #A2A2A2;
-    padding: 0px 16px;
+#sidebar li {
+    padding: 4px 16px 2px;
     font-size: 1.0rem;
+    border-radius: 4px;
+    transition: background-color 0.2s ease-in-out;
+}
+
+#sidebar li a {
+    color: var(--color-font2);
 }
 
 #sidebar li:hover {
-    background-color: #666666;
-    border-radius: 8px;
-}
-
-#sidebar .header {
-    color: #00AF00;
-    padding: 0px 16px;
-    font-size: 1.0rem;
-}
-
-#sidebar .header:hover {
     background-color: #303030;
 }
 
-#content {
-    float: left;
-    margin-top: 0;
-    color: #EAEAEA;
-}
-
-#content label {
-    width: 128px;
-    padding-right: 10px;
-    text-align: right;
-    display: inline-block;
-    color: #A2A2A2;
-    font-size: 14px;
-}
-
-#content input, #content select {
-    background-color: #BBBBBB;
-    color: #000000;
-    padding: 10px;
-    margin: 1px 0px;
-    width: 320px;
-    box-sizing: border-box;
-    -moz-box-sizing: border-box;
-    -webkit-box-sizing: border-box;
-}
-
-#content button {
-    padding: 8px 0px;
-    margin: 2px 0px;
-    display: inline-block;
-    vertical-align: middle;
-    width: 290px;
-    background-color: #777777;
-    color: black;
-    border: none;
-    border-radius: 16px;
-    cursor: pointer;
-    font-weight: bold;
-}
-
-#content button:hover {
-    background-color: #00AF00;
-}
-
-#content input[type=submit] {
-    background-color: #00AF00;
-    color: #000000;
-    border: none;
-    border-radius: 16px;
-    cursor: pointer;
-    width: 100%;
-    font-weight: bold;
-}
-
-#content input:read-only {
-    font-weight: bold;
-}
-
-#content input:-moz-read-only {
-    font-weight: bold;
-}
-
-#content #configuration {
-    float: left;
-    margin-top: 20px;
-}
-
-#content #actions {
-    margin-left: 32px;
-    float: right;
-}
-
-#content #actions h4 {
-    color: #A2A2A2;
-    font-size: 15px;
-    font-weight: bold;
-}
-
-#content #actions .anchorbutton {
-    color: #000000;
-    padding: 8px 8px;
-    margin: 0px 8px;
-    border-radius: 16px;
-    font-weight: bold;
-    text-align: center;
-    display: inline-block;
-    width: 25%;
-}
-
-#content #actions .anchorbutton a:hover {
-    background-color: #00AF00;
-}
-
-#content #actions #approvebutton {
-    background-color: #9DF779;
-}
-
-#content #actions #stopbutton {
-    background-color: #EEF788;
-}
-
-#content #actions #restartbutton {
-    background-color: #EEF788;
-}
-
-#content #actions #deletebutton {
-    background-color: #FA8E8E;
-}
-
-#content #actions .deadbutton {
-    background-color: #808080;
+#sidebar .header {
+    color: var(--color-font3);
+    font-size: 1.1rem;
     pointer-events: none;
 }
 
-#content #actions input {
-    width: 260px;
+#sidebar hr {
+    border: 1px var(--color2) solid;
 }
 
-#content #actions input[type=submit] {
-    width: 100%;
+/* Table Striping, with overriding for the Table Header */
+
+#content .stripes tr:nth-child(odd):not(.table-header) {
+    background-color: var(--color1);
 }
 
-#content .left-align {
-    text-align: left;
+#content .stripes tr:nth-child(even):not(.table-header) {
+    background-color: var(--color2);
 }
 
-#content tr:hover {
-    background-color: #666666;
+#content .stripes th {
+    background-color: black;
 }
 
-#content th {
-    color: #00AF00;
-    font-size: 16px;
-    font-weight: 100;
-    padding: 7px 12px 5px 12px;
-    background-color: #000000;
+/* Tables that have hoverable table rows */
+
+#content .hoverable tr:nth-child(odd):hover:not(.table-header) {
+    background-color: #323232;
+}
+
+#content .hoverable tr:nth-child(even):hover:not(.table-header) {
+    background-color: #323232;
+}
+
+#content .hoverable tr:hover{
+    background-color: var(--color1);
+}
+
+/* Tables that are too long can wrap words*/
+
+#content .wrappable td{
+    white-space: pre-wrap;
+    word-break: break-word;
+    word-wrap: break-word;
+}
+
+/* Table Headers in General */
+
+#content .table-header th:first-child {
+    border-top-left-radius: 12px;
+}
+
+#content .table-header th:last-child {
+    border-top-right-radius: 12px;
+}
+
+#content .table-header th {
+    color: var(--color-font3);
+    font-weight: 400;
+    background-color: #171717;
+}
+
+/* Table Spacer for chaining Tables as a hack */
+
+#content .table-spacer th {
+    background-color: var(--color1);
+    height: 1rem;
+}
+
+/* Generic Table CSS for all Tables */
+
+#content table {
+    line-height: 96%;
+    border-collapse: collapse;
 }
 
 #content td {
-    padding: 7px 12px 5px 12px;
+    color: var(--color-font2);
+    border-bottom: 1px #444444 solid;
 }
 
-#content .numeric {
-    text-align: right;
+#content th, #content td {
+    padding: 10px 12px 6px 12px;
 }
 
-#content tr {
-    background-color: #202020;
+#content .anchorbutton {
+    border-radius: 4px;
+    padding: 8px 8px 6px;
+    border-color: transparent;
+    color: var(--color-font1);
+    display: inline-block;
+    text-align: center;
+    transition: background-color 0.3s ease;
+    font-family: "Courier Prime", serif;
 }
 
-#content .table-spacer th {
-    background: #303030;
-    height: 16px;
+#content .btn-blue {
+    background-color: #1C2D40;
 }
+
+#content .btn-start {
+    background-color: #384A5F;
+    width: 100%;
+}
+
+#content .btn-preset {
+    background-color: #046c52;
+}
+
+#content .btn-yellow {
+    background-color: #7A4E09;
+}
+
+#content .btn-red {
+    background-color: #74261E;
+}
+
+#content .btn-disabled {
+    background-color: var(--color3);
+}
+
+#content .btn-blue:hover {
+    background-color: #2E3F57;
+}
+
+#content .btn-start:hover {
+    background-color: #2E3F57;
+}
+
+#content .btn-preset:hover {
+    background-color: #11a983;
+}
+
+#content .btn-yellow:hover {
+    background-color: #9B6B0F;
+}
+
+#content .btn-red:hover {
+    background-color: #8E3D28;
+}
+
+#content .btn-disabled:hover {
+    background-color: var(--color3);
+    cursor: not-allowed;
+    transform: none;
+}
+
+#content .copy-button {
+    color: var(--color-font2);
+    transition: color 0.2s ease-in-out;
+}
+
+#content .copy-button:hover {
+    color: var(--color-font3);
+}
+
+/* Short StatBlock to show SPRT and Test Results */
 
 #content .statblock {
-    line-height: 70%;
+    font-size: 13px;
     color: black;
+    line-height: 96%;
     background-color: #CCCCCC;
-    border-radius: 4px;
     font-family: "Courier New";
+    border-radius: 4px;
+    padding: 9px 10px 6px;
 }
 
-#content .green {
-    background-color: #9DF779
+#content .statblock-green {
+    background-color: #76D576;
 }
 
-#content .yellow {
-    background-color: #EEF788
+#content .statblock-yellow {
+    background-color: #EFF891
 }
 
-#content .red {
-    background-color: #FA8E8E
+#content .statblock-red {
+    background-color: #FA9696
+}
+
+#content .redlink {
+    color: #FF4D4D;
+}
+
+/* Long StatBlock which we can copy */
+
+#content .long-statblock {
+    background-color: var(--color3);
+    color: var(--color-font2);
+    border-radius: 4px;
+    padding: 0.50rem 0.75rem;
+}
+
+/* Test Views */
+
+#content #config {
+    float: left;
+}
+
+#content #actions {
+    float: left;
 }
 
 #content #results {
@@ -222,86 +299,29 @@ a:link, a:visited, a:hover, a:active {
     width: inherit;
 }
 
-#content table {
-    line-height: 96%;
+#content .test-config {
+    font-size: 1.0rem;
 }
 
-#content .textcenter {
-    text-align: center;
+#content .test-config .td-label {
+    color: var(--color-font1);
 }
 
-#content strong {
-    font-size: 14px;
-    font-weight: bold;
+/* ??? */
+
+td pre {
+    margin: 0px;
+    padding: 0px;
 }
 
-#content a:not(.TitleLink) {
-    font-weight: 100;
-    color: #8BBAD6;
+#content .error-message {
+    color: red;
 }
 
-#content a.redlink {
-    color: #FF4D4D;
+#content .status-message {
+    color: green;
 }
 
-#content a.unstarred {
-    color: #808080;
-}
-
-#content h1, h2, h3 {
-    color: #a7a7a7;
-    text-align: center;
-}
-
-#content #pagebrowse {
-    text-align: center;
-    margin: 16px 0px 16px 0px;
-}
-
-#content .page {
-    text-align: center;
-    display: inline-block;
-    padding: 8px 0px;
-    width: 5%;
-    background-color: #1A1A1A;
-    border-radius: 8px;
-}
-
-#content .page:hover {
-    background-color: #00AF00;
-}
-
-#error {
-    background-color: #EE7676;
-    padding: 8px;
-    text-align: center;
-}
-
-#content form h3 {
-    margin-left: 110px;
-    margin-bottom: 2px;
-    font-size: 16px;
-    font-weight: normal;
-    color: #00AF00;
-}
-
-#content h4 a {
-    font-size: 18px;
-}
-
-#content form .settings-column {
-    float: left;
-    padding-bottom: 16px;
-}
-
-#content #test-mode-buttons button {
-    width: 49.8%;
-}
-
-#content #test-mode-buttons .left-floated {
-    float: left;
-}
-
-#content #test-mode-buttons .right-floated {
-    float: right;
+#content .site-title {
+    color: var(--color-font3);
 }

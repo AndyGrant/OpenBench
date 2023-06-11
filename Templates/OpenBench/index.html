@@ -2,33 +2,42 @@
 
 {% block content %}
 
-    <table class="datatable">
+    <table class="test-list stripes hoverable">
 
         <!-- Only show Pending tests for the front page of the Index -->
         {% if paging.page == 1 %}
 
             <!-- Currently Pending tests (Waiting to be approved) -->
             {% if pending %}
-                <tr><th colspan='6'>Pending</th></tr>
+                <tr class="table-header"><th colspan='6'>Pending</th></tr>
                 {% for test in pending %}
                     {% include "OpenBench/Blocks/testsummary.html" %}
                 {% endfor %}
-                <tr class="table-spacer"><th></th></tr>
+                <tr class="table-spacer"><th colspan='6'></th></tr>
+            {% endif %}
+
+            <!-- Currently Awaiting tests (Waiting for Artifacts) -->
+            {% if awaiting %}
+                <tr class="table-header"><th colspan='6'>Awaiting Artifacts</th></tr>
+                {% for test in awaiting %}
+                    {% include "OpenBench/Blocks/testsummary.html" %}
+                {% endfor %}
+                <tr class="table-spacer"><th colspan='6'></th></tr>
             {% endif %}
 
             <!-- Currently Running tests (Waiting to be completed) -->
             {% if active %}
-                <tr><th colspan='6'>Active {{status}}</th></tr>
+                <tr class="table-header"><th colspan='6'>Active {{status}}</th></tr>
                 {% for test in active %}
                     {% include "OpenBench/Blocks/testsummary.html" %}
                 {% endfor %}
-                <tr class="table-spacer"><th></th></tr>
+                <tr class="table-spacer"><th colspan='6'></th></tr>
             {% endif %}
 
         {% endif %}
 
         <!-- Tests which have already finished -->
-        <tr><th colspan='6'>Finished</th></tr>
+        <tr class="table-header"><th colspan='6'>Finished</th></tr>
         {% for test in completed %}
             {% include "OpenBench/Blocks/testsummary.html" %}
         {% endfor %}

@@ -1,11 +1,16 @@
 {% load mytags %}
 <tr>
     <td><a href="/user/{{test.author}}">{{test.author|capfirst|slice:":6"}}</a></td>
-    <td>{{test.engine}}</td>
-    {% if test.error %} <td><a href="/test/{{test.id}}"><span style="color: red">[x]</span> {{test|prettyDevName}}</a></td>
-    {% elif  test|testIsFRC %} <td><a href="/test/{{test.id}}">{{test|prettyDevName}}<span style="color: green">[FRC]</span></a></td>
-    {% else %} <td><a href="/test/{{test.id}}">{{test|prettyDevName}}</a></td> {% endif %}
+    <td>{{test.dev_engine}}</td>
+    <td>
+        <a href="/test/{{test.id}}">{{test|prettyDevName}}</a>
+        {% if test.error %} <span style="color: red">*</span> {% endif %}
+        {% if test|testIsFRC %} <span style="color: green">*</span> {% endif %}
+    </td>
     <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
-    <td>{{test.timecontrol}}</td>
-    <td class='statblock {{test|testResultColour}}'><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
+    <td>
+        {{test.dev_time_control}}
+        {% if test.dev_time_control != test.base_time_control %} <span style="color: yellow">*</span> {% endif %}
+    </td>
+    <td class='statblock statblock-{{test|testResultColour}}'><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
 </tr>

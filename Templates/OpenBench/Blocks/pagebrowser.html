@@ -1,13 +1,15 @@
-<div id="pagebrowse">
+<div class="mt-3" id="pagebrowse">
     {% if paging.prev != paging.next %}
-        <a class="page" href="/{{paging.url}}/{{paging.prev}}">&lt;--</a>
-        {% for page in paging.pages %}
-            {% if page != "..." %}
-                <a class="page" href="/{{paging.url}}/{{page}}">{{page}}</a>
-            {% else %}
-                <a class="page"> {{page}} </a>
-            {% endif %}
-        {% endfor %}
-        <a class="page" href="/{{paging.url}}/{{paging.next}}">--&gt;</a>
+        <div class="pagination">
+            <a class="page previous" href="/{{ paging.url }}/{{ paging.prev }}">
+                <i class="fa-solid fa-arrow-left"></i>
+            </a>
+            <div class="pages">
+                {% for page in paging.pages %}{% if page != "..." %}<a class="page" href="/{{ paging.url }}/{{ page }}">{{ page }}</a>{% else %}<span class="page ellipsis"><i class="fa-solid fa-fw fa-1x fa-ellipsis"></i></span>{% endif %}{% endfor %}
+            </div>
+            <a class="page next" href="/{{ paging.url }}/{{ paging.next }}">
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        </div>
     {% endif %}
 </div>

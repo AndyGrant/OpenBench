@@ -23,7 +23,11 @@ SECRET_KEY = '@!zw2l8til1(0eb_nk+1w!(n78gqm&u)s)_v7#k6iseia@g9q0'
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-HTML_MINIFY = True
+
+HTML_MINIFY   = True
+APPEND_SLASH  = True
+
+DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 
 # Application definition
 
@@ -36,14 +40,14 @@ MEDIA_URL  = '/Media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'Media')
 
 INSTALLED_APPS = [
+    'OpenBench',
+    'OpenBench.templatetags',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'OpenBench',
-    'OpenBench.templatetags',
 ]
 
 MIDDLEWARE = [

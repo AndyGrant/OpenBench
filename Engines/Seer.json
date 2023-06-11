@@ -1,0 +1,48 @@
+{
+    "private"  : false,
+    "nps"      : 736000,
+    "base"     : "main",
+    "source"   : "https://github.com/connormcmonigle/seer-nnue",
+
+    "bounds"   : "[0.00, 5.00]",
+    "book"     : "Pohl.epd",
+    "win_adj"  : "movecount=3 score=400",
+    "draw_adj" : "movenumber=40 movecount=8 score=10",
+
+    "build" : {
+        "path"      : "build",
+        "compilers" : ["g++>=9.0.0"],
+        "cpuflags"  : ["AVX2", "FMA", "POPCNT"]
+    },
+
+    "testmodes" : {
+
+        "STC" : {
+            "options"       : "Threads=1 Hash=32",
+            "timecontrol"   : "8.0+0.08",
+            "report_rate"   : 16,
+            "workload_size" : 32
+        },
+
+        "LTC" : {
+            "options"       : "Threads=1 Hash=64",
+            "timecontrol"   : "40.0+0.4",
+            "report_rate"   : 4,
+            "workload_size" : 8
+        },
+
+        "SMP STC" : {
+            "options"       : "Threads=8 Hash=64",
+            "timecontrol"   : "5.0+0.05",
+            "report_rate"   : 1,
+            "workload_size" : 64
+        },
+
+        "SMP LTC" : {
+            "options"       : "Threads=8 Hash=256",
+            "timecontrol"   : "20.0+0.2",
+            "report_rate"   : 1,
+            "workload_size" : 16
+        }
+    }
+}

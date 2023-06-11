@@ -5,18 +5,22 @@
     {% load static %}
 
     <head>
-        <link rel="stylesheet" href="{% static 'style.css' %}">
         <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
+        <link rel="stylesheet" href="{% static 'style.css' %}">
+        <link rel="stylesheet" href="{% static 'base.css' %}">
+        <link rel="stylesheet" href="{% static 'form.css' %}">
+        <link rel="stylesheet" href="{% static 'paging.css' %}">
         <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css' rel='stylesheet'>
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,200;0,400;1,100&amp;display=swap" rel="stylesheet">
+
         <link rel="preconnect" href="https://fonts.gstatic.com">
         <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
 
         <title>OpenBench</title>
-        <script>
-            {% block scripts %}
-            {% endblock %}
 
+        {% block scripts %}
+        {% endblock %}
+
+        <script>
             document.addEventListener('DOMContentLoaded', function() {
 
                 var timestamps = document.getElementsByClassName('timestamp');
@@ -38,13 +42,6 @@
     </head>
 
     <body>
-
-        <!-- Views may return an error message -->
-        {% if error %}
-            <div id="error">
-                <pre>{{error}}</pre>
-            </div>
-        {% endif %}
 
         <div id="sidebar">
 
@@ -82,6 +79,7 @@
                 <li class="header">Info</li>
                 <li><a href="/users"><i class="fa-solid fa-users fa-fw"></i> Users</a></li>
                 <li><a href="/events"><i class="fa-solid fa-circle-exclamation fa-fw"></i> Events</a></li>
+                <li><a href="/errors"><i class="fa-solid fa-exclamation-triangle fa-fw"></i> Errors</a></li>
                 <li><a href="/machines"><i class="fa-solid fa-microchip fa-fw"></i> Machines</a></li>
                 <li><a href="/networks"><i class="fa-solid fa-circle-nodes fa-fw"></i> Networks</a></li>
             </ul>
@@ -98,7 +96,7 @@
 
             <ul>
                 <li class="header">Engines</li>
-                {% for engine, data in config.engines.items|dictsort:"0.lower" %}
+                {% for engine, data in config.engines.items %}
                     <li><a href="{{data.source}}">{{engine}}</a></li>
                 {% endfor %}
             </ul>
@@ -107,11 +105,27 @@
 
         </div>
 
-        <div id="content">
-            <h2> <a class="TitleLink" href="/">OpenBench Testing Framework</a></h2>
-            {% block content %}
-            {% endblock %}
-        </div>
+        <div id="content-parent">
+            <div id="content" class="pb-5">
+                <h2>
+                    <a class="site-title" href="/">OpenBench Testing Framework</a>
+                </h2>
 
+                {% if request.session.error_message %}
+                    <div class="error-message">
+                        <pre>{{request.session.error_message}}</pre>
+                    </div>
+                {% endif %}
+
+                {% if request.session.status_message %}
+                    <div class="status-message">
+                        <pre>{{request.session.status_message}}</pre>
+                    </div>
+                {% endif %}
+
+                {% block content %}
+                {% endblock %}
+            </div>
+        </div>
     </body>
 </html>

@@ -5,59 +5,63 @@
 
 {% block scripts %}
 
-    var Networks = [
-        {% for network in networks %}
-            {
-                'default' : "{{network.default}}",
-                'engine'  : "{{network.engine}}",
-                'author'  : "{{network.author|capfirst}}",
-                'name'    : "{{network.name}}",
-                'hash'    : "{{network.sha256}}",
-            },
-        {% endfor %}
-    ];
+    <script>
 
-    var Network_Sorting;
+        var Networks = [
+            {% for network in networks %}
+                {
+                    'default' : "{{network.default}}",
+                    'engine'  : "{{network.engine}}",
+                    'author'  : "{{network.author|capfirst}}",
+                    'name'    : "{{network.name}}",
+                    'hash'    : "{{network.sha256}}",
+                },
+            {% endfor %}
+        ];
 
-    function swap_networks(index1, index2) {
+        var Network_Sorting;
 
-        var temp = Networks[index1];
-        Networks[index1] = Networks[index2];
-        Networks[index2] = temp;
+        function swap_networks(index1, index2) {
 
-        var table = document.getElementById("network-table");
-        var temp_row = table.rows[index1+1].innerHTML
-        table.rows[index1+1].innerHTML = table.rows[index2+1].innerHTML;
-        table.rows[index2+1].innerHTML = temp_row;
-    }
+            var temp = Networks[index1];
+            Networks[index1] = Networks[index2];
+            Networks[index2] = temp;
 
-    function invert_networks() {
-        for (let i = 0; Networks.length > i * 2; i++)
-            swap_networks(i, Networks.length-i-1);
-    }
+            var table = document.getElementById("network-table");
+            var temp_row = table.rows[index1+1].innerHTML
+            table.rows[index1+1].innerHTML = table.rows[index2+1].innerHTML;
+            table.rows[index2+1].innerHTML = temp_row;
+        }
 
-    function sort_networks(field) {
+        function invert_networks() {
+            for (let i = 0; Networks.length > i * 2; i++)
+                swap_networks(i, Networks.length-i-1);
+        }
 
-        if (Network_Sorting == field)
-            return invert_networks();
+        function sort_networks(field) {
 
-        for (let i = 0; i != Networks.length; i++)
-            for (let j = i + 1; j != Networks.length; j++)
-                if (Networks[j][field] > Networks[i][field])
-                    swap_networks(i, j);
+            if (Network_Sorting == field)
+                return invert_networks();
 
-        Network_Sorting = field;
-    };
+            for (let i = 0; i != Networks.length; i++)
+                for (let j = i + 1; j != Networks.length; j++)
+                    if (Networks[j][field] > Networks[i][field])
+                        swap_networks(i, j);
 
-    document.addEventListener('DOMContentLoaded', function () { sort_networks("default"); }, false);
+            Network_Sorting = field;
+        };
+
+        document.addEventListener('DOMContentLoaded', function () { sort_networks("default"); }, false);
+
+    </scrpipt>
 
 {% endblock %}
 
 {% block content %}
 
-    <table id="network-table">
+    <table id="network-table" class="hoverable">
 
-        <tr>
+        <tr class="table-header">
             <th onclick=sort_networks("default")></th>
             <th onclick=sort_networks("engine")>Engine</th>
             <th onclick=sort_networks("author")>Uploader</th>

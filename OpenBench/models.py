@@ -19,7 +19,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 from django.db.models import CharField, IntegerField, BooleanField, FloatField
-from django.db.models import ForeignKey, DateTimeField, OneToOneField
+from django.db.models import JSONField, ForeignKey, DateTimeField, OneToOneField
 from django.db.models import CASCADE, PROTECT, Model
 from django.contrib.auth.models import User
 
@@ -38,7 +38,7 @@ class Profile(Model):
     user     = ForeignKey(User, PROTECT, related_name='user')
     games    = IntegerField(default=0)
     tests    = IntegerField(default=0)
-    repo     = CharField(max_length=256, blank=True)
+    repos    = JSONField(default=dict)
     engine   = CharField(max_length=128, blank=True)
     enabled  = BooleanField(default=False)
     approver = BooleanField(default=False)
@@ -50,15 +50,14 @@ class Profile(Model):
 class Machine(Model):
 
     user     = ForeignKey(User, PROTECT, related_name='owner')
-    osname   = CharField(max_length=128)
-    threads  = IntegerField(default=0)
     mnps     = FloatField(default=0.00)
     updated  = DateTimeField(auto_now=True)
-    lastaddr = CharField(max_length=64, default='None')
-    workload = ForeignKey('Test', PROTECT, related_name='workload', default=1)
+    secret   = CharField(max_length=64, default='None')
+    info     = JSONField()
+    workload = IntegerField(default=0)
 
     def __str__(self):
-        return '{0}-{1} ({2})'.format(self.user.username, self.osname, self.id)
+        return '[%d] %s' % (self.id, self.user.username)
 
 class Result(Model):
 
@@ -77,61 +76,72 @@ class Result(Model):
 
 class Test(Model):
 
-    author      = CharField(max_length=64)
-    engine      = CharField(max_length=64)
-    test_mode   = CharField(max_length=16, default='SPRT')
+    # Misc information
+    author    = CharField(max_length=64)
+    book_name = CharField(max_length=32)
 
-    dev         = ForeignKey('Engine', PROTECT, related_name='dev')
-    base        = ForeignKey('Engine', PROTECT, related_name='base')
-    source      = CharField(max_length=1024)
+    # Dev Engine, and all of its settings
+    dev              = ForeignKey('Engine', PROTECT, related_name='dev')
+    dev_repo         = CharField(max_length=1024)
+    dev_engine       = CharField(max_length=64)
+    dev_options      = CharField(max_length=256)
+    dev_network      = CharField(max_length=256)
+    dev_netname      = CharField(max_length=256)
+    dev_time_control = CharField(max_length=32)
 
-    devoptions  = CharField(max_length=256)
-    baseoptions = CharField(max_length=256)
+    # Base Engine, and all of its settings
+    base              = ForeignKey('Engine', PROTECT, related_name='base')
+    base_repo         = CharField(max_length=1024)
+    base_engine       = CharField(max_length=64)
+    base_options      = CharField(max_length=256)
+    base_network      = CharField(max_length=256)
+    base_netname      = CharField(max_length=256)
+    base_time_control = CharField(max_length=32)
 
-    devnetwork  = CharField(max_length=256)
-    basenetwork = CharField(max_length=256)
+    # Changable Test Parameters
+    report_rate   = IntegerField(default=8)
+    workload_size = IntegerField(default=32)
+    priority      = IntegerField(default=0)
+    throughput    = IntegerField(default=0)
 
-    devnetname  = CharField(max_length=256)
-    basenetname = CharField(max_length=256)
-
-    bookname    = CharField(max_length=32)
-    timecontrol = CharField(max_length=16)
-
-    priority    = IntegerField(default=0)
-    throughput  = IntegerField(default=0)
-
-    syzygy_adj  = CharField(max_length=16, default='OPTIONAL')
+    # Tablebases and Cutechess adjudicatoins
     syzygy_wdl  = CharField(max_length=16, default='OPTIONAL')
+    syzygy_adj  = CharField(max_length=16, default='OPTIONAL')
+    win_adj     = CharField(max_length=64, default='movecount=3 score=400')
+    draw_adj    = CharField(max_length=64, default='movenumber=40 movecount=8 score=10')
 
-    # Only for SPRT Tests
-    elolower    = FloatField(default=0.0)
-    eloupper    = FloatField(default=0.0)
-    alpha       = FloatField(default=0.0)
-    beta        = FloatField(default=0.0)
-    lowerllr    = FloatField(default=0.0)
-    currentllr  = FloatField(default=0.0)
-    upperllr    = FloatField(default=0.0)
+    # Test Mode specific values, either SPRT or GAMES
+    test_mode   = CharField(max_length=16, default='SPRT')
+    elolower    = FloatField(default=0.0) # SPRT
+    eloupper    = FloatField(default=0.0) # SPRT
+    alpha       = FloatField(default=0.0) # SPRT
+    beta        = FloatField(default=0.0) # SPRT
+    lowerllr    = FloatField(default=0.0) # SPRT
+    currentllr  = FloatField(default=0.0) # SPRT
+    upperllr    = FloatField(default=0.0) # SPRT
+    max_games   = IntegerField(default=0) # GAMES
 
-    # Only for Fixed-Games Tests
-    max_games   = IntegerField(default=0)
-
+    # Summary of all associated result objects
     games       = IntegerField(default=0)
     wins        = IntegerField(default=0)
     draws       = IntegerField(default=0)
     losses      = IntegerField(default=0)
     error       = BooleanField(default=False)
 
+    # All status flags associated with the test
     passed      = BooleanField(default=False)
     failed      = BooleanField(default=False)
     finished    = BooleanField(default=False)
     deleted     = BooleanField(default=False)
     approved    = BooleanField(default=False)
+    awaiting    = BooleanField(default=False)
 
+    # Datetime house keeping for meta data
     creation    = DateTimeField(auto_now_add=True)
     updated     = DateTimeField(auto_now=True)
 
     def __str__(self):
-        return '{0} vs {1} @ {2}'.format(self.dev.name, self.base.name, self.timecontrol)
+        return '{0} vs {1} @ {2}'.format(self.dev.name, self.base.name, self.dev_time_control)
 
 class LogEvent(Model):
 

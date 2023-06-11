@@ -19,7 +19,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import re, django
-import OpenBench.utils, OpenBench.stats, OpenBench.models
+import OpenBench.config, OpenBench.utils, OpenBench.stats, OpenBench.models
 
 
 def oneDigitPrecision(value):
@@ -51,15 +51,21 @@ def gitDiffLink(test):
         base    = test['base']['source']
         devsha  = test['dev']['sha']
         basesha = test['base']['sha']
+        engine  = test['dev_engine']
 
     else:
         dev     = test.dev.source
         base    = test.base.source
         devsha  = test.dev.sha
         basesha = test.base.sha
+        engine  = test.dev_engine
 
-    repo = OpenBench.utils.pathjoin(*dev.split('/')[:-2])
-    return OpenBench.utils.pathjoin(repo, 'compare',
+    if OpenBench.config.OPENBENCH_CONFIG['engines'][engine]['private']:
+        repo = OpenBench.config.OPENBENCH_CONFIG['engines'][engine]['source']
+    else:
+        repo = OpenBench.utils.path_join(*dev.split('/')[:-2])
+
+    return OpenBench.utils.path_join(repo, 'compare',
         '{0}...{1}'.format(basesha[:8], devsha[:8]))
 
 def shortStatBlock(test):
@@ -90,9 +96,8 @@ def shortStatBlock(test):
 
 def longStatBlock(test):
 
-    tokens = test.devoptions.split(' ')
-    threads = tokens[0].split('=')[1]
-    hash = tokens[1].split('=')[1]
+    threads = OpenBench.utils.extract_option(test.dev_options, 'Threads')
+    hash    = OpenBench.utils.extract_option(test.dev_options, 'Hash')
 
     lower, elo, upper = OpenBench.stats.ELO(test.wins, test.losses, test.draws)
     error = max(upper - elo, elo - lower)
@@ -102,21 +107,24 @@ def longStatBlock(test):
 
     if test.test_mode == 'SPRT':
 
-        lowerllr   = twoDigitPrecision(test.lowerllr)
-        currentllr = twoDigitPrecision(test.currentllr)
-        upperllr   = twoDigitPrecision(test.upperllr)
-        elolower   = twoDigitPrecision(test.elolower)
-        eloupper   = twoDigitPrecision(test.eloupper)
+        lowerllr    = twoDigitPrecision(test.lowerllr)
+        currentllr  = twoDigitPrecision(test.currentllr)
+        upperllr    = twoDigitPrecision(test.upperllr)
+        elolower    = twoDigitPrecision(test.elolower)
+        eloupper    = twoDigitPrecision(test.eloupper)
+        timecontrol = test.dev_time_control + ['s', '']['=' in test.dev_time_control]
 
         return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
-             + 'SPRT  | {0}s Threads={1} Hash={2}MB\n'.format(test.timecontrol, threads, hash) \
+             + 'SPRT  | {0} Threads={1} Hash={2}MB\n'.format(timecontrol, threads, hash) \
              + 'LLR   | {0} ({1}, {2}) [{3}, {4}]\n'.format(currentllr, lowerllr, upperllr, elolower, eloupper) \
              + 'GAMES | N: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
 
     if test.test_mode == 'GAMES':
 
+        timecontrol = test.dev_time_control + ['s', '']['=' in test.dev_time_control]
+
         return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
-             + 'CONF  | {0}s Threads={1} Hash={2}MB\n'.format(test.timecontrol, threads, hash) \
+             + 'CONF  | {0} Threads={1} Hash={2}MB\n'.format(timecontrol, threads, hash) \
              + 'GAMES | N: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
 
 def testResultColour(test):
@@ -140,13 +148,26 @@ def prettyName(name):
     return name
 
 def prettyDevName(test):
-    if test.dev.name == test.base.name and test.devnetname != '':
-        try: return OpenBench.models.Network.objects.get(sha256=test.devnetwork).name
-        except: return test.devnetname # File has since been deleted ?
+
+    # If engines are different, use the base name + branch
+    if test.dev_engine != test.base_engine:
+        return '[%s] %s' % (test.base_engine, test.base.name)
+
+    # If testing different Networks, possibly use the Network name
+    if test.dev.name == test.base.name and test.dev_netname != '':
+
+        # Nets match as well, so revert back to the branch name
+        if test.dev_network == test.base_network:
+            return prettyName(test.dev.name)
+
+        # Use the network's name, if we still have it saved
+        try: return OpenBench.models.Network.objects.get(sha256=test.dev_network).name
+        except: return test.dev_netname # File has since been deleted ?
+
     return prettyName(test.dev.name)
 
 def testIsFRC(test):
-    return "FRC" in test.bookname.upper() or "960" in test.bookname.upper()
+    return "FRC" in test.book_name.upper() or "960" in test.book_name.upper()
 
 def resolveNetworkURL(sha256):
     if OpenBench.models.Network.objects.filter(sha256=sha256):
@@ -157,7 +178,40 @@ def testIdToPrettyName(test_id):
     return prettyName(OpenBench.models.Test.objects.get(id=test_id).dev.name)
 
 def testIdToTimeControl(test_id):
-    return OpenBench.models.Test.objects.get(id=test_id).timecontrol
+    return OpenBench.models.Test.objects.get(id=test_id).dev_time_control
+
+def cpuflagsBlock(machine, N=8):
+
+    reported = []
+    flags    = machine.info['cpu_flags']
+
+    general_flags   = ['BMI2', 'POPCNT']
+    broad_avx_flags = ['AVX2', 'AVX', 'SSE4_2', 'SSE4_1', 'SSSE3']
+
+    for flag in general_flags:
+        if flag in flags:
+            reported.append(flag)
+            break
+
+    for flag in broad_avx_flags:
+        if flag in flags:
+            reported.append(flag)
+            break
+
+    for flag in flags:
+        if flag not in general_flags and flag not in broad_avx_flags:
+            reported.append(flag)
+
+    return ' '.join(reported)
+
+def compilerBlock(machine):
+    string = ''
+    for engine, info in machine.info['compilers'].items():
+        string += '%-16s %-8s (%s)\n' % (engine, info[0], info[1])
+    return string
+
+def removePrefix(value, prefix):
+    return value.removeprefix(prefix)
 
 register = django.template.Library()
 register.filter('oneDigitPrecision', oneDigitPrecision)
@@ -174,3 +228,6 @@ register.filter('testIsFRC', testIsFRC)
 register.filter('resolveNetworkURL', resolveNetworkURL)
 register.filter('testIdToPrettyName', testIdToPrettyName)
 register.filter('testIdToTimeControl', testIdToTimeControl)
+register.filter('cpuflagsBlock', cpuflagsBlock)
+register.filter('compilerBlock', compilerBlock)
+register.filter('removePrefix', removePrefix)

@@ -20,5 +20,5 @@
 
 import django.apps
 
-class OpenbenchConfig(django.apps.AppConfig):
+class OpenBench(django.apps.AppConfig):
     name = 'OpenBench'

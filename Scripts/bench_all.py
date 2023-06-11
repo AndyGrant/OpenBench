@@ -100,7 +100,6 @@ def build_all_engines():
         os.mkdir('Binaries')
 
     for engine, config in OPENBENCH_CONFIG['engines'].items():
-
         if USE_OLD_BINARIES and os.path.isfile('Binaries/' + engine):
             continue
 

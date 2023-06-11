@@ -3,45 +3,85 @@
 {% load mytags %}
 
 {% block style %}
-{% load static %}
+{% endblock %}
+
+{% block scripts %}
+
+    <script>
+
+        function copy_statblock() {
+
+            var text = document.getElementById("long-statblock").innerHTML;
+            text = text.replace(/<br>/g, "\n");
+            text += "\n" + window.location.href;
+
+            // navigator.clipboard.writeText(text); // Optimal solution
+
+            // Suboptimal, HTTP solution
+
+            var area = document.createElement("textarea");
+            area.value = text;
+            document.body.append(area);
+
+            area.focus();
+            area.select();
+
+            try {
+                document.execCommand("copy");
+                document.body.removeChild(area);
+            }
+
+            catch (err) {
+                document.body.removeChild(area);
+                console.error("Unable to copy to Clipboard");
+            }
+        }
+
+    </script>
+
 {% endblock %}
 
 {% block content %}
 
-    <div id="configuration">
-        <table class="datatable left-align">
-            <tr><th>Author</th><td>{{test.author|capfirst}}</td></tr>
-            <tr><th>Creation</th><td class="timestamp">{{test.creation|date:'U'}}</td></tr>
-            <tr><th>Engine</th><td>{{test.engine}}</td></tr>
-            <tr><th>Dev Branch</th><td>{{test.dev.name|prettyName}}</td></tr>
-            <tr><th>Dev Bench</th><td>{{test.dev.bench}}</td></tr>
-            <tr><th>Dev Options</th><td>{{test.devoptions}}</td></tr>
-            <tr><th>Dev Sha</th><td>{{test.dev.sha}}</td></tr>
-            {% if test.devnetwork %}
-            <tr>
-                <th>Dev Network</th>
-                <td><a href="{{test.devnetwork|resolveNetworkURL}}">{{test.devnetname}}</td>
-            </tr>
-            {% endif %}
-            <tr><th>Base Branch</th><td>{{test.base.name|prettyName}}</td></tr>
-            <tr><th>Base Bench</th><td>{{test.base.bench}}</td></tr>
-            <tr><th>Base Options</th><td>{{test.baseoptions}}</td></tr>
-            <tr><th>Base Sha</th><td>{{test.base.sha}}</td></tr>
-            {% if test.basenetwork %}
-            <tr>
-                <th>Base Network</th>
-                <td><a href="{{test.basenetwork|resolveNetworkURL}}">{{test.basenetname}}</td>
-            </tr>
-            {% endif %}
-            <tr><th>Source Repo</th><td><a href="{{test.source}}">{{test.source}}</a></td></tr>
-            <tr><th>Opening Book</th><td><a href="{{config.framework}}/raw/master/Books/">{{test.bookname}}</a></td></tr>
+    <div id="config" style="display: block; overflow-x: auto;">
+        <table class="test-config left-align wrappable" style="table-layout: auto; width: 100%;">
+            <tr><td class="td-label">Author</td><td>{{test.author|capfirst}}</td></tr>
+            <tr><td class="td-label">Creation</td><td class="timestamp">{{test.creation|date:'U'}}</td></tr>
 
-            <tr><th>Syzygy ADJ</th><td>{{test.syzygy_adj}}</td></tr>
-            <tr><th>Syzygy WDL</th><td>{{test.syzygy_wdl}}</td></tr>
+            <tr><td class="td-label">Dev Engine</td><td>{{test.dev_engine}}</td></tr>
+            <tr><td class="td-label">Dev Source</td><td><a href="{{test.dev_repo}}">{{test.dev_repo}}</a></td></tr>
+            <tr><td class="td-label">Dev Sha</td><td>{{test.dev.sha}}</td></tr>
+            <tr><td class="td-label">Dev Branch</td><td>{{test.dev.name|prettyName}}</td></tr>
+            <tr><td class="td-label">Dev Bench</td><td>{{test.dev.bench}}</td></tr>
+            {% if test.dev_network %}
+            <tr>
+                <td class="td-label">Dev Network</td>
+                <td><a href="{{test.devnetwork|resolveNetworkURL}}">{{test.dev_netname}}</td>
+            </tr> {% endif %}
+            <tr><td class="td-label">Dev Options</td><td>{{test.dev_options}}</td></tr>
+            <tr><td class="td-label">Dev Time</td><td>{{test.dev_time_control}}</td></tr>
+
+            <tr><td class="td-label">Base Engine</td><td>{{test.base_engine}}</td></tr>
+            <tr><td class="td-label">Base Source</td><td><a href="{{test.base_repo}}">{{test.base_repo}}</a></td></tr>
+            <tr><td class="td-label">Base Sha</td><td>{{test.base.sha}}</td></tr>
+            <tr><td class="td-label">Base Bench</td><td>{{test.base.bench}}</td></tr>
+            {% if test.base_network %}
+            <tr>
+                <td class="td-label">Base Network</td>
+                <td><a href="{{test.basenetwork|resolveNetworkURL}}">{{test.base_netname}}</td>
+            </tr> {% endif %}
+            <tr><td class="td-label">Base Options</td><td>{{test.base_options}}</td></tr>
+            <tr><td class="td-label">Base Time</td><td>{{test.base_time_control}}</td></tr>
+
+            <tr><td class="td-label">Opening Book</td><td><a href="{{config.framework}}raw/master/Books/{{test.bookname}}.zip">{{test.book_name}}</a></td></tr>
+            <tr><td class="td-label">Syzygy WDL</td><td>{{test.syzygy_wdl}}</td></tr>
+            <tr><td class="td-label">Syzygy ADJ.</td><td>{{test.syzygy_adj}}</td></tr>
+            <tr><td class="td-label">Win ADJ.</td><td>{{test.win_adj}}</td></tr>
+            <tr><td class="td-label">Draw ADJ.</td><td>{{test.draw_adj}}</td></tr>
         </table>
     </div>
 
-    <div id="actions">
+    <div id="actions" class="ml-3">
 
         <!-- Dev vs Base [Git Diff Link] -->
         <h4><a href="{{test|gitDiffLink}}">
@@ -50,70 +90,78 @@
 
         <!-- Approve Button: For Admins, or Cross-approvers -->
         {% if not test.approved and profile.approver and profile.user.username != test.author %}
-        <a class="anchorbutton" id="approvebutton" href="/test/{{test.id}}/APPROVE">Approve</a>
+        <a class="w-25 mr-2 anchorbutton btn-blue" href="/test/{{test.id}}/APPROVE">Approve</a>
         {% elif not test.approved and request.user.is_superuser %}
-        <a class="anchorbutton" id="approvebutton" href="/test/{{test.id}}/APPROVE">Approve</a>
+        <a class="w-25 mr-2 anchorbutton btn-blue" href="/test/{{test.id}}/APPROVE">Approve</a>
         {% else %}
-        <a class="anchorbutton deadbutton">Approve</a>
+        <a class="w-25 mr-2 anchorbutton btn-disabled">Approve</a>
         {% endif %}
 
         <!-- Restart Button: For Approvers or Test Authors of finished tests -->
         {% if test.finished and profile.approver %}
-        <a class="anchorbutton" id="stopbutton" href="/test/{{test.id}}/RESTART">Restart</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/RESTART">Restart</a>
         {% elif test.finished and profile.user.username == test.author %}
-        <a class="anchorbutton" id="stopbutton" href="/test/{{test.id}}/RESTART">Restart</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/RESTART">Restart</a>
         {% elif test.finished %}
-        <a class="anchorbutton deadbutton">Restart</a>
+        <a class="w-25 mr-2 anchorbutton btn-disabled">Restart</a>
         {% endif %}
 
         <!-- Stop Button: For Approvers or Test Authors of active tests -->
         {% if not test.finished and profile.approver %}
-        <a class="anchorbutton" id="restartbutton" href="/test/{{test.id}}/STOP">Stop</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/STOP">Stop</a>
         {% elif not test.finished and profile.user.username == test.author %}
-        <a class="anchorbutton" id="restartbutton" href="/test/{{test.id}}/STOP">Stop</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/STOP">Stop</a>
         {% elif not test.finished %}
-        <a class="anchorbutton deadbutton">Stop</a>
+        <a class="w-25 mr-2 anchorbutton btn-disabled">Stop</a>
         {% endif %}
 
         <!-- Delete Button: For Approvers or Test Authors -->
         {% if profile.approver or profile.user.username == test.author %}
-        <a class="anchorbutton" id="deletebutton" href="/test/{{test.id}}/DELETE">Delete</a>
+        <a class="w-25 mr-2 anchorbutton btn-red" href="/test/{{test.id}}/DELETE">Delete</a>
         {% else %}
-        <a class="anchorbutton deadbutton">Delete</a>
+        <a class="w-25 mr-2 anchorbutton btn-disabled">Delete</a>
         {% endif %}
 
+        <a class="copy-button" onclick="copy_statblock()">
+            <i class="fa-regular fa-clone copy-button"></i>
+        </a>
+
         <!-- Elo, (SPRT/LRR if SPRT, otherwise CONF), Games -->
-        <pre>{{test|longStatBlock|linebreaksbr}}</pre>
+        <pre class="long-statblock" id="long-statblock">{{test|longStatBlock|linebreaksbr}}</pre>
 
         <!-- Forum to modify the Priority or Throughput -->
         <form method="POST" action="/test/{{test.id}}/MODIFY">
-
             {% csrf_token %}
-
-            <label>Priority</label><input value="{{test.priority}}" name="priority"><br>
-            <label>Throughput</label><input value="{{test.throughput}}" name="throughput"><br>
-
-            <!-- Edit Button: For Approvers or Test Authors -->
-            {% if profile.approver or profile.user.username == test.author %}
-            <input type="submit" name="submit" value="Modify">
-            {% else %}
-            <input class="deadbutton" type="submit" name="submit" value="Modify">
-            {% endif %}
-
+            <div class="form">
+                <div class="col-full">
+                    <div class="row">
+                        <label>Priority</label><input value="{{test.priority}}" name="priority">
+                    </div>
+                    <div class="row">
+                        <label>Throughput</label><input value="{{test.throughput}}" name="throughput">
+                    </div>
+                    <div class="row">
+                        <label>Report Rate</label><input value="{{test.report_rate}}" name="report_rate">
+                    </div>
+                    <div class="row">
+                        <label>Workload Size</label><input value="{{test.workload_size}}" name="workload_size">
+                    </div>
+                    <!-- Edit Button: For Approvers or Test Authors -->
+                    {% if profile.approver or profile.user.username == test.author %}
+                    <input class="anchorbutton btn-blue w-100" type="submit" name="submit" value="Modify">
+                    {% else %}
+                    <input class="anchorbutton btn-disabled w-100" type="submit" name="submit" value="Modify">
+                    {% endif %}
+                </div>
+            </div>
         </form>
-
     </div>
 
-    <br>
-
-    <div id="results">
-
-        <table class="datatable">
-
-            <tr>
+    <div id="results" class="w-100 mt-3" style="float:left;">
+        <table class="stripes wrappable">
+            <tr class="table-header">
                 <th>#</th>
                 <th>User</th>
-                <th>OS</th>
                 <th>Updated</th>
                 <th style="width: 60px">Games</th>
                 <th style="width: 60px">Won</th>
@@ -123,11 +171,10 @@
                 <th style="width: 60px">Crash</th>
             </tr>
 
-            {% for result in results %}
+            {% for id, result in results.items %}
                 <tr>
-                    <td>{{result.machine.id}}</td>
-                    <td>{{result.machine.user.username|capfirst|slice:"6"}}</td>
-                    <td>{{result.machine.osname|truncatewords:1|slice:":-2"}}</td>
+                    <td>{{result.machine_id}}</td>
+                    <td>{{result.username|capfirst|slice:"6"}}</td>
                     <td class="timestamp">{{result.updated|date:'U'}}</td>
                     <td class="numeric">{{result.games}}</td>
                     <td class="numeric">{{result.wins}}</td>

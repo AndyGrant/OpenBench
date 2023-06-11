@@ -32,10 +32,10 @@ from OpenBench.config import *
 from OpenBench.models import Engine, Profile, Machine, Result, Test, Network
 
 
-def pathjoin(*args):
-    return "/".join([f.lstrip("/").rstrip("/") for f in args]) + "/"
+def path_join(*args):
+    return "/".join([f.lstrip("/").rstrip("/") for f in args]).rstrip('/')
 
-def extractOption(options, option):
+def extract_option(options, option):
 
     match = re.search('(?<={0}=")[^"]*'.format(option), options)
     if match: return match.group()
@@ -46,7 +46,7 @@ def extractOption(options, option):
     match = re.search('(?<={0}=)[^ ]*'.format(option), options)
     if match: return match.group()
 
-def parseTimeControl(time_control):
+def parse_time_control(time_control):
 
     # Display Nodes as N=, Depth as D=, MoveTime as MT=
     conversion = {
@@ -77,22 +77,29 @@ def parseTimeControl(time_control):
     raise Exception('Unable to parse Time Control (%s)' % (time_control))
 
 
-def getPendingTests():
-    pending = OpenBench.models.Test.objects.filter(approved=False)
-    pending = pending.exclude(finished=True)
-    pending = pending.exclude(deleted=True)
-    return pending.order_by('-creation')
+def get_pending_tests():
+    t = OpenBench.models.Test.objects.filter(approved=False)
+    t = t.exclude(finished=True)
+    t = t.exclude(deleted=True)
+    return t.order_by('-creation')
 
-def getActiveTests():
-    active = OpenBench.models.Test.objects.filter(approved=True)
-    active = active.exclude(finished=True)
-    active = active.exclude(deleted=True)
-    return active.order_by('-priority', '-currentllr')
+def get_active_tests():
+    t = OpenBench.models.Test.objects.filter(approved=True)
+    t = t.exclude(awaiting=True)
+    t = t.exclude(finished=True)
+    t = t.exclude(deleted=True)
+    return t.order_by('-priority', '-currentllr')
 
-def getCompletedTests():
-    completed = OpenBench.models.Test.objects.filter(finished=True)
-    completed = completed.exclude(deleted=True)
-    return completed.order_by('-updated')
+def get_completed_tests():
+    t = OpenBench.models.Test.objects.filter(finished=True)
+    t = t.exclude(deleted=True)
+    return t.order_by('-updated')
+
+def get_awaiting_tests():
+    t = OpenBench.models.Test.objects.filter(awaiting=True)
+    t = t.exclude(finished=True)
+    t = t.exclude(deleted=True)
+    return t.order_by('-creation')
 
 
 def getRecentMachines(minutes=5):
@@ -109,8 +116,38 @@ def getMachineStatus(username=None):
         machines = machines.filter(user__username=username)
 
     return ": {0} Machines / ".format(len(machines)) + \
-           "{0} Threads / ".format(sum([f.threads for f in machines])) + \
-           "{0} MNPS ".format(round(sum([f.threads * f.mnps for f in machines]), 2))
+           "{0} Threads / ".format(sum([f.info['concurrency'] for f in machines])) + \
+           "{0} MNPS ".format(round(sum([f.info['concurrency'] * f.mnps for f in machines]), 2))
+
+def get_test_context(test):
+
+    # Select the Test, and all Result objects attached
+    results = Result.objects.filter(test=test).order_by('machine_id')
+    data    = { 'test' : test, 'results': {} }
+
+    for result in results:
+
+        # Insert the Result into the results
+        if result.machine.id not in data['results'].keys():
+            data['results'][result.machine.id] = {
+                'games' : 0, 'wins'     : 0, 'losses'  : 0,
+                'draws' : 0, 'timeloss' : 0, 'crashes' : 0,
+            }
+
+        # Always use the latest Time stamp, by virtue of sorting Results
+        data['results'][result.machine.id]['machine_id'] = result.machine.id
+        data['results'][result.machine.id]['username'  ] = result.machine.user.username
+        data['results'][result.machine.id]['updated'   ] = result.updated
+
+        # Sum up all results from a given machine into a single value
+        data['results'][result.machine.id]['games'     ] += result.games
+        data['results'][result.machine.id]['wins'      ] += result.wins
+        data['results'][result.machine.id]['losses'    ] += result.losses
+        data['results'][result.machine.id]['draws'     ] += result.draws
+        data['results'][result.machine.id]['timeloss'  ] += result.timeloss
+        data['results'][result.machine.id]['crashes'   ] += result.crashes
+
+    return data
 
 def getPaging(content, page, url, pagelen=25):
 
@@ -148,144 +185,312 @@ def getEngine(source, name, sha, bench):
     if engine.first() != None: return engine.first()
     return Engine.objects.create(name=name, source=source, sha=sha, bench=bench)
 
-def getBranch(request, errors, name):
 
-    branch = request.POST['{0}branch'.format(name)]
+def read_git_credentials(engine):
+    fname = 'credentials.%s' % (engine.replace(' ', '').lower())
+    if os.path.exists(fname):
+        with open(fname) as fin:
+            return { 'Authorization' : 'token %s' % fin.readlines()[0].rstrip() }
+
+def requests_illegal_fork(request, field):
+
+    # Strip trailing '/'s for sanity
+    engine  = OPENBENCH_CONFIG['engines'][request.POST['%s_engine' % (field)]]
+    eng_src = engine['source'].rstrip('/')
+    tar_src = request.POST['%s_repo' % (field)].rstrip('/')
+
+    # Illegal if sources do not match for Private engines
+    return engine['private'] and eng_src != tar_src
+
+def determine_bench(request, field, message):
+
+    # Use the provided bench if possible
+    try: return int(request.POST['{0}_bench'.format(field)])
+    except: pass
+
+    # Fallback to try to parse the Bench from the commit
+    try:
+        benches = re.findall('(?:BENCH|NODES)[ :=]+([0-9,]+)', message, re.IGNORECASE)
+        return int(benches[-1].replace(',', ''))
+    except: return None
+
+def collect_github_info(request, errors, field):
+
+    # Get branch name, whether it is a commit SHA, and the API path for it
+    branch = request.POST['{0}_branch'.format(field)]
     bysha  = bool(re.search('[0-9a-fA-F]{40}', branch))
     url    = 'commits' if bysha else 'branches'
 
-    repo   = request.POST['source']
-    target = repo.replace('github.com', 'api.github.com/repos')
-    target = pathjoin(target, url, branch).rstrip('/')
+    # All API requests will share this common path. Some engines are private.
+    base    = request.POST['%s_repo' % (field)].replace('github.com', 'api.github.com/repos')
+    engine  = request.POST['%s_engine' % (field)]
+    private = OPENBENCH_CONFIG['engines'][engine]['private']
+    headers = {}
 
-    # Avoid leaking our credentials to other sites
-    if not target.startswith('https://api.github.com/'):
+    ## Step 1: Verify the target of the API requests
+    ## [A] We will not attempt to reach any site other than api.github.com
+    ## [B] Private engines may only use their main repo for sources of tests
+    ## [C] Determine which, if any, credentials we want to pass along
+
+    # Private engines must have a token stored in credentials.enginename
+    if private and not (headers := read_git_credentials(engine)):
+        errors.append('Server does not have access tokens for this engine')
+        return (None, None)
+
+    # Do not allow private engines to use forked repos ( We don't have a token! )
+    if requests_illegal_fork(request, field):
+        errors.append('Forked Repositories are not allowed for Private engines')
+        return (None, None)
+
+    # Avoid leaking our credentials to other websites
+    if not base.startswith('https://api.github.com/'):
         errors.append('OpenBench may only reach Github\'s API')
-        return (None, None, None, None)
+        return (None, None)
 
-    # Check for a (User, Token) credentials file
-    if os.path.exists('credentials'):
-        with open('credentials') as fin:
-            user, token = fin.readlines()[0].rstrip().split()
-            auth = requests.auth.HTTPBasicAuth(user, token)
-    else: auth = None
+    ## Step 2: Connect to the Github API for the given Branch or Commit SHA.
+    ## [A] We will attempt to parse the most recent commit message for a
+    ##     bench, unless one was supplied.
+    ## [B] We will translate any branch name into a commit SHA for later use,
+    ##     so we may compare branches and generate diff URLs
+    ## [C] If the engine is public, we will construct the URL to download the
+    ##     source code from Github into a .zip file.
+    ## [D] If the engine is private, we will carry onto Step 3.
 
     try: # Fetch data from the Github API
-        data = requests.get(target, auth=auth).json()
+        path = 'commits' if bysha else 'branches'
+        url  = path_join(base, path, branch)
+        data = requests.get(url, headers=headers).json()
         data = data if bysha else data['commit']
 
     except: # Unable to connect for whatever reason
-        lookup = 'Commit Sha' if bysha else 'Branch'
-        errors.append('{0} {1} could not be found'.format(lookup, branch))
-        return (None, None, None, None)
+        path = 'Commit Sha' if bysha else 'Branch'
+        errors.append('{0} {1} could not be found'.format(path, branch))
+        return (None, None)
 
-    treeurl = data['commit']['tree']['sha'] + '.zip'
-    source  = pathjoin(repo, 'archive', treeurl).rstrip('/')
+    # Extract the bench from the web form, or from the commit message
+    if not (bench := determine_bench(request, field, data['commit']['message'])):
+        errors.append('Unable to parse a Bench for %s' % (branch))
+        return (None, None)
 
-    try: # Use the provided Bench if there is one
-        bench = int(request.POST['{0}bench'.format(name)])
-        return (source, branch, data['sha'], bench)
-    except: pass
+    # Public Engines: Construct the .zip download and return everything
+    if not OPENBENCH_CONFIG['engines'][engine]['private']:
+        treeurl = data['commit']['tree']['sha'] + '.zip'
+        source  = path_join(request.POST['%s_repo' % (field)], 'archive', treeurl)
+        return (source, branch, data['sha'], bench), True
 
-    try: # Fallback to try to parse the Bench from the commit
-        message = data['commit']['message']
-        benches = re.findall('(?:BENCH|NODES)[ :=]+([0-9,]+)', message, re.IGNORECASE)
-        bench   = int(benches[-1].replace(',', ''))
-        return (source, branch, data['sha'], bench)
+    ## Step 3: Construct the URL for the API request to list all Artifacts
+    ## [A] OpenBench artifacts are always run via a file named openbench.yml
+    ## [B] These should contain combinations for windows/linux, avx2/avx512, popcnt/pext
+    ## [C] If those artifacts are not found, we flag the test as awaiting, and try later.
 
-    except: # Neither method found a viable Bench
-        errors.append('Unable to parse a Bench for {0}'.format(branch))
-        return (None, None, None, None)
+    url, has_all = fetch_artifact_url(base, engine, headers, data['sha'])
+    return (url, branch, data['sha'], bench), has_all
 
-def verifyNewTest(request):
+def fetch_artifact_url(base, engine, headers, sha):
+
+    try:
+        # Fetch the run id for the openbench workflow for this comment
+        url    = path_join(base, 'actions', 'workflows', 'openbench.yml', 'runs')
+        url   += '?head_sha=%s' % (sha)
+        run_id = requests.get(url=url, headers=headers).json()['workflow_runs'][0]['id']
+
+        # Construct the final URL that will be used to look at artifacts
+        url       = path_join(base, 'actions', 'runs', str(run_id), 'artifacts')
+        artifacts = requests.get(url=url, headers=headers).json()['artifacts']
+
+        # Verify that all of the artifacts exist and are not expired
+        available = [ f['name'] for f in artifacts if f['expired'] == False ]
+        required  = OPENBENCH_CONFIG['engines'][engine]['build']['artifacts']
+        has_all   = all(['%s-%s' % (sha, name) in available for name in required])
+
+        # Return the URL iff we found them; otherwise base
+        return (url if has_all else base, has_all)
+
+    except Exception as error:
+        # If anything goes wrong, retry later with the same base URL
+        return (base, False)
+
+def verify_test_creation(request):
 
     errors = []
 
-    def verifyInteger(field, fieldName):
+    def verify_integer(field, field_name):
         try: int(request.POST[field])
-        except: errors.append('{0} is not an Integer'.format(fieldName))
+        except: errors.append('"{0}" is not an Integer'.format(field_name))
 
-    def verifyGreaterThan(field, fieldName, value, valueName):
-        if not float(request.POST[field]) > value:
-            errors.append('{0} is not greater than {1}'.format(fieldName, valueName))
+    def verify_greater_than(field, field_name, value):
+        try: assert int(request.POST[field]) > value
+        except: errors.append('"{0}" is not greater than {1}'.format(field_name, value))
 
-    def verifyOptions(field, option, fieldName):
-        if extractOption(request.POST[field], option) == None:
-            errors.append('{0} was not found as an option for {1}'.format(option, fieldName))
-        elif int(extractOption(request.POST[field], option)) < 1:
-            errors.append('{0} needs to be at least 1 for {1}'.format(option, fieldName))
+    def verify_options(field, option, field_name):
+        try: assert int(extract_option(request.POST[field], option)) >= 1
+        except: errors.append('"{0}" needs to be at least 1 for {1}'.format(option, field_name))
 
-    def verifyConfiguration(field, fieldName, parent):
-        if request.POST[field] not in OpenBench.config.OPENBENCH_CONFIG[parent].keys():
-            errors.append('{0} was not found in the configuration'.format(fieldName))
+    def verify_configuration(field, field_name, parent):
+        try: assert request.POST[field] in OpenBench.config.OPENBENCH_CONFIG[parent].keys()
+        except: errors.append('{0} was not found in the configuration'.format(field_name))
 
-    def verifyTimeControl(field, fieldName):
-        try: parseTimeControl(request.POST[field])
-        except: errors.append('{0} is not a parsable {1}'.format(request.POST[field], fieldName))
+    def verify_time_control(field, field_name):
+        try: parse_time_control(request.POST[field])
+        except: errors.append('{0} is not a parsable'.format(field_name))
+
+    def verify_win_adj(field):
+        try:
+            if (content := request.POST[field]) == 'None': return
+            assert re.match('movecount=[0-9]+ score=[0-9]+', content)
+        except: errors.append('Invalid Win Adjudication Setting. Try "None"?')
+
+    def verify_draw_adj(field):
+        try:
+            if (content := request.POST[field]) == 'None': return
+            assert re.match('movenumber=[0-9]+ movecount=[0-9]+ score=[0-9]+', content)
+        except: errors.append('Invalid Draw Adjudication Setting. Try "None"?')
+
+    def verify_github_repo(field):
+        try: assert request.POST[field].startswith('https://github.com/')
+        except: errors.append('Sources must be found on https://github.com/')
+
+    def verify_network(field, fieldName):
+        try:
+            if request.POST[field] == '': return
+            Network.objects.get(sha256=request.POST[field])
+        except: errors.append('Unknown Network Provided for {0}'.format(fieldName))
+
+    def verify_test_mode(field):
+        try: assert request.POST[field] in ['SPRT', 'GAMES']
+        except: errors.append('Unknown Test Mode')
+
+    def verify_sprt_bounds(field):
+        try:
+            if request.POST['test_mode'] != 'SPRT': return
+            pattern = r'^\[(-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?)\]$'
+            match   = re.match(pattern, request.POST['test_bounds'])
+            assert float(match.group(1)) < float(match.group(2))
+        except: errors.append('SPRT Bounds must be formatted as [float1, float2]')
+
+    def verify_sprt_conf(field):
+        try:
+            if request.POST['test_mode'] != 'SPRT': return
+            pattern = r'^\[(-?\d+(?:\.\d+)?), (-?\d+(?:\.\d+)?)\]$'
+            match   = re.match(pattern, request.POST['test_confidence'])
+            assert 0.00 < float(match.group(1)) < 1.00
+            assert 0.00 < float(match.group(2)) < 1.00
+        except: errors.append('Confidence Bounds must be formatted as [float1, float2], within (0.00, 1.00)')
+
+    def verify_max_games(field):
+        try:
+            if request.POST['test_mode'] != 'GAMES': return
+            assert int(request.POST['test_max_games']) > 0
+        except: errors.append('Fixed Games Tests must last at least one game')
+
+    def verify_syzygy_field(field, field_name):
+        try: assert request.POST[field] in ['OPTIONAL', 'REQUIRED', 'DISABLED']
+        except: errors.append('{0} must be OPTIONAL, REQUIRED, or DISABLED'.format(field_name))
 
     verifications = [
-        (verifyInteger, 'priority', 'Priority'),
-        (verifyInteger, 'throughput', 'Throughput'),
-        (verifyGreaterThan, 'throughput', 'Throughput', 0, '0'),
-        (verifyOptions, 'devoptions', 'Threads', 'Dev Options'),
-        (verifyOptions, 'devoptions', 'Hash', 'Dev Options'),
-        (verifyOptions, 'baseoptions', 'Threads', 'Base Options'),
-        (verifyOptions, 'baseoptions', 'Hash', 'Base Options'),
-        (verifyConfiguration, 'enginename', 'Engine', 'engines'),
-        (verifyConfiguration, 'bookname', 'Book', 'books'),
-        (verifyTimeControl, 'timecontrol', 'Time Control'),
+
+        # Verify everything about the Dev Engine
+        (verify_configuration, 'dev_engine', 'Dev Engine', 'engines'),
+        (verify_github_repo  , 'dev_repo'),
+        (verify_network      , 'dev_network', 'Dev Network'),
+        (verify_options      , 'dev_options', 'Threads', 'Dev Options'),
+        (verify_options      , 'dev_options', 'Hash', 'Dev Options'),
+        (verify_time_control , 'dev_time_control', 'Dev Time Control'),
+
+        # Verify everything about the Base Engine
+        (verify_configuration, 'base_engine', 'Base Engine', 'engines'),
+        (verify_github_repo  , 'base_repo'),
+        (verify_network      , 'base_network', 'Base Network'),
+        (verify_options      , 'base_options', 'Threads', 'Base Options'),
+        (verify_options      , 'base_options', 'Hash', 'Base Options'),
+        (verify_time_control , 'base_time_control', 'Base Time Control'),
+
+        # Verify everything about the Test Settings
+        (verify_configuration, 'book_name', 'Book', 'books'),
+        (verify_test_mode    , 'test_mode'),
+        (verify_sprt_bounds  , 'test_bounds'),
+        (verify_sprt_conf    , 'test_confidence'),
+        (verify_max_games    , 'test_max_games'),
+
+        # Verify everything about the General Settings
+        (verify_integer      , 'priority', 'Priority'),
+        (verify_greater_than , 'throughput', 'Throughput', 0),
+        (verify_syzygy_field , 'syzygy_wdl', 'Syzygy WDL'),
+
+        # Verify everything about the Workload Settings
+        (verify_greater_than , 'report_rate', 'Report Rate', 0),
+        (verify_greater_than , 'workload_size', 'Workload Size', 0),
+
+        # Verify everything about the Adjudicaton Settings
+        (verify_syzygy_field , 'syzygy_adj', 'Syzygy Adjudication'),
+        (verify_win_adj      , 'win_adj'),
+        (verify_draw_adj     , 'draw_adj'),
     ]
 
     for verification in verifications:
-        try: verification[0](*verification[1:])
-        except: pass
+        verification[0](*verification[1:])
 
     return errors
 
-def createNewTest(request):
+def create_new_test(request):
 
-    errors = []; verifyNewTest(request)
+    # Verify all of the fields in the request
+    if (errors := verify_test_creation(request)):
+        return None, errors
+
+    # Collect Github meta information (Shas, Sources, Benches)
+    devinfo,  dev_has_all  = collect_github_info(request, errors, 'dev')
+    baseinfo, base_has_all = collect_github_info(request, errors, 'base')
     if errors != []: return None, errors
 
-    devinfo = getBranch(request, errors, 'dev')
-    baseinfo = getBranch(request, errors, 'base')
-    if errors != []: return None, errors
+    test                   = Test()
+    test.author            = request.user.username
+    test.book_name         = request.POST['book_name']
 
-    test = Test()
-    test.author      = request.user.username
-    test.engine      = request.POST['enginename']
-    test.test_mode   = request.POST['test_mode']
-    test.source      = request.POST['source']
-    test.devoptions  = request.POST['devoptions'].rstrip(' ')
-    test.baseoptions = request.POST['baseoptions'].rstrip(' ')
-    test.devnetwork  = request.POST['devnetwork']
-    test.basenetwork = request.POST['basenetwork']
-    test.bookname    = request.POST['bookname']
-    test.timecontrol = parseTimeControl(request.POST['timecontrol'])
-    test.priority    = int(request.POST['priority'])
-    test.throughput  = int(request.POST['throughput'])
-    test.syzygy_adj  = request.POST['syzygy_adj']
-    test.syzygy_wdl  = request.POST['syzygy_wdl']
+    test.dev               = getEngine(*devinfo)
+    test.dev_repo          = request.POST['dev_repo']
+    test.dev_engine        = request.POST['dev_engine']
+    test.dev_options       = request.POST['dev_options']
+    test.dev_network       = request.POST['dev_network']
+    test.dev_time_control  = parse_time_control(request.POST['dev_time_control'])
 
-    if request.POST['test_mode'] == 'SPRT':
-        test.elolower = float(request.POST['bounds'].split(',')[0].lstrip('['))
-        test.eloupper = float(request.POST['bounds'].split(',')[1].rstrip(']'))
-        test.alpha    = float(request.POST['confidence'].split(',')[1].rstrip(']'))
-        test.beta     = float(request.POST['confidence'].split(',')[0].lstrip('['))
+    test.base              = getEngine(*baseinfo)
+    test.base_repo         = request.POST['base_repo']
+    test.base_engine       = request.POST['base_engine']
+    test.base_options      = request.POST['base_options']
+    test.base_network      = request.POST['base_network']
+    test.base_time_control = parse_time_control(request.POST['base_time_control'])
+
+    test.report_rate       = int(request.POST['report_rate'])
+    test.workload_size     = int(request.POST['workload_size'])
+    test.priority          = int(request.POST['priority'])
+    test.throughput        = int(request.POST['throughput'])
+
+    test.syzygy_wdl        = request.POST['syzygy_wdl']
+    test.syzygy_adj        = request.POST['syzygy_adj']
+    test.win_adj           = request.POST['win_adj']
+    test.draw_adj          = request.POST['draw_adj']
+
+    test.test_mode         = request.POST['test_mode']
+    test.awaiting          = not (dev_has_all and base_has_all)
+
+    if test.test_mode == 'SPRT':
+        test.elolower = float(request.POST['test_bounds'].split(',')[0].lstrip('['))
+        test.eloupper = float(request.POST['test_bounds'].split(',')[1].rstrip(']'))
+        test.alpha    = float(request.POST['test_confidence'].split(',')[1].rstrip(']'))
+        test.beta     = float(request.POST['test_confidence'].split(',')[0].lstrip('['))
         test.lowerllr = math.log(test.beta / (1.0 - test.alpha))
         test.upperllr = math.log((1.0 - test.beta) / test.alpha)
 
-    if request.POST['test_mode'] == 'GAMES':
-        test.max_games = int(request.POST['max_games'])
+    if test.test_mode == 'GAMES':
+        test.max_games = int(request.POST['test_max_games'])
 
-    if request.POST['devnetwork']:
-        test.devnetname = Network.objects.get(sha256=request.POST['devnetwork']).name
+    if test.dev_network:
+        test.dev_netname  = Network.objects.get(sha256=test.dev_network ).name
 
-    if request.POST['basenetwork']:
-        test.basenetname = Network.objects.get(sha256=request.POST['basenetwork']).name
+    if test.base_network:
+        test.base_netname = Network.objects.get(sha256=test.base_network).name
 
-    test.dev         = getEngine(*devinfo)
-    test.base        = getEngine(*baseinfo)
     test.save()
 
     profile = Profile.objects.get(user=request.user)
@@ -295,189 +500,176 @@ def createNewTest(request):
     return test, None
 
 
-def getMachine(machineid, user, osname, threads):
+def get_machine(machineid, user, info):
 
-    # Create a new Machine if needed
+    # Create a new machine if we don't have an id
     if machineid == 'None':
-        return Machine(user=user, osname=osname, threads=threads)
+        return Machine(user=user, info=info)
 
-    # Fetch and verify the requested Machine
+    # Fetch the requested machine, which hopefully exists
     try: machine = Machine.objects.get(id=int(machineid))
-    except: return 'Bad Machine'
-    if machine.user != user: return 'Bad Machine'
-    if machine.osname != osname: return 'Bad Machine'
+    except: return None
 
-    # Update the Machine's running status
-    machine.threads = threads
-    machine.mnps = 0.00
+    # Workload requests should always contain a MAC
+    if 'mac_address' not in machine.info:
+        return None
+
+    # Soft-verify by checking if the MAC addresses match
+    if machine.info['mac_address'] != info['mac_address']:
+        return None
+
     return machine
 
-def getResult(test, machine):
-
-    # Try to find an already existing Result
-    results = Result.objects.filter(test=test)
-    results = list(results.filter(machine=machine))
-    if results != []: return results[0]
-
-    # Create a new Result if none is found
-    return Result(test=test, machine=machine)
-
-def getWorkload(user, request):
-
-    # Extract worker information
-    machineid = request.POST['machineid']
-    osname    = request.POST['osname'   ]
-    threads   = request.POST['threads'  ]
-
-    # If we don't get a Machine back, there was an error
-    machine = getMachine(machineid, user, osname, int(threads))
-    if type(machine) == str: return machine
+def get_workload(machine):
 
     # Check to make sure we have a potential workload
-    tests = get_valid_workloads(machine, request)
-    if not tests: return 'None'
+    if not (tests := get_valid_workloads(machine)):
+        return {}
 
     # Select from valid workloads and create a Result object
-    test = select_workload(machine, tests)
-    result = getResult(test, machine)
+    test     = select_workload(machine, tests)
+    result   = Result(test=test, machine=machine)
 
-    # Success. Update the Machine's status and save everything
-    machine.workload = test; machine.save(); result.save()
-    return str(workload_to_dictionary(test, result, machine))
+    # Update the Machine's status and save everything
+    machine.workload = test.id; machine.save(); result.save()
+    return { 'workload' : workload_to_dictionary(test, result) }
 
 
-# Purely Helper functions for getWorkload()
+# Purely Helper functions for get_workload()
 
-def get_valid_workloads(machine, request):
+def get_valid_workloads(machine):
 
-    # Skip finished tests
-    tests = Test.objects.filter(finished=False)
-    tests = tests.filter(deleted=False).filter(approved=True)
+    # Skip anything that is not running
+    tests = get_active_tests()
 
-    # Skip engines that the Machine cannot build
+    # Skip engines that the Machine cannot handle
     for engine in OPENBENCH_CONFIG['engines'].keys():
-        if engine not in request.POST['supported'].split():
-            tests = tests.exclude(engine=engine)
-
-    # Skip engines that the Machine cannot run
-    for engine, data in OPENBENCH_CONFIG['engines'].items():
-        for flag in data['build']['cpuflags']:
-            if flag not in request.POST['cpuflags'].split():
-                tests = tests.exclude(engine=engine)
+        if engine not in machine.info['supported']:
+            tests = tests.exclude(dev_engine=engine)
+            tests = tests.exclude(base_engine=engine)
 
     # Skip tests with unmet Syzygy requirments
-    if request.POST['syzygy_wdl'] == 'False':
+    if not machine.info['syzygy_wdl']:
         tests = tests.exclude(syzygy_adj='REQUIRED')
         tests = tests.exclude(syzygy_wdl='REQUIRED')
 
     # Skip tests that would waste available Threads or exceed them
-    options = [x for x in tests if test_maps_onto_thread_count(machine, x)]
+    threads      = machine.info['concurrency']
+    ncutechess   = machine.info['ncutechesses']
+    hyperthreads = machine.info['physical_cores'] < threads
+    options = [x for x in tests if
+        test_maps_onto_thread_count(x, threads, ncutechess, hyperthreads)]
 
     # Finally refine for tests of the highest priority
     if not options: return []
     highest_prio = max(options, key=lambda x: x.priority).priority
     return [test for test in options if test.priority == highest_prio]
 
-def test_maps_onto_thread_count(machine, test):
+def test_maps_onto_thread_count(test, threads, ncutechess, hyperthreads):
 
-    # Only assign a workload to a machine if the machine actually has
-    # enough Threads for the test. Furthermore, ensure that there are
-    # no left over threads when assigned. An exception is made for the
-    # case where thread counts differ -- a bad idea to run in general
+    dev_threads  = int(extract_option(test.dev_options,  'Threads'))
+    base_threads = int(extract_option(test.base_options, 'Threads'))
 
-    dev_threads  = int(extractOption(test.devoptions,  'Threads'))
-    base_threads = int(extractOption(test.baseoptions, 'Threads'))
+    # Each individual cutechess copy must have access to sufficient Threads
+    if max(dev_threads, base_threads) > (threads / ncutechess):
+        return False
 
-    if max(dev_threads, base_threads) > machine.threads: return False
-    return dev_threads != base_threads or machine.threads % dev_threads == 0
+    # Intentional Thread Imbalance, or real cores, or evenly distributed
+    return dev_threads != base_threads or not hyperthreads or (threads / ncutechess) % dev_threads == 0
 
 def select_workload(machine, tests, variance=0.25):
 
     # Determine how many threads are assigned to each workload
-    table = { test : 0 for test in tests }
+    table = { test.id : { 'cores' : 0, 'throughput' : test.throughput } for test in tests }
     for m in getRecentMachines():
-        if m.workload in tests and m != machine:
-            table[m.workload] = table[m.workload] + m.threads
+        if m.workload in table and m != machine:
+            table[m.workload]['cores'] += m.info['concurrency']
 
     # Find the tests most deserving of resources currently
-    ratios = [table[test] / test.throughput for test in tests]
+    ratios = [table[x]['cores'] / table[x]['throughput'] for x in table]
     lowest_idxs = [i for i, r in enumerate(ratios) if r == min(ratios)]
 
     # Machine is out of date; or there is an unassigned test
-    if machine.workload not in tests or min(ratios) == 0:
+    if machine.workload not in table or min(ratios) == 0:
         return tests[random.choice(lowest_idxs)]
 
     # No test has less than (1-variance)% of its deserved resources, and
     # therefore we may have this machine repeat its existing workload again
-    ideal_ratio = sum(table.values()) / sum([x.throughput for x in tests])
+    ideal_ratio = sum([x['cores'] for x in table.values()]) / sum([x['throughput'] for x in table.values()])
     if min(ratios) / ideal_ratio > 1 - variance:
-        return machine.workload
+        return OpenBench.models.Test.objects.get(id=machine.workload)
 
     # Fallback to simply doing the least attention given test
     return tests[random.choice(lowest_idxs)]
 
-def workload_to_dictionary(test, result, machine):
+def workload_to_dictionary(test, result):
 
-    # Convert the workload into a Dictionary to be used by the Client.
-    # The Client must know his Machine ID, his Result ID, and his Test
-    # ID. Also, all information about the Test and the associated engines
+    return {
 
-    return json.dumps({
+        'result' : {
+            'id'  : result.id
+        },
 
-        'machine' : { 'id'  : machine.id },
+        'test' : {
+            'id'            : test.id,
+            'syzygy_wdl'    : test.syzygy_wdl,
+            'syzygy_adj'    : test.syzygy_adj,
+            'win_adj'       : test.win_adj,
+            'draw_adj'      : test.draw_adj,
+            'report_rate'   : test.report_rate,
+            'workload_size' : test.workload_size,
+            'book'          : OPENBENCH_CONFIG['books'][test.book_name],
 
-        'result'  : { 'id'  : result.id },
-
-        'test'    : {
-
-            'throughput'  : 1000, # HACK: Updated Client's no longer need this value
-
-            'id'          : test.id,
-            'engine'      : test.engine,
-            'timecontrol' : test.timecontrol,
-            'syzygy_adj'  : test.syzygy_adj,
-            'syzygy_wdl'  : test.syzygy_wdl,
-
-            'nps'         : OPENBENCH_CONFIG['engines'][test.engine]['nps'],
-            'build'       : OPENBENCH_CONFIG['engines'][test.engine]['build'],
-            'book'        : OPENBENCH_CONFIG['books'][test.bookname],
-
-            'dev'  : {
-                'id'      : test.dev.id,      'name'    : test.dev.name,
-                'source'  : test.dev.source,  'sha'     : test.dev.sha,
-                'bench'   : test.dev.bench,   'options' : test.devoptions,
-                'network' : test.devnetwork,
+            'dev' : {
+                'id'           : test.dev.id,
+                'name'         : test.dev.name,
+                'source'       : test.dev.source,
+                'sha'          : test.dev.sha,
+                'bench'        : test.dev.bench,
+                'engine'       : test.dev_engine,
+                'options'      : test.dev_options,
+                'network'      : test.dev_network,
+                'time_control' : test.dev_time_control,
+                'nps'          : OPENBENCH_CONFIG['engines'][test.dev_engine]['nps'],
+                'build'        : OPENBENCH_CONFIG['engines'][test.dev_engine]['build'],
             },
 
-            'base' : {
-                'id'      : test.base.id,     'name'    : test.base.name,
-                'source'  : test.base.source, 'sha'     : test.base.sha,
-                'bench'   : test.base.bench,  'options' : test.baseoptions,
-                'network' : test.basenetwork,
+           'base' : {
+                'id'           : test.base.id,
+                'name'         : test.base.name,
+                'source'       : test.base.source,
+                'sha'          : test.base.sha,
+                'bench'        : test.base.bench,
+                'engine'       : test.base_engine,
+                'options'      : test.base_options,
+                'network'      : test.base_network,
+                'time_control' : test.base_time_control,
+                'nps'          : OPENBENCH_CONFIG['engines'][test.base_engine]['nps'],
+                'build'        : OPENBENCH_CONFIG['engines'][test.base_engine]['build'],
             },
         },
-    })
+    }
 
 
-def updateTest(request, user):
+def update_test(request, machine):
 
     # New results from the Worker
-    wins     = int(request.POST['wins'])
-    losses   = int(request.POST['losses'])
-    draws    = int(request.POST['draws'])
-    crashes  = int(request.POST['crashes'])
+    wins     = int(request.POST['wins'    ])
+    losses   = int(request.POST['losses'  ])
+    draws    = int(request.POST['draws'   ])
+    crashes  = int(request.POST['crashes' ])
     timeloss = int(request.POST['timeloss'])
     games    = wins + losses + draws
 
     # Worker knows where to save the results
-    machineid = int(request.POST['machineid'])
-    resultid  = int(request.POST['resultid'])
-    testid    = int(request.POST['testid'])
+    machineid = int(request.POST['machine_id'])
+    resultid  = int(request.POST['result_id' ])
+    testid    = int(request.POST['test_id'   ])
 
     # Prevent updating a finished test
     test = Test.objects.get(id=testid)
     if test.finished or test.deleted:
-        return 'Stop'
+        return { 'stop' : True }
 
     # Tally up the updated WLD stats
     swins   = test.wins   + wins
@@ -505,11 +697,11 @@ def updateTest(request, user):
         sprt     = 0.0 # Hack to "update" the currentllr
 
     # Update total games played by the Player
-    Profile.objects.filter(user=user).update(games=F('games') + games)
-    Profile.objects.get(user=user).save()
+    Profile.objects.filter(user=machine.user).update(games=F('games') + games)
+    Profile.objects.get(user=machine.user).save()
 
     # Update the datetime in the Machine
-    Machine.objects.get(id=machineid).save()
+    machine.save()
 
     # Update individual Result entry for the Player
     Result.objects.filter(id=resultid).update(
@@ -528,4 +720,4 @@ def updateTest(request, user):
     # Force a refresh of the updated field when finished
     if finished: Test.objects.get(id=testid).save()
 
-    return ['None', 'Stop'][finished]
+    return [{}, {'stop' : True}][finished]
