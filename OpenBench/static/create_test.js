@@ -1,5 +1,7 @@
+
 var config   = JSON.parse(document.getElementById("json-config"  ).textContent);
 var networks = JSON.parse(document.getElementById("json-networks").textContent);
+var repos    = JSON.parse(document.getElementById("json-repos"   ).textContent);
 
 function create_network_options(field_id, engine) {
 
@@ -128,6 +130,8 @@ function set_test_mode(mode_str) {
 function set_engine(engine, target) {
 
     document.getElementById(target + "_engine").value = engine;
+    document.getElementById(target + "_branch").value = config.engines[engine].base;
+    document.getElementById(target + "_repo"  ).value = repos[engine] || "https://github.com/";
 
     if (target == 'dev') {
         create_testmode_buttons(engine);
@@ -136,8 +140,29 @@ function set_engine(engine, target) {
 
     create_network_options(target + "_network", engine);
 
-    document.getElementById("base_branch").value = config.engines[engine].base;
-    document.getElementById("book_name"  ).value = config.engines[engine].book;
-    document.getElementById("win_adj"    ).value = config.engines[engine].win_adj;
-    document.getElementById("draw_adj"   ).value = config.engines[engine].draw_adj;
+    if (target == 'dev') {
+        document.getElementById("book_name"  ).value = config.engines[engine].book;
+        document.getElementById("win_adj"    ).value = config.engines[engine].win_adj;
+        document.getElementById("draw_adj"   ).value = config.engines[engine].draw_adj;
+    }
+}
+
+
+function enforce_default_text(id, text) {
+
+    window.addEventListener('DOMContentLoaded', function() {
+
+        var field = document.getElementById(id);
+
+        field.addEventListener('input', function() {
+
+            if (field.value.startsWith(text) || field.value === text)
+                return;
+
+            if (field.value.endsWith('/'))
+                field.value = text + field.value.substr(text.length).replace(/\/+$/, '');
+            else
+                field.value = text + field.value.substr(text.length);
+        });
+    });
 }

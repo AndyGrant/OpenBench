@@ -3,8 +3,10 @@
 {% load static %}
 
 {% block scripts %}
+
     {{ config|json_script:"json-config" }}
     {{ networks|json_script:"json-networks" }}
+    {{ profile.repos|json_script:"json-repos" }}
 
     <script src="{% static 'create_test.js' %}"></script>
 
@@ -15,6 +17,8 @@
                 set_engine("{{ profile.engine }}", "dev");
                 set_engine("{{ profile.engine }}", "base");
                 set_test_mode("STC");
+                enforce_default_text('dev_repo', 'https://github.com/');
+                enforce_default_text('base_repo', 'https://github.com/');
             }, false
         );
     </script>
@@ -39,7 +43,7 @@
                     </select>
                 </div>
                 <div class="row">
-                    <label> Dev Source </label> <input value="{{ profile.repo }}" name="dev_repo">
+                    <label> Dev Source </label> <input id="dev_repo" name="dev_repo">
                 </div>
                 <div class="row">
                     <label> Base Engine </label>
@@ -50,7 +54,7 @@
                     </select>
                 </div>
                 <div class="row">
-                    <label> Base Source </label> <input value="{{ profile.repo }}" name="base_repo">
+                    <label> Base Source </label> <input id="base_repo" name="base_repo">
                 </div>
 
                 <h3> Dev Settings </h3>
