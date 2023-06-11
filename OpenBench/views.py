@@ -394,7 +394,7 @@ def test(request, id, action=None):
     LogEvent.objects.create(author=request.user.username, summary=action, log_file='', test_id=test.id)
     return django.http.HttpResponseRedirect('/index/')
 
-def newTest(request):
+def create_test(request):
 
     if not request.user.is_authenticated:
         return redirect(request, '/login/', error='Only enabled users can create tests')
@@ -404,14 +404,11 @@ def newTest(request):
 
     if request.method == 'GET':
         data = { 'networks' : list(Network.objects.all().values()) }
-        return render(request, 'newTest.html', data)
+        return render(request, 'create_test.html', data)
 
     test, errors = OpenBench.utils.create_new_test(request)
     if errors != [] and errors != None:
-        errors = ["[{0}]: {1}".format(i, e) for i, e in enumerate(errors)]
-        longest = max([len(e) for e in errors])
-        errors = ["{0}{1}".format(e, ' ' * (longest-len(e))) for e in errors]
-        return render(request, 'newTest.html', {'error_message': '\n'.join(errors)})
+        return redirect(request, '/newTest/', error='\n'.join(errors))
 
     username = request.user.username
     profile  = Profile.objects.get(user=request.user)

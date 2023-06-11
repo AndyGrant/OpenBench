@@ -52,7 +52,7 @@ urlpatterns = [
     django.urls.path(r'test/<int:id>/', OpenBench.views.test),
     django.urls.path(r'viewTest/<int:id>/', OpenBench.views.test),
     django.urls.path(r'test/<int:id>/<str:action>', OpenBench.views.test),
-    django.urls.path(r'newTest/', OpenBench.views.newTest),
+    django.urls.path(r'newTest/', OpenBench.views.create_test),
 
     # Links for viewing and managing Networks
     django.urls.path(r'networks/', OpenBench.views.networks),

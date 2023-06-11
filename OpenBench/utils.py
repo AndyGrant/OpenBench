@@ -216,10 +216,9 @@ def determine_bench(request, field, message):
 
 def collect_github_info(request, errors, field):
 
-    # Get branch name, whether it is a commit SHA, and the API path for it
+    # Get branch name / commit sha / tag, and the API path for it
     branch = request.POST['{0}_branch'.format(field)]
     bysha  = bool(re.search('[0-9a-fA-F]{40}', branch))
-    url    = 'commits' if bysha else 'branches'
 
     # All API requests will share this common path. Some engines are private.
     base    = request.POST['%s_repo' % (field)].replace('github.com', 'api.github.com/repos')
@@ -257,14 +256,21 @@ def collect_github_info(request, errors, field):
     ## [D] If the engine is private, we will carry onto Step 3.
 
     try: # Fetch data from the Github API
-        path = 'commits' if bysha else 'branches'
-        url  = path_join(base, path, branch)
-        data = requests.get(url, headers=headers).json()
-        data = data if bysha else data['commit']
 
-    except: # Unable to connect for whatever reason
-        path = 'Commit Sha' if bysha else 'Branch'
-        errors.append('{0} {1} could not be found'.format(path, branch))
+        # Lookup branch or commit sha, but will fail for tags
+        url  = path_join(base, 'commits' if bysha else 'branches', branch)
+        data = requests.get(url, headers=headers).json()
+
+        # Check to see if the branch name was actually a tag name
+        if not bysha and 'commit' not in data:
+            url  = path_join(base, 'commits', branch)
+            data = requests.get(url, headers=headers).json()
+
+        # Actual branches have to go one layer deeper
+        elif not bysha: data = data['commit']
+
+    except: # Unable to find for whatever reason
+        errors.append('%s could not be found' % (branch))
         return (None, None)
 
     # Extract the bench from the web form, or from the commit message
