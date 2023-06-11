@@ -178,7 +178,7 @@ def scan_for_cpu_flags(data):
 
     # Set the CPU name which has to be done via global
     global SYSTEM_CPU_NAME, SYSTEM_CPU_FLAGS
-    SYSTEM_CPU_NAME = info['brand_raw']
+    SYSTEM_CPU_NAME = info.get('brand_raw', info.get('brand', 'Unknown'))
 
     # This should cover virtually all compiler flags that we would care about
     desired  = ['POPCNT', 'BMI2']
