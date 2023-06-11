@@ -547,7 +547,7 @@ def scripts(request):
     login(request) # All requests are attached to a User
 
     if request.POST['action'] == 'UPLOAD':
-        return networks(request, action='UPLOAD')
+        return networks(request, target='UPLOAD')
 
     if request.POST['action'] == 'CREATE_TEST':
         return newTest(request)
@@ -663,7 +663,7 @@ def client_get_network(request, identifier, engine=None):
         except: return HttpResponse('Unable to find associated Network')
 
     # Return the requested Neural Network file for the Client
-    return networks(request, action='DOWNLOAD', sha256=identifier, client=True)
+    return networks(request, target='DOWNLOAD', sha256=identifier, client=True)
 
 @csrf_exempt
 def client_wrong_bench(request):
