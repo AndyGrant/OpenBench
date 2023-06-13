@@ -263,12 +263,16 @@ body, html, main{
     background-color: #76D576;
 }
 
+#content .statblock-blue {
+    background-color: #60F0FF;
+}
+
 #content .statblock-yellow {
-    background-color: #EFF891
+    background-color: #EFF891;
 }
 
 #content .statblock-red {
-    background-color: #FA9696
+    background-color: #FA9696;
 }
 
 #content .redlink {
