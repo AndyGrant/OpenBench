@@ -241,10 +241,12 @@ body, html, main{
 #content .copy-button {
     color: var(--color-font2);
     transition: color 0.2s ease-in-out;
+
 }
 
 #content .copy-button:hover {
     color: var(--color-font3);
+    cursor: pointer;
 }
 
 /* Short StatBlock to show SPRT and Test Results */

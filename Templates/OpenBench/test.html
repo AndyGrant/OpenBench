@@ -122,6 +122,7 @@
         <a class="w-25 mr-2 anchorbutton btn-disabled">Delete</a>
         {% endif %}
 
+        <!-- Copy Button: Copy the current results statblock -->
         <a class="copy-button" onclick="copy_statblock()">
             <i class="fa-regular fa-clone copy-button"></i>
         </a>
@@ -174,7 +175,7 @@
             {% for id, result in results.items %}
                 <tr>
                     <td>{{result.machine_id}}</td>
-                    <td>{{result.username|capfirst|slice:"6"}}</td>
+                    <td>{{result.username|capfirst}}</td>
                     <td class="timestamp">{{result.updated|date:'U'}}</td>
                     <td class="numeric">{{result.games}}</td>
                     <td class="numeric">{{result.wins}}</td>

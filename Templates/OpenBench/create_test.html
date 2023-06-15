@@ -14,9 +14,7 @@
         document.addEventListener(
             'DOMContentLoaded', function () {
                 set_test_type();
-                set_engine("{{ profile.engine }}", "dev");
-                set_engine("{{ profile.engine }}", "base");
-                set_test_mode("STC");
+                set_engine('{{ profile.engine }}', 'dev');
                 enforce_default_text('dev_repo', 'https://github.com/');
                 enforce_default_text('base_repo', 'https://github.com/');
             }, false

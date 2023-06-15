@@ -46,27 +46,13 @@ def twoDigitPrecision(value):
 
 def gitDiffLink(test):
 
-    if type(test) != OpenBench.models.Test:
-        dev     = test['dev']['source']
-        base    = test['base']['source']
-        devsha  = test['dev']['sha']
-        basesha = test['base']['sha']
-        engine  = test['dev_engine']
-
+    if OpenBench.config.OPENBENCH_CONFIG['engines'][test.dev_engine]['private']:
+        repo = OpenBench.config.OPENBENCH_CONFIG['engines'][test.dev_engine]['source']
     else:
-        dev     = test.dev.source
-        base    = test.base.source
-        devsha  = test.dev.sha
-        basesha = test.base.sha
-        engine  = test.dev_engine
-
-    if OpenBench.config.OPENBENCH_CONFIG['engines'][engine]['private']:
-        repo = OpenBench.config.OPENBENCH_CONFIG['engines'][engine]['source']
-    else:
-        repo = OpenBench.utils.path_join(*dev.split('/')[:-2])
+        repo = OpenBench.utils.path_join(*test.dev.source.split('/')[:-2])
 
     return OpenBench.utils.path_join(repo, 'compare',
-        '{0}...{1}'.format(basesha[:8], devsha[:8]))
+        '{0}..{1}'.format( test.base.sha[:8], test.dev.sha[:8]))
 
 def shortStatBlock(test):
 
