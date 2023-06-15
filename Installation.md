@@ -56,6 +56,16 @@ Press the "Users" row under the "AUTHENTICATION AND AUTHORIZATION" group.
 
 Then, press your user you created on step 8 and give it all permissions prefixed with "OpenBench" and press save.
 
+Go back to the main admin page, press the "Profiles" row under the "OPENBENCH" group and then press your user.
+
+Check the box for "Enabled" and, if you wish "Approver". Before you can save you need to enter the following into the "Repos" field:
+
+```json
+{
+    "repo": ""
+}
+```
+
 Now, log out and navigate to the index page.
 
 You may now log in as the user you created and use OpenBench!
