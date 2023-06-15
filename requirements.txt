@@ -1,2 +1,3 @@
+requests
 django
 django-htmlmin
