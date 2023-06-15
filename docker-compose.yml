@@ -1,0 +1,15 @@
+version: '3'
+services:
+  openbench:
+    image: "openbench:latest"
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      - SECRET_KEY=MySecret
+      - DEBUG=True
+      - ALLOWED_HOSTS=['*']
+      - TIME_ZONE=UTC
+    ports:
+      - "8000:8000"
