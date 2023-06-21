@@ -87,6 +87,7 @@ SYSTEM_MAC_ADDRESS    = hex(uuid.getnode()).upper()[2:]
 SYSTEM_LOGICAL_CORES  = psutil.cpu_count(logical=True)
 SYSTEM_PHYSICAL_CORES = psutil.cpu_count(logical=False)
 SYSTEM_RAM_TOTAL_MB   = psutil.virtual_memory().total // (1024 ** 2)
+SYSTEM_MACHINE_NAME   = 'None'
 SYSTEM_MACHINE_ID     = 'None'
 SYSTEM_SECRET_TOKEN   = 'None'
 
@@ -520,6 +521,7 @@ def server_configure_worker(arguments):
         'physical_cores' : SYSTEM_PHYSICAL_CORES, # Physical cores, to differentiate hyperthreads
         'ram_total_mb'   : SYSTEM_RAM_TOTAL_MB,   # Total RAM on the system, to avoid over assigning
         'machine_id'     : SYSTEM_MACHINE_ID,     # Assigned value, or None. Will be replaced if wrong
+        'machine_name'   : SYSTEM_MACHINE_NAME,   # Optional pseudonym for the machine, otherwise None
         'concurrency'    : arguments.threads,     # Threads to use to play games
         'ncutechesses'   : arguments.ncutechess,  # Cutechess copies, usually equal to Socket count
         'client_ver'     : CLIENT_VERSION,        # Version of the Client, which the server may reject
@@ -1060,6 +1062,7 @@ if __name__ == '__main__':
     p.add_argument('-S', '--server'     , help='Webserver Address' , required=True)
     p.add_argument('-T', '--threads'    , help='Total Threads'     , required=True)
     p.add_argument('-N', '--ncutechess' , help='Cutechess Copies'  , required=True)
+    p.add_argument('-I', '--identity'   , help='Machine pseudonym' , required=False)
 
     # Optional arguments
     p.add_argument('--syzygy', help='Syzygy WDL'  , required=False)
@@ -1082,6 +1085,9 @@ if __name__ == '__main__':
 
     if arguments.password is None:
         arguments.password = os.environ['OPENBENCH_PASSWORD']
+
+    if arguments.identity:
+        SYSTEM_MACHINE_NAME = arguments.identity
 
     if arguments.syzygy is not None:
         SYZYGY_WDL_PATH = arguments.syzygy

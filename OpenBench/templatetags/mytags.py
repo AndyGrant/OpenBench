@@ -201,6 +201,12 @@ def compilerBlock(machine):
 def removePrefix(value, prefix):
     return value.removeprefix(prefix)
 
+def machine_name(machine_id):
+    try:
+        machine = OpenBench.models.Machine.objects.get(id=machine_id)
+        return machine.info['machine_name']
+    except: return 'None'
+
 register = django.template.Library()
 register.filter('oneDigitPrecision', oneDigitPrecision)
 register.filter('twoDigitPrecision', twoDigitPrecision)
@@ -219,3 +225,4 @@ register.filter('testIdToTimeControl', testIdToTimeControl)
 register.filter('cpuflagsBlock', cpuflagsBlock)
 register.filter('compilerBlock', compilerBlock)
 register.filter('removePrefix', removePrefix)
+register.filter('machine_name', machine_name)

@@ -8,8 +8,9 @@
 
         <tr class="table-header">
             <th>Date</th>
-            <th>Worker</th>
+            <th>#</th>
             <th>User</th>
+            <th>Name</th>
             <th>Test</th>
             <th>Summary</th>
             <th>Logs</th>
@@ -20,6 +21,7 @@
                 <td class="timestamp">{{event.created|date:'U'}}</td>
                 <td><a href="/machines/{{event.machine_id}}">{{event.machine_id}}</a></td>
                 <td>{{event.author|capfirst}}</td>
+                <td>{{event.machine_id|machine_name}}</td>
                 <td><a href="/test/{{event.test_id}}">{{event.test_id|testIdToPrettyName}}</a></td>
 
                 <td>{{event.summary}}</td>

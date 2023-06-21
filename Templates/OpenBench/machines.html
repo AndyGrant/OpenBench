@@ -9,6 +9,7 @@
         <tr class="table-header">
             <th>#</th>
             <th>User</th>
+            <th>Name</th>
             <th>System</th>
             <th>CPU</th>
             <th>Workload</th>
@@ -20,6 +21,7 @@
             <tr>
                 <td class="numeric"><a href="/machines/{{machine.id}}/">{{machine.id}}</a></td>
                 <td>{{machine.user.username|capfirst}}</td>
+                <td>{{machine.info.machine_name}}</td>
                 <td>{{machine.info.os_name}}</td>
                 <td>{{machine.info.cpu_name}}</td>
                 <td>
