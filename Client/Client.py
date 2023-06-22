@@ -38,58 +38,272 @@ import zipfile
 from subprocess import PIPE, Popen, call, STDOUT
 from itertools import combinations_with_replacement
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#                                                                           #
-#   Configuration for the Client. To disable deleting old files, use the    #
-#   value None. If Syzygy Tablebases are not present, set to None.          #
-#                                                                           #
-#   Each engine allows a custom set of arguments. All engines will compile  #
-#   without any custom options. However you have the ability to add args    #
-#   in order to get better builds, like PGO or PEXT/BMI2.                   #
-#                                                                           #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+## Basic configuration of the Client. These timeouts can be changed at will
 
 TIMEOUT_HTTP     = 30    # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10    # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30    # Timeout in seconds between workload requests
 CLIENT_VERSION   = '9'   # Client version to send to the Server
 
-SYZYGY_WDL_PATH  = None  # Pathway to WDL Syzygy Tables
-FLEET_MODE       = False # Exit when there are no workloads
+## Global information which is shared by all helper threads for ease of use
 
-ERRORS = {
-    'cutechess' : 'Unable to fetch Cutechess location and download it!',
-    'configure' : 'Unable to fetch and determine acceptable workloads!',
-    'request'   : 'Unable to reach server for workload request!',
-}
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#                                                                           #
-#   Setting up the Client. Build the OpenBench file structure, check for    #
-#   Syzygy Tables for both WDL (Adjudication, and Gameplay). Download a     #
-#   static Cutechess binary,  and determine what engines we are able to     #
-#   compile by asking the server for compiler and CPU Flag requirements     #
-#                                                                           #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-
-# Differentiate Windows and Linux systems
 IS_WINDOWS = platform.system() == 'Windows'
 IS_LINUX   = platform.system() != 'Windows'
 
-SYSTEM_COMPILERS      = {}
-SYSTEM_GIT_TOKENS     = {}
-SYSTEM_CPU_FLAGS      = []
-SYSTEM_CPU_NAME       = ''
-SYSTEM_OS_NAME        = platform.system()
-SYSTEM_OS_VER         = platform.release()
-SYSTEM_PYTHON_VER     = platform.python_version()
-SYSTEM_MAC_ADDRESS    = hex(uuid.getnode()).upper()[2:]
-SYSTEM_LOGICAL_CORES  = psutil.cpu_count(logical=True)
-SYSTEM_PHYSICAL_CORES = psutil.cpu_count(logical=False)
-SYSTEM_RAM_TOTAL_MB   = psutil.virtual_memory().total // (1024 ** 2)
-SYSTEM_MACHINE_NAME   = 'None'
-SYSTEM_MACHINE_ID     = 'None'
-SYSTEM_SECRET_TOKEN   = 'None'
+class Configuration(object):
+
+    def __init__(self):
+
+        # Basic init of every piece of System specific information
+        self.compilers      = {}
+        self.git_tokens     = {}
+        self.cpu_flags      = []
+        self.cpu_name       = ''
+        self.os_name        = platform.system()
+        self.os_ver         = platform.release()
+        self.python_ver     = platform.python_version()
+        self.mac_address    = hex(uuid.getnode()).upper()[2:]
+        self.logical_cores  = psutil.cpu_count(logical=True)
+        self.physical_cores = psutil.cpu_count(logical=False)
+        self.ram_total_mb   = psutil.virtual_memory().total // (1024 ** 2)
+        self.machine_name   = 'None'
+        self.machine_id     = 'None'
+        self.secret_token   = 'None'
+
+        self.parse_arguments() # Rest of the command line settings
+        self.init_client()     # Create folder structure and verify Syzygy
+        self.validate_setup()  # Check the threads and sockets values provided
+
+    def parse_arguments(self):
+
+        # We can use ENV variables for the Username and Passwords
+        req_user  = required=('OPENBENCH_USERNAME' not in os.environ)
+        req_pass  = required=('OPENBENCH_PASSWORD' not in os.environ)
+        help_user = 'Username. May also be passed as OPENBENCH_USERNAME environment variable'
+        help_pass = 'Password. May also be passed as OPENBENCH_PASSWORD environment variable'
+
+        # Create and parse all arguments into a raw format
+        p = argparse.ArgumentParser()
+        p.add_argument('-U', '--username'   , help=help_user           , required=req_user  )
+        p.add_argument('-P', '--password'   , help=help_pass           , required=req_pass  )
+        p.add_argument('-S', '--server'     , help='Webserver Address' , required=True      )
+        p.add_argument('-T', '--threads'    , help='Total Threads'     , required=True      )
+        p.add_argument('-N', '--ncutechess' , help='Cutechess Copies'  , required=True      )
+        p.add_argument('-I', '--identity'   , help='Machine pseudonym' , required=False     )
+        p.add_argument(      '--syzygy'     , help='Syzygy WDL'        , required=False     )
+        p.add_argument(      '--fleet'      , help='Fleet Mode'        , action='store_true')
+        p.add_argument(      '--proxy'      , help='Github Proxy'      , action='store_true')
+        args = p.parse_args()
+
+        # Extract all of the options
+        self.username = args.username if args.username else os.environ['OPENBENCH_USERNAME']
+        self.password = args.password if args.password else os.environ['OPENBENCH_PASSWORD']
+        self.server   = args.server
+        self.threads  = int(args.threads)
+        self.sockets  = int(args.ncutechess)
+        self.identity = args.identity if args.identity else 'None'
+        self.syzygy   = args.syzygy   if args.syzygy   else None
+        self.fleet    = args.fleet    if args.fleet    else False
+        self.proxy    = args.proxy    if args.proxy    else False
+
+    def init_client(self):
+
+        # Verify that we have make installed
+        print('\nScanning For Basic Utilities...')
+        locate_utility('make')
+
+        # Use Client.py's path as the base pathway
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+        # Ensure the folder structure for ease of coding
+        for folder in ['PGNs', 'Engines', 'Networks', 'Books']:
+            if not os.path.isdir(folder):
+                os.mkdir(folder)
+
+        # Verify all WDL tables are present when told they are
+        validate_syzygy_exists(self)
+
+    def validate_setup(self):
+
+        assert self.threads >= self.sockets
+        assert self.threads % self.sockets == 0
+        assert min(self.threads, self.sockets) >= 1
+
+    def scan_for_compilers(self, data):
+
+        print ('\nScanning for Compilers...')
+
+        # For each engine, attempt to find a valid compiler
+        for engine, build_info in data.items():
+
+            # Private engines don't need to be compiled
+            if 'artifacts' in build_info: continue
+
+            # Try to find at least one working compiler
+            for compiler in build_info['compilers']:
+
+                # Compilers may require a specific version
+                if '>=' in compiler:
+                    compiler, version = compiler.split('>=')
+                    version = tuple(map(int, version.split('.')))
+                else: version = (0, 0, 0)
+
+                # Try to confirm this compiler is present, and new enough
+                try:
+                    match = get_version(compiler)
+                    if tuple(map(int, match.split('.'))) >= version:
+                        print('%-16s | %-8s (%s)' % (engine, compiler, match))
+                        self.compilers[engine] = (compiler, match)
+                        break
+                except: continue # Unable to execute compiler
+
+            # Report missing engines in case the User is not expecting it
+            if engine not in self.compilers:
+                print('%-16s | Missing %s' % (engine, data[engine]['compilers']))
+
+    def scan_for_private_tokens(self, data):
+
+        print ('\nScanning for Private Tokens...')
+
+        # For each engine, attempt to find a valid compiler
+        for engine, build_info in data.items():
+
+            # Public engines don't need access tokens
+            if not 'artifacts' in build_info: continue
+
+            # Private engines expect a credentials.engine file for the main repo
+            has_token = os.path.exists('credentials.%s' % (engine.replace(' ', '').lower()))
+            print('%-16s | %s' % (engine, ['Missing', 'Found'][has_token]))
+            if has_token: self.git_tokens[engine] = True
+
+    def scan_for_cpu_flags(self, data):
+
+        print('\nScanning for CPU Flags...')
+
+        # Get all flags, and for sanity uppercase them
+        info   = cpuinfo.get_cpu_info()
+        actual = [x.upper() for x in info.get('flags', [])]
+
+        # Set the CPU name which has to be done via global
+        self.cpu_name = info.get('brand_raw', info.get('brand', 'Unknown'))
+
+        # This should cover virtually all compiler flags that we would care about
+        desired  = ['POPCNT', 'BMI2']
+        desired += ['SSSE3', 'SSE4_1', 'SSE4_2', 'SSE4A', 'AVX', 'AVX2', 'FMA']
+        desired += ['AVX512_VNNI', 'AVX512BW', 'AVX512CD', 'AVX512DQ', 'AVX512F']
+
+        # Add any custom flags from the OpenBench configs, just in case we missed one
+        requested = set(sum([info['cpuflags'] for engine, info in data.items()], []))
+        for flag in [x for x in requested if x not in desired]: desired.append(flag)
+        self.cpu_flags = [x for x in desired if x in actual]
+
+        # Report the results of our search, including any "missing flags
+        print ('Found   |', ' '.join(self.cpu_flags))
+        print ('Missing |', ' '.join([x for x in desired if x not in actual]))
+
+    def scan_for_machine_id(self):
+
+        if os.path.isfile('machine.txt'):
+            with open('machine.txt') as fin:
+                self.machine_id = fin.readlines()[0]
+
+class ServerReporter(object):
+
+    @staticmethod
+    def append_credentials(config, payload):
+        payload['machine_id']   = config.machine_id
+        payload['secret_token'] = config.secret_token
+
+    @staticmethod
+    def report(config, endpoint, payload):
+        append_credentials(config, payload)
+        target = url_join(config.server, endpoint)
+        return requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
+
+    @staticmethod
+    def report_nps(config, dev_nps, base_nps):
+
+        payload = {
+            'nps'      : (dev_nps + base_nps) // 2,
+            'dev_nps'  : int(dev_nps),
+            'base_nps' : int(base_nps),
+        }
+
+        return ServerReporter.report(config, 'clientSubmitNPS', payload)
+
+    @staticmethod
+    def report_missing_artifact(config, workload, artifact_name, artifact_json):
+
+        payload = {
+            'test_id'    : workload['test']['id'],
+            'error'      : 'Artifact %s missing' % (artifact_name),
+            'logs'       : json.dumps(artifact_json, indent=2),
+        }
+
+        return ServerReporter.report(config, 'clientSubmitError', payload)
+
+    @staticmethod
+    def report_build_fail(config, workload, branch, output):
+
+        branch_name = workload['test'][branch]['name']
+        engine_name = workload['test'][branch]['engine']
+        final_name  = '[%s] %s' % (engine_name, branch_name)
+
+        payload = {
+            'test_id'    : workload['test']['id'],
+            'error'      : '%s build failed' % (final_name),
+            'logs'       : compiler_output,
+        }
+
+        return ServerReporter.report(config, 'clientSubmitError', payload)
+
+    @staticmethod
+    def report_engine_error(config, workload, cutechess_str, pgn):
+
+        white, black = cutechess_str.split('(')[1].split(')')[0].split(' vs ')
+
+        error = cutechess_str.split('{')[1].rstrip().rstrip('}')
+        error = error.replace('White', '-'.join(white.split('-')[1:]).rstrip())
+        error = error.replace('Black', '-'.join(black.split('-')[1:]).rstrip())
+
+        payload = {
+            'test_id'    : workload['test']['id'],
+            'error'      : error,
+            'logs'       : pgn,
+        }
+
+        return ServerReporter.report(config, 'clientSubmitError', payload)
+
+    @staticmethod
+    def report_bad_bench(config, workload, branch, bench):
+
+        payload = {
+            'test_id'    : workload['test']['id'],
+            'engine'     : workload['test'][branch]['name'],
+            'correct'    : workload['test'][branch]['bench'],
+            'wrong'      : bench,
+        }
+
+        return ServerReporter.report(config, 'clientWrongBench', payload)
+
+    @staticmethod
+    def report_results(config, workload, stats):
+
+        wins, losses, draws, crashes, timelosses = stats
+
+        payload = {
+            'test_id'    : workload['test']['id'],
+            'result_id'  : workload['result']['id'],
+            'wins'       : wins,
+            'losses'     : losses,
+            'draws'      : draws,
+            'crashes'    : crashes,
+            'timeloss'   : timelosses,
+        }
+
+        return ServerReporter.report(config, 'clientSubmitResults', payload)
+
 
 def get_version(program):
 
@@ -122,111 +336,6 @@ def locate_utility(util, force_exit=True, report_error=True):
     return False
 
 
-def scan_for_compilers(data):
-
-    print ('\nScanning for Compilers...')
-
-    # For each engine, attempt to find a valid compiler
-    for engine, build_info in data.items():
-
-        # Private engines don't need to be compiled
-        if 'artifacts' in build_info: continue
-
-        # Try to find at least one working compiler
-        for compiler in build_info['compilers']:
-
-            # Compilers may require a specific version
-            if '>=' in compiler:
-                compiler, version = compiler.split('>=')
-                version = tuple(map(int, version.split('.')))
-            else: version = (0, 0, 0)
-
-            # Try to confirm this compiler is present, and new enough
-            try:
-                match = get_version(compiler)
-                if tuple(map(int, match.split('.'))) >= version:
-                    print('%-16s | %-8s (%s)' % (engine, compiler, match))
-                    SYSTEM_COMPILERS[engine] = (compiler, match)
-                    break
-            except: continue # Unable to execute compiler
-
-        # Report missing engines in case the User is not expecting it
-        if engine not in SYSTEM_COMPILERS:
-            print('%-16s | Missing %s' % (engine, data[engine]['compilers']))
-
-def scan_for_private_tokens(data):
-
-    print ('\nScanning for Private Tokens...')
-
-    # For each engine, attempt to find a valid compiler
-    for engine, build_info in data.items():
-
-        # Public engines don't need access tokens
-        if not 'artifacts' in build_info: continue
-
-        # Private engines expect a credentials.engine file for the main repo
-        has_token = os.path.exists('credentials.%s' % (engine.replace(' ', '').lower()))
-        print('%-16s | %s' % (engine, ['Missing', 'Found'][has_token]))
-        if has_token: SYSTEM_GIT_TOKENS[engine] = True
-
-def scan_for_cpu_flags(data):
-
-    print('\nScanning for CPU Flags...')
-
-    # Get all flags, and for sanity uppercase them
-    info   = cpuinfo.get_cpu_info()
-    actual = [x.upper() for x in info['flags']]
-
-    # Set the CPU name which has to be done via global
-    global SYSTEM_CPU_NAME, SYSTEM_CPU_FLAGS
-    SYSTEM_CPU_NAME = info.get('brand_raw', info.get('brand', 'Unknown'))
-
-    # This should cover virtually all compiler flags that we would care about
-    desired  = ['POPCNT', 'BMI2']
-    desired += ['SSSE3', 'SSE4_1', 'SSE4_2', 'SSE4A', 'AVX', 'AVX2', 'FMA']
-    desired += ['AVX512_VNNI', 'AVX512BW', 'AVX512CD', 'AVX512DQ', 'AVX512F']
-
-    # Add any custom flags from the OpenBench configs, just in case we missed one
-    requested = set(sum([info['cpuflags'] for engine, info in data.items()], []))
-    for flag in [x for x in requested if x not in desired]: desired.append(flag)
-    SYSTEM_CPU_FLAGS = [x for x in desired if x in actual]
-
-    # Report the results of our search, including any "missing flags
-    print ('Found   |', ' '.join(SYSTEM_CPU_FLAGS))
-    print ('Missing |', ' '.join([x for x in desired if x not in actual]))
-
-def scan_for_machine_id():
-
-    # If we don't have one, the server will give us one, and then include it
-    # in future HTTP responses. We simply need to save the a .txt file, later
-
-    global SYSTEM_MACHINE_ID
-
-    if os.path.isfile('machine.txt'):
-        with open('machine.txt') as fin:
-            SYSTEM_MACHINE_ID = fin.readlines()[0]
-
-    if SYSTEM_MACHINE_ID == 'None':
-        print('[NOTE] This machine is currently unregistered')
-
-
-def init_client(arguments):
-
-    # Verify that we have make installed
-    print('\nScanning For Basic Utilities...')
-    locate_utility('make')
-
-    # Use Client.py's path as the base pathway
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
-
-    # Ensure the folder structure for ease of coding
-    for folder in ['PGNs', 'Engines', 'Networks', 'Books']:
-        if not os.path.isdir(folder):
-            os.mkdir(folder)
-
-    # Verify all WDL tables are present when told they are
-    validate_syzygy_exists()
-
 def cleanup_client():
 
     SECONDS_PER_DAY   = 60 * 60 * 24
@@ -247,25 +356,23 @@ def cleanup_client():
         if file_age(os.path.join('Networks', file)) > SECONDS_PER_MONTH:
             os.remove(os.path.join('Networks', file))
 
-def validate_syzygy_exists():
-
-    global SYZYGY_WDL_PATH
+def validate_syzygy_exists(config):
 
     print('\nScanning for Syzygy Configuration...')
 
     for filename in tablebase_names():
 
         # Build the paths when the configuration enables Syzygy
-        if SYZYGY_WDL_PATH:
-            wdlpath = os.path.join(SYZYGY_WDL_PATH, filename + '.rtbw')
+        if config.syzygy:
+            wdlpath = os.path.join(config.syzygy, filename + '.rtbw')
 
         # Reset the configuration if the file is missing
-        if SYZYGY_WDL_PATH and not os.path.isfile(wdlpath):
-            SYZYGY_WDL_PATH = None
+        if config.syzygy and not os.path.isfile(wdlpath):
+            config.syzygy = None
 
     # Report final results, which may conflict with the original configuration
-    if SYZYGY_WDL_PATH:
-        print('Verified Syzygy WDL (%s)' % (SYZYGY_WDL_PATH))
+    if config.syzygy:
+        print('Verified Syzygy WDL (%s)' % (config.syzygy))
     else: print('Syzygy WDL Not Found')
 
 def tablebase_names(K=6):
@@ -287,24 +394,26 @@ def tablebase_names(K=6):
 
     return list(filter(valid_filename, set(candidates)))
 
+def try_forever(func, args, message):
+
+    while True:
+        try:
+            return func(*args)
+
+        except Exception as exception:
+            print ('\n\n' + message)
+            print ('[Note] Sleeping for %d seconds' % (TIMEOUT_ERROR))
+            print ('[Note] Traceback:')
+            traceback.print_exc()
+            print ()
+
+        time.sleep(TIMEOUT_ERROR)
+
 
 def url_join(*args):
 
     # Join a set of URL paths while maintaining the correct format
     return '/'.join([f.lstrip('/').rstrip('/') for f in args]) + '/'
-
-def try_until_success(mesg):
-    def _try_until_success(funct):
-        def __try_until_success(*args):
-            while True:
-                try: return funct(*args)
-                except Exception:
-                    print('[Error]', mesg);
-                    if FLEET_MODE: sys.exit()
-                    time.sleep(TIMEOUT_ERROR)
-                    traceback.print_exc()
-        return __try_until_success
-    return _try_until_success
 
 def download_file(source, outname, post_data=None, headers=None):
 
@@ -456,8 +565,7 @@ def find_pgn_error(reason, command):
 #                                                                           #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-@try_until_success(mesg=ERRORS['cutechess'])
-def server_download_cutechess(arguments):
+def server_download_cutechess(config):
 
     print('\nFetching Cutechess Binary...')
 
@@ -465,10 +573,10 @@ def server_download_cutechess(arguments):
 
         # Fetch the source location if we are missing the binary
         source = requests.get(
-            url_join(arguments.server, 'clientGetFiles'),
+            url_join(config.server, 'clientGetFiles'),
             timeout=TIMEOUT_HTTP).json()['location']
 
-        if arguments.proxy: source = 'https://ghproxy.com/' + source
+        if config.proxy: source = 'https://ghproxy.com/' + source
 
         # Windows workers simply need a static compile (64-bit)
         download_file(url_join(source, 'cutechess-windows.exe').rstrip('/'), 'cutechess-ob.exe')
@@ -481,10 +589,10 @@ def server_download_cutechess(arguments):
 
         # Fetch the source location if we are missing the binary
         source = requests.get(
-            url_join(arguments.server, 'clientGetFiles'),
+            url_join(config.server, 'clientGetFiles'),
             timeout=TIMEOUT_HTTP).json()['location']
 
-        if arguments.proxy: source = 'https://ghproxy.com/' + source
+        if config.proxy: source = 'https://ghproxy.com/' + source
 
         # Linux workers need a static compile (64-bit) with execute permissions
         download_file(url_join(source, 'cutechess-linux').rstrip('/'), 'cutechess-ob')
@@ -494,82 +602,75 @@ def server_download_cutechess(arguments):
         if not locate_utility('./cutechess-ob', False):
             raise Exception
 
-@try_until_success(mesg=ERRORS['configure'])
-def server_configure_worker(arguments):
-
-    global SYSTEM_MACHINE_ID, SYSTEM_SECRET_TOKEN
+def server_configure_worker(config):
 
     # Server tells us how to build or obtain binaries
-    target = url_join(arguments.server, 'clientGetBuildInfo')
+    target = url_join(config.server, 'clientGetBuildInfo')
     data   = requests.get(target, timeout=TIMEOUT_HTTP).json()
 
-    scan_for_compilers(data)      # Public engines
-    scan_for_private_tokens(data) # Private engines
-    scan_for_cpu_flags(data)      # For executing binaries
-    scan_for_machine_id()         # None, or the content of machine.txt
+    config.scan_for_compilers(data)      # Public engine build tools
+    config.scan_for_private_tokens(data) # Private engine access tokens
+    config.scan_for_cpu_flags(data)      # For executing binaries
+    config.scan_for_machine_id()         # None, or the content of machine.txt
 
     system_info = {
-        'compilers'      : SYSTEM_COMPILERS,      # Key: Engine, Value: (Compiler, Version)
-        'tokens'         : SYSTEM_GIT_TOKENS,     # Key: Engine, Value: True, for tokens we have
-        'cpu_flags'      : SYSTEM_CPU_FLAGS,      # List of CPU flags found in the Client or Server
-        'cpu_name'       : SYSTEM_CPU_NAME,       # Raw CPU name as per py-cpuinfo
-        'os_name'        : SYSTEM_OS_NAME,        # Should be Windows, Linux, or Darwin
-        'os_ver'         : SYSTEM_OS_VER,         # Release version of the OS
-        'python_ver'     : SYSTEM_PYTHON_VER,     # Python version running the Client
-        'mac_address'    : SYSTEM_MAC_ADDRESS,    # Used to softly verify the Machine IDs
-        'logical_cores'  : SYSTEM_LOGICAL_CORES,  # Logical cores, to differentiate hyperthreads
-        'physical_cores' : SYSTEM_PHYSICAL_CORES, # Physical cores, to differentiate hyperthreads
-        'ram_total_mb'   : SYSTEM_RAM_TOTAL_MB,   # Total RAM on the system, to avoid over assigning
-        'machine_id'     : SYSTEM_MACHINE_ID,     # Assigned value, or None. Will be replaced if wrong
-        'machine_name'   : SYSTEM_MACHINE_NAME,   # Optional pseudonym for the machine, otherwise None
-        'concurrency'    : arguments.threads,     # Threads to use to play games
-        'ncutechesses'   : arguments.ncutechess,  # Cutechess copies, usually equal to Socket count
+        'compilers'      : config.compilers,      # Key: Engine, Value: (Compiler, Version)
+        'tokens'         : config.git_tokens,     # Key: Engine, Value: True, for tokens we have
+        'cpu_flags'      : config.cpu_flags,      # List of CPU flags found in the Client or Server
+        'cpu_name'       : config.cpu_name,       # Raw CPU name as per py-cpuinfo
+        'os_name'        : config.os_name,        # Should be Windows, Linux, or Darwin
+        'os_ver'         : config.os_ver,         # Release version of the OS
+        'python_ver'     : config.python_ver,     # Python version running the Client
+        'mac_address'    : config.mac_address,    # Used to softly verify the Machine IDs
+        'logical_cores'  : config.logical_cores,  # Logical cores, to differentiate hyperthreads
+        'physical_cores' : config.physical_cores, # Physical cores, to differentiate hyperthreads
+        'ram_total_mb'   : config.ram_total_mb,   # Total RAM on the system, to avoid over assigning
+        'machine_id'     : config.machine_id,     # Assigned value, or None. Will be replaced if wrong
+        'machine_name'   : config.identity,       # Optional pseudonym for the machine, otherwise None
+        'concurrency'    : config.threads,        # Threads to use to play games
+        'ncutechesses'   : config.sockets,        # Cutechess copies, usually equal to Socket count
         'client_ver'     : CLIENT_VERSION,        # Version of the Client, which the server may reject
-        'syzygy_wdl'     : bool(SYZYGY_WDL_PATH), # Whether or not the machine has Syzygy support
+        'syzygy_wdl'     : bool(config.syzygy),   # Whether or not the machine has Syzygy support
     }
 
     payload = {
-        'username'    : arguments.username,
-        'password'    : arguments.password,
+        'username'    : config.username,
+        'password'    : config.password,
         'system_info' : json.dumps(system_info),
     }
 
     # Send all of this to the server, and get a Machine Id + Secret Token
-    target   = url_join(arguments.server, 'clientWorkerInfo')
+    target   = url_join(config.server, 'clientWorkerInfo')
     response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
 
     # Delete the machine.txt if we have saved an invalid machine number
     if 'error' in response and response['error'].lower() == "bad machine id":
+        config.machine_id = 'None'
         os.remove('machine.txt')
 
     # The 'error' header is included if there was an issue
     if 'error' in response:
-        print('[Error] %s\n' % (response['error']))
-        sys.exit()
+        raise Exception('[Error] %s' % (response['error']))
 
     # Save the machine id, to avoid re-registering every time
     with open('machine.txt', 'w') as fout:
         fout.write(str(response['machine_id']))
 
-    # Save it within the code as well for future requests
-    SYSTEM_MACHINE_ID = str(response['machine_id'])
+    # Store machine_id, and the secret for this session
+    config.machine_id   = response['machine_id']
+    config.secret_token = response['secret']
 
-    # Save the secret token, to send with all future requests
-    SYSTEM_SECRET_TOKEN = response['secret']
-
-@try_until_success(mesg=ERRORS['request'])
-def server_request_workload(arguments):
+def server_request_workload(config):
 
     print('\nRequesting Workload from Server...')
 
-    payload  = { 'machine_id' : SYSTEM_MACHINE_ID, 'secret' : SYSTEM_SECRET_TOKEN }
-    target   = url_join(arguments.server, 'clientGetWorkload')
+    payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token }
+    target   = url_join(config.server, 'clientGetWorkload')
     response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
 
     # The 'error' header is included if there was an issue
     if 'error' in response:
-        print('[Error] %s\n' % (response['error']))
-        sys.exit()
+        raise Exception('[Error] %s' % (response['error']))
 
     # Log the start of a new Workload
     if 'workload' in response:
@@ -581,105 +682,7 @@ def server_request_workload(arguments):
 
     return None if 'workload' not in response else response['workload']
 
-def server_report_nps(arguments, workload, dev_nps, base_nps):
-
-    payload = {
-        'machine_id' : SYSTEM_MACHINE_ID,
-        'secret'     : SYSTEM_SECRET_TOKEN,
-        'nps'        : (dev_nps + base_nps) // 2
-    }
-
-    target   = url_join(arguments.server, 'clientSubmitNPS')
-    response = requests.post(target, data=payload, timeout=TIMEOUT_ERROR)
-
-def server_report_missing_artifact(arguments, workload, branch, artifact_name, artifact_json):
-
-    payload = {
-        'machine_id' : SYSTEM_MACHINE_ID,
-        'secret'     : SYSTEM_SECRET_TOKEN,
-        'test_id'    : workload['test']['id'],
-        'error'      : 'Artifact %s missing' % (artifact_name),
-        'logs'       : json.dumps(artifact_json, indent=2),
-    }
-
-    target = url_join(arguments.server, 'clientSubmitError')
-    requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
-
-def server_report_build_fail(arguments, workload, branch, compiler_output):
-
-    name = workload['test'][branch]['name']
-    if workload['test']['dev']['engine'] != workload['test']['base']['engine']:
-        name = '[%s] %s' % (workload['test'][branch]['engine'], name)
-
-    payload = {
-        'machine_id' : SYSTEM_MACHINE_ID,
-        'secret'     : SYSTEM_SECRET_TOKEN,
-        'test_id'    : workload['test']['id'],
-        'error'      : '%s build failed' % (name),
-        'logs'       : compiler_output,
-    }
-
-    target = url_join(arguments.server, 'clientSubmitError')
-    requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
-
-def server_report_engine_error(arguments, workload, cutechess_str, pgn):
-
-    pairing = cutechess_str.split('(')[1].split(')')[0]
-    white, black = pairing.split(' vs ')
-
-    error = cutechess_str.split('{')[1].rstrip().rstrip('}')
-    error = error.replace('White', '-'.join(white.split('-')[1:]).rstrip())
-    error = error.replace('Black', '-'.join(black.split('-')[1:]).rstrip())
-
-    payload = {
-        'machine_id' : SYSTEM_MACHINE_ID,
-        'secret'     : SYSTEM_SECRET_TOKEN,
-        'test_id'    : workload['test']['id'],
-        'error'      : error,
-        'logs'       : pgn,
-    }
-
-    target = url_join(arguments.server, 'clientSubmitError')
-    requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
-
-def server_report_bad_bench(arguments, workload, branch, bench):
-
-    payload = {
-        'machine_id' : SYSTEM_MACHINE_ID,
-        'secret'     : SYSTEM_SECRET_TOKEN,
-        'test_id'    : workload['test']['id'],
-        'engine'     : workload['test'][branch]['name'],
-        'correct'    : workload['test'][branch]['bench'],
-        'wrong'      : bench,
-    }
-
-    target = url_join(arguments.server, 'clientWrongBench')
-    requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
-
-def server_report_results(arguments, workload, stats):
-
-    wins, losses, draws, crashes, timelosses = stats
-
-    payload = {
-        'machine_id' : SYSTEM_MACHINE_ID,
-        'secret'     : SYSTEM_SECRET_TOKEN,
-        'test_id'    : workload['test']['id'],
-        'result_id'  : workload['result']['id'],
-        'wins'       : wins,
-        'losses'     : losses,
-        'draws'      : draws,
-        'crashes'    : crashes,
-        'timeloss'   : timelosses,
-    }
-
-    target = url_join(arguments.server, 'clientSubmitResults')
-    return requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
-
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#                                                                           #
-#                                                                           #
-#                                                                           #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+##
 
 def complete_workload(arguments, workload):
 
@@ -698,7 +701,7 @@ def complete_workload(arguments, workload):
     base_status = verify_benchmarks(arguments, workload, 'base', base_bench)
 
     if not dev_status or not base_status: return
-    server_report_nps(arguments, workload, dev_nps, base_nps)
+    ServerReporter.report_nps(arguments, workload, dev_nps, base_nps)
     download_opening_book(arguments, workload)
 
     # Construct each individual Cutechess argument, which differs by PGN output
@@ -832,7 +835,7 @@ def download_engine(arguments, workload, branch, network):
 
         # Artifact was missing, workload cannot be completed
         if artifact_id == None:
-            server_report_missing_artifact(arguments, workload, branch, desired, artifacts)
+            ServerReporter.report_missing_artifact(arguments, workload, branch, desired, artifacts)
             return None
 
         # Download the binary that matches our desired artifact
@@ -882,7 +885,7 @@ def download_engine(arguments, workload, branch, network):
 
     # Manual builds should have exited by now
     if not private:
-        server_report_build_fail(arguments, workload, branch, cxx_output)
+        ServerReporter.report_build_fail(arguments, workload, branch, cxx_output)
         return None
 
 def run_benchmarks(arguments, workload, branch, engine, network):
@@ -907,7 +910,7 @@ def run_benchmarks(arguments, workload, branch, engine, network):
 
 def verify_benchmarks(arguments, workload, branch, bench):
     if bench != int(workload['test'][branch]['bench']):
-        server_report_bad_bench(arguments, workload, branch, bench)
+        ServerReporter.report_bad_bench(arguments, workload, branch, bench)
     return bench == int(workload['test'][branch]['bench'])
 
 def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cutechess_idx):
@@ -1011,7 +1014,7 @@ def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess
         for error in errors:
             if error in score_reason:
                 pgn = find_pgn_error(score_reason, command)
-                server_report_engine_error(arguments, workload, line, pgn)
+                ServerReporter.report_engine_error(arguments, workload, line, pgn)
 
         # All remaining processing is for score updates only
         if not line.startswith('Score of'):
@@ -1026,7 +1029,7 @@ def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess
             # Report new results to the server
             wld    = [score[ii] - sent[ii] for ii in range(3)]
             stats  = wld + [crashes, timelosses]
-            status = server_report_results(arguments, workload, stats)
+            status = ServerReporter.report_results(arguments, workload, stats).json()
 
             # Reset the reporting since this report was a success
             crashes = timelosses = 0
@@ -1049,65 +1052,26 @@ def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess
 
 if __name__ == '__main__':
 
-    req_user  = required=('OPENBENCH_USERNAME' not in os.environ)
-    req_pass  = required=('OPENBENCH_PASSWORD' not in os.environ)
-    help_user = 'Username. May also be passed as OPENBENCH_USERNAME environment variable'
-    help_pass = 'Password. May also be passed as OPENBENCH_PASSWORD environment variable'
+    config = Configuration()
 
-    p = argparse.ArgumentParser()
+    cutechess_error  = '[Note] Unable to fetch Cutechess location and download it!'
+    setup_error      = '[Note] Unable to establish initial connection with the Server!'
+    connection_error = '[Note] Unable to reach the server to request a workload!'
 
-    # Required arguments
-    p.add_argument('-U', '--username'   , help=help_user           , required=req_user)
-    p.add_argument('-P', '--password'   , help=help_pass           , required=req_pass)
-    p.add_argument('-S', '--server'     , help='Webserver Address' , required=True)
-    p.add_argument('-T', '--threads'    , help='Total Threads'     , required=True)
-    p.add_argument('-N', '--ncutechess' , help='Cutechess Copies'  , required=True)
-    p.add_argument('-I', '--identity'   , help='Machine pseudonym' , required=False)
+    try_forever(server_download_cutechess, [config], cutechess_error)
+    try_forever(server_configure_worker,   [config], setup_error    )
 
-    # Optional arguments
-    p.add_argument('--syzygy', help='Syzygy WDL'  , required=False)
-    p.add_argument('--fleet' , help='Fleet Mode'  , action='store_true')
-    p.add_argument('--proxy' , help='Github Proxy', action='store_true')
-
-    arguments = p.parse_args()
-
-    arguments.threads = int(arguments.threads)
-    arguments.ncutechess = int(arguments.ncutechess)
-
-    # Make sure the thread distibution between Cutechess copies is correct
-    assert (arguments.threads >= 1)
-    assert (arguments.ncutechess >= 1)
-    assert (arguments.threads >= arguments.ncutechess)
-    assert (arguments.threads % arguments.ncutechess == 0)
-
-    if arguments.username is None:
-        arguments.username = os.environ['OPENBENCH_USERNAME']
-
-    if arguments.password is None:
-        arguments.password = os.environ['OPENBENCH_PASSWORD']
-
-    if arguments.identity:
-        SYSTEM_MACHINE_NAME = arguments.identity
-
-    if arguments.syzygy is not None:
-        SYZYGY_WDL_PATH = arguments.syzygy
-
-    if arguments.fleet:
-        FLEET_MODE = True
-
-    init_client(arguments)
-    server_download_cutechess(arguments)
-    server_configure_worker(arguments)
+    sys.exit()
 
     while True:
         try:
             # Cleanup on each workload request
             cleanup_client()
 
-            # Fleet workers exit when there are no workloads
-            if workload := server_request_workload(arguments):
-                complete_workload(arguments, workload)
-            elif FLEET_MODE: break
+            workload = try_forever(server_request_workload, [config], connection_error)
+
+            if workload: complete_workload(arguments, workload)
+            elif config.fleet: break
             else: time.sleep(TIMEOUT_WORKLOAD)
 
             # Check for exit signal via openbench.exit
@@ -1115,4 +1079,5 @@ if __name__ == '__main__':
                 print('Exited via openbench.exit')
                 break
 
-        except Exception: traceback.print_exc()
+        except Exception:
+            traceback.print_exc()
