@@ -49,12 +49,14 @@ class Profile(Model):
 
 class Machine(Model):
 
-    user     = ForeignKey(User, PROTECT, related_name='owner')
-    mnps     = FloatField(default=0.00)
-    updated  = DateTimeField(auto_now=True)
-    secret   = CharField(max_length=64, default='None')
-    info     = JSONField()
-    workload = IntegerField(default=0)
+    user      = ForeignKey(User, PROTECT, related_name='owner')
+    mnps      = FloatField(default=0.00)
+    dev_mnps  = FloatField(default=0.00)
+    base_mnps = FloatField(default=0.00)
+    updated   = DateTimeField(auto_now=True)
+    secret    = CharField(max_length=64, default='None')
+    info      = JSONField()
+    workload  = IntegerField(default=0)
 
     def __str__(self):
         return '[%d] %s' % (self.id, self.user.username)

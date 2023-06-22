@@ -41,10 +41,10 @@ from itertools import combinations_with_replacement
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-TIMEOUT_HTTP     = 30    # Timeout in seconds for HTTP requests
-TIMEOUT_ERROR    = 10    # Timeout in seconds when any errors are thrown
-TIMEOUT_WORKLOAD = 30    # Timeout in seconds between workload requests
-CLIENT_VERSION   = '9'   # Client version to send to the Server
+TIMEOUT_HTTP     = 30   # Timeout in seconds for HTTP requests
+TIMEOUT_ERROR    = 10   # Timeout in seconds when any errors are thrown
+TIMEOUT_WORKLOAD = 30   # Timeout in seconds between workload requests
+CLIENT_VERSION   = '10' # Client version to send to the Server
 
 ## Global information which is shared by all helper threads for ease of use
 
@@ -211,13 +211,9 @@ class Configuration(object):
 class ServerReporter(object):
 
     @staticmethod
-    def append_credentials(config, payload):
-        payload['machine_id']   = config.machine_id
-        payload['secret_token'] = config.secret_token
-
-    @staticmethod
     def report(config, endpoint, payload):
-        append_credentials(config, payload)
+        payload['machine_id'] = config.machine_id
+        payload['secret']     = config.secret_token
         target = url_join(config.server, endpoint)
         return requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
@@ -233,10 +229,10 @@ class ServerReporter(object):
         return ServerReporter.report(config, 'clientSubmitNPS', payload)
 
     @staticmethod
-    def report_missing_artifact(config, workload, artifact_name, artifact_json):
+    def report_missing_artifact(config, artifact_name, artifact_json):
 
         payload = {
-            'test_id'    : workload['test']['id'],
+            'test_id'    : config.workload['test']['id'],
             'error'      : 'Artifact %s missing' % (artifact_name),
             'logs'       : json.dumps(artifact_json, indent=2),
         }
@@ -244,14 +240,14 @@ class ServerReporter(object):
         return ServerReporter.report(config, 'clientSubmitError', payload)
 
     @staticmethod
-    def report_build_fail(config, workload, branch, output):
+    def report_build_fail(config, branch, output):
 
-        branch_name = workload['test'][branch]['name']
-        engine_name = workload['test'][branch]['engine']
+        branch_name = config.workload['test'][branch]['name']
+        engine_name = config.workload['test'][branch]['engine']
         final_name  = '[%s] %s' % (engine_name, branch_name)
 
         payload = {
-            'test_id'    : workload['test']['id'],
+            'test_id'    : config.workload['test']['id'],
             'error'      : '%s build failed' % (final_name),
             'logs'       : compiler_output,
         }
@@ -259,7 +255,7 @@ class ServerReporter(object):
         return ServerReporter.report(config, 'clientSubmitError', payload)
 
     @staticmethod
-    def report_engine_error(config, workload, cutechess_str, pgn):
+    def report_engine_error(config, cutechess_str, pgn):
 
         white, black = cutechess_str.split('(')[1].split(')')[0].split(' vs ')
 
@@ -268,7 +264,7 @@ class ServerReporter(object):
         error = error.replace('Black', '-'.join(black.split('-')[1:]).rstrip())
 
         payload = {
-            'test_id'    : workload['test']['id'],
+            'test_id'    : config.workload['test']['id'],
             'error'      : error,
             'logs'       : pgn,
         }
@@ -276,25 +272,25 @@ class ServerReporter(object):
         return ServerReporter.report(config, 'clientSubmitError', payload)
 
     @staticmethod
-    def report_bad_bench(config, workload, branch, bench):
+    def report_bad_bench(config, branch, bench):
 
         payload = {
-            'test_id'    : workload['test']['id'],
-            'engine'     : workload['test'][branch]['name'],
-            'correct'    : workload['test'][branch]['bench'],
+            'test_id'    : config.workload['test']['id'],
+            'engine'     : config.workload['test'][branch]['name'],
+            'correct'    : config.workload['test'][branch]['bench'],
             'wrong'      : bench,
         }
 
         return ServerReporter.report(config, 'clientWrongBench', payload)
 
     @staticmethod
-    def report_results(config, workload, stats):
+    def report_results(config, stats):
 
         wins, losses, draws, crashes, timelosses = stats
 
         payload = {
-            'test_id'    : workload['test']['id'],
-            'result_id'  : workload['result']['id'],
+            'test_id'    : config.workload['test']['id'],
+            'result_id'  : config.workload['result']['id'],
             'wins'       : wins,
             'losses'     : losses,
             'draws'      : draws,
@@ -433,13 +429,14 @@ def unzip_delete_file(source, outdir):
     os.remove(source)
 
 
-def make_command(arguments, engine, src_path, network_path):
+def make_command(config, engine, src_path, network_path):
 
-    command = 'make %s=%s EXE=%s -j%d' % (
-        ['CC', 'CXX']['++' in SYSTEM_COMPILERS[engine][0]], SYSTEM_COMPILERS[engine][0], engine, arguments.threads)
+    compiler  = config.compilers[engine][0]
+    comp_flag = ['CC', 'CXX']['++' in compiler]
+    command   = 'make %s=%s EXE=%s -j%d' % (comp_flag, compiler, engine, config.threads)
 
     if network_path != None:
-        path = os.path.relpath(os.path.abspath(network_path), src_path)
+        path     = os.path.relpath(os.path.abspath(network_path), src_path)
         command += ' EVALFILE=%s' % (path.replace('\\', '/'))
 
     return command.split()
@@ -644,7 +641,7 @@ def server_configure_worker(config):
     response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
 
     # Delete the machine.txt if we have saved an invalid machine number
-    if 'error' in response and response['error'].lower() == "bad machine id":
+    if response.get('error', '').lower() == "bad machine id":
         config.machine_id = 'None'
         os.remove('machine.txt')
 
@@ -680,42 +677,44 @@ def server_request_workload(config):
         base_name   = response['workload']['test']['base']['name'  ]
         print('Workload [%s] %s vs [%s] %s\n' % (dev_engine, dev_name, base_engine, base_name))
 
-    return None if 'workload' not in response else response['workload']
+    config.workload = response.get('workload', None)
 
 ##
 
-def complete_workload(arguments, workload):
+def complete_workload(config):
 
-    dev_network  = download_network_weights(arguments, workload, 'dev' )
-    base_network = download_network_weights(arguments, workload, 'base')
+    dev_network  = download_network_weights(config, 'dev' )
+    base_network = download_network_weights(config, 'base')
 
-    dev_name  = download_engine(arguments, workload, 'dev' , dev_network )
-    base_name = download_engine(arguments, workload, 'base', base_network)
+    dev_name  = download_engine(config, 'dev' , dev_network )
+    base_name = download_engine(config, 'base', base_network)
     if dev_name == None or base_name == None: return
 
-    dev_bench,  dev_nps  = run_benchmarks(arguments, workload, 'dev' , dev_name , dev_network )
-    base_bench, base_nps = run_benchmarks(arguments, workload, 'base', base_name, base_network)
+    dev_bench,  dev_nps  = run_benchmarks(config, 'dev' , dev_name , dev_network )
+    base_bench, base_nps = run_benchmarks(config, 'base', base_name, base_network)
     average_nps          = (dev_nps + base_nps) // 2
 
-    dev_status  = verify_benchmarks(arguments, workload, 'dev' , dev_bench )
-    base_status = verify_benchmarks(arguments, workload, 'base', base_bench)
+    dev_status  = verify_benchmarks(config, 'dev' , dev_bench )
+    base_status = verify_benchmarks(config, 'base', base_bench)
 
     if not dev_status or not base_status: return
-    ServerReporter.report_nps(arguments, workload, dev_nps, base_nps)
-    download_opening_book(arguments, workload)
+    ServerReporter.report_nps(config, dev_nps, base_nps)
+    download_opening_book(config)
+
+    sys.exit()
 
     # Construct each individual Cutechess argument, which differs by PGN output
     cutechess_args = [
-        build_cutechess_command(arguments, workload, dev_name, base_name, average_nps, ii)
-        for ii in range(int(arguments.ncutechess))
+        build_cutechess_command(config, dev_name, base_name, average_nps, ii)
+        for ii in range(int(config.ncutechess))
     ]
 
     # Create a process for the each copy of run_and_parse_cutechess()
     processes = [
         multiprocessing.Process(
             target=run_and_parse_cutechess,
-            args=(arguments, workload, *cutechess_args[ii], ii))
-        for ii in range(int(arguments.ncutechess))
+            args=(config, *cutechess_args[ii], ii))
+        for ii in range(int(config.sockets))
     ]
 
     try:
@@ -728,18 +727,18 @@ def complete_workload(arguments, workload):
         for process in processes: process.kill()
         raise KeyboardInterrupt
 
-def download_opening_book(arguments, workload):
+def download_opening_book(config):
 
     # Log our attempts to download and verify the book
-    book_sha256 = workload['test']['book']['sha'   ]
-    book_source = workload['test']['book']['source']
-    book_name   = workload['test']['book']['name'  ]
+    book_sha256 = config.workload['test']['book']['sha'   ]
+    book_source = config.workload['test']['book']['source']
+    book_name   = config.workload['test']['book']['name'  ]
     book_path   = os.path.join('Books', book_name)
     print('\nFetching Opening Book [%s]' % (book_name))
 
     # Download file if we do not already have it
     if not os.path.isfile(book_path):
-        if arguments.proxy: book_source = 'https://ghproxy.com/' + book_source
+        if config.proxy: book_source = 'https://ghproxy.com/' + book_source
         download_file(book_source, book_name + '.zip')
         unzip_delete_file(book_name + '.zip', 'Books/')
 
@@ -757,27 +756,22 @@ def download_opening_book(arguments, workload):
     if book_sha256 != sha256:
         raise Exception('Invalid SHA for %s' % (book_name))
 
-def download_network_weights(arguments, workload, branch):
+def download_network_weights(config, branch):
 
     # Some tests may not use Neural Networks
-    network_name = workload['test'][branch]['network']
+    network_name = config.workload['test'][branch]['network']
     if not network_name or network_name == 'None': return None
 
     # Log that we are obtaining a Neural Network
     pattern = 'Fetching Neural Network [ %s, %-4s ]'
     print(pattern % (network_name, branch.upper()))
 
-    # Neural Network requests require authorization
-    payload = {
-        'username' : arguments.username,
-        'password' : arguments.password,
-    }
-
     # Fetch the Netural Network if we do not already have it
     network_path = os.path.join('Networks', network_name)
     if not os.path.isfile(network_path):
-        api = url_join(arguments.server, 'clientGetNetwork')
-        download_file(url_join(api, network_name), network_path, payload)
+        target  = url_join(config.server, 'clientGetNetwork')
+        payload = { 'username' : config.username, 'password' : config.password }
+        download_file(url_join(target, network_name), network_path, payload)
 
     # Verify the download and delete partial or corrupted ones
     with open(network_path, 'rb') as network:
@@ -791,14 +785,14 @@ def download_network_weights(arguments, workload, branch):
 
     return network_path
 
-def download_engine(arguments, workload, branch, network):
+def download_engine(arguments, branch, network):
 
-    engine      = workload['test'][branch]['engine']
-    branch_name = workload['test'][branch]['name']
-    commit_sha  = workload['test'][branch]['sha']
-    source      = workload['test'][branch]['source']
-    build_path  = workload['test'][branch]['build']['path']
-    private     = 'artifacts' in workload['test'][branch]['build']
+    engine      = config.workload['test'][branch]['engine']
+    branch_name = config.workload['test'][branch]['name']
+    commit_sha  = config.workload['test'][branch]['sha']
+    source      = config.workload['test'][branch]['source']
+    build_path  = config.workload['test'][branch]['build']['path']
+    private     = config.workload['test'][branch]['private']
 
     # Naming as Engine-CommitSha[:8]-NetworkSha[:8]
     final_name = '%s-%s' % (engine, commit_sha.upper()[:8])
@@ -835,7 +829,7 @@ def download_engine(arguments, workload, branch, network):
 
         # Artifact was missing, workload cannot be completed
         if artifact_id == None:
-            ServerReporter.report_missing_artifact(arguments, workload, branch, desired, artifacts)
+            ServerReporter.report_missing_artifact(config, branch, desired, artifacts)
             return None
 
         # Download the binary that matches our desired artifact
@@ -866,7 +860,7 @@ def download_engine(arguments, workload, branch, network):
         # Build the engine and drop it into src_path
         print('\nBuilding [%s]' % (final_path))
         output_name = os.path.join(src_path, engine)
-        command     = make_command(arguments, engine, src_path, network)
+        command     = make_command(config, engine, src_path, network)
         process     = Popen(command, cwd=src_path, stdout=PIPE, stderr=STDOUT)
         cxx_output  = process.communicate()[0].decode('utf-8')
         print (cxx_output)
@@ -885,33 +879,36 @@ def download_engine(arguments, workload, branch, network):
 
     # Manual builds should have exited by now
     if not private:
-        ServerReporter.report_build_fail(arguments, workload, branch, cxx_output)
+        ServerReporter.report_build_fail(config, branch, cxx_output)
         return None
 
-def run_benchmarks(arguments, workload, branch, engine, network):
+def run_benchmarks(config, branch, engine, network):
 
-    cores   = arguments.threads
     queue   = multiprocessing.Queue()
-    name    = workload['test'][branch]['name']
-    private = 'artifacts' in workload['test'][branch]['build']
-    print('\nRunning %dx Benchmarks for %s' % (cores, name))
+    name    = config.workload['test'][branch]['name']
+    private = config.workload['test'][branch]['private']
+    print('\nRunning %dx Benchmarks for %s' % (config.threads, name))
 
-    for ii in range(cores):
+    for ii in range(config.threads):
         args = [os.path.join('Engines', engine), queue]
         if private and network: args.append(network)
         multiprocessing.Process(target=run_bench, args=args).start()
 
-    bench, nps = list(zip(*[queue.get() for ii in range(cores)]))
+    bench, nps = list(zip(*[queue.get() for ii in range(config.threads)]))
     if len(set(bench)) > 1: return (0, 0) # Flag an error
 
     print('Bench for %s is %d' % (name, bench[0]))
-    print('Speed for %s is %d' % (name, sum(nps) // cores))
-    return bench[0], sum(nps) // cores
+    print('Speed for %s is %d' % (name, sum(nps) // config.threads))
+    return bench[0], sum(nps) // config.threads
 
-def verify_benchmarks(arguments, workload, branch, bench):
-    if bench != int(workload['test'][branch]['bench']):
-        ServerReporter.report_bad_bench(arguments, workload, branch, bench)
-    return bench == int(workload['test'][branch]['bench'])
+def verify_benchmarks(config, branch, bench):
+
+    # Report mismatched benches [ Which will stop the test ]
+    if bench != int(config.workload['test'][branch]['bench']):
+        ServerReporter.report_bad_bench(config, branch, bench)
+
+    # Make sure we also quit if the benches did not match
+    return bench == int(config.workload['test'][branch]['bench'])
 
 def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cutechess_idx):
 
@@ -937,12 +934,12 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cuteche
         base_options += ' SyzygyPath=%s' % (path)
 
     # Private engines may need extra options to set their NNUE files
-    if 'artifacts' in workload['test']['dev']['build'] and dev_network and dev_network != 'None':
+    if workload['test']['dev']['private'] and dev_network and dev_network != 'None':
         dev_options += ' EvalFile=%s' % (os.path.join('../Networks', dev_network))
         dev_name    += '-%s' % (dev_network)
 
     # Private engines may need extra options to set their NNUE files
-    if 'artifacts' in workload['test']['base']['build'] and base_network and base_network != 'None':
+    if workload['test']['base']['private'] and base_network and base_network != 'None':
         base_options += ' EvalFile=%s' % (os.path.join('../Networks', base_network))
         base_name    += '-%s' % (base_network)
 
@@ -966,7 +963,7 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cuteche
     if SYZYGY_WDL_PATH and workload['test']['syzygy_adj'] != 'DISABLED':
         flags += '-tb %s' % (SYZYGY_WDL_PATH.replace('\\', '\\\\'))
 
-    concurrency = arguments.threads / arguments.ncutechess
+    concurrency = config.threads / config.ncutechess
     concurrency = concurrency // max(dev_threads, base_threads)
 
     games = int(concurrency * workload['test']['workload_size'])
@@ -1014,7 +1011,7 @@ def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess
         for error in errors:
             if error in score_reason:
                 pgn = find_pgn_error(score_reason, command)
-                ServerReporter.report_engine_error(arguments, workload, line, pgn)
+                ServerReporter.report_engine_error(arguments, line, pgn)
 
         # All remaining processing is for score updates only
         if not line.startswith('Score of'):
@@ -1029,7 +1026,7 @@ def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess
             # Report new results to the server
             wld    = [score[ii] - sent[ii] for ii in range(3)]
             stats  = wld + [crashes, timelosses]
-            status = ServerReporter.report_results(arguments, workload, stats).json()
+            status = ServerReporter.report_results(arguments, stats).json()
 
             # Reset the reporting since this report was a success
             crashes = timelosses = 0
@@ -1052,7 +1049,7 @@ def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess
 
 if __name__ == '__main__':
 
-    config = Configuration()
+    config = Configuration() # System info, Cmdline arguments, and Workload
 
     cutechess_error  = '[Note] Unable to fetch Cutechess location and download it!'
     setup_error      = '[Note] Unable to establish initial connection with the Server!'
@@ -1061,17 +1058,21 @@ if __name__ == '__main__':
     try_forever(server_download_cutechess, [config], cutechess_error)
     try_forever(server_configure_worker,   [config], setup_error    )
 
-    sys.exit()
-
     while True:
         try:
             # Cleanup on each workload request
             cleanup_client()
 
-            workload = try_forever(server_request_workload, [config], connection_error)
+            # Keep asking for a workload until we get a response
+            try_forever(server_request_workload, [config], connection_error)
 
-            if workload: complete_workload(arguments, workload)
+            # Complete the workload if there was work to be done
+            if config.workload: complete_workload(config)
+
+            # Otherwise --fleet workers will exit when there is no work
             elif config.fleet: break
+
+            # In either case, wait before requesting again
             else: time.sleep(TIMEOUT_WORKLOAD)
 
             # Check for exit signal via openbench.exit

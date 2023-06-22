@@ -18,7 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import os, hashlib, datetime, json, secrets, re
+import os, hashlib, datetime, json, secrets, sys, re
 
 import django.http
 import django.shortcuts
@@ -696,8 +696,11 @@ def client_submit_nps(request):
     machine, response = client_verify_worker(request)
     if response != None: return response
 
-    # Update the NPS counter for the GUI views
-    machine.mnps = float(request.POST['nps']) / 1e6; machine.save()
+    # Update the NPS counters for the GUI views
+    machine.mnps      = float(request.POST['nps'     ]) / 1e6;
+    machine.dev_mnps  = float(request.POST['dev_nps' ]) / 1e6;
+    machine.base_mnps = float(request.POST['base_nps']) / 1e6;
+    machine.save()
 
     # Pass back an empty JSON response
     return JsonResponse({})
