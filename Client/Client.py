@@ -175,7 +175,7 @@ def scan_for_cpu_flags(data):
 
     # Get all flags, and for sanity uppercase them
     info   = cpuinfo.get_cpu_info()
-    actual = [x.upper() for x in info['flags']]
+    actual = [x.upper() for x in info.get('flags', [])]
 
     # Set the CPU name which has to be done via global
     global SYSTEM_CPU_NAME, SYSTEM_CPU_FLAGS
