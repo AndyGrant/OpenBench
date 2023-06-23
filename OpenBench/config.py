@@ -38,11 +38,11 @@ REQUIRE_MANUAL_REGISTRATION = False # Disable the public facing registration pag
 OPENBENCH_CONFIG = {
 
     # Server Client version control
-    'client_version' : '9',
+    'client_version' : '10',
 
     # Generic Error Messages useful to those setting up their own instance
     'error' : {
-        'disabled'            : 'Account has not been enabled. Contact andrew@grantnet.us',
+        'disabled'            : 'Account has not been enabled. Contact an Administrator',
         'fakeuser'            : 'This is not a real OpenBench User. Create an OpenBench account',
         'requires_login'      : 'All pages require a user login to access',
         'manual_registration' : 'Registration can only be done via an Administrator',

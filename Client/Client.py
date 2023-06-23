@@ -37,7 +37,7 @@ import zipfile
 
 from subprocess import PIPE, Popen, call, STDOUT
 from itertools import combinations_with_replacement
-
+from concurrent.futures import ThreadPoolExecutor
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
@@ -46,12 +46,14 @@ TIMEOUT_ERROR    = 10   # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30   # Timeout in seconds between workload requests
 CLIENT_VERSION   = '10' # Client version to send to the Server
 
-## Global information which is shared by all helper threads for ease of use
-
-IS_WINDOWS = platform.system() == 'Windows'
-IS_LINUX   = platform.system() != 'Windows'
+IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
+IS_LINUX   = platform.system() != 'Windows' # Don't touch this
 
 class Configuration(object):
+
+    ## Handles configuring the worker with the server. This means collecting
+    ## information about the system, as well as holding any of the command line
+    ## arguments provided. Lastly, a Configuration() object holds the Workload
 
     def __init__(self):
 
@@ -209,6 +211,10 @@ class Configuration(object):
                 self.machine_id = fin.readlines()[0]
 
 class ServerReporter(object):
+
+    ## Handles reporting things to the server, which are not intended to send a great
+    ## deal of information back. Reports to the server can hit various endpoints, with
+    ## differing payloads. Payloads must always include the machine id, and secret token
 
     @staticmethod
     def report(config, endpoint, payload):
@@ -428,6 +434,17 @@ def unzip_delete_file(source, outdir):
         fin.extractall(outdir)
     os.remove(source)
 
+
+def extract_option(options, option):
+
+    match = re.search('(?<={0}=")[^"]*'.format(option), options)
+    if match: return match.group()
+
+    match = re.search('(?<={0}=\')[^\']*'.format(option), options)
+    if match: return match.group()
+
+    match = re.search('(?<={0}=)[^ ]*'.format(option), options)
+    if match: return match.group()
 
 def make_command(config, engine, src_path, network_path):
 
@@ -679,53 +696,47 @@ def server_request_workload(config):
 
     config.workload = response.get('workload', None)
 
-##
 
 def complete_workload(config):
 
+    # Download the opening book, throws an exception on corruption
+    download_opening_book(config)
+
+    # Download each NNUE file, throws an exception on corruption
     dev_network  = download_network_weights(config, 'dev' )
     base_network = download_network_weights(config, 'base')
 
+    # Build or download each engine, or exit if an error occured
     dev_name  = download_engine(config, 'dev' , dev_network )
     base_name = download_engine(config, 'base', base_network)
-    if dev_name == None or base_name == None: return
+    if not dev_name or not base_name: return
 
-    dev_bench,  dev_nps  = run_benchmarks(config, 'dev' , dev_name , dev_network )
-    base_bench, base_nps = run_benchmarks(config, 'base', base_name, base_network)
-    average_nps          = (dev_nps + base_nps) // 2
+    # Run the benchmarks and compute the scaling NPS value
+    dev_nps  = run_benchmarks(config, 'dev' , dev_name , dev_network )
+    base_nps = run_benchmarks(config, 'base', base_name, base_network)
+    avg_nps  = (dev_nps + base_nps) // 2
 
-    dev_status  = verify_benchmarks(config, 'dev' , dev_bench )
-    base_status = verify_benchmarks(config, 'base', base_bench)
-
-    if not dev_status or not base_status: return
+    # Report NPS to server, or exit if an error occured
+    if not dev_nps or not base_nps: return
     ServerReporter.report_nps(config, dev_nps, base_nps)
-    download_opening_book(config)
 
-    sys.exit()
+    # Launch and manage all of the Cutechess workers
+    with ThreadPoolExecutor(max_workers=config.sockets) as executor:
 
-    # Construct each individual Cutechess argument, which differs by PGN output
-    cutechess_args = [
-        build_cutechess_command(config, dev_name, base_name, average_nps, ii)
-        for ii in range(int(config.ncutechess))
-    ]
+        tasks = [] # Create each of the Cutechess workers
+        for x in range(config.sockets):
+            cmd = build_cutechess_command(config, dev_name, base_name, avg_nps, x)
+            tasks.append(executor.submit(run_and_parse_cutechess, config, cmd, x))
 
-    # Create a process for the each copy of run_and_parse_cutechess()
-    processes = [
-        multiprocessing.Process(
-            target=run_and_parse_cutechess,
-            args=(config, *cutechess_args[ii], ii))
-        for ii in range(int(config.sockets))
-    ]
+        # Await the completion of all Cutechess workers
+        try:
+            for task in tasks:
+                task.result()
 
-    try:
-        # Launch and wait for each cutechess copy
-        for process in processes: process.start()
-        for process in processes: process.join()
-
-    except KeyboardInterrupt:
-        # Kill everything and pass the error back up
-        for process in processes: process.kill()
-        raise KeyboardInterrupt
+        # Kill everything during an Keyboard Interrupt
+        except KeyboardInterrupt:
+            for task in tasks: task.cancel()
+            raise KeyboardInterrupt
 
 def download_opening_book(config):
 
@@ -734,7 +745,7 @@ def download_opening_book(config):
     book_source = config.workload['test']['book']['source']
     book_name   = config.workload['test']['book']['name'  ]
     book_path   = os.path.join('Books', book_name)
-    print('\nFetching Opening Book [%s]' % (book_name))
+    print('Fetching Opening Book [%s]' % (book_name))
 
     # Download file if we do not already have it
     if not os.path.isfile(book_path):
@@ -745,12 +756,12 @@ def download_opening_book(config):
     # Verify SHAs match with the server
     with open(book_path) as fin:
         content = fin.read().encode('utf-8')
-        sha256 = hashlib.sha256(content).hexdigest()
+        sha256  = hashlib.sha256(content).hexdigest()
     if book_sha256 != sha256: os.remove(book_path)
 
     # Log SHAs on every workload
     print('Correct  SHA256 %s' % (book_sha256.upper()))
-    print('Download SHA256 %s' % (     sha256.upper()))
+    print('Download SHA256 %s\n' % (   sha256.upper()))
 
     # We have to have the correct SHA to continue
     if book_sha256 != sha256:
@@ -889,57 +900,58 @@ def run_benchmarks(config, branch, engine, network):
     private = config.workload['test'][branch]['private']
     print('\nRunning %dx Benchmarks for %s' % (config.threads, name))
 
+    # Execute a benchmark on each of the Threads
     for ii in range(config.threads):
         args = [os.path.join('Engines', engine), queue]
         if private and network: args.append(network)
         multiprocessing.Process(target=run_bench, args=args).start()
 
+    # Collect all bench and nps values, and set bench to 0 if any vary
     bench, nps = list(zip(*[queue.get() for ii in range(config.threads)]))
-    if len(set(bench)) > 1: return (0, 0) # Flag an error
+    bench = [0, bench[0]][len(set(bench)) == 1]
+    nps   = sum(nps) // config.threads
 
-    print('Bench for %s is %d' % (name, bench[0]))
-    print('Speed for %s is %d' % (name, sum(nps) // config.threads))
-    return bench[0], sum(nps) // config.threads
+    # Output everything, including 0 for an error
+    print('Bench for %s is %d' % (name, bench))
+    print('Speed for %s is %d' % (name, nps))
 
-def verify_benchmarks(config, branch, bench):
-
-    # Report mismatched benches [ Which will stop the test ]
-    if bench != int(config.workload['test'][branch]['bench']):
+    # Flag the test to abort if we have a bench mismatch
+    if error := (bench != int(config.workload['test'][branch]['bench'])):
         ServerReporter.report_bad_bench(config, branch, bench)
 
-    # Make sure we also quit if the benches did not match
-    return bench == int(config.workload['test'][branch]['bench'])
+    # Set NPS to 0 if we had any errors
+    return 0 if not bench or error else nps
 
-def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cutechess_idx):
+def build_cutechess_command(config, dev_cmd, base_cmd, nps, socket):
 
-    dev_options  = workload['test']['dev' ]['options']
-    base_options = workload['test']['base']['options']
+    dev_options  = config.workload['test']['dev' ]['options']
+    base_options = config.workload['test']['base']['options']
 
-    dev_threads  = int(re.search('(?<=Threads=)\d*', dev_options ).group())
-    base_threads = int(re.search('(?<=Threads=)\d*', base_options).group())
+    dev_threads  = int(extract_option(dev_options,  'Threads'))
+    base_threads = int(extract_option(base_options, 'Threads'))
 
-    dev_network  = workload['test']['dev' ]['network'] # Could be empty strings
-    base_network = workload['test']['base']['network'] # Could be empty strings
+    dev_network  = config.workload['test']['dev' ]['network']
+    base_network = config.workload['test']['base']['network']
 
-    dev_time     = scale_time_control(workload, nps, 'dev')
-    base_time    = scale_time_control(workload, nps, 'base')
+    dev_time     = scale_time_control(config.workload, nps, 'dev')
+    base_time    = scale_time_control(config.workload, nps, 'base')
 
     dev_name     =  dev_cmd.rstrip('.exe') # Used to name the PGN file and Headers
     base_name    = base_cmd.rstrip('.exe') # Used to name the PGN file and Headers
 
     # Possibly add SyzygyPath to dev and base options
-    if SYZYGY_WDL_PATH and workload['test']['syzygy_wdl'] != 'DISABLED':
+    if config.syzygy and config.workload['test']['syzygy_wdl'] != 'DISABLED':
         path = SYZYGY_WDL_PATH.replace('\\', '\\\\')
         dev_options  += ' SyzygyPath=%s' % (path)
         base_options += ' SyzygyPath=%s' % (path)
 
     # Private engines may need extra options to set their NNUE files
-    if workload['test']['dev']['private'] and dev_network and dev_network != 'None':
+    if config.workload['test']['dev']['private'] and dev_network and dev_network != 'None':
         dev_options += ' EvalFile=%s' % (os.path.join('../Networks', dev_network))
         dev_name    += '-%s' % (dev_network)
 
     # Private engines may need extra options to set their NNUE files
-    if workload['test']['base']['private'] and base_network and base_network != 'None':
+    if config.workload['test']['base']['private'] and base_network and base_network != 'None':
         base_options += ' EvalFile=%s' % (os.path.join('../Networks', base_network))
         base_name    += '-%s' % (base_network)
 
@@ -947,11 +959,25 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cuteche
     dev_options  = ' option.'.join([''] +  dev_options.split())
     base_options = ' option.'.join([''] + base_options.split())
 
-    win_adj  = ['', '-resign ' + workload['test']['win_adj' ]][workload['test']['win_adj' ] != 'None']
-    draw_adj = ['', '-draw '   + workload['test']['draw_adj']][workload['test']['draw_adj'] != 'None']
+    # Extract win adjudication settings if there are any
+    win_adj = config.workload['test']['win_adj' ]
+    win_adj = ['', '-resign ' + win_adj][win_adj != 'None']
 
-    book_name = workload['test']['book']['name']
-    variant   = ['standard', 'fischerandom']['FRC' in book_name.upper()]
+    # Extract draw adjudication settings if there are any
+    draw_adj = config.workload['test']['draw_adj']
+    draw_adj = ['', '-draw ' + draw_adj][draw_adj != 'None']
+
+    # Assume Fischer if FRC or 960 appears in the Opening Book
+    book_name = config.workload['test']['book']['name']
+    variant   = ['standard', 'fischerandom']['FRC' in book_name.upper() or '960' in book_name]
+
+    # Number of concurrency games that this socket can play
+    concurrency = config.threads / config.sockets
+    concurrency = concurrency // max(dev_threads, base_threads)
+
+    # Play at least a single game-pair per concurrency
+    games = int(concurrency * config.workload['test']['workload_size'])
+    games = max(concurrency * 2, games - (games % (2 * concurrency)))
 
     flags  = '-repeat -recover %s %s '
     flags += '-srand %d -variant %s -concurrency %d -games %d '
@@ -960,31 +986,25 @@ def build_cutechess_command(arguments, workload, dev_cmd, base_cmd, nps, cuteche
     flags += '-openings file=Books/%s format=%s order=random plies=16 '
     flags += '-pgnout PGNs/%s_vs_%s.%d '
 
-    if SYZYGY_WDL_PATH and workload['test']['syzygy_adj'] != 'DISABLED':
-        flags += '-tb %s' % (SYZYGY_WDL_PATH.replace('\\', '\\\\'))
-
-    concurrency = config.threads / config.ncutechess
-    concurrency = concurrency // max(dev_threads, base_threads)
-
-    games = int(concurrency * workload['test']['workload_size'])
-    games = max(8, concurrency * 2, games - (games % (2 * concurrency)))
+    # Add Syzygy adjudication to Cutechess if its not disabled and we have the WDL
+    if config.syzygy and config.workload['test']['syzygy_adj'] != 'DISABLED':
+        flags += '-tb %s' % (config.syzygy.replace('\\', '\\\\'))
 
     args = (
         win_adj, draw_adj,
-        int(time.time() + cutechess_idx), variant, concurrency, games,
+        int(time.time() + socket), variant, concurrency, games,
         dev_cmd, dev_time, dev_options, dev_name,
         base_cmd, base_time, base_options, base_name,
         book_name, book_name.split('.')[-1],
-        dev_name, base_name, cutechess_idx,
+        dev_name, base_name, socket,
     )
 
-    if IS_LINUX:
-        return concurrency, './cutechess-ob ' + flags % (args)
-    return concurrency, 'cutechess-ob.exe ' + flags % (args)
+    if IS_LINUX: return './cutechess-ob ' + flags % (args)
+    return 'cutechess-ob.exe ' + flags % (args)
 
-def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess_idx):
+def run_and_parse_cutechess(config, command, socket):
 
-    print('\n[#%d] Launching Cutechess...\n%s\n' % (cutechess_idx, command))
+    print('\n[#%d] Launching Cutechess...\n%s\n' % (socket, command))
     cutechess = Popen(command.split(), stdout=PIPE)
 
     crashes = timelosses = 0
@@ -995,7 +1015,7 @@ def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess
 
         # Read each line of output until the pipe closes
         line = cutechess.stdout.readline().strip().decode('ascii')
-        if line != '': print('[#%d] %s' % (cutechess_idx, line))
+        if line != '': print('[#%d] %s' % (socket, line))
         else: cutechess.wait(); return
 
         # Real updates contain a colon
@@ -1011,7 +1031,7 @@ def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess
         for error in errors:
             if error in score_reason:
                 pgn = find_pgn_error(score_reason, command)
-                ServerReporter.report_engine_error(arguments, line, pgn)
+                ServerReporter.report_engine_error(config, line, pgn)
 
         # All remaining processing is for score updates only
         if not line.startswith('Score of'):
@@ -1019,14 +1039,14 @@ def run_and_parse_cutechess(arguments, workload, concurrency, command, cutechess
 
         # Only report scores after every eight games
         score = list(map(int, score_reason.split()[0:5:2]))
-        if ((sum(score) - sum(sent)) % workload['test']['report_rate'] != 0):
+        if ((sum(score) - sum(sent)) % config.workload['test']['report_rate'] != 0):
             continue
 
         try:
             # Report new results to the server
             wld    = [score[ii] - sent[ii] for ii in range(3)]
             stats  = wld + [crashes, timelosses]
-            status = ServerReporter.report_results(arguments, stats).json()
+            status = ServerReporter.report_results(config, stats).json()
 
             # Reset the reporting since this report was a success
             crashes = timelosses = 0
