@@ -12,7 +12,8 @@
     "build" : {
         "path"      : "",
         "compilers" : ["go"],
-        "cpuflags"  : ["AVX", "POPCNT"]
+        "cpuflags"  : ["AVX", "POPCNT"],
+        "systems"   : ["Windows", "Linux"]
     },
 
     "testmodes" : {

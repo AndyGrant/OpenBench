@@ -18,7 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import os, hashlib, datetime, json, secrets, re
+import os, hashlib, datetime, json, secrets, sys, re
 
 import django.http
 import django.shortcuts
@@ -365,7 +365,8 @@ def test(request, id, action=None):
         return django.http.HttpResponseRedirect('/index/')
 
     if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'MODIFY']:
-        return render(request, 'test.html', OpenBench.utils.get_test_context(test))
+        data = { 'test' : test, 'results': Result.objects.filter(test=test) }
+        return render(request, 'test.html', data)
 
     if not request.user.is_authenticated:
         return redirect(request, '/login/', error='Only users may interact with tests')
@@ -590,6 +591,7 @@ def client_get_build_info(request):
     data = {}
     for engine, config in OPENBENCH_CONFIG['engines'].items():
         data[engine] = config['build']
+        data[engine]['private'] = config['private']
     return JsonResponse(data)
 
 @csrf_exempt
@@ -626,6 +628,10 @@ def client_worker_info(request):
 
         # Public engines must have a compiler of a sufficient version
         if not data['private'] and engine not in machine.info['compilers'].keys():
+            continue
+
+        # Must match the Operating Systems supported by the engine
+        if machine.info['os_name'] not in data['build']['systems']:
             continue
 
         # All requirements are met, and this Machine can play with the given engine
@@ -696,8 +702,11 @@ def client_submit_nps(request):
     machine, response = client_verify_worker(request)
     if response != None: return response
 
-    # Update the NPS counter for the GUI views
-    machine.mnps = float(request.POST['nps']) / 1e6; machine.save()
+    # Update the NPS counters for the GUI views
+    machine.mnps      = float(request.POST['nps'     ]) / 1e6;
+    machine.dev_mnps  = float(request.POST['dev_nps' ]) / 1e6;
+    machine.base_mnps = float(request.POST['base_nps']) / 1e6;
+    machine.save()
 
     # Pass back an empty JSON response
     return JsonResponse({})

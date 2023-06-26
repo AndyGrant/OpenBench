@@ -12,7 +12,8 @@
     "build" : {
         "path"      : "",
         "compilers" : ["g++"],
-        "cpuflags"  : ["POPCNT"]
+        "cpuflags"  : ["POPCNT"],
+        "systems"   : ["Windows", "Linux"]
     },
 
     "testmodes" : {

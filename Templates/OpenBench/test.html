@@ -64,6 +64,7 @@
             <tr><td class="td-label">Base Engine</td><td>{{test.base_engine}}</td></tr>
             <tr><td class="td-label">Base Source</td><td><a href="{{test.base_repo}}">{{test.base_repo}}</a></td></tr>
             <tr><td class="td-label">Base Sha</td><td>{{test.base.sha}}</td></tr>
+            <tr><td class="td-label">Base Branch</td><td>{{test.base.name|prettyName}}</td></tr>
             <tr><td class="td-label">Base Bench</td><td>{{test.base.bench}}</td></tr>
             {% if test.base_network %}
             <tr>
@@ -172,10 +173,10 @@
                 <th style="width: 60px">Crash</th>
             </tr>
 
-            {% for id, result in results.items %}
+            {% for result in results %}
                 <tr>
-                    <td>{{result.machine_id}}</td>
-                    <td>{{result.username|capfirst}}</td>
+                    <td><a href="/machines/{{result.machine.id}}">{{result.machine.id}}</a></td>
+                    <td>{{result.machine.user.username|capfirst}}</td>
                     <td class="timestamp">{{result.updated|date:'U'}}</td>
                     <td class="numeric">{{result.games}}</td>
                     <td class="numeric">{{result.wins}}</td>
