@@ -12,7 +12,8 @@
     "build" : {
         "path"      : "build",
         "compilers" : ["g++>=9.0.0"],
-        "cpuflags"  : ["AVX2", "FMA", "POPCNT"]
+        "cpuflags"  : ["AVX2", "FMA", "POPCNT"],
+        "systems"   : ["Windows", "Linux"]
     },
 
     "testmodes" : {

@@ -628,6 +628,10 @@ def client_worker_info(request):
         if not data['private'] and engine not in machine.info['compilers'].keys():
             continue
 
+        # Must match the Operating Systems supported by the engine
+        if machine.info['os_name'] not in data['build']['systems']:
+            continue
+
         # All requirements are met, and this Machine can play with the given engine
         machine.info['supported'].append(engine)
 

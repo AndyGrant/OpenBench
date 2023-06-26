@@ -317,6 +317,10 @@ class ServerReporter(object):
 
 class Cutechess(object):
 
+    ## Handles building the very long string of arguments that need to be passed
+    ## to cutechess in order to launch a set of games. Operates on the Configuration,
+    ## and a small number of secondary arguments that are not housed in the Configuration
+
     @staticmethod
     def basic_settings(config, socket):
 
