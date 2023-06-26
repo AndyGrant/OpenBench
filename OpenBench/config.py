@@ -18,12 +18,16 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import json, os.path
+import json, os.path, sys
 from OpenSite.settings import PROJECT_PATH
 
 def load_json_config(*path):
-    with open(os.path.join(PROJECT_PATH, *path)) as fin:
-        return json.load(fin)
+    try:
+        with open(os.path.join(PROJECT_PATH, *path)) as fin:
+            return json.load(fin)
+    except:
+        print ('Error reading ', path)
+        sys.exit()
 
 def load_folder_of_configs(*path):
     return {

@@ -590,6 +590,7 @@ def client_get_build_info(request):
     data = {}
     for engine, config in OPENBENCH_CONFIG['engines'].items():
         data[engine] = config['build']
+        data[engine]['private'] = config['private']
     return JsonResponse(data)
 
 @csrf_exempt

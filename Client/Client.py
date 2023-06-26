@@ -149,7 +149,7 @@ class Configuration(object):
         for engine, build_info in data.items():
 
             # Private engines don't need to be compiled
-            if 'artifacts' in build_info: continue
+            if build_info['private']: continue
 
             # Try to find at least one working compiler
             for compiler in build_info['compilers']:
@@ -181,7 +181,7 @@ class Configuration(object):
         for engine, build_info in data.items():
 
             # Public engines don't need access tokens
-            if not 'artifacts' in build_info: continue
+            if not build_info['private']: continue
 
             # Private engines expect a credentials.engine file for the main repo
             has_token = os.path.exists('credentials.%s' % (engine.replace(' ', '').lower()))
@@ -202,7 +202,7 @@ class Configuration(object):
         # This should cover virtually all compiler flags that we would care about
         desired  = ['POPCNT', 'BMI2']
         desired += ['SSSE3', 'SSE4_1', 'SSE4_2', 'SSE4A', 'AVX', 'AVX2', 'FMA']
-        desired += ['AVX512_VNNI', 'AVX512BW', 'AVX512CD', 'AVX512DQ', 'AVX512F']
+        desired += ['AVX512_VNNI', 'AVX512BW', 'AVX512DQ', 'AVX512F']
 
         # Add any custom flags from the OpenBench configs, just in case we missed one
         requested = set(sum([info['cpuflags'] for engine, info in data.items()], []))
@@ -218,6 +218,51 @@ class Configuration(object):
         if os.path.isfile('machine.txt'):
             with open('machine.txt') as fin:
                 self.machine_id = fin.readlines()[0]
+
+    def choose_best_artifact(self, options):
+
+        # Step 1. Filter down to our operating system only
+        options = [x for x in options if x.split('-')[1] == self.os_name.lower()]
+
+        # Pick betwen various Vector instruction sets that might apply
+        has_ssse3  =                all(x in self.cpu_flags for x in ['SSSE3'])
+        has_sse4   = has_ssse3  and all(x in self.cpu_flags for x in ['SSE4_1', 'SSE4_2'])
+        has_avx    = has_sse4   and all(x in self.cpu_flags for x in ['AVX'])
+        has_avx2   = has_avx    and all(x in self.cpu_flags for x in ['AVX2', 'FMA'])
+        has_avx512 = has_avx2   and all(x in self.cpu_flags for x in ['AVX512BW', 'AVX512DQ', 'AVX512F'])
+        has_vnni   = has_avx512 and all(x in self.cpu_flags for x in ['AVX512_VNNI'])
+
+        # Filtering system, where we remove everything but the strongest that is available
+        selection = [
+            (has_vnni  , 'vnni'  ), (has_avx512, 'avx512'), (has_avx2  , 'avx2'  ),
+            (has_avx   , 'avx'   ), (has_sse4  , 'sse4'  ), (has_ssse3 , 'ssse3' ),
+        ]
+
+        # Step 2. Filter everything but the best Vector instruction set that was available
+        for boolean, identifier in selection:
+            if boolean and identifier in [x.split('-')[2] for x in options]:
+                options = [x for x in options if x.split('-')[2] == identifier]
+                break
+
+        # Identify any Ryzen or AMD chip, excluding the 7B12
+        ryzen = 'AMD' in self.cpu_name.upper()
+        ryzen = 'RYZEN' in self.cpu_name.upper() or ryzen
+        ryzen = ryzen and '7B12' not in self.cpu_name.upper()
+
+        # Pick between POPCNT and BMI2/PEXT
+        has_popcnt = 'POPCNT' in self.cpu_flags
+        has_bmi2   = 'BMI2' in self.cpu_flags and not ryzen
+
+        # Filtering system, where we remove everything but the strongest that is available
+        selection = [ (has_bmi2, 'pext'), (has_popcnt, 'popcnt') ]
+
+        # Step 3. Filter everything but the best bitop instruction set that was available
+        for boolean, identifier in selection:
+            if boolean and identifier in [x.split('-')[3] for x in options]:
+                options = [x for x in options if x.split('-')[3] == identifier]
+                break
+
+        return options[0]
 
 class ServerReporter(object):
 
@@ -921,7 +966,6 @@ def download_engine(arguments, branch, network):
     branch_name = config.workload['test'][branch]['name']
     commit_sha  = config.workload['test'][branch]['sha']
     source      = config.workload['test'][branch]['source']
-    build_path  = config.workload['test'][branch]['build']['path']
     private     = config.workload['test'][branch]['private']
 
     # Naming as Engine-CommitSha[:8]-NetworkSha[:8]
@@ -939,39 +983,33 @@ def download_engine(arguments, branch, network):
         print ('\nFetching Artifacts for %s' % branch_name)
         with open('credentials.%s' % (engine.replace(' ', '').lower())) as fin:
             auth_headers = { 'Authorization' : 'token %s' % fin.readlines()[0].rstrip() }
+
+        # Pick from available artifacts the name of the best one
         artifacts = requests.get(url=source, headers=auth_headers).json()['artifacts']
-        # options   = [artifact['name'] for artifact in artifacts]
-
-        # For sanity, just avoid using PEXT/BMI2 on AMD Chips
-        ryzen = 'AMD' in SYSTEM_CPU_NAME.upper()
-        ryzen = 'RYZEN' in SYSTEM_CPU_NAME.upper() or ryzen
-
-        # Construct the artifact string for the desired binary
-        os_string  = ['windows', 'linux' ][IS_LINUX]
-        avx_string = ['avx2'   , 'avx512']['AVX512_VNNI' in str(SYSTEM_CPU_FLAGS)]
-        bit_string = ['popcnt' , 'pext'  ]['BMI2' in str(SYSTEM_CPU_FLAGS) and not ryzen]
-        desired    = '%s-%s-%s' % (os_string, avx_string, bit_string)
+        options   = [artifact['name'] for artifact in artifacts]
+        best      = config.choose_best_artifact(options)
 
         # Search for our artifact in the list provided
         artifact_id = None
         for artifact in artifacts:
-            if artifact['name'] == '%s-%s' % (commit_sha, desired):
+            if artifact['name'] == best:
                 artifact_id = artifact['id']
 
         # Artifact was missing, workload cannot be completed
         if artifact_id == None:
-            ServerReporter.report_missing_artifact(config, branch, desired, artifacts)
+            ServerReporter.report_missing_artifact(config, branch, best, artifacts)
             return None
 
         # Download the binary that matches our desired artifact
-        print ('Downloading [%s] %s' % (branch_name, desired))
+        print ('Downloading [%s] %s' % (branch_name, best))
         base = source.split('/runs/')[0]
         url  = url_join(base, 'artifacts', str(artifact_id), 'zip').rstrip('/')
         download_file(url, 'artifact.zip', None, auth_headers)
 
-        # Unzip the binary, and determine where to move the binary
+        # Unzip the binary, and place it into a known output name
         unzip_delete_file('artifact.zip', 'tmp/')
         output_name = os.path.join('tmp', engine.replace(' ', '').lower())
+        os.rename(os.path.join('tmp', os.listdir('tmp/')[0]), output_name)
 
         # Binaries don't have execute permissions by default
         if IS_LINUX:
@@ -986,6 +1024,7 @@ def download_engine(arguments, branch, network):
         # Parse out paths to find the makefile location
         tokens     = source.split('/')
         unzip_name = '%s-%s' % (tokens[-3], tokens[-1].rstrip('.zip'))
+        build_path = config.workload['test'][branch]['build']['path']
         src_path   = os.path.join('tmp', unzip_name, *build_path.split('/'))
 
         # Build the engine and drop it into src_path
