@@ -72,6 +72,7 @@ class Configuration(object):
         self.machine_name   = 'None'
         self.machine_id     = 'None'
         self.secret_token   = 'None'
+        self.syzygy_max     = 2
 
         self.parse_arguments() # Rest of the command line settings
         self.init_client()     # Create folder structure and verify Syzygy
@@ -91,7 +92,7 @@ class Configuration(object):
         p.add_argument('-P', '--password'   , help=help_pass           , required=req_pass  )
         p.add_argument('-S', '--server'     , help='Webserver Address' , required=True      )
         p.add_argument('-T', '--threads'    , help='Total Threads'     , required=True      )
-        p.add_argument('-N', '--ncutechess' , help='Cutechess Copies'  , required=True      )
+        p.add_argument('-N', '--nsockets'   , help='Number of Sockets' , required=True      )
         p.add_argument('-I', '--identity'   , help='Machine pseudonym' , required=False     )
         p.add_argument(      '--syzygy'     , help='Syzygy WDL'        , required=False     )
         p.add_argument(      '--fleet'      , help='Fleet Mode'        , action='store_true')
@@ -99,21 +100,20 @@ class Configuration(object):
         args = p.parse_args()
 
         # Extract all of the options
-        self.username = args.username if args.username else os.environ['OPENBENCH_USERNAME']
-        self.password = args.password if args.password else os.environ['OPENBENCH_PASSWORD']
-        self.server   = args.server
-        self.threads  = int(args.threads)
-        self.sockets  = int(args.ncutechess)
-        self.identity = args.identity if args.identity else 'None'
-        self.syzygy   = args.syzygy   if args.syzygy   else None
-        self.fleet    = args.fleet    if args.fleet    else False
-        self.proxy    = args.proxy    if args.proxy    else False
+        self.username    = args.username if args.username else os.environ['OPENBENCH_USERNAME']
+        self.password    = args.password if args.password else os.environ['OPENBENCH_PASSWORD']
+        self.server      = args.server
+        self.threads     = int(args.threads)
+        self.sockets     = int(args.nsockets)
+        self.identity    = args.identity if args.identity else 'None'
+        self.syzygy_path = args.syzygy   if args.syzygy   else None
+        self.fleet       = args.fleet    if args.fleet    else False
+        self.proxy       = args.proxy    if args.proxy    else False
 
     def init_client(self):
 
         # Verify that we have make installed
-        print('\nScanning For Basic Utilities...')
-        locate_utility('make')
+        print('\nLooking for Make... [v%s]' % locate_utility('make'))
 
         # Use Client.py's path as the base pathway
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -123,8 +123,17 @@ class Configuration(object):
             if not os.path.isdir(folder):
                 os.mkdir(folder)
 
-        # Verify all WDL tables are present when told they are
-        validate_syzygy_exists(self)
+        # Check until we stop finding valid N-man tables
+        if self.syzygy_path:
+            while validate_syzygy_exists(self, self.syzygy_max+1):
+                self.syzygy_max = self.syzygy_max + 1
+
+        # 1-man and 2-man tables are not a thing
+        if self.syzygy_max < 3:
+            self.syzygy_max = 0
+
+        # Report highest complete depth that we found
+        print('Looking for Syzygy... [%d-Man]' % (self.syzygy_max))
 
     def validate_setup(self):
 
@@ -306,6 +315,128 @@ class ServerReporter(object):
 
         return ServerReporter.report(config, 'clientSubmitResults', payload)
 
+class Cutechess(object):
+
+    @staticmethod
+    def basic_settings(config, socket):
+
+        # Book seed, with an offset between concurrent Cutechesses
+        seed = time.time() + socket
+
+        # Assume Fischer if FRC, 960, or FISCHER appears in the Opening Book
+        book_name = config.workload['test']['book']['name'].upper()
+        is_frc    = 'FRC' in book_name or '960' in book_name or 'FISCHER' in book_name
+        variant   = ['standard', 'fischerandom'][is_frc]
+
+        # Always include -repeat and -recover
+        return '-repeat -recover -srand %d -variant %s' % (seed, variant)
+
+    @staticmethod
+    def concurrency_settings(config):
+
+        # Extract # of Threads for the dev engine
+        dev_options  = config.workload['test']['dev' ]['options']
+        dev_threads  = int(extract_option(dev_options,  'Threads'))
+
+        # Extract # of Threads for the base engine
+        base_options = config.workload['test']['base']['options']
+        base_threads = int(extract_option(base_options, 'Threads'))
+
+        # Number of concurrency games that this socket can play
+        concurrency = config.threads / config.sockets
+        concurrency = concurrency // max(dev_threads, base_threads)
+
+        # Play at least a single game-pair per concurrency
+        games = int(concurrency * config.workload['test']['workload_size'])
+        games = max(concurrency * 2, games - (games % (2 * concurrency)))
+
+        return '-concurrency %d -games %d' % (concurrency, games)
+
+    @staticmethod
+    def adjudication_settings(config):
+
+        # All three possible adjudication settings
+        win_adj    = config.workload['test']['win_adj'   ]
+        draw_adj   = config.workload['test']['draw_adj'  ]
+        syzygy_adj = config.workload['test']['syzygy_adj']
+
+        # Empty, unless specified in the settings
+        win_flags    = ['', '-resign ' + win_adj ][win_adj  != 'None']
+        draw_flags   = ['', '-draw '   + draw_adj][draw_adj != 'None']
+        syzygy_flags = ''
+
+        # Set the tb path if we have them, and are allowed to use them
+        if syzygy_adj != 'DISABLED' and config.syzygy_max:
+            syzygy_flags = '-tb %s' % (config.syzygy_path.replace('\\', '\\\\'))
+
+        # We would only get a test we can do; specify a limit if needed
+        if syzygy_adj != 'DISABLED' and syzygy_adj != 'OPTIONAL':
+            syzygy_flags += ' -tbpieces %s' % (syzygy_adj.split('-')[0])
+
+        return '%s %s %s' % (win_flags, draw_flags, syzygy_flags)
+
+    @staticmethod
+    def book_settings(config):
+
+        # Can handle EPD and PGN Books, which must be specified
+        book_name   = config.workload['test']['book']['name']
+        book_suffix = book_name.split('.')[-1]
+        return '-openings file=Books/%s format=%s order=random plies=16' % (book_name, book_suffix)
+
+    @staticmethod
+    def engine_settings(config, command, branch, nps):
+
+        # Extract configuration from the Workload
+        options = config.workload['test'][branch]['options']
+        network = config.workload['test'][branch]['network']
+        private = config.workload['test'][branch]['private']
+        syzygy  = config.workload['test']['syzygy_wdl']
+
+        # Human-readable name, and scale the time control
+        name    = command.removesuffix('.exe')
+        control = scale_time_control(config.workload, nps, branch)
+
+        # Private engines, when using Networks, must set them via UCI
+        if private and network and network != 'None':
+            options += ' EvalFile=%s' % (os.path.join('../Networks', network))
+            name    += '-%s' % (network)
+
+        # Set the SyzygyPath if we have them, and are allowed to use them
+        if syzygy != 'DISABLED' and config.syzygy_max:
+            options += ' SyzygyPath="%s"' % (config.syzygy_path.replace('\\', '\\\\'))
+
+        # Set a SyzygyProbeLimit if we may only use up-to N-Man
+        if syzygy != 'DISABLED' and syzygy != 'OPTIONAL':
+            options += ' SyzygyProbeLimit=%s' % (syzygy.split('-')[0])
+
+        # Join options together in the Cutechess format
+        options = ' option.'.join([''] + re.findall(r'"[^"]*"|\S+', options))
+        return '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s' % (command, control, options, name)
+
+    @staticmethod
+    def pgnout_settings(config, dev_cmd, base_cmd, socket):
+
+        # Extract Network names
+        dev_network  = config.workload['test']['dev' ]['network']
+        base_network = config.workload['test']['base']['network']
+
+        # Extract private status
+        dev_private  = config.workload['test']['dev' ]['private']
+        base_private = config.workload['test']['base']['private']
+
+        # Append Network name for private engines
+        dev_name = dev_cmd.removesuffix('.exe')
+        if dev_private and dev_network and dev_network != 'None':
+            dev_name += '-%s' % (dev_network)
+
+        # Append Network name for private engines
+        base_name = base_cmd.removesuffix('.exe')
+        if base_private and base_network and base_network != 'None':
+            base_name += '-%s' % (base_network)
+
+        # Tack the socket number onto the end to distinguish the PGNs
+        return '-pgnout PGNs/%s_vs_%s.%d' % (dev_name, base_name, socket)
+
 
 def get_version(program):
 
@@ -324,18 +455,11 @@ def get_version(program):
 
 def locate_utility(util, force_exit=True, report_error=True):
 
-    try:
-        return get_version(util)
+    try: return get_version(util)
 
     except Exception:
-
-        if report_error:
-            print('[Error] Unable to locate %s' % (util))
-
-        if force_exit:
-            sys.exit()
-
-    return False
+        if report_error: print('[Error] Unable to locate %s' % (util))
+        if force_exit: sys.exit()
 
 
 def cleanup_client():
@@ -358,26 +482,7 @@ def cleanup_client():
         if file_age(os.path.join('Networks', file)) > SECONDS_PER_MONTH:
             os.remove(os.path.join('Networks', file))
 
-def validate_syzygy_exists(config):
-
-    print('\nScanning for Syzygy Configuration...')
-
-    for filename in tablebase_names():
-
-        # Build the paths when the configuration enables Syzygy
-        if config.syzygy:
-            wdlpath = os.path.join(config.syzygy, filename + '.rtbw')
-
-        # Reset the configuration if the file is missing
-        if config.syzygy and not os.path.isfile(wdlpath):
-            config.syzygy = None
-
-    # Report final results, which may conflict with the original configuration
-    if config.syzygy:
-        print('Verified Syzygy WDL (%s)' % (config.syzygy))
-    else: print('Syzygy WDL Not Found')
-
-def tablebase_names(K=6):
+def validate_syzygy_exists(config, K):
 
     letters = ['', 'Q', 'R', 'B', 'N', 'P']
 
@@ -394,7 +499,22 @@ def tablebase_names(K=6):
         lhs, rhs = name.replace('K', '9').split('v')
         return int(lhs) >= int(rhs) and name != 'KvK'
 
-    return list(filter(valid_filename, set(candidates)))
+    # See if file exists in (any of) the paths
+    def has_filename(paths, name):
+        for path in paths:
+            if os.path.isfile(os.path.join(path, name + '.rtbw')):
+                return True
+        return False
+
+    # Split paths, using ":" on Unix, and ";" on Windows
+    paths = config.syzygy_path.split(':' if IS_LINUX else ';')
+
+    # Check to see if each Syzygy File exists as desired
+    for filename in list(filter(valid_filename, set(candidates))):
+        if not has_filename(paths, filename):
+            return False
+
+    return True
 
 def try_forever(func, args, message):
 
@@ -570,14 +690,9 @@ def find_pgn_error(reason, command):
         ii = ii - 1
     return data[ii] + pgn
 
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
-#                                                                           #
-#   All functions used to make requests to the OpenBench server. Workload   #
-#   requests require Username and Password authentication. Communication    #
-#   with the server is required to succeed except for result uploads which  #
-#   may be batched and held onto in the event of outages.                   #
-#                                                                           #
-# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+## Functions interacting with the OpenBench server that establish the initial
+## connection and then make simple requests to retrieve Workloads as json objects
 
 def server_download_cutechess(config):
 
@@ -642,9 +757,9 @@ def server_configure_worker(config):
         'machine_id'     : config.machine_id,     # Assigned value, or None. Will be replaced if wrong
         'machine_name'   : config.identity,       # Optional pseudonym for the machine, otherwise None
         'concurrency'    : config.threads,        # Threads to use to play games
-        'ncutechesses'   : config.sockets,        # Cutechess copies, usually equal to Socket count
+        'sockets'        : config.sockets,        # Cutechess copies, usually equal to Socket count
+        'syzygy_max'     : config.syzygy_max,     # Whether or not the machine has Syzygy support
         'client_ver'     : CLIENT_VERSION,        # Version of the Client, which the server may reject
-        'syzygy_wdl'     : bool(config.syzygy),   # Whether or not the machine has Syzygy support
     }
 
     payload = {
@@ -821,6 +936,7 @@ def download_engine(arguments, branch, network):
         with open('credentials.%s' % (engine.replace(' ', '').lower())) as fin:
             auth_headers = { 'Authorization' : 'token %s' % fin.readlines()[0].rstrip() }
         artifacts = requests.get(url=source, headers=auth_headers).json()['artifacts']
+        # options   = [artifact['name'] for artifact in artifacts]
 
         # For sanity, just avoid using PEXT/BMI2 on AMD Chips
         ryzen = 'AMD' in SYSTEM_CPU_NAME.upper()
@@ -924,83 +1040,15 @@ def run_benchmarks(config, branch, engine, network):
 
 def build_cutechess_command(config, dev_cmd, base_cmd, nps, socket):
 
-    dev_options  = config.workload['test']['dev' ]['options']
-    base_options = config.workload['test']['base']['options']
+    flags  = ' ' + Cutechess.basic_settings(config, socket)
+    flags += ' ' + Cutechess.concurrency_settings(config)
+    flags += ' ' + Cutechess.adjudication_settings(config)
+    flags += ' ' + Cutechess.engine_settings(config, dev_cmd, 'dev', nps)
+    flags += ' ' + Cutechess.engine_settings(config, base_cmd, 'base', nps)
+    flags += ' ' + Cutechess.book_settings(config)
+    flags += ' ' + Cutechess.pgnout_settings(config, dev_cmd, base_cmd, socket)
 
-    dev_threads  = int(extract_option(dev_options,  'Threads'))
-    base_threads = int(extract_option(base_options, 'Threads'))
-
-    dev_network  = config.workload['test']['dev' ]['network']
-    base_network = config.workload['test']['base']['network']
-
-    dev_time     = scale_time_control(config.workload, nps, 'dev')
-    base_time    = scale_time_control(config.workload, nps, 'base')
-
-    dev_name     =  dev_cmd.rstrip('.exe') # Used to name the PGN file and Headers
-    base_name    = base_cmd.rstrip('.exe') # Used to name the PGN file and Headers
-
-    # Possibly add SyzygyPath to dev and base options
-    if config.syzygy and config.workload['test']['syzygy_wdl'] != 'DISABLED':
-        path = SYZYGY_WDL_PATH.replace('\\', '\\\\')
-        dev_options  += ' SyzygyPath=%s' % (path)
-        base_options += ' SyzygyPath=%s' % (path)
-
-    # Private engines may need extra options to set their NNUE files
-    if config.workload['test']['dev']['private'] and dev_network and dev_network != 'None':
-        dev_options += ' EvalFile=%s' % (os.path.join('../Networks', dev_network))
-        dev_name    += '-%s' % (dev_network)
-
-    # Private engines may need extra options to set their NNUE files
-    if config.workload['test']['base']['private'] and base_network and base_network != 'None':
-        base_options += ' EvalFile=%s' % (os.path.join('../Networks', base_network))
-        base_name    += '-%s' % (base_network)
-
-    # Join all of the options into a single string
-    dev_options  = ' option.'.join([''] +  dev_options.split())
-    base_options = ' option.'.join([''] + base_options.split())
-
-    # Extract win adjudication settings if there are any
-    win_adj = config.workload['test']['win_adj' ]
-    win_adj = ['', '-resign ' + win_adj][win_adj != 'None']
-
-    # Extract draw adjudication settings if there are any
-    draw_adj = config.workload['test']['draw_adj']
-    draw_adj = ['', '-draw ' + draw_adj][draw_adj != 'None']
-
-    # Assume Fischer if FRC or 960 appears in the Opening Book
-    book_name = config.workload['test']['book']['name']
-    variant   = ['standard', 'fischerandom']['FRC' in book_name.upper() or '960' in book_name]
-
-    # Number of concurrency games that this socket can play
-    concurrency = config.threads / config.sockets
-    concurrency = concurrency // max(dev_threads, base_threads)
-
-    # Play at least a single game-pair per concurrency
-    games = int(concurrency * config.workload['test']['workload_size'])
-    games = max(concurrency * 2, games - (games % (2 * concurrency)))
-
-    flags  = '-repeat -recover %s %s '
-    flags += '-srand %d -variant %s -concurrency %d -games %d '
-    flags += '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s '
-    flags += '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s '
-    flags += '-openings file=Books/%s format=%s order=random plies=16 '
-    flags += '-pgnout PGNs/%s_vs_%s.%d '
-
-    # Add Syzygy adjudication to Cutechess if its not disabled and we have the WDL
-    if config.syzygy and config.workload['test']['syzygy_adj'] != 'DISABLED':
-        flags += '-tb %s' % (config.syzygy.replace('\\', '\\\\'))
-
-    args = (
-        win_adj, draw_adj,
-        int(time.time() + socket), variant, concurrency, games,
-        dev_cmd, dev_time, dev_options, dev_name,
-        base_cmd, base_time, base_options, base_name,
-        book_name, book_name.split('.')[-1],
-        dev_name, base_name, socket,
-    )
-
-    if IS_LINUX: return './cutechess-ob ' + flags % (args)
-    return 'cutechess-ob.exe ' + flags % (args)
+    return ['cutechess-ob.exe', './cutechess-ob'][IS_LINUX] + flags
 
 def run_and_parse_cutechess(config, command, socket):
 

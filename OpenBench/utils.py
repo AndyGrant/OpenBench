@@ -269,6 +269,10 @@ def collect_github_info(request, errors, field):
         # Actual branches have to go one layer deeper
         elif not bysha: data = data['commit']
 
+        # Check that all the data we need going forward is present
+        assert 'message' in data['commit'] and 'sha' in data
+        assert private or 'sha' in data['commit']['tree']
+
     except: # Unable to find for whatever reason
         errors.append('%s could not be found' % (branch))
         return (None, None)
@@ -279,7 +283,7 @@ def collect_github_info(request, errors, field):
         return (None, None)
 
     # Public Engines: Construct the .zip download and return everything
-    if not OPENBENCH_CONFIG['engines'][engine]['private']:
+    if not private:
         treeurl = data['commit']['tree']['sha'] + '.zip'
         source  = path_join(request.POST['%s_repo' % (field)], 'archive', treeurl)
         return (source, branch, data['sha'], bench), True
@@ -353,8 +357,9 @@ def verify_test_creation(request):
         except: errors.append('Invalid Draw Adjudication Setting. Try "None"?')
 
     def verify_github_repo(field):
-        try: assert request.POST[field].startswith('https://github.com/')
-        except: errors.append('Sources must be found on https://github.com/')
+        pattern = r'^https:\/\/github\.com\/[A-Za-z0-9-]+\/[A-Za-z0-9_.-]+\/?$'
+        try: assert re.match(pattern, request.POST[field])
+        except: errors.append('Sources must be found on https://github.com/<User>/<Repo>')
 
     def verify_network(field, fieldName):
         try:
@@ -390,8 +395,9 @@ def verify_test_creation(request):
         except: errors.append('Fixed Games Tests must last at least one game')
 
     def verify_syzygy_field(field, field_name):
-        try: assert request.POST[field] in ['OPTIONAL', 'REQUIRED', 'DISABLED']
-        except: errors.append('{0} must be OPTIONAL, REQUIRED, or DISABLED'.format(field_name))
+        candidates = ['OPTIONAL', 'DISABLED', '3-MAN', '4-MAN', '5-MAN', '6-MAN']
+        try: assert request.POST[field] in candidates
+        except: errors.append('%s must be in %s' % (field_name, ', '.join(candidates)))
 
     verifications = [
 
@@ -555,33 +561,33 @@ def get_valid_workloads(machine):
             tests = tests.exclude(base_engine=engine)
 
     # Skip tests with unmet Syzygy requirments
-    if not machine.info['syzygy_wdl']:
-        tests = tests.exclude(syzygy_adj='REQUIRED')
-        tests = tests.exclude(syzygy_wdl='REQUIRED')
+    for K in range(machine.info['syzygy_max'] + 1, 10):
+        tests = tests.exclude(syzygy_adj='%d-MAN' % (K))
+        tests = tests.exclude(syzygy_wdl='%d-MAN' % (K))
 
     # Skip tests that would waste available Threads or exceed them
     threads      = machine.info['concurrency']
-    ncutechess   = machine.info['ncutechesses']
+    sockets      = machine.info['sockets']
     hyperthreads = machine.info['physical_cores'] < threads
     options = [x for x in tests if
-        test_maps_onto_thread_count(x, threads, ncutechess, hyperthreads)]
+        test_maps_onto_thread_count(x, threads, sockets, hyperthreads)]
 
     # Finally refine for tests of the highest priority
     if not options: return []
     highest_prio = max(options, key=lambda x: x.priority).priority
     return [test for test in options if test.priority == highest_prio]
 
-def test_maps_onto_thread_count(test, threads, ncutechess, hyperthreads):
+def test_maps_onto_thread_count(test, threads, sockets, hyperthreads):
 
     dev_threads  = int(extract_option(test.dev_options,  'Threads'))
     base_threads = int(extract_option(test.base_options, 'Threads'))
 
     # Each individual cutechess copy must have access to sufficient Threads
-    if max(dev_threads, base_threads) > (threads / ncutechess):
+    if max(dev_threads, base_threads) > (threads / sockets):
         return False
 
     # Intentional Thread Imbalance, or real cores, or evenly distributed
-    return dev_threads != base_threads or not hyperthreads or (threads / ncutechess) % dev_threads == 0
+    return dev_threads != base_threads or not hyperthreads or (threads / sockets) % dev_threads == 0
 
 def select_workload(machine, tests, variance=0.25):
 

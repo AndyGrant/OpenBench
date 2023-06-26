@@ -64,6 +64,7 @@
             <tr><td class="td-label">Base Engine</td><td>{{test.base_engine}}</td></tr>
             <tr><td class="td-label">Base Source</td><td><a href="{{test.base_repo}}">{{test.base_repo}}</a></td></tr>
             <tr><td class="td-label">Base Sha</td><td>{{test.base.sha}}</td></tr>
+            <tr><td class="td-label">Base Branch</td><td>{{test.base.name|prettyName}}</td></tr>
             <tr><td class="td-label">Base Bench</td><td>{{test.base.bench}}</td></tr>
             {% if test.base_network %}
             <tr>
