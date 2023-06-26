@@ -119,36 +119,6 @@ def getMachineStatus(username=None):
            "{0} Threads / ".format(sum([f.info['concurrency'] for f in machines])) + \
            "{0} MNPS ".format(round(sum([f.info['concurrency'] * f.mnps for f in machines]), 2))
 
-def get_test_context(test):
-
-    # Select the Test, and all Result objects attached
-    results = Result.objects.filter(test=test).order_by('machine_id')
-    data    = { 'test' : test, 'results': {} }
-
-    for result in results:
-
-        # Insert the Result into the results
-        if result.machine.id not in data['results'].keys():
-            data['results'][result.machine.id] = {
-                'games' : 0, 'wins'     : 0, 'losses'  : 0,
-                'draws' : 0, 'timeloss' : 0, 'crashes' : 0,
-            }
-
-        # Always use the latest Time stamp, by virtue of sorting Results
-        data['results'][result.machine.id]['machine_id'] = result.machine.id
-        data['results'][result.machine.id]['username'  ] = result.machine.user.username
-        data['results'][result.machine.id]['updated'   ] = result.updated
-
-        # Sum up all results from a given machine into a single value
-        data['results'][result.machine.id]['games'     ] += result.games
-        data['results'][result.machine.id]['wins'      ] += result.wins
-        data['results'][result.machine.id]['losses'    ] += result.losses
-        data['results'][result.machine.id]['draws'     ] += result.draws
-        data['results'][result.machine.id]['timeloss'  ] += result.timeloss
-        data['results'][result.machine.id]['crashes'   ] += result.crashes
-
-    return data
-
 def getPaging(content, page, url, pagelen=25):
 
     start = max(0, pagelen * (page - 1))
@@ -547,9 +517,11 @@ def get_workload(machine):
     if not (tests := get_valid_workloads(machine)):
         return {}
 
-    # Select from valid workloads and create a Result object
-    test     = select_workload(machine, tests)
-    result   = Result(test=test, machine=machine)
+    # Select from valid workloads the most needing test
+    test = select_workload(machine, tests)
+
+    try: result = Result.objects.get(test=test, machine=machine)
+    except: result = Result(test=test, machine=machine)
 
     # Update the Machine's status and save everything
     machine.workload = test.id; machine.save(); result.save()

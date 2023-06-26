@@ -173,10 +173,10 @@
                 <th style="width: 60px">Crash</th>
             </tr>
 
-            {% for id, result in results.items %}
+            {% for result in results %}
                 <tr>
-                    <td>{{result.machine_id}}</td>
-                    <td>{{result.username|capfirst}}</td>
+                    <td><a href="/machines/{{result.machine.id}}">{{result.machine.id}}</a></td>
+                    <td>{{result.machine.user.username|capfirst}}</td>
                     <td class="timestamp">{{result.updated|date:'U'}}</td>
                     <td class="numeric">{{result.games}}</td>
                     <td class="numeric">{{result.wins}}</td>

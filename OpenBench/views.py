@@ -365,7 +365,8 @@ def test(request, id, action=None):
         return django.http.HttpResponseRedirect('/index/')
 
     if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'MODIFY']:
-        return render(request, 'test.html', OpenBench.utils.get_test_context(test))
+        data = { 'test' : test, 'results': Result.objects.filter(test=test) }
+        return render(request, 'test.html', data)
 
     if not request.user.is_authenticated:
         return redirect(request, '/login/', error='Only users may interact with tests')
