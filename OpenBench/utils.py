@@ -296,7 +296,7 @@ def collect_github_info(request, errors, field):
     url, has_all = fetch_artifact_url(base, engine, headers, data['sha'])
     return (url, branch, data['sha'], bench), has_all
 
-def fetch_artifact_url(base, engine, headers, sha):
+def fetch_artifact_url(base, engine, headers, sha, return_data=False):
 
     try:
         # Fetch the run id for the openbench workflow for this comment
@@ -304,17 +304,26 @@ def fetch_artifact_url(base, engine, headers, sha):
         url   += '?head_sha=%s' % (sha)
         run_id = requests.get(url=url, headers=headers).json()['workflow_runs'][0]['id']
 
-        # Construct the final URL that will be used to look at artifacts
+        # Fetch information about individual job results
+        url  = path_join(base, 'actions', 'runs', str(run_id), 'jobs')
+        jobs = requests.get(url=url, headers=headers).json()['jobs']
+
+        # Fetch information about individual artifact
         url       = path_join(base, 'actions', 'runs', str(run_id), 'artifacts')
         artifacts = requests.get(url=url, headers=headers).json()['artifacts']
 
-        # Verify that all of the artifacts exist and are not expired
-        available = [ f['name'] for f in artifacts if f['expired'] == False ]
-        required  = OPENBENCH_CONFIG['engines'][engine]['build']['artifacts']
-        has_all   = all(['%s-%s' % (sha, name) in available for name in required])
+        # All jobs finished, with an associated, non-expired Artifact
+        error = any(job['conclusion'] != 'success' for job in jobs)
+        error = error or any(artifact['expired'] for artifact in artifacts)
+        error = error or len(jobs) != len(artifacts)
 
-        # Return the URL iff we found them; otherwise base
-        return (url if has_all else base, has_all)
+        # Toss back the data if we care about it
+        if error and return_data:
+            return ((jobs, artifacts), False)
+
+        # Only set the url if we have everything we need
+        assert not error
+        return (url, True)
 
     except Exception as error:
         # If anything goes wrong, retry later with the same base URL
