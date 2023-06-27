@@ -185,6 +185,7 @@ body, html, main{
     text-align: center;
     transition: background-color 0.3s ease;
     font-family: "Courier Prime", serif;
+    cursor: pointer;
 }
 
 #content .btn-blue {
