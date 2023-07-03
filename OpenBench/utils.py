@@ -244,6 +244,8 @@ def collect_github_info(request, errors, field):
         assert private or 'sha' in data['commit']['tree']
 
     except: # Unable to find for whatever reason
+        import traceback
+        traceback.print_exc()
         errors.append('%s could not be found' % (branch))
         return (None, None)
 
@@ -266,7 +268,7 @@ def collect_github_info(request, errors, field):
     url, has_all = fetch_artifact_url(base, engine, headers, data['sha'])
     return (url, branch, data['sha'], bench), has_all
 
-def fetch_artifact_url(base, engine, headers, sha, return_data=False):
+def fetch_artifact_url(base, engine, headers, sha):
 
     try:
         # Fetch the run id for the openbench workflow for this comment
@@ -282,17 +284,12 @@ def fetch_artifact_url(base, engine, headers, sha, return_data=False):
         url       = path_join(base, 'actions', 'runs', str(run_id), 'artifacts')
         artifacts = requests.get(url=url, headers=headers).json()['artifacts']
 
-        # All jobs finished, with an associated, non-expired Artifact
-        error = any(job['conclusion'] != 'success' for job in jobs)
-        error = error or any(artifact['expired'] for artifact in artifacts)
-        error = error or len(jobs) != len(artifacts)
-
-        # Toss back the data if we care about it
-        if error and return_data:
-            return ((jobs, artifacts), False)
+        # All jobs finished, with at least one non-expired Artifact
+        assert not any(job['conclusion'] != 'success' for job in jobs)
+        assert not any(artifact['expired'] for artifact in artifacts)
+        assert len(artifacts) >= len(jobs)
 
         # Only set the url if we have everything we need
-        assert not error
         return (url, True)
 
     except Exception as error:

@@ -7,33 +7,18 @@ from django.core.management.commands.runserver import Command as BaseRunserverCo
 class ArtifactWatcher(threading.Thread):
 
     def check_for_artifacts(self, data):
-
-        # Success, if we had all artifacts. Otherwise consider re-running the Workflow
-        retval, has_all = OpenBench.utils.fetch_artifact_url(*data, return_data=True)
-        if has_all: return retval, True
-
-        # Otherwise, we may have returned the Jobs + Artifacts
-        jobs, artifacts = retval
-
-        # Catch expired artifacts, or a Github API bug and run the Workflow
-        if all(job['conclusion'] == 'success' for job in jobs):
-            run_id = jobs[0]['run_id']
-            url    = OpenBench.utils.path_join(data[0], 'actions', 'runs', str(run_id), 'rerun')
-            requests.post(url=url, headers=data[2]).json()
-
-        # We did not have all artifacts needed, return the original source
-        return data[0], False
+        return OpenBench.utils.fetch_artifact_url(*data)
 
     def update_test(self, test):
 
-        # Check for Artifacts for Dev, and re-run if needed
+        # Check for Artifacts for Dev
         if not (dev_has_all := test.dev.source.endswith('artifacts')):
             dev_headers = OpenBench.utils.read_git_credentials(test.dev_engine)
             data = [test.dev.source, test.dev_engine, dev_headers, test.dev.sha]
             test.dev.source, dev_has_all = self.check_for_artifacts(data)
             test.dev.save()
 
-        # Check for Artifacts for Base, and re-run if needed
+        # Check for Artifacts for Base
         if not (base_has_all := test.base.source.endswith('artifacts')):
             base_headers = OpenBench.utils.read_git_credentials(test.base_engine)
             data = [test.base.source, test.base_engine, base_headers, test.base.sha]
