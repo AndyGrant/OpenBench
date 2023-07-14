@@ -878,7 +878,6 @@ def complete_workload(config):
     # Run the benchmarks and compute the scaling NPS value
     dev_nps  = run_benchmarks(config, 'dev' , dev_name , dev_network )
     base_nps = run_benchmarks(config, 'base', base_name, base_network)
-    avg_nps  = (dev_nps + base_nps) // 2
 
     # Report NPS to server, or exit if an error occured
     if not dev_nps or not base_nps: return
@@ -889,7 +888,7 @@ def complete_workload(config):
 
         tasks = [] # Create each of the Cutechess workers
         for x in range(config.sockets):
-            cmd = build_cutechess_command(config, dev_name, base_name, avg_nps, x)
+            cmd = build_cutechess_command(config, dev_name, base_name, dev_nps, base_nps, x)
             tasks.append(executor.submit(run_and_parse_cutechess, config, cmd, x))
 
         # Await the completion of all Cutechess workers
@@ -1081,13 +1080,20 @@ def run_benchmarks(config, branch, engine, network):
     # Set NPS to 0 if we had any errors
     return 0 if not bench or error else nps
 
-def build_cutechess_command(config, dev_cmd, base_cmd, nps, socket):
+def build_cutechess_command(config, dev_cmd, base_cmd, dev_nps, base_nps, socket):
+
+    dev_engine  = config.workload['test']['dev' ]['engine']
+    base_engine = config.workload['test']['base']['engine']
+
+    # Average the time control scalings for self-play only
+    if dev_engine == base_engine:
+        dev_nps = base_nps = (dev_nps + base_nps) / 2
 
     flags  = ' ' + Cutechess.basic_settings(config, socket)
     flags += ' ' + Cutechess.concurrency_settings(config)
     flags += ' ' + Cutechess.adjudication_settings(config)
-    flags += ' ' + Cutechess.engine_settings(config, dev_cmd, 'dev', nps)
-    flags += ' ' + Cutechess.engine_settings(config, base_cmd, 'base', nps)
+    flags += ' ' + Cutechess.engine_settings(config, dev_cmd, 'dev', dev_nps)
+    flags += ' ' + Cutechess.engine_settings(config, base_cmd, 'base', base_nps)
     flags += ' ' + Cutechess.book_settings(config)
     flags += ' ' + Cutechess.pgnout_settings(config, dev_cmd, base_cmd, socket)
 
