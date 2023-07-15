@@ -1,39 +1,59 @@
 {% extends "OpenBench/base.html" %}
 
+{% block scripts %}
+
+    <script>
+
+        document.addEventListener(
+            'DOMContentLoaded', function () {
+
+                var form = document.getElementById("network-form");
+                form.addEventListener("submit", function(event) {
+
+                    event.preventDefault(); // Stop event from hitting the wrong URL
+
+                    // Adjust the Form endpoint based on Network Name and Engine
+                    var network_name = encodeURIComponent(document.getElementById("network-name").value);
+                    var engine_name  = encodeURIComponent(document.getElementById("network-engine").value);
+
+                    // OpenBench Endpoint: networks/engine/upload/name/
+                    form.action = '/networks/' + engine_name + '/upload/' + network_name + '/'
+                    form.submit()
+                });
+            }, false
+        );
+
+    </script>
+
+{% endblock %}
+
 {% block content %}
 
-    <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-
-    <div class="form">
-         <div class="col">
-            <div class="row">
-                <label>Name</label><input name="name">
+    <form method="post" enctype="multipart/form-data" id="network-form">
+        {% csrf_token %}
+        <div class="form">
+             <div class="col">
+                <div class="row">
+                    <label>Name</label><input id="network-name" name="name">
+                </div>
+                <div class="row">
+                    <label>Weights</label><input name="netfile" type="file">
+                </div>
+                <div class="row">
+                    <label>Engine</label>
+                    <select id="network-engine" name="engine">
+                    {% for engine in config.engines %}
+                        {% if engine == profile.engine %}
+                            <option selected value="{{ engine }}">{{ engine }}</option>
+                        {% else %}
+                            <option value="{{ engine }}">{{ engine }}</option>
+                        {% endif %}
+                    {% endfor %}
+                    </select>
+                </div>
+                <input type="submit" class="anchorbutton btn-blue w-100" value="Upload">
             </div>
-            <div class="row">
-                <label>Weights</label><input name="netfile" type="file">
-            </div>
-            <div class="row">
-                <label>Engine</label>
-                <select id="engine" name="engine">
-                {% for engine in config.engines %}
-                    {% if engine == profile.engine %}
-                        <option selected value="{{ engine }}">{{ engine }}</option>
-                    {% else %}
-                        <option value="{{ engine }}">{{ engine }}</option>
-                    {% endif %}
-                {% endfor %}
-                </select>
-            </div>
-
-
-            <input type="submit" class="anchorbutton btn-blue w-100" value="Upload">
         </div>
-    </div>
-
-
-
-
     <form>
 
 {% endblock %}
