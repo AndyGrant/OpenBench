@@ -577,7 +577,7 @@ def network_upload(request, engine, name):
 
     # Save the file locally into /Media/ if we don't already have this file
     if not Network.objects.filter(sha256=sha256):
-        FileSystemStorage().save('%s' % (engine, sha256), netfile)
+        FileSystemStorage().save('%s' % (sha256), netfile)
 
     # Create the Network object mapping to the saved local file
     Network.objects.create(
@@ -585,7 +585,7 @@ def network_upload(request, engine, name):
         engine=engine, author=request.user.username)
 
     # Redirect to Engine specific view, to add clarity
-    return redirect(request, '/networks/%s/' % (engine), status='Uploaded %s for %s' % (engine, name))
+    return redirect(request, '/networks/%s/' % (engine), status='Uploaded %s for %s' % (name, engine))
 
 def network_default(request, engine, network):
 

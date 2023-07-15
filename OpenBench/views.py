@@ -495,8 +495,13 @@ def scripts(request):
 
     login(request) # All requests are attached to a User
 
-    if request.POST['action'] == 'UPLOAD':
-        return networks(request, target='UPLOAD')
+    if request.POST['action'] == 'UPLOAD_NETWORK':
+        engine = request.POST['engine']
+        name   = request.POST['name']
+        import sys
+        sys.stdout.write(engine + ' ' + name + '\n')
+        sys.stdout.flush()
+        return networks(request, engine, 'upload', name)
 
     if request.POST['action'] == 'CREATE_TEST':
         return newTest(request)
