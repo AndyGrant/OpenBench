@@ -433,7 +433,7 @@ class Cutechess(object):
         return '-openings file=Books/%s format=%s order=random plies=16' % (book_name, book_suffix)
 
     @staticmethod
-    def engine_settings(config, command, branch, nps):
+    def engine_settings(config, command, branch, scale_factor):
 
         # Extract configuration from the Workload
         options = config.workload['test'][branch]['options']
@@ -443,7 +443,7 @@ class Cutechess(object):
 
         # Human-readable name, and scale the time control
         name    = command.removesuffix('.exe')
-        control = scale_time_control(config.workload, nps, branch)
+        control = scale_time_control(config.workload, scale_factor, branch)
 
         # Private engines, when using Networks, must set them via UCI
         if private and network and network != 'None':
@@ -665,7 +665,7 @@ def run_bench(engine, outqueue, private_net=None):
         outqueue.put(parse_bench_output(stdout))
     except Exception: outqueue.put((0, 0))
 
-def scale_time_control(workload, nps, branch):
+def scale_time_control(workload, scale_factor, branch):
 
     # Extract everything from the workload dictionary
     reference_nps = workload['test'][branch]['nps']
@@ -687,7 +687,7 @@ def scale_time_control(workload, nps, branch):
     # Scale the time based on this machine's NPS. Add a time Margin to avoid time losses.
     if results:
         mode, value = results.group('mode', 'value')
-        return 'st=%.2f timemargin=100' % ((float(value) * reference_nps) / (1000 * nps))
+        return 'st=%.2f timemargin=100' % ((float(value) * scale_factor / 1000))
 
     # Searching for "X/Y+Z" time controls
     pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
@@ -699,8 +699,8 @@ def scale_time_control(workload, nps, branch):
     inc   = 0.0  if inc   is None else inc.lstrip('+')
 
     # Scale the time based on this machine's NPS
-    base = float(base) * reference_nps / nps
-    inc  = float(inc ) * reference_nps / nps
+    base = float(base) * scale_factor
+    inc  = float(inc ) * scale_factor
 
     # Format the time control for cutechess
     if moves is None: return 'tc=%.2f+%.2f' % (base, inc)
@@ -883,12 +883,22 @@ def complete_workload(config):
     if not dev_nps or not base_nps: return
     ServerReporter.report_nps(config, dev_nps, base_nps)
 
+    # Scale the engines together, using their NPS relative to expected
+    dev_factor  = config.workload['test']['dev' ]['nps'] / dev_nps
+    base_factor = config.workload['test']['base']['nps'] / base_nps
+    avg_factor  = (dev_factor + base_factor) / 2
+
+    print () # Record this information
+    print ('Scale Factor Dev  : %.4f' % (dev_factor ))
+    print ('Scale Factor Base : %.4f' % (base_factor))
+    print ('Scale Factor Avg  : %.4f' % (avg_factor ))
+
     # Launch and manage all of the Cutechess workers
     with ThreadPoolExecutor(max_workers=config.sockets) as executor:
 
         tasks = [] # Create each of the Cutechess workers
         for x in range(config.sockets):
-            cmd = build_cutechess_command(config, dev_name, base_name, dev_nps, base_nps, x)
+            cmd = build_cutechess_command(config, dev_name, base_name, avg_factor, x)
             tasks.append(executor.submit(run_and_parse_cutechess, config, cmd, x))
 
         # Await the completion of all Cutechess workers
@@ -1082,20 +1092,13 @@ def run_benchmarks(config, branch, engine, network):
     # Set NPS to 0 if we had any errors
     return 0 if not bench or error else nps
 
-def build_cutechess_command(config, dev_cmd, base_cmd, dev_nps, base_nps, socket):
-
-    dev_engine  = config.workload['test']['dev' ]['engine']
-    base_engine = config.workload['test']['base']['engine']
-
-    # Average the time control scalings for self-play only
-    if dev_engine == base_engine:
-        dev_nps = base_nps = (dev_nps + base_nps) / 2
+def build_cutechess_command(config, dev_cmd, base_cmd, scale_factor, socket):
 
     flags  = ' ' + Cutechess.basic_settings(config, socket)
     flags += ' ' + Cutechess.concurrency_settings(config)
     flags += ' ' + Cutechess.adjudication_settings(config)
-    flags += ' ' + Cutechess.engine_settings(config, dev_cmd, 'dev', dev_nps)
-    flags += ' ' + Cutechess.engine_settings(config, base_cmd, 'base', base_nps)
+    flags += ' ' + Cutechess.engine_settings(config, dev_cmd, 'dev', scale_factor)
+    flags += ' ' + Cutechess.engine_settings(config, base_cmd, 'base', scale_factor)
     flags += ' ' + Cutechess.book_settings(config)
     flags += ' ' + Cutechess.pgnout_settings(config, dev_cmd, base_cmd, socket)
 
