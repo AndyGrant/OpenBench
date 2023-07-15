@@ -44,7 +44,7 @@ from concurrent.futures import ThreadPoolExecutor
 TIMEOUT_HTTP     = 30   # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10   # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30   # Timeout in seconds between workload requests
-CLIENT_VERSION   = '10' # Client version to send to the Server
+CLIENT_VERSION   = '11' # Client version to send to the Server
 
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
 IS_LINUX   = platform.system() != 'Windows' # Don't touch this
@@ -933,29 +933,30 @@ def download_opening_book(config):
 def download_network_weights(config, branch):
 
     # Some tests may not use Neural Networks
-    network_name = config.workload['test'][branch]['network']
-    if not network_name or network_name == 'None': return None
+    engine_name = config.workload['test'][branch]['engine']
+    network_sha = config.workload['test'][branch]['network']
+    if not network_sha or network_sha == 'None': return None
 
     # Log that we are obtaining a Neural Network
     pattern = 'Fetching Neural Network [ %s, %-4s ]'
-    print(pattern % (network_name, branch.upper()))
+    print(pattern % (network_sha, branch.upper()))
 
     # Fetch the Netural Network if we do not already have it
-    network_path = os.path.join('Networks', network_name)
+    network_path = os.path.join('Networks', network_sha)
     if not os.path.isfile(network_path):
         target  = url_join(config.server, 'clientGetNetwork')
         payload = { 'username' : config.username, 'password' : config.password }
-        download_file(url_join(target, network_name), network_path, payload)
+        download_file(url_join(target, engine_name, network_sha), network_path, payload)
 
     # Verify the download and delete partial or corrupted ones
     with open(network_path, 'rb') as network:
         sha256 = hashlib.sha256(network.read()).hexdigest()
         sha256 = sha256[:8].upper()
-    if network_name != sha256: os.remove(network_path)
+    if network_sha != sha256: os.remove(network_path)
 
     # We have to have the correct Neural Network to continue
-    if network_name != sha256:
-        raise Exception('Invalid SHA for %s' % (network_name))
+    if network_sha != sha256:
+        raise Exception('Invalid SHA for %s' % (network_sha))
 
     return network_path
 
@@ -1050,6 +1051,7 @@ def download_engine(arguments, branch, network):
     if not private:
         ServerReporter.report_build_fail(config, branch, cxx_output)
         return None
+
 
 def run_benchmarks(config, branch, engine, network):
 
@@ -1199,3 +1201,4 @@ if __name__ == '__main__':
 
         except Exception:
             traceback.print_exc()
+            time.sleep(TIMEOUT_ERROR)

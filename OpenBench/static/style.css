@@ -129,12 +129,18 @@ body, html, main{
     background-color: var(--color1);
 }
 
-/* Tables that are too long can wrap words*/
+/* Tables that are too long can wrap words */
 
-#content .wrappable td{
+#content .wrappable td {
     white-space: pre-wrap;
     word-break: break-word;
     word-wrap: break-word;
+}
+
+/* Things which enable a Cursor Pointer event */
+
+#content .cursor {
+    cursor: pointer;
 }
 
 /* Table Headers in General */

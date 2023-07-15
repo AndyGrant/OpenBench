@@ -56,8 +56,10 @@ urlpatterns = [
 
     # Links for viewing and managing Networks
     django.urls.path(r'networks/', OpenBench.views.networks),
-    django.urls.path(r'networks/<str:target>/', OpenBench.views.networks),
-    django.urls.path(r'networks/<str:target>/<str:sha256>/', OpenBench.views.networks),
+    django.urls.path(r'networks/<str:engine>/', OpenBench.views.networks),
+    django.urls.path(r'networks/<str:engine>/<str:action>/', OpenBench.views.networks),
+    django.urls.path(r'networks/<str:engine>/<str:action>/<str:name>/', OpenBench.views.networks),
+    django.urls.path(r'newNetwork/', OpenBench.views.network_form),
 
     # Links for interacting with OpenBench via scripting
     django.urls.path(r'scripts/', OpenBench.views.scripts),
@@ -67,8 +69,7 @@ urlpatterns = [
     django.urls.path(r'clientGetBuildInfo/', OpenBench.views.client_get_build_info),
     django.urls.path(r'clientWorkerInfo/', OpenBench.views.client_worker_info),
     django.urls.path(r'clientGetWorkload/', OpenBench.views.client_get_workload),
-    django.urls.path(r'clientGetNetwork/<str:identifier>/', OpenBench.views.client_get_network),
-    django.urls.path(r'clientGetNetwork/<str:identifier>/<str:engine>/', OpenBench.views.client_get_network),
+    django.urls.path(r'clientGetNetwork/<str:engine>/<str:name>/', OpenBench.views.client_get_network),
     django.urls.path(r'clientWrongBench/', OpenBench.views.client_wrong_bench),
     django.urls.path(r'clientSubmitNPS/', OpenBench.views.client_submit_nps),
     django.urls.path(r'clientSubmitError/', OpenBench.views.client_submit_error),

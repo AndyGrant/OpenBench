@@ -18,18 +18,29 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import math, re, requests, random, datetime, os, json
+import datetime
+import hashlib
+import json
+import math
+import os
+import random
+import re
+import requests
 
-import OpenBench.models, OpenBench.stats
-
-import django.utils.timezone
-
-from django.utils import timezone
-from django.db.models import F
 from django.contrib.auth import authenticate
+from django.core.files.base import ContentFile
+from django.core.files.storage import FileSystemStorage
+from django.db.models import F
+from django.http import FileResponse
+from django.utils import timezone
+from wsgiref.util import FileWrapper
 
-from OpenBench.config import *
-from OpenBench.models import Engine, Profile, Machine, Result, Test, Network
+from OpenSite.settings import MEDIA_ROOT
+
+from OpenBench.config import OPENBENCH_CONFIG
+from OpenBench.models import *
+from OpenBench.stats import SPRT
+from OpenBench.views import redirect
 
 
 def path_join(*args):
@@ -78,25 +89,25 @@ def parse_time_control(time_control):
 
 
 def get_pending_tests():
-    t = OpenBench.models.Test.objects.filter(approved=False)
+    t = Test.objects.filter(approved=False)
     t = t.exclude(finished=True)
     t = t.exclude(deleted=True)
     return t.order_by('-creation')
 
 def get_active_tests():
-    t = OpenBench.models.Test.objects.filter(approved=True)
+    t = Test.objects.filter(approved=True)
     t = t.exclude(awaiting=True)
     t = t.exclude(finished=True)
     t = t.exclude(deleted=True)
     return t.order_by('-priority', '-currentllr')
 
 def get_completed_tests():
-    t = OpenBench.models.Test.objects.filter(finished=True)
+    t = Test.objects.filter(finished=True)
     t = t.exclude(deleted=True)
     return t.order_by('-updated')
 
 def get_awaiting_tests():
-    t = OpenBench.models.Test.objects.filter(awaiting=True)
+    t = Test.objects.filter(awaiting=True)
     t = t.exclude(finished=True)
     t = t.exclude(deleted=True)
     return t.order_by('-creation')
@@ -104,7 +115,7 @@ def get_awaiting_tests():
 
 def getRecentMachines(minutes=5):
     target = datetime.datetime.utcnow()
-    target = target.replace(tzinfo=django.utils.timezone.utc)
+    target = target.replace(tzinfo=timezone.utc)
     target = target - datetime.timedelta(minutes=minutes)
     return Machine.objects.filter(updated__gte=target)
 
@@ -313,7 +324,7 @@ def verify_test_creation(request):
         except: errors.append('"{0}" needs to be at least 1 for {1}'.format(option, field_name))
 
     def verify_configuration(field, field_name, parent):
-        try: assert request.POST[field] in OpenBench.config.OPENBENCH_CONFIG[parent].keys()
+        try: assert request.POST[field] in OPENBENCH_CONFIG[parent].keys()
         except: errors.append('{0} was not found in the configuration'.format(field_name))
 
     def verify_time_control(field, field_name):
@@ -337,11 +348,11 @@ def verify_test_creation(request):
         try: assert re.match(pattern, request.POST[field])
         except: errors.append('Sources must be found on https://github.com/<User>/<Repo>')
 
-    def verify_network(field, fieldName):
+    def verify_network(field, field_name, engine_field):
         try:
             if request.POST[field] == '': return
-            Network.objects.get(sha256=request.POST[field])
-        except: errors.append('Unknown Network Provided for {0}'.format(fieldName))
+            Network.objects.get(engine=request.POST[engine_field], sha256=request.POST[field])
+        except: errors.append('Unknown Network Provided for {0}'.format(field_name))
 
     def verify_test_mode(field):
         try: assert request.POST[field] in ['SPRT', 'GAMES']
@@ -380,7 +391,7 @@ def verify_test_creation(request):
         # Verify everything about the Dev Engine
         (verify_configuration, 'dev_engine', 'Dev Engine', 'engines'),
         (verify_github_repo  , 'dev_repo'),
-        (verify_network      , 'dev_network', 'Dev Network'),
+        (verify_network      , 'dev_network', 'Dev Network', 'dev_engine'),
         (verify_options      , 'dev_options', 'Threads', 'Dev Options'),
         (verify_options      , 'dev_options', 'Hash', 'Dev Options'),
         (verify_time_control , 'dev_time_control', 'Dev Time Control'),
@@ -388,7 +399,7 @@ def verify_test_creation(request):
         # Verify everything about the Base Engine
         (verify_configuration, 'base_engine', 'Base Engine', 'engines'),
         (verify_github_repo  , 'base_repo'),
-        (verify_network      , 'base_network', 'Base Network'),
+        (verify_network      , 'base_network', 'Base Network', 'base_engine'),
         (verify_options      , 'base_options', 'Threads', 'Base Options'),
         (verify_options      , 'base_options', 'Hash', 'Base Options'),
         (verify_time_control , 'base_time_control', 'Base Time Control'),
@@ -474,10 +485,10 @@ def create_new_test(request):
         test.max_games = int(request.POST['test_max_games'])
 
     if test.dev_network:
-        test.dev_netname  = Network.objects.get(sha256=test.dev_network ).name
+        test.dev_netname = Network.objects.get(engine=test.dev_engine, sha256=test.dev_network).name
 
     if test.base_network:
-        test.base_netname = Network.objects.get(sha256=test.base_network).name
+        test.base_netname = Network.objects.get(engine=test.base_engine, sha256=test.base_network).name
 
     test.save()
 
@@ -523,6 +534,94 @@ def get_workload(machine):
     # Update the Machine's status and save everything
     machine.workload = test.id; machine.save(); result.save()
     return { 'workload' : workload_to_dictionary(test, result) }
+
+
+# Purely Helper functions for Networks views
+
+def network_disambiguate(engine, identifier):
+
+    candidates = Network.objects.filter(engine=engine)
+
+    # Identifier actually refers to the Network name
+    if (network := candidates.filter(name=identifier).first()):
+        return network
+
+    # Identifier actually refers to the Network SHA
+    if (network := candidates.filter(sha256=identifier).first()):
+        return network
+
+    # No Network exists with engine this Name or Sha
+    return None
+
+def network_upload(request, engine, name):
+
+    # Extract and process the Network file to produce a SHA
+    netfile = request.FILES['netfile']
+    sha256  = hashlib.sha256(netfile.file.read()).hexdigest()[:8].upper()
+
+    # Rejecct Networks with strange characters
+    if not re.match(r'^[a-zA-Z0-9_.-]+$', name):
+        return redirect(request, '/networks/', error='Valid characters are [a-zA-Z0-9_.-]')
+
+    # Don't allow duplicate uploads for the same engine
+    if Network.objects.filter(engine=engine, sha256=sha256):
+        return redirect(request, '/networks/', error='Network with that hash already exists for that engine')
+
+    # Don't allow duplicate uploads for the same engine
+    if Network.objects.filter(engine=engine, name=name):
+        return redirect(request, '/networks/', error='Network with that name already exists for that engine')
+
+    # Filter out anyone who has used an unknown engine
+    if engine not in OPENBENCH_CONFIG['engines'].keys():
+        return redirect(request, '/networks/', error='No Engine found with matching name')
+
+    # Save the file locally into /Media/ if we don't already have this file
+    if not Network.objects.filter(sha256=sha256):
+        FileSystemStorage().save('%s' % (engine, sha256), netfile)
+
+    # Create the Network object mapping to the saved local file
+    Network.objects.create(
+        sha256=sha256, name=name,
+        engine=engine, author=request.user.username)
+
+    # Redirect to Engine specific view, to add clarity
+    return redirect(request, '/networks/%s/' % (engine), status='Uploaded %s for %s' % (engine, name))
+
+def network_default(request, engine, network):
+
+    # Update default to False for all Networks, except this one
+    Network.objects.filter(engine=engine).update(default=False)
+    network.default = True; network.save()
+
+    # Report this, and refer to the Engine specific view
+    status = 'Set %s as default for %s' % (network.name, network.engine)
+    return redirect(request, '/networks/%s/' % (network.engine), status=status)
+
+def network_delete(request, engine, network):
+
+    # Save information before deleting the Network Model
+    status = 'Deleted %s for %s' % (network.name, network.engine)
+    sha256 = network.sha256; network.delete()
+
+    # Only delete the actual file if no other engines use it
+    if not Network.objects.filter(sha256=sha256):
+        FileSystemStorage().delete(sha256)
+
+    # Report this, and refer to the Engine specific view
+    return redirect(request, '/networks/%s/' % (engine), status=status)
+
+def network_download(request, engine, network):
+
+    # Craft the download HTML response
+    netfile  = os.path.join(MEDIA_ROOT, network.sha256)
+    fwrapper = FileWrapper(open(netfile, 'rb'), 8192)
+    response = FileResponse(fwrapper, content_type='application/octet-stream')
+
+    # Set all headers and return response
+    response['Expires'] = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).ctime()
+    response['Content-Length'] = os.path.getsize(netfile)
+    response['Content-Disposition'] = 'attachment; filename=' + network.sha256
+    return response
 
 
 # Purely Helper functions for get_workload()
@@ -587,7 +686,7 @@ def select_workload(machine, tests, variance=0.25):
     # therefore we may have this machine repeat its existing workload again
     ideal_ratio = sum([x['cores'] for x in table.values()]) / sum([x['throughput'] for x in table.values()])
     if min(ratios) / ideal_ratio > 1 - variance:
-        return OpenBench.models.Test.objects.get(id=machine.workload)
+        return Test.objects.get(id=machine.workload)
 
     # Fallback to simply doing the least attention given test
     return tests[random.choice(lowest_idxs)]
@@ -673,7 +772,7 @@ def update_test(request, machine):
 
         # Compute a new LLR for the updated results
         WLD     = (swins, slosses, sdraws)
-        sprt    = OpenBench.stats.SPRT(*WLD, test.elolower, test.eloupper)
+        sprt    = SPRT(*WLD, test.elolower, test.eloupper)
 
         # Check for H0 or H1 being accepted
         passed   = sprt > test.upperllr

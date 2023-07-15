@@ -33,9 +33,8 @@ from OpenBench.models import *
 from django.contrib.auth.models import User
 from OpenSite.settings import MEDIA_ROOT
 
-from wsgiref.util import FileWrapper
 from django.db.models import F
-from django.http import HttpResponse, FileResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
 from django.core.files.base import ContentFile
@@ -438,102 +437,54 @@ def create_test(request):
 #                          NETWORK MANAGEMENT VIEWS                           #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def networks(request, target=None, sha256=None, client=False):
+def networks(request, engine=None, action=None, name=None, client=False):
 
-    # *** GET Requests:
-    # [1] Fetch a view of all the Networks on the framework (/networks/)
-    # [2] Fetch a view of all Networks for a given engine (/networks/<engine>/)
-    # [3] Download the contents of a Network if allowed (/networks/download/<sha256>/)
-    #
-    # *** POST Requests:
-    # [1] Upload a Network to the framework (/networks/upload/)
-    # [2] Set as default a Network on the framework (/networks/default/<sha256>/)
-    # [3] Delete a Network from the framework (/networks/delete/<sha256>/)
-    #
-    # *** Rights:
-    # Any user may look at the list of Networks, for all or some engines
-    # Only authenticated and approved Users may interact in the remaining ways
-
-    if not target or target.upper() not in ['UPLOAD', 'DEFAULT', 'DELETE', 'DOWNLOAD']:
+    # Without an identifier and a valid action, all we can do is view the list
+    if not name or action.upper() not in ['UPLOAD', 'DEFAULT', 'DELETE', 'DOWNLOAD']:
         networks = Network.objects.all()
-        if target: networks = networks.filter(engine=target)
-        return render(request, 'networks.html', { 'networks' : networks.order_by('-id') })
+        if engine and engine in OPENBENCH_CONFIG['engines'].keys():
+            networks = networks.filter(engine=engine)
+        return render(request, 'networks.html', { 'networks' : list(networks.order_by('-id').values()) })
 
+    # Require logins. Clients will be artifically logged in
     if not request.user.is_authenticated:
         return django.http.HttpResponseRedirect('/login/')
 
+    # Require approver credentials, unless downloading as a client
     if not client and not Profile.objects.get(user=request.user).approver:
         return django.http.HttpResponseRedirect('/index/')
 
-    if target.upper() == 'UPLOAD':
+    # Split out Uploads, since there is no logic to disambiguate the name
+    if action.upper() == 'UPLOAD':
+        return OpenBench.utils.network_upload(request, engine, name)
 
-        if request.method == 'GET':
-            return render(request, 'uploadnet.html', {})
+    # Push off all the actual effort to OpenBench.utils for all actions
+    actions = {
+        'DEFAULT'  : OpenBench.utils.network_default,
+        'DELETE'   : OpenBench.utils.network_delete,
+        'DOWNLOAD' : OpenBench.utils.network_download,
+    }
 
-        name    = request.POST['name']
-        engine  = request.POST['engine']
-        netfile = request.FILES['netfile']
-        sha256  = hashlib.sha256(netfile.file.read()).hexdigest()[:8].upper()
+    # Update the Network, if we can find one for the given name/sha256
+    if (network := OpenBench.utils.network_disambiguate(engine, name)):
+        return actions[action.upper()](request, engine, network)
 
-        if not re.match(r'^[a-zA-Z0-9_.-]+$', name):
-            return redirect(request, '/uploadnet/', error='Valid characters are [a-zA-Z0-9_.-]')
+    # Otherwise we could not find the Network, and cannot do anything
+    return redirect(request, '/networks/', error='No network found with matching Sha')
 
-        if Network.objects.filter(sha256=sha256):
-            return redirect(request, '/uploadnet/', error='Network with that hash already exists')
+def network_form(request):
 
-        if Network.objects.filter(engine=engine, name=name):
-            return redirect(request, '/uploadnet/', error='Network with that name already exists for that engine')
+    # Require logins. Clients will be artifically logged in
+    if not request.user.is_authenticated:
+        return django.http.HttpResponseRedirect('/login/')
 
-        if engine not in OPENBENCH_CONFIG['engines'].keys():
-            return redirect(request, '/uploadnet/', error='No Engine found with matching name')
+    # Require approver credentials, unless downloading as a client
+    if not Profile.objects.get(user=request.user).approver:
+        return django.http.HttpResponseRedirect('/index/')
 
-        FileSystemStorage().save(sha256, netfile)
-
-        Network.objects.create(
-            sha256=sha256, name=name,
-            engine=engine, author=request.user.username)
-
-        return redirect(request, '/networks/', status='Uploaded %s for %s' % (engine, name))
-
-    if target.upper() == 'DEFAULT':
-
-        if not Network.objects.filter(sha256=sha256):
-            return redirect(request, '/networks/', error='No network found with matching Sha')
-
-        network = Network.objects.get(sha256=sha256)
-        Network.objects.filter(engine=network.engine).update(default=False)
-        network.default = True; network.save()
-
-        status = 'Set %s as default for %s' % (network.name, network.engine)
-        return redirect(request, '/networks/', status=status)
-
-    if target.upper() == 'DELETE':
-
-        if not Network.objects.filter(sha256=sha256):
-            return redirect(request, '/networks/', error='No network found with matching Sha')
-
-        network = Network.objects.get(sha256=sha256)
-        status  = 'Deleted %s for %s' % (network.name, network.engine)
-
-        network.delete()
-        FileSystemStorage().delete(sha256)
-
-        return redirect(request, '/networks/', status=status)
-
-    if target.upper() == 'DOWNLOAD':
-
-        if not Network.objects.filter(sha256=sha256):
-            return redirect(request, '/networks/', error='No network found with matching Sha')
-
-        netfile  = os.path.join(MEDIA_ROOT, sha256)
-        fwrapper = FileWrapper(open(netfile, 'rb'), 8192)
-        response = FileResponse(fwrapper, content_type='application/octet-stream')
-
-        response['Expires'] = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).ctime()
-        response['Content-Length'] = os.path.getsize(netfile)
-        response['Content-Disposition'] = 'attachment; filename=' + sha256
-        return response
-
+    # Get requests should not be reaching this point
+    if request.method == 'GET':
+        return render(request, 'uploadnet.html', {})
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                             OPENBENCH SCRIPTING                             #
@@ -654,19 +605,14 @@ def client_get_workload(request):
     return JsonResponse(OpenBench.utils.get_workload(machine))
 
 @csrf_exempt
-def client_get_network(request, identifier, engine=None):
+def client_get_network(request, engine, name):
 
     # Verify the User's credentials
     try: django.contrib.auth.login(request, authenticate(request, True))
     except UnableToAuthenticate: return HttpResponse('Bad Credentials')
 
-    # Return the requested Neural Network, after resolving the Network name
-    if engine is not None:
-        try: identifier = Network.objects.get(name=identifier, engine=engine).sha256
-        except: return HttpResponse('Unable to find associated Network')
-
     # Return the requested Neural Network file for the Client
-    return networks(request, target='DOWNLOAD', sha256=identifier, client=True)
+    return networks(request, engine, 'DOWNLOAD', name, client=True)
 
 @csrf_exempt
 def client_wrong_bench(request):
