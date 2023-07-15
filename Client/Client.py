@@ -452,7 +452,7 @@ class Cutechess(object):
 
         # Set the SyzygyPath if we have them, and are allowed to use them
         if syzygy != 'DISABLED' and config.syzygy_max:
-            options += ' SyzygyPath="%s"' % (config.syzygy_path.replace('\\', '\\\\'))
+            options += ' SyzygyPath=%s' % (config.syzygy_path.replace('\\', '\\\\'))
 
         # Set a SyzygyProbeLimit if we may only use up-to N-Man
         if syzygy != 'DISABLED' and syzygy != 'OPTIONAL':
