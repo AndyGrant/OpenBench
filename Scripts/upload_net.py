@@ -1,3 +1,5 @@
+#!/bin/python3
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                           #
 #   OpenBench is a chess engine testing framework by Andrew Grant.          #
@@ -23,9 +25,11 @@ import os
 import re
 import requests
 
-from urllib.parse import urljoin
+def url_join(*args):
+    # Join a set of URL paths while maintaining the correct format
+    return '/'.join([f.lstrip('/').rstrip('/') for f in args]) + '/'
 
-def upload_file():
+def upload_network():
 
     # We can use ENV variables for Username, Password, and Server
     req_user   = required=('OPENBENCH_USERNAME' not in os.environ)
@@ -53,7 +57,7 @@ def upload_file():
     args.server   = args.server   if args.server   else os.environ['OPENBENCH_SERVER'  ]
 
     # All scripts connect through this API point, with an action in the POST data
-    url = urljoin(args.server, 'scripts/')
+    url = url_join(args.server, 'scripts')
 
     # POST payload must contain an action value
     data = {
@@ -80,4 +84,4 @@ def upload_file():
         print ('Status: %s' % (matches[0].strip()))
 
 if __name__ == '__main__':
-    upload_file()
+    upload_network()
