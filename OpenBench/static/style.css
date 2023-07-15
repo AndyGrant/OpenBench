@@ -43,7 +43,7 @@ body, html, main{
     padding-right: 2rem;
 }
 
-#content{
+#content {
     max-width: calc(min(100%,1000px));
     width: 100%;
     white-space: nowrap;
@@ -85,6 +85,8 @@ body, html, main{
 
 #sidebar li a {
     color: var(--color-font2);
+    display: block;
+    width: 100%;
 }
 
 #sidebar li:hover {
