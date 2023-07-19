@@ -460,7 +460,7 @@ class Cutechess(object):
 
         # Join options together in the Cutechess format
         options = ' option.'.join([''] + re.findall(r'"[^"]*"|\S+', options))
-        return '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s' % (command, control, options, name)
+        return '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s-%s' % (command, control, options, name, branch)
 
     @staticmethod
     def pgnout_settings(config, dev_cmd, base_cmd, socket):
