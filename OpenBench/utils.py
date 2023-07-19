@@ -40,7 +40,8 @@ from OpenSite.settings import MEDIA_ROOT
 from OpenBench.config import OPENBENCH_CONFIG
 from OpenBench.models import *
 from OpenBench.stats import SPRT
-from OpenBench.views import redirect
+
+import OpenBench.views
 
 
 class TimeControl(object):
@@ -608,19 +609,19 @@ def network_upload(request, engine, name):
 
     # Rejecct Networks with strange characters
     if not re.match(r'^[a-zA-Z0-9_.-]+$', name):
-        return redirect(request, '/networks/', error='Valid characters are [a-zA-Z0-9_.-]')
+        return OpenBench.views.redirect(request, '/networks/', error='Valid characters are [a-zA-Z0-9_.-]')
 
     # Don't allow duplicate uploads for the same engine
     if Network.objects.filter(engine=engine, sha256=sha256):
-        return redirect(request, '/networks/', error='Network with that hash already exists for that engine')
+        return OpenBench.views.redirect(request, '/networks/', error='Network with that hash already exists for that engine')
 
     # Don't allow duplicate uploads for the same engine
     if Network.objects.filter(engine=engine, name=name):
-        return redirect(request, '/networks/', error='Network with that name already exists for that engine')
+        return OpenBench.views.redirect(request, '/networks/', error='Network with that name already exists for that engine')
 
     # Filter out anyone who has used an unknown engine
     if engine not in OPENBENCH_CONFIG['engines'].keys():
-        return redirect(request, '/networks/', error='No Engine found with matching name')
+        return OpenBench.views.redirect(request, '/networks/', error='No Engine found with matching name')
 
     # Save the file locally into /Media/ if we don't already have this file
     if not Network.objects.filter(sha256=sha256):
@@ -632,7 +633,7 @@ def network_upload(request, engine, name):
         engine=engine, author=request.user.username)
 
     # Redirect to Engine specific view, to add clarity
-    return redirect(request, '/networks/%s/' % (engine), status='Uploaded %s for %s' % (name, engine))
+    return OpenBench.views.redirect(request, '/networks/%s/' % (engine), status='Uploaded %s for %s' % (name, engine))
 
 def network_default(request, engine, network):
 
@@ -642,7 +643,7 @@ def network_default(request, engine, network):
 
     # Report this, and refer to the Engine specific view
     status = 'Set %s as default for %s' % (network.name, network.engine)
-    return redirect(request, '/networks/%s/' % (network.engine), status=status)
+    return OpenBench.views.redirect(request, '/networks/%s/' % (network.engine), status=status)
 
 def network_delete(request, engine, network):
 
@@ -655,7 +656,7 @@ def network_delete(request, engine, network):
         FileSystemStorage().delete(sha256)
 
     # Report this, and refer to the Engine specific view
-    return redirect(request, '/networks/%s/' % (engine), status=status)
+    return OpenBench.views.redirect(request, '/networks/%s/' % (engine), status=status)
 
 def network_download(request, engine, network):
 
