@@ -569,13 +569,10 @@ def scripts(request):
     if request.POST['action'] == 'UPLOAD_NETWORK':
         engine = request.POST['engine']
         name   = request.POST['name']
-        import sys
-        sys.stdout.write(engine + ' ' + name + '\n')
-        sys.stdout.flush()
         return networks(request, engine, 'upload', name)
 
     if request.POST['action'] == 'CREATE_TEST':
-        return newTest(request)
+        return create_test(request)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              CLIENT HOOK VIEWS                              #
