@@ -43,6 +43,83 @@ from OpenBench.stats import SPRT
 from OpenBench.views import redirect
 
 
+class TimeControl(object):
+
+    FIXED_NODES = 'FIXED-NODES' # N= or nodes=
+    FIXED_DEPTH = 'FIXED-DEPTH' # D= or depth=
+    FIXED_TIME  = 'FIXED-TIME'  # MT= or movetime=
+    CYCLIC      = 'CYCLIC'      # X/Y or X/Y+Z
+    FISCHER     = 'FISCHER'     # Y or Y+Z
+
+    @staticmethod
+    def parse(time_str):
+
+        # Display Nodes as N=, Depth as D=, MoveTime as MT=
+        conversion = {
+            'N'  :  'N', 'nodes'    :  'N',
+            'D'  :  'D', 'depth'    :  'D',
+            'MT' : 'MT', 'movetime' : 'MT',
+        }
+
+        # Searching for "nodes=", "depth=", and "movetime=" time controls
+        pattern = '(?P<mode>((N)|(D)|(MT)|(nodes)|(depth)|(movetime)))=(?P<value>(\d+))'
+        if results := re.search(pattern, time_str.upper()):
+            mode, value = results.group('mode', 'value')
+            return '%s=%s' % (conversion[mode], value)
+
+        # Searching for "X/Y+Z" time controls, where "X/" is optional
+        pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
+        if results := re.search(pattern, time_str):
+            moves, base, inc = results.group('moves', 'base', 'inc')
+
+            # Strip the trailing and leading symbols
+            moves = None if moves == '' else moves.rstrip('/')
+            inc   = 0.0  if inc   is None else inc.lstrip('+')
+
+            # Format the time control for cutechess cleanly
+            if moves is None: return '%.1f+%.2f' % (float(base), float(inc))
+            return '%d/%.1f+%.2f' % (int(moves), float(base), float(inc))
+
+        print ('FAIL')
+        import sys
+        sys.stdout.flush()
+
+        raise Exception('Unable to parse Time Control (%s)' % (time_str))
+
+    @staticmethod
+    def control_type(time_str):
+
+        # Return one of the types defined at the top of TimeControl
+
+        if time_str.startswith('N='):
+            return TimeControl.FIXED_NODES
+
+        if time_str.startswith('D='):
+            return TimeControl.FIXED_DEPTH
+
+        if time_str.startswith('MT='):
+            return TimeControl.FIXED_TIME
+
+        if '/' in time_str:
+            return TimeControl.CYCLIC
+
+        return TimeControl.FISCHER
+
+    @staticmethod
+    def control_base(time_str):
+
+        # Fixed-nodes, Fixed-depth, Fixed-time
+        if '=' in time_str:
+            return int(time_str.split('=')[1])
+
+        # Cyclic
+        if '/' in time_str:
+            return float(time_str.split('/')[0])
+
+        # Fischer or Sudden Death otherwise
+        return float(time_str.split('+')[0])
+
+
 def path_join(*args):
     return "/".join([f.lstrip("/").rstrip("/") for f in args]).rstrip('/')
 
@@ -56,36 +133,6 @@ def extract_option(options, option):
 
     match = re.search('(?<={0}=)[^ ]*'.format(option), options)
     if match: return match.group()
-
-def parse_time_control(time_control):
-
-    # Display Nodes as N=, Depth as D=, MoveTime as MT=
-    conversion = {
-        'N'  :  'N', 'nodes'    :  'N',
-        'D'  :  'D', 'depth'    :  'D',
-        'MT' : 'MT', 'movetime' : 'MT',
-    }
-
-    # Searching for "nodes=", "depth=", and "movetime=" Time Controls
-    pattern = '(?P<mode>((N)|(D)|(MT)|(nodes)|(depth)|(movetime)))=(?P<value>(\d+))'
-    if results := re.search(pattern, time_control.upper()):
-        mode, value = results.group('mode', 'value')
-        return '%s=%s' % (conversion[mode], value)
-
-    # Searching for "X/Y+Z" time controls
-    pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
-    if results := re.search(pattern, time_control):
-        moves, base, inc = results.group('moves', 'base', 'inc')
-
-        # Strip the trailing and leading symbols
-        moves = None if moves == '' else moves.rstrip('/')
-        inc   = 0.0  if inc   is None else inc.lstrip('+')
-
-        # Format the time control for cutechess
-        if moves is None: return '%.1f+%.2f' % (float(base), float(inc))
-        return '%d/%.1f+%.2f' % (int(moves), float(base), float(inc))
-
-    raise Exception('Unable to parse Time Control (%s)' % (time_control))
 
 
 def get_pending_tests():
@@ -328,8 +375,8 @@ def verify_test_creation(request):
         except: errors.append('{0} was not found in the configuration'.format(field_name))
 
     def verify_time_control(field, field_name):
-        try: parse_time_control(request.POST[field])
-        except: errors.append('{0} is not a parsable'.format(field_name))
+        try: TimeControl.parse(request.POST[field])
+        except: errors.append('{0} is not parsable'.format(field_name))
 
     def verify_win_adj(field):
         try:
@@ -451,14 +498,14 @@ def create_new_test(request):
     test.dev_engine        = request.POST['dev_engine']
     test.dev_options       = request.POST['dev_options']
     test.dev_network       = request.POST['dev_network']
-    test.dev_time_control  = parse_time_control(request.POST['dev_time_control'])
+    test.dev_time_control  = TimeControl.parse(request.POST['dev_time_control'])
 
     test.base              = getEngine(*baseinfo)
     test.base_repo         = request.POST['base_repo']
     test.base_engine       = request.POST['base_engine']
     test.base_options      = request.POST['base_options']
     test.base_network      = request.POST['base_network']
-    test.base_time_control = parse_time_control(request.POST['base_time_control'])
+    test.base_time_control = TimeControl.parse(request.POST['base_time_control'])
 
     test.report_rate       = int(request.POST['report_rate'])
     test.workload_size     = int(request.POST['workload_size'])

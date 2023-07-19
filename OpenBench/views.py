@@ -33,7 +33,7 @@ from OpenBench.models import *
 from django.contrib.auth.models import User
 from OpenSite.settings import MEDIA_ROOT
 
-from django.db.models import F
+from django.db.models import F, Q
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
@@ -46,7 +46,7 @@ from django.core.files.base import ContentFile
 class UnableToAuthenticate(Exception):
     pass
 
-def render(request, template, content={}, always_allow=False):
+def render(request, template, content={}, always_allow=False, error=None, status=None):
 
     data = content.copy()
     data.update({ 'config' : OPENBENCH_CONFIG })
@@ -65,6 +65,12 @@ def render(request, template, content={}, always_allow=False):
 
         elif request.user.is_authenticated and not profile.first():
             request.session['error_message'] = data['config']['error']['fakeuser']
+
+    if error:
+        request.session['error_message'] = error
+
+    if status:
+        request.session['status_message'] = status
 
     response = django.shortcuts.render(request, 'OpenBench/{0}'.format(template), data)
 
@@ -276,36 +282,101 @@ def search(request):
         return render(request, 'search.html', {})
 
     tests = Test.objects.all()
-    keywords = request.POST['keywords'].upper().split()
-    if not keywords: keywords = [""]
 
-    if request.POST['engine'] != '':
-        tests = tests.filter(engine=request.POST['engine'])
+    # Optional Selection box filters
 
-    if request.POST['author'] != '':
+    if request.POST['author']:
         tests = tests.filter(author=request.POST['author'])
 
-    if request.POST['showgreens'] == 'False':
-        tests = tests.exclude(passed=True)
+    if request.POST['engine']:
+        tests = tests.filter(Q(base_engine=request.POST['engine']) | Q(dev_engine=request.POST['engine']))
 
-    if request.POST['showyellows'] == 'False':
+    if request.POST['opening-book']:
+        tests = tests.filter(book_name=request.POST['opening-book'])
+
+    if request.POST['test-mode']:
+        tests = tests.filter(test_mode=request.POST['test-mode'])
+
+    if request.POST['syzygy-wdl']:
+        tests = tests.filter(syzygy_wdl=request.POST['syzygy-wdl'])
+
+    # Checkboxes for Test statuses
+
+    if 'show-greens' not in request.POST:
+        tests = tests.annotate(x=F('elolower') + F('eloupper')).exclude(x__gte=0, passed=True)
+
+    if 'show-yellows' not in request.POST:
         tests = tests.exclude(failed=True, wins__gte=F('losses'))
 
-    if request.POST['showreds'] == 'False':
+    if 'show-reds' not in request.POST:
         tests = tests.exclude(failed=True, wins__lt=F('losses'))
 
-    if request.POST['showunfinished'] == 'False':
+    if 'show-blues' not in request.POST:
+        tests = tests.annotate(x=F('elolower') + F('eloupper')).exclude(x__lt=0, passed=True)
+
+    if 'show-stopped' not in request.POST:
         tests = tests.exclude(passed=False, failed=False)
 
-    if request.POST['showdeleted'] == 'False':
+    if 'show-deleted' not in request.POST:
         tests = tests.exclude(deleted=True)
 
-    filtered = [
-        test for test in tests.order_by('-updated') if
-        any(keyword in test.dev.name.upper() for keyword in keywords)
-    ]
+    # Remaining filtering is hard to do with standard Django queries
 
-    return render(request, 'search.html', {'tests' : filtered})
+    filtered = []
+    keywords = request.POST['keywords'].upper().split()
+
+    tc_type   = request.POST['tc-type']
+    tc_value  = request.POST['tc-value-input']
+    tc_select = request.POST['tc-value-select']
+
+    # Attempt to parse the time control
+
+    try:
+        if tc_value:
+            tc_value = OpenBench.utils.TimeControl.parse(tc_value)
+    except:
+        return redirect(request, '/search/', error='Invalid Time Control')
+
+    # Filter out tests
+
+    for test in tests:
+
+        # None of the keywords appear in the dev branch name
+        if keywords and not any(x in test.dev.name.upper() for x in keywords):
+            continue
+
+        # Determine the max number of threads that either engine used
+        dev_threads  = OpenBench.utils.extract_option(test.dev_options, 'Threads')
+        base_threads = OpenBench.utils.extract_option(test.base_options, 'Threads')
+        max_threads  = max(int(dev_threads), int(base_threads))
+
+        # Extract requsted configuration
+        select_value = request.POST['threads-select']
+        input_value  = int(request.POST['threads-input'])
+
+        # Requested Threads value did not match observed value
+        if select_value == '='  and max_threads != input_value: continue
+        if select_value == '>=' and max_threads  < input_value: continue
+        if select_value == '<=' and max_threads  > input_value: continue
+
+        # Filter our undesired time control types
+        if tc_type and tc_type != OpenBench.utils.TimeControl.control_type(test.dev_time_control):
+            continue
+
+        # Filter tests of the same time control type, but outside our range
+        if tc_value:
+
+            search_base = OpenBench.utils.TimeControl.control_base(tc_value)
+            test_base   = OpenBench.utils.TimeControl.control_base(test.dev_time_control)
+
+            if tc_select == '='  and search_base != test_base: continue
+            if tc_select == '>=' and search_base  > test_base: continue
+            if tc_select == '<=' and search_base  < test_base: continue
+
+        filtered.append(test)
+
+    error = 'No matching tests found' if not len(filtered) else None
+    return render(request, 'search.html', { 'tests' : filtered }, error=error)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                           GENERAL DATA TABLE VIEWS                          #

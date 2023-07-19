@@ -2,84 +2,150 @@
 
 {% block scripts %}
 
-    function set_default_engine() {
-        {% if profile.engine %}
-            document.getElementById("engine").value = "{{profile.engine}}";
-        {% endif %}
-    }
+    <script>
 
-    document.addEventListener(
-        'DOMContentLoaded', function () {
-            set_default_engine();
-        }, false
-    );
+        function changed_timecontrol() {
+            var tc_type  = document.getElementById("tc-type").value;
+
+            var dict = {
+                ""            : "Anything",
+                "FIXED-DEPTH" : "All, or e.g D=10",
+                "FIXED-NODES" : "All, or e.g N=40000",
+                "FIXED-TIME"  : "All, or e.g MT=1000",
+                "FISCHER"     : "All, or e.g 15.0+0.15",
+                "CYCLIC"      : "All, or e.g 40/10.0+0.0",
+            }
+
+            document.getElementById("tc-value-input").placeholder = dict[tc_type];
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            changed_timecontrol();
+        });
+
+    </script>
 
 {% endblock %}
 
 {% block content %}
-
     {% if not tests %}
-
         <form method="POST" action="/search/">
             {% csrf_token %}
-
             <div class="form">
                 <div class="col">
                     <div class="row">
-                        <label>Keywords</label> <input name="keywords"><br>
+                        <label>Keywords</label>
+                        <input name="keywords" placeholder="Seperated By Spaces"><br>
                     </div>
                     <div class="row">
-                        <label>Author</label> <input name="author"><br>
+                        <label>Author</label>
+                        <input name="author" placeholder="All Authors By Default"><br>
                     </div>
                     <div class="row">
                         <label>Engine</label>
                         <select id="engine" name="engine">
-                            <option selected value="">ALL</option>
+                            <option value="" selected>All Engines</option>
                             {% for name, data in config.engines.items %}
                                 <option value="{{name}}">{{name}}</option>
                             {% endfor %}
                         </select><br>
                     </div>
+                    <br>
                     <div class="row">
-                        <label>Show Greens</label>
-                        <select name="showgreens">
-                            <option selected value="True">True</option>
-                            <option value="False">False</option>
+                        <label>Opening Book</label>
+                        <select id="opening-book" name="opening-book">
+                            <option value="" selected>All Books</option>
+                            {% for name, data in config.books.items %}
+                                <option value="{{name}}">{{name}}</option>
+                            {% endfor %}
                         </select><br>
                     </div>
                     <div class="row">
-                        <label>Show Yellows</label>
-                        <select name="showyellows">
-                            <option selected value="True">True</option>
-                            <option value="False">False</option>
+                        <label>Test Mode</label>
+                        <select id="test-mode" name="test-mode">
+                            <option value="" selected>All Test Types</option>
+                                <option value="SPRT">SPRT</option>
+                                <option value="FIXED">FIXED</option>
                         </select><br>
                     </div>
                     <div class="row">
-                        <label>Show Reds</label>
-                        <select name="showreds">
-                            <option selected value="True">True</option>
-                            <option value="False">False</option>
+                        <label>Syzygy WDL</label>
+                        <select id="syzygy-wdl" name="syzygy-wdl">
+                            <option value="" selected>All Syzygy Configurations</option>
+                            <option value="DISABLED"> Disabled </option>
+                            <option value="OPTIONAL"> Optional </option>
+                            <option value="6-MAN"> 6-Man </option>
+                            <option value="5-MAN"> 5-Man </option>
+                            <option value="4-MAN"> 4-Man </option>
+                            <option value="3-MAN"> 3-Man </option>
                         </select><br>
                     </div>
                     <div class="row">
-                        <label>Show Stopped</label>
-                        <select name="showunfinished">
-                            <option value="True">True</option>
-                            <option selected value="False">False</option>
+                        <label>Time Type</label>
+                        <select id="tc-type" name="tc-type" onchange="changed_timecontrol()">
+                            <option value="" selected>All Time Controls</option>
+                            <option value="FIXED-DEPTH">Fixed Depth</option>
+                            <option value="FIXED-NODES">Fixed Nodes</option>
+                            <option value="FIXED-TIME">Fixed Time</option>
+                            <option value="FISCHER">Fischer</option>
+                            <option value="CYCLIC">Cyclic</option>
                         </select><br>
                     </div>
                     <div class="row">
-                        <label>Show Deleted</label>
-                        <select name="showdeleted">
-                            <option value="True">True</option>
-                            <option selected value="False">False</option>
-                        </select><br>
+                        <label>Time Value</label>
+                        <select id="tc-value-select" name="tc-value-select" style="margin-right: 8px; flex-grow: 0">
+                            <option value="=" selected>==</option>
+                            <option value=">=">&gt;=</option>
+                            <option value="<=">&lt;=</option>
+                        </select>
+                        <input id="tc-value-input" name="tc-value-input"><br>
+                    </div>
+                    <div class="row">
+                        <label>Threads</label>
+                        <select id="threads-select" name="threads-select" style="margin-right: 8px; flex-grow: 0">
+                            <option value="=">==</option>
+                            <option value=">=" selected>&gt;=</option>
+                            <option value="<=">&lt;=</option>
+                        </select>
+                        <input id="threads-input" name="threads-input" value="1"><br>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col">
+                            <div class="row">
+                                <label>Greens</label>
+                                <input checked type="checkbox" id="show-greens" name="show-greens" value="">
+                            </div>
+                           <div class="row">
+                                <label>Blues</label>
+                                <input checked type="checkbox" id="show-blues" name="show-blues" value="">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="row">
+                                <label>Yellows</label>
+                                <input checked type="checkbox" id="show-yellows" name="show-yellows" value="">
+                            </div>
+                           <div class="row">
+                                <label>Stopped</label>
+                                <input checked type="checkbox" id="show-stopped" name="show-stopped" value="">
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="row">
+                                <label>Reds</label>
+                                <input checked type="checkbox" id="show-reds" name="show-reds" value="">
+                            </div>
+                           <div class="row">
+                                <label>Deleted</label>
+                                <input type="checkbox" id="show-deleted" name="show-deleted" value="">
+                            </div>
+                        </div>
                     </div>
                     <input type="submit" class="anchorbutton btn-blue w-100" name="submit" value="Search Tests">
                 </div>
             </div>
         </form>
-
     {% endif %}
 
     <table class="test-list stripes hoverable">
@@ -87,5 +153,4 @@
             {% include "OpenBench/Blocks/testsummary.html" %}
         {% endfor %}
     </table>
-
 {% endblock %}
