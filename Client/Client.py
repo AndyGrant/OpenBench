@@ -309,7 +309,7 @@ class ServerReporter(object):
         payload = {
             'test_id'    : config.workload['test']['id'],
             'error'      : '%s build failed' % (final_name),
-            'logs'       : compiler_output,
+            'logs'       : output,
         }
 
         return ServerReporter.report(config, 'clientSubmitError', payload)
