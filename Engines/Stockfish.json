@@ -19,14 +19,14 @@
     "testmodes" : {
 
         "STC" : {
-            "options"       : "Threads=1 Hash=16",
+            "options"       : "Threads=1 Hash=16 MoveOverhead=100",
             "timecontrol"   : "10.0+0.10",
             "report_rate"   : 16,
             "workload_size" : 32
         },
 
         "LTC" : {
-            "options"       : "Threads=1 Hash=64",
+            "options"       : "Threads=1 Hash=64 MoveOverhead=100",
             "timecontrol"   : "60.0+0.6",
             "report_rate"   : 4,
             "workload_size" : 8,
@@ -34,14 +34,14 @@
         },
 
         "SMP STC" : {
-            "options"       : "Threads=7 Hash=64",
+            "options"       : "Threads=7 Hash=64 MoveOverhead=100",
             "timecontrol"   : "10.0+0.1",
             "report_rate"   : 4,
             "workload_size" : 64
         },
 
         "SMP LTC" : {
-            "options"       : "Threads=14 Hash=256",
+            "options"       : "Threads=14 Hash=256 MoveOverhead=100",
             "timecontrol"   : "30.0+0.3",
             "report_rate"   : 4,
             "workload_size" : 16,
@@ -49,7 +49,7 @@
         },
 
         "STC Simplification" : {
-            "options"       : "Threads=1 Hash=16",
+            "options"       : "Threads=1 Hash=16 MoveOverhead=100",
             "timecontrol"   : "10.0+0.10",
             "report_rate"   : 16,
             "workload_size" : 32,
@@ -57,7 +57,7 @@
         },
 
         "LTC Simplification" : {
-            "options"       : "Threads=1 Hash=64",
+            "options"       : "Threads=1 Hash=64 MoveOverhead=100",
             "timecontrol"   : "60.0+0.6",
             "report_rate"   : 4,
             "workload_size" : 8,
@@ -65,7 +65,7 @@
         },
 
         "STC Regression" : {
-            "options"       : "Threads=1 Hash=16",
+            "options"       : "Threads=1 Hash=16 MoveOverhead=100",
             "timecontrol"   : "10.0+0.10",
             "report_rate"   : 16,
             "workload_size" : 32,
@@ -74,7 +74,7 @@
         },
 
         "LTC Regression" : {
-            "options"       : "Threads=1 Hash=64",
+            "options"       : "Threads=1 Hash=64 MoveOverhead=100",
             "timecontrol"   : "60.0+0.6",
             "report_rate"   : 4,
             "workload_size" : 8,
@@ -83,7 +83,7 @@
         },
 
         "STC Fixed Games" : {
-            "options"       : "Threads=1 Hash=16",
+            "options"       : "Threads=1 Hash=16 MoveOverhead=100",
             "timecontrol"   : "10.0+0.10",
             "report_rate"   : 16,
             "workload_size" : 32,
@@ -91,7 +91,7 @@
         },
 
         "LTC Fixed Games" : {
-            "options"       : "Threads=1 Hash=64",
+            "options"       : "Threads=1 Hash=64 MoveOverhead=100",
             "timecontrol"   : "60.0+0.6",
             "report_rate"   : 4,
             "workload_size" : 8,
