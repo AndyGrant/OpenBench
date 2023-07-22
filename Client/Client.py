@@ -1132,8 +1132,8 @@ def run_and_parse_cutechess(config, command, socket):
         # Forcefully report any engine failures to the server
         for error in errors:
             if error in score_reason:
-                pgn = find_pgn_error(score_reason, command)
-                ServerReporter.report_engine_error(config, line, pgn)
+                # pgn = find_pgn_error(score_reason, command)
+                ServerReporter.report_engine_error(config, line, "")
 
         # All remaining processing is for score updates only
         if not line.startswith('Score of'):
