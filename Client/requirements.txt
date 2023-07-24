@@ -1,0 +1,3 @@
+requests==2.25.1
+psutil==5.9.5
+py-cpuinfo==9.0.0
