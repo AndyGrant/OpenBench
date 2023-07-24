@@ -430,7 +430,7 @@ def verify_test_creation(request):
         except: errors.append('Fixed Games Tests must last at least one game')
 
     def verify_syzygy_field(field, field_name):
-        candidates = ['OPTIONAL', 'DISABLED', '3-MAN', '4-MAN', '5-MAN', '6-MAN']
+        candidates = ['OPTIONAL', 'DISABLED', '3-MAN', '4-MAN', '5-MAN', '6-MAN', '7-MAN']
         try: assert request.POST[field] in candidates
         except: errors.append('%s must be in %s' % (field_name, ', '.join(candidates)))
 
