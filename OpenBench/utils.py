@@ -215,6 +215,30 @@ def getEngine(source, name, sha, bench):
     return Engine.objects.create(name=name, source=source, sha=sha, bench=bench)
 
 
+
+def branch_is_out_of_date(test):
+
+    # Cannot compare across engines
+    if test.dev_engine != test.base_engine:
+        return False
+
+    # Format the request to the Github endpoint
+    base = 'https://api.github.com/repos/'
+    base = test.dev_repo.replace('github.com', 'api.github.com/repos')
+    url  = path_join(base, 'compare', '%s...%s' % (test.dev.sha, test.base.sha))
+
+    try:
+        # Out of date if ahead_by is non-zero
+        headers = read_git_credentials(test.dev_engine)
+        data    = requests.get(url, headers=headers).json()
+        return data.get('ahead_by', 0) > 0
+
+    except:
+        # If something went wrong, just ignore it
+        import traceback
+        traceback.print_exc()
+        return False
+
 def read_git_credentials(engine):
     fname = 'credentials.%s' % (engine.replace(' ', '').lower())
     if os.path.exists(fname):

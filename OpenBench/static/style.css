@@ -333,6 +333,10 @@ td pre {
     color: red;
 }
 
+#content .warning-message {
+    color: yellow;
+}
+
 #content .status-message {
     color: green;
 }

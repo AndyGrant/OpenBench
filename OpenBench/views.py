@@ -46,7 +46,7 @@ from django.core.files.base import ContentFile
 class UnableToAuthenticate(Exception):
     pass
 
-def render(request, template, content={}, always_allow=False, error=None, status=None):
+def render(request, template, content={}, always_allow=False, error=None, warning=None, status=None):
 
     data = content.copy()
     data.update({ 'config' : OPENBENCH_CONFIG })
@@ -69,20 +69,26 @@ def render(request, template, content={}, always_allow=False, error=None, status
     if error:
         request.session['error_message'] = error
 
+    if warning:
+        request.session['warning_message'] = error
+
     if status:
         request.session['status_message'] = status
 
     response = django.shortcuts.render(request, 'OpenBench/{0}'.format(template), data)
 
-    for key in ['status_message', 'error_message']:
+    for key in ['status_message', 'warning_message', 'error_message']:
         if key in request.session: del request.session[key]
 
     return response
 
-def redirect(request, destination, error=None, status=None):
+def redirect(request, destination, error=None, warning=None, status=None):
 
     if error:
         request.session['error_message'] = error
+
+    if warning:
+        request.session['warning_message'] = warning
 
     if status:
         request.session['status_message'] = status
@@ -481,6 +487,9 @@ def create_test(request):
     if errors != [] and errors != None:
         return redirect(request, '/newTest/', error='\n'.join(errors))
 
+    if warning := OpenBench.utils.branch_is_out_of_date(test):
+        warning = 'Consider Rebasing: Dev (%s) appears behind Base (%s)' % (test.dev.name, test.base.name)
+
     username = request.user.username
     profile  = Profile.objects.get(user=request.user)
     LogEvent.objects.create(author=username, summary='CREATE', log_file='', test_id=test.id)
@@ -501,7 +510,7 @@ def create_test(request):
         action = "APPROVE P={0} TP={1}".format(test.priority, test.throughput)
         LogEvent.objects.create(author=username, summary=action, log_file='', test_id=test.id)
 
-    return django.http.HttpResponseRedirect('/index/')
+    return redirect(request, '/index/', warning=warning)
 
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

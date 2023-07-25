@@ -117,6 +117,12 @@
                     </div>
                 {% endif %}
 
+                {% if request.session.warning_message %}
+                    <div class="warning-message">
+                        <pre>{{request.session.warning_message}}</pre>
+                    </div>
+                {% endif %}
+
                 {% if request.session.status_message %}
                     <div class="status-message">
                         <pre>{{request.session.status_message}}</pre>
