@@ -59,7 +59,7 @@ OPENBENCH_CONFIG = {
     # Test Configuration. For both SPRT and Fixed Games Tests
     'tests' : {
         'max_games'  : '40000',        # Default for Fixed Games
-        'confidence' : '[0.05, 0.05]', # SPRT Type I/II Confidence
+        'confidence' : '[0.10, 0.05]', # SPRT Type I/II Confidence
     },
 
     # Take a look at Books/books.json
