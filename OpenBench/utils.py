@@ -735,8 +735,8 @@ def test_maps_onto_thread_count(test, threads, sockets, hyperthreads):
     if max(dev_threads, base_threads) > (threads / sockets):
         return False
 
-    # Intentional Thread Imbalance, or real cores, or evenly distributed
-    return dev_threads != base_threads or not hyperthreads or (threads / sockets) % dev_threads == 0
+    # Refuse to run thread-odds when dipping into hyperthreads
+    return dev_threads == base_threads or not hyperthreads
 
 def select_workload(machine, tests, variance=0.25):
 
