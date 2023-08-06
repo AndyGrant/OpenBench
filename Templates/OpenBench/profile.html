@@ -38,15 +38,15 @@
                 {% for engine, repo in profile.repos.items %}
                 <div class="row" id="engine-row-{{ engine }}">
                     <label>{{ engine }}</label>
-                    <input type="text" name="engine-repo-{{ engine }}" value="{{ repo|removePrefix:'https://github.com/' }}">
+                    <input type="text" name="engine-repo-{{engine}}" value="{{ repo|removePrefix:'https://github.com/' }}">
 
                     <span>
-                        <input id="radio-{{engine}}" type="radio" name="default-status" value="{{ engine }}"
+                        <input id="radio-{{engine}}" type="radio" name="default-status" value="{{engine}}"
                             {% if profile.engine == engine %}checked{% endif %}>
                     </span>
 
                     <span onclick="deleteRow(event)">
-                        <i class="fa-solid fa-trash-can" style="color: #A00000;" data-engine="{{ engine }}" ></i>
+                        <i class="fa-solid fa-trash-can" style="color: #A00000;" data-engine="{{engine}}" ></i>
                     </span>
                 </div>
                 {% endfor %}
@@ -102,8 +102,6 @@
                 return;
 
             if (engine) {
-                // Perform the delete action here
-                console.log(`Deleting engine: ${engine}`);
 
                 // Remove the corresponding row from the DOM
                 const row = button.parentNode.parentNode;
@@ -115,7 +113,6 @@
 
                 deletedRepos.push(engine);
                 deletedReposInput.value = JSON.stringify(deletedRepos);
-                console.log(deletedRepos);
             }
         }
     </script>

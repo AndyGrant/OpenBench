@@ -1,7 +1,16 @@
 
 var Networks = JSON.parse(document.getElementById('json-networks').textContent);
 
-var Network_Sorting;
+function is_greater_than(a, b, attrs) {
+
+    for (const attr of attrs) {
+        if (a[attr] === b[attr])
+            continue;
+        return a[attr] > b[attr];
+    }
+
+    return false; // Objects are equal
+}
 
 function swap_networks(index1, index2) {
 
@@ -15,22 +24,10 @@ function swap_networks(index1, index2) {
     table.rows[index2+1].innerHTML = temp_row;
 }
 
-function invert_networks() {
-    for (let i = 0; Networks.length > i * 2; i++)
-        swap_networks(i, Networks.length-i-1);
-}
-
-function sort_networks(field) {
-
-    console.log(field);
-
-    if (Network_Sorting == field)
-        return invert_networks();
+function sort_networks(fields) {
 
     for (let i = 0; i != Networks.length; i++)
         for (let j = i + 1; j != Networks.length; j++)
-            if (Networks[j][field] > Networks[i][field])
+            if (is_greater_than(Networks[j], Networks[i], fields))
                 swap_networks(i, j);
-
-    Network_Sorting = field;
-};
+}

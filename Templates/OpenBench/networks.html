@@ -11,9 +11,7 @@
     <script>
         document.addEventListener(
             'DOMContentLoaded', function () {
-                sort_networks("name");
-                sort_networks("engine");
-                sort_networks("default");
+                sort_networks(['default', 'engine', 'name']);
             }, false
         );
     </script>
@@ -25,21 +23,21 @@
     <table id="network-table" class="hoverable">
 
         <tr class="table-header">
-            <th class="cursor" onclick="sort_networks('default')"></th>
-            <th class="cursor" onclick="sort_networks('engine')">Engine</th>
-            <th class="cursor" onclick="sort_networks('author')">Author</th>
-            <th class="cursor" onclick="sort_networks('name')">Name</th>
-            <th class="cursor" onclick="sort_networks('sha256')")>Hash</th>
+            <th class="cursor" onclick="sort_networks(['default'])"></th>
+            <th class="cursor" onclick="sort_networks(['engine'])">Engine</th>
+            <th class="cursor" onclick="sort_networks(['author'])">Author</th>
+            <th class="cursor" onclick="sort_networks(['name'])">Name</th>
+            <th class="cursor" onclick="sort_networks(['sha256'])")>Hash</th>
             <th></th>
         </tr>
 
         {% for network in networks %}
             <tr>
                 {% if network.default %}
-                    <td><i class="fas fa-star" aria-hidden="true"></i></td>
+                    <td><i class="fas fa-star default-network" aria-hidden="true"></i></td>
                 {% else %}
-                    <td><a class="unstarred" href="/networks/{{network.engine}}/default/{{network.sha256}}">
-                    <i class="far fa-star" aria-hidden="true"></i></a></td>
+                    <td><a href="/networks/{{network.engine}}/default/{{network.sha256}}">
+                    <i class="far fa-star non-default-network" aria-hidden="true"></i></a></td>
                 {% endif %}
 
                 <td><a href="/networks/{{network.engine}}/">{{network.engine}}</a></td>
@@ -51,7 +49,7 @@
                     <a class="redlink"
                         onclick="return confirm('YOU ARE DELETING THIS NETWORK FILE FOREVER')"
                         href="/networks/{{network.engine}}/delete/{{network.sha256}}">
-                    <i class="fas fa-minus-circle"></i></a>
+                    <i class="fa-solid fa-trash-can" style="color: #A00000;"></i></a>
                 </td>
             </tr>
         {% endfor %}

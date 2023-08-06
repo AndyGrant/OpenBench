@@ -344,3 +344,12 @@ td pre {
 #content .site-title {
     color: var(--color-font3);
 }
+
+#content .default-network {
+    color: var(--color-font3);
+}
+
+#content .non-default-network {
+    color: var(--color-font1);
+    transform: scale(0.75);
+}
