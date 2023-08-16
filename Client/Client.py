@@ -26,10 +26,12 @@ import multiprocessing
 import os
 import platform
 import psutil
+import queue
 import re
 import requests
 import shutil
 import sys
+import threading
 import time
 import traceback
 import uuid
@@ -44,7 +46,7 @@ from concurrent.futures import ThreadPoolExecutor
 TIMEOUT_HTTP     = 30   # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10   # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30   # Timeout in seconds between workload requests
-CLIENT_VERSION   = '11' # Client version to send to the Server
+CLIENT_VERSION   = '12' # Client version to send to the Server
 
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
 IS_LINUX   = platform.system() != 'Windows' # Don't touch this
@@ -344,19 +346,33 @@ class ServerReporter(object):
         return ServerReporter.report(config, 'clientWrongBench', payload)
 
     @staticmethod
-    def report_results(config, stats):
-
-        wins, losses, draws, crashes, timelosses = stats
+    def report_results(config, batches):
 
         payload = {
-            'test_id'    : config.workload['test']['id'],
-            'result_id'  : config.workload['result']['id'],
-            'wins'       : wins,
-            'losses'     : losses,
-            'draws'      : draws,
-            'crashes'    : crashes,
-            'timeloss'   : timelosses,
+
+            'test_id'     : config.workload['test']['id'],
+            'result_id'   : config.workload['result']['id'],
+
+            'trinomial'   : [0, 0, 0],       # LDW
+            'pentanomial' : [0, 0, 0, 0, 0], # LL DL DD DW WW
+
+            'crashes'     : 0, # " disconnect" or "connection stalls"
+            'timelosses'  : 0, # " loses on time "
+            'illegals'    : 0, # " illegal move "
         }
+
+        for batch in batches:
+
+            payload['trinomial'  ] = [x+y for x,y in zip(payload['trinomial'  ], batch['trinomial'  ])]
+            payload['pentanomial'] = [x+y for x,y in zip(payload['pentanomial'], batch['pentanomial'])]
+
+            payload['crashes'   ] += batch['crashes'   ]
+            payload['timelosses'] += batch['timelosses']
+            payload['illegals'  ] += batch['illegals'  ]
+
+        # Collapse into a JSON friendly format for Django
+        payload['trinomial'  ] = ' '.join(map(str, payload['trinomial'  ]))
+        payload['pentanomial'] = ' '.join(map(str, payload['pentanomial']))
 
         return ServerReporter.report(config, 'clientSubmitResults', payload)
 
@@ -485,6 +501,123 @@ class Cutechess(object):
 
         # Tack the socket number onto the end to distinguish the PGNs
         return '-pgnout PGNs/%s_vs_%s.%d' % (dev_name, base_name, socket)
+
+    @staticmethod
+    def update_results(results, line):
+
+        # Given any game #, find the other in the pair
+        def game_to_pair(g):
+            return (g, g+1) if g % 2 else (g-1, g)
+
+        # Find the Pentanomial index given a game pair
+        def pair_to_penta(r1, r2):
+            lookup = { '0-1' : 0, '1/2-1/2' : 1, '1-0' : 2 }
+            return lookup[r1] + 2 - lookup[r2]
+
+        # Find the Trinomial indices, from our POV, for a give game pair
+        def pair_to_trinomial(r1, r2):
+            lookup = { '0-1' : 0, '1/2-1/2' : 1, '1-0' : 2 }
+            return lookup[r1], 2 - lookup[r2]
+
+        # Extract the game # and result str from a Cutechess line
+        def parse_finished_game(line):
+            tokens = line.split()
+            return int(tokens[2]), tokens[6]
+
+        # Parse for errors resulting in adjudication
+        reason = line.split(':')[1]
+        results['crashes'   ] += 'disconnect' in reason or 'stalls' in reason
+        results['timelosses'] += 'on time' in reason
+        results['illegals'  ] += 'illegal' in reason
+
+        # Parse Game # and result, and save
+        game, result = parse_finished_game(line)
+        results['games'][game] = result
+
+        # Check to see if the Pair has finished
+        first, second = game_to_pair(game)
+        if first not in results['games'] or second not in results['games']:
+            return
+
+        # Get the indices for the Pentanomial, and the two for Trinomial
+        p = pair_to_penta(results['games'][first], results['games'][second])
+        t1, t2 = pair_to_trinomial(results['games'][first], results['games'][second])
+
+        # Update everything
+        results['trinomial'  ][t1] += 1
+        results['trinomial'  ][t2] += 1
+        results['pentanomial'][p ] += 1
+
+        # Clean up results['games']
+        del results['games'][first]
+        del results['games'][second]
+
+class ResultsReporter(object):
+
+    def __init__(self, config, tasks, results_queue, abort_flag):
+        self.config        = config
+        self.tasks         = tasks
+        self.results_queue = results_queue
+        self.abort_flag    = abort_flag
+
+    def process_until_finished(self):
+
+        self.last_report = 0
+        self.pending     = []
+
+        # Collect results until all Tasks are done
+        while any(not task.done() for task in self.tasks):
+
+            if (result := self.get_next_result()):
+                self.pending.append(result)
+
+            # Send results every 30 seconds, until all Tasks are done
+            if self.send_results(report_interval=30):
+                return
+
+            # Kill everything if openbench.exit is created
+            if os.path.isfile('openbench.exit'):
+                return self.abort_flag.set()
+
+        # Exhaust the Results Queue completely since Tasks are done
+        while (result := self.get_next_result()):
+            self.pending.append(result)
+
+        # Send any remaining results immediately
+        self.send_results(report_interval=0)
+
+    def get_next_result(self):
+        try: return self.results_queue.get(timeout=5)
+        except queue.Empty: return None
+
+    def send_results(self, report_interval):
+
+        # Nothing to send, or we are sending too frequently
+        if not self.pending or self.last_report + report_interval > time.time():
+            return False
+
+        # Most recent time we sent a report is now
+        self.last_report = time.time()
+
+        try:
+            # Send all of the queued Results at once
+            response = ServerReporter.report_results(self.config, self.pending)
+
+            # Log, and then clear pending queue
+            for result in self.pending:
+                print (result)
+            self.pending = []
+
+            # If the test ended, kill all tasks
+            if 'stop' in response.json():
+                self.abort_flag.set()
+
+            # Signal an exit if the test ended
+            return 'stop' in response.json()
+
+        except Exception:
+            traceback.print_exc()
+            print ('[Note] Failed to upload results to server...')
 
 
 def get_version(program):
@@ -896,20 +1029,29 @@ def complete_workload(config):
     # Launch and manage all of the Cutechess workers
     with ThreadPoolExecutor(max_workers=config.sockets) as executor:
 
+        results    = multiprocessing.Queue()
+        abort_flag = threading.Event()
+
         tasks = [] # Create each of the Cutechess workers
         for x in range(config.sockets):
             cmd = build_cutechess_command(config, dev_name, base_name, avg_factor, x)
-            tasks.append(executor.submit(run_and_parse_cutechess, config, cmd, x))
+            tasks.append(executor.submit(run_and_parse_cutechess, config, cmd, x, results, abort_flag))
 
-        # Await the completion of all Cutechess workers
+        # Process the Queue until we exit, finish, or are told to stop by the server
         try:
-            for task in tasks:
-                task.result()
+            rr = ResultsReporter(config, tasks, results, abort_flag)
+            rr.process_until_finished()
 
-        # Kill everything during an Keyboard Interrupt
+        # Kill everything during an Exception, but print it
+        except Exception:
+            traceback.print_exc()
+            abort_flag.set()
+            raise
+
+        # Kill everything during a Keyboard Interrupt
         except KeyboardInterrupt:
-            for task in tasks: task.cancel()
-            raise KeyboardInterrupt
+            abort_flag.set()
+            raise
 
 def download_opening_book(config):
 
@@ -1070,11 +1212,19 @@ def run_benchmarks(config, branch, engine, network):
     private = config.workload['test'][branch]['private']
     print('\nRunning %dx Benchmarks for %s' % (config.threads, name))
 
-    # Execute a benchmark on each of the Threads
-    for ii in range(config.threads):
-        args = [os.path.join('Engines', engine), queue]
-        if private and network: args.append(network)
-        multiprocessing.Process(target=run_bench, args=args).start()
+    args = [os.path.join('Engines', engine), queue]
+    if private and network:
+        args.append(network)
+
+    # Run the benchmark on all threads we are using
+    workers = [
+        multiprocessing.Process(target=run_bench, args=args)
+        for ii in range(config.threads)
+    ]
+
+    # Start and wait for each worker to finish
+    for worker in workers: worker.start()
+    for worker in workers: worker.join()
 
     # Collect all bench and nps values, and set bench to 0 if any vary
     bench, nps = list(zip(*[queue.get() for ii in range(config.threads)]))
@@ -1104,64 +1254,57 @@ def build_cutechess_command(config, dev_cmd, base_cmd, scale_factor, socket):
 
     return ['cutechess-ob.exe', './cutechess-ob'][IS_LINUX] + flags
 
-def run_and_parse_cutechess(config, command, socket):
+def run_and_parse_cutechess(config, command, socket, results_queue, abort_flag):
 
     print('\n[#%d] Launching Cutechess...\n%s\n' % (socket, command))
     cutechess = Popen(command.split(), stdout=PIPE)
 
-    crashes = timelosses = 0
-    score   = [0, 0, 0]; sent = [0, 0, 0] # WLD
-    errors  = ['on time', 'disconnects', 'connection stalls', 'illegal']
+    results = {
 
-    while True:
+        'trinomial'   : [0, 0, 0],       # LDW
+        'pentanomial' : [0, 0, 0, 0, 0], # LL DL DD DW WW
+        'games'       : {},              # game_id : result_str
 
-        # Read each line of output until the pipe closes
-        line = cutechess.stdout.readline().strip().decode('ascii')
-        if line != '': print('[#%d] %s' % (socket, line))
-        else: cutechess.wait(); return
+        'crashes'     : 0,               # " disconnect" or "connection stalls"
+        'timelosses'  : 0,               # " loses on time "
+        'illegals'    : 0,               # " illegal move "
+    }
 
-        # Real updates contain a colon
-        if ':' not in line: continue
+    # Read each line of output until the pipe closes and we get "" back
+    while (line := cutechess.stdout.readline().strip().decode('ascii')):
 
-        # Parse for crashes and timelosses
-        score_reason = line.split(':')[1]
-        timelosses += 'on time' in score_reason
-        crashes    += 'disconnects' in score_reason
-        crashes    += 'connection stalls' in score_reason
+        if abort_flag.is_set():
+            return kill_cutechess(cutechess)
 
-        # Forcefully report any engine failures to the server
-        for error in errors:
-            if error in score_reason:
-                # pgn = find_pgn_error(score_reason, command)
-                ServerReporter.report_engine_error(config, line, "")
+        if 'Started game' not in line and 'Score of' not in line:
+            print('[#%d] %s' % (socket, line))
 
-        # All remaining processing is for score updates only
-        if not line.startswith('Score of'):
-            continue
+        if 'Finished game' in line:
+            Cutechess.update_results(results, line)
 
-        # Only report scores after every eight games
-        score = list(map(int, score_reason.split()[0:5:2]))
-        if ((sum(score) - sum(sent)) % config.workload['test']['report_rate'] != 0):
-            continue
+        # Report results at the end, or once hitting the report_rate
+        report = 'Elo difference' in line
+        report = report or sum(results['pentanomial']) == config.workload['test']['report_rate']
 
-        try:
-            # Report new results to the server
-            wld    = [score[ii] - sent[ii] for ii in range(3)]
-            stats  = wld + [crashes, timelosses]
-            status = ServerReporter.report_results(config, stats).json()
+        if report:
 
-            # Reset the reporting since this report was a success
-            crashes = timelosses = 0
-            sent    = score[::]
+            # Place the results into the Queue, and be sure to copy the lists
+            results_queue.put({
+                'trinomial'   : list(results['trinomial']),
+                'pentanomial' : list(results['pentanomial']),
+                'crashes'     : results['crashes'],
+                'timelosses'  : results['timelosses'],
+                'illegals'    : results['illegals'],
+            })
 
-        except:
-            # Failed to connect, but we can delay the reports until later
-            print('[NOTE] Unable To Reach Server');
+            # Clear out all the results, so we can start collecting a new set
+            results['trinomial'  ] = [0, 0, 0]
+            results['pentanomial'] = [0, 0, 0, 0, 0]
+            results['crashes'    ] = 0
+            results['timelosses' ] = 0
+            results['illegals'   ] = 0
 
-        # Check for openbench.exit, or server instructing us to exit
-        if os.path.isfile('openbench.exit') or 'stop' in status:
-            kill_cutechess(cutechess)
-            return
+    cutechess.wait() # Gracefully exit
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                           #

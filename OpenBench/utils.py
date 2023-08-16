@@ -30,6 +30,7 @@ import requests
 from django.contrib.auth import authenticate
 from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage
+from django.db import transaction
 from django.db.models import F
 from django.http import FileResponse
 from django.utils import timezone
@@ -816,71 +817,75 @@ def workload_to_dictionary(test, result):
 
 def update_test(request, machine):
 
-    # New results from the Worker
-    wins     = int(request.POST['wins'    ])
-    losses   = int(request.POST['losses'  ])
-    draws    = int(request.POST['draws'   ])
-    crashes  = int(request.POST['crashes' ])
-    timeloss = int(request.POST['timeloss'])
-    games    = wins + losses + draws
+    # Extract error information
+    crashes    = int(request.POST['crashes'   ])
+    timelosses = int(request.POST['timelosses'])
+    illegals   = int(request.POST['illegals'  ])
+    has_error  = crashes or timelosses or illegals
 
-    # Worker knows where to save the results
-    machineid = int(request.POST['machine_id'])
-    resultid  = int(request.POST['result_id' ])
-    testid    = int(request.POST['test_id'   ])
+    # Extract Database information
+    machine_id = int(request.POST['machine_id'])
+    result_id  = int(request.POST['result_id' ])
+    test_id    = int(request.POST['test_id'   ])
 
-    # Prevent updating a finished test
-    test = Test.objects.get(id=testid)
-    if test.finished or test.deleted:
-        return { 'stop' : True }
+    # Trinomial Implementation
+    losses, draws, wins = map(int, request.POST['trinomial'].split())
+    games = losses + draws + wins
 
-    # Tally up the updated WLD stats
-    swins   = test.wins   + wins
-    slosses = test.losses + losses
-    sdraws  = test.draws  + draws
-    sgames  = swins + slosses + sdraws
+    # Pentanomial Implementation
+    # ll, dl, dd, dw, ww = map(int, request.POST['pentanomial'].split())
+    # games = ll + dl + dd + dw + ww
 
-    if test.test_mode == 'SPRT':
+    with transaction.atomic():
 
-        # Compute a new LLR for the updated results
-        WLD     = (swins, slosses, sdraws)
-        sprt    = SPRT(*WLD, test.elolower, test.eloupper)
+        test = Test.objects.get(id=test_id)
+        if test.finished or test.deleted:
+            return { 'stop' : True }
 
-        # Check for H0 or H1 being accepted
-        passed   = sprt > test.upperllr
-        failed   = sprt < test.lowerllr
-        finished = passed or failed
+        test.losses += losses
+        test.draws  += draws
+        test.wins   += wins
+        test.games  += games
 
-    if test.test_mode == 'GAMES':
+        test.error = test.error or has_error
 
-        # Finish test once we've played the proper amount of games
-        passed   = sgames >= test.max_games and swins >= slosses
-        failed   = sgames >= test.max_games and swins <  slosses
-        finished = passed or failed
-        sprt     = 0.0 # Hack to "update" the currentllr
+        if test.test_mode == 'SPRT':
 
-    # Update total games played by the Player
-    Profile.objects.filter(user=machine.user).update(games=F('games') + games)
-    Profile.objects.get(user=machine.user).save()
+            # Compute a new LLR for the updated results
+            WLD       = (test.wins, test.losses, test.draws)
+            test.sprt = SPRT(*WLD, test.elolower, test.eloupper)
 
-    # Update the datetime in the Machine
-    machine.save()
+            # Check for H0 or H1 being accepted
+            test.passed   = sprt > test.upperllr
+            test.failed   = sprt < test.lowerllr
+            test.finished = passed or failed
 
-    # Update individual Result entry for the Player
-    Result.objects.filter(id=resultid).update(
+        elif test.test_mode == 'GAMES':
+
+            # Finish test once we've played the proper amount of games
+            test.passed   = test.games >= test.max_games and test.wins >= test.losses
+            test.failed   = test.games >= test.max_games and test.wins <  test.losses
+            test.finished = test.passed or test.failed
+
+        test.save()
+
+    # Update Result object; No risk from concurrent access
+    Result.objects.filter(id=result_id).update(
         games   = F('games')   + games,   wins     = F('wins'    ) + wins,
         losses  = F('losses')  + losses,  draws    = F('draws'   ) + draws,
-        crashes = F('crashes') + crashes, timeloss = F('timeloss') + timeloss,
+        crashes = F('crashes') + crashes, timeloss = F('timeloss') + timelosses,
+        updated=timezone.now()
     )
 
-    # Update the overall test with the new data
-    Test.objects.filter(id=testid).update(
-        games  = F('games' ) + games,  wins  = F('wins' ) + wins,
-        losses = F('losses') + losses, draws = F('draws') + draws,
-        currentllr=sprt, passed=passed, failed=failed, finished=finished,
+    # Update Profile object; No risk from concurrent access
+    Profile.objects.filter(user=Machine.objects.get(id=machine_id).user).update(
+        games=F('games') + games,
+        updated=timezone.now()
     )
 
-    # Force a refresh of the updated field when finished
-    if finished: Test.objects.get(id=testid).save()
+    # Update Machine object; No risk from concurrent access
+    Machine.objects.filter(id=machine_id).update(
+        updated=timezone.now()
+    )
 
-    return [{}, {'stop' : True}][finished]
+    return [{}, { 'stop' : True }][test.finished]
