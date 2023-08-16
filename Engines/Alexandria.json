@@ -1,0 +1,63 @@
+{
+  "private": false,
+  "nps": 1918000,
+  "base": "master",
+  "source": "https://github.com/PGG106/Alexandria",
+
+  "bounds": "[0.00, 3.00]",
+  "book": "Pohl.epd",
+  "win_adj": "movecount=3 score=400",
+  "draw_adj": "movenumber=40 movecount=8 score=10",
+
+  "build": {
+    "path": "",
+    "compilers": ["g++"],
+    "cpuflags": []
+  },
+
+  "testmodes": {
+    "STC": {
+      "options": "Threads=1 Hash=16",
+      "timecontrol": "8.0+0.08",
+      "report_rate": 16,
+      "workload_size": 32
+    },
+
+    "LTC": {
+      "options": "Threads=1 Hash=64",
+      "timecontrol": "40.0+0.4",
+      "report_rate": 4,
+      "workload_size": 8
+    },
+
+    "STC regression": {
+      "options": "Threads=1 Hash=32",
+      "timecontrol": "8.0+0.08",
+      "report_rate": 8,
+      "workload_size": 32,
+      "bounds": "[-3.00, 1.00]"
+    },
+
+    "LTC regression": {
+      "options": "Threads=1 Hash=128",
+      "timecontrol": "40.0+0.4",
+      "report_rate": 2,
+      "workload_size": 8,
+      "bounds": "[-3.00, 1.00]"
+    },
+
+    "SMP STC": {
+      "options": "Threads=8 Hash=64",
+      "timecontrol": "4.0+0.04",
+      "report_rate": 1,
+      "workload_size": 64
+    },
+
+    "SMP LTC": {
+      "options": "Threads=8 Hash=256",
+      "timecontrol": "16.0+0.16",
+      "report_rate": 1,
+      "workload_size": 16
+    }
+  }
+}

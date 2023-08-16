@@ -1,0 +1,61 @@
+{
+    "private": false,
+    "nps": 6036209,
+    "base": "dev",
+    "source": "https://github.com/spamdrew128/Wahoo",
+    "bounds": "[0.00, 5.00]",
+    "book": "noob_4moves.epd",
+    "win_adj": "None",
+    "draw_adj": "None",
+    "build": {
+        "path": "",
+        "compilers": [
+            "cargo>=1.60.0"
+        ],
+        "cpuflags": []
+    },
+    "testmodes": {
+        "STC": {
+            "options": "Threads=1 Hash=32",
+            "timecontrol": "8.0+0.08",
+            "report_rate": 8,
+            "workload_size": 32
+        },
+        "LTC": {
+            "options": "Threads=1 Hash=128",
+            "timecontrol": "40.0+0.4",
+            "report_rate": 2,
+            "workload_size": 8
+        },
+        "STC Simple": {
+            "options": "Threads=1 Hash=32",
+            "timecontrol": "8.0+0.08",
+            "report_rate": 8,
+            "workload_size": 32,
+            "bounds": "[-5.00, 0.00]"
+        },
+        "LTC Simple": {
+            "options": "Threads=1 Hash=128",
+            "timecontrol": "40.0+0.4",
+            "report_rate": 2,
+            "workload_size": 8,
+            "bounds": "[-5.00, 0.00]"
+        },
+        "STC Prog": {
+            "options": "Threads=1 Hash=32",
+            "timecontrol": "8.0+0.08",
+            "report_rate": 8,
+            "workload_size": 32,
+            "games": 3000,
+            "book": "8moves_v3.epd"
+        },
+        "LTC Prog": {
+            "options": "Threads=1 Hash=128",
+            "timecontrol": "40.0+0.4",
+            "report_rate": 2,
+            "workload_size": 8,
+            "games": 1000,
+            "book": "8moves_v3.epd"
+        }
+    }
+}

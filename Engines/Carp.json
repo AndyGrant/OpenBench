@@ -1,0 +1,71 @@
+{
+    "private": false,
+    "nps": 1914836,
+    "base": "dev",
+    "source": "https://github.com/dede1751/carp",
+    "bounds": "[0.00, 5.00]",
+    "book": "Pohl.epd",
+    "win_adj": "movecount=3 score=400",
+    "draw_adj": "movenumber=40 movecount=8 score=10",
+    "build": {
+        "path": "",
+        "compilers": [
+            "cargo>=1.70.0"
+        ],
+        "cpuflags": []
+    },
+    "testmodes": {
+        "STC": {
+            "options": "Threads=1 Hash=16",
+            "timecontrol": "8.0+0.08",
+            "report_rate": 8,
+            "workload_size": 32
+        },
+        "LTC": {
+            "options": "Threads=1 Hash=128",
+            "timecontrol": "40.0+0.4",
+            "report_rate": 2,
+            "workload_size": 8
+        },
+        "STC Reg": {
+            "options": "Threads=1 Hash=16",
+            "timecontrol": "8.0+0.08",
+            "report_rate": 8,
+            "workload_size": 32,
+            "bounds": "[-4.00, 1.00]"
+        },
+        "LTC Reg": {
+            "options": "Threads=1 Hash=128",
+            "timecontrol": "40.0+0.4",
+            "report_rate": 2,
+            "workload_size": 8,
+            "bounds": "[-4.00, 1.00]"
+        },
+        "STC Prog": {
+            "options": "Threads=1 Hash=16",
+            "timecontrol": "8.0+0.08",
+            "report_rate": 8,
+            "workload_size": 32,
+            "games": 3000
+        },
+        "LTC Prog": {
+            "options": "Threads=1 Hash=128",
+            "timecontrol": "60.0+0.6",
+            "report_rate": 2,
+            "workload_size": 8,
+            "games": 1000
+        },
+        "SMP STC": {
+            "options": "Threads=4 Hash=16",
+            "timecontrol": "8.0+0.08",
+            "report_rate": 8,
+            "workload_size": 32
+        },
+        "SMP LTC": {
+            "options": "Threads=4 Hash=128",
+            "timecontrol": "40.0+0.4",
+            "report_rate": 2,
+            "workload_size": 8
+        }
+    }
+}

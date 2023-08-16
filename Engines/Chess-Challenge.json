@@ -1,0 +1,26 @@
+{
+    "private": true,
+    "nps": 2308842,
+    "base": "main",
+    "source": "https://github.com/JacquesRW/bnuuy",
+    "bounds": "[0.00, 5.00]",
+    "book": "8moves_v3.epd",
+    "draw_adj": "movenumber=40 movecount=8 score=10",
+    "build": {
+        "path": "",
+        "compilers": [],
+        "cpuflags": ["SSE3", "POPCNT"]
+    },
+    "testmodes": {
+        "STC": {
+            "timecontrol": "8.0+0.08",
+            "report_rate": 8,
+            "workload_size": 32
+        },
+        "LTC": {
+            "timecontrol": "60.0+0.0",
+            "report_rate": 2,
+            "workload_size": 8
+        }
+    }
+}

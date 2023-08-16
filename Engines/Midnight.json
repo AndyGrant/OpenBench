@@ -1,0 +1,62 @@
+{
+    "private": false,
+    "nps": 2006551,
+    "base": "master",
+    "source": "https://github.com/archishou/MidnightChessEngine",
+    "bounds": "[0.00, 5.00]",
+    "book": "Pohl.epd",
+    "win_adj": "movecount=3 score=400",
+    "draw_adj": "movenumber=40 movecount=8 score=10",
+    "build": {
+        "path": "",
+        "compilers": [
+            "clang++",
+            "g++"
+        ],
+        "cpuflags": []
+    },
+    "testmodes": {
+        "STC": {
+            "options": "Threads=1 Hash=32",
+            "timecontrol": "8.0+0.08",
+            "report_rate": 8,
+            "workload_size": 32
+        },
+        "LTC": {
+            "options": "Threads=1 Hash=128",
+            "timecontrol": "40.0+0.4",
+            "report_rate": 2,
+            "workload_size": 8
+        },
+        "STC Simple": {
+            "options": "Threads=1 Hash=32",
+            "timecontrol": "8.0+0.08",
+            "report_rate": 8,
+            "workload_size": 32,
+            "bounds": "[-5.00, 0.00]"
+        },
+        "LTC Simple": {
+            "options": "Threads=1 Hash=128",
+            "timecontrol": "40.0+0.4",
+            "report_rate": 2,
+            "workload_size": 8,
+            "bounds": "[-5.00, 0.00]"
+        },
+        "STC Prog": {
+            "options": "Threads=1 Hash=32",
+            "timecontrol": "8.0+0.08",
+            "report_rate": 8,
+            "workload_size": 32,
+            "games": 3000,
+            "book": "8moves_v3.epd"
+        },
+        "LTC Prog": {
+            "options": "Threads=1 Hash=128",
+            "timecontrol": "40.0+0.4",
+            "report_rate": 2,
+            "workload_size": 8,
+            "games": 1000,
+            "book": "8moves_v3.epd"
+        }
+    }
+}
