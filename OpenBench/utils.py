@@ -856,9 +856,9 @@ def update_test(request, machine):
             test.sprt = SPRT(*WLD, test.elolower, test.eloupper)
 
             # Check for H0 or H1 being accepted
-            test.passed   = sprt > test.upperllr
-            test.failed   = sprt < test.lowerllr
-            test.finished = passed or failed
+            test.passed   = test.sprt > test.upperllr
+            test.failed   = test.sprt < test.lowerllr
+            test.finished = test.passed or test.failed
 
         elif test.test_mode == 'GAMES':
 
