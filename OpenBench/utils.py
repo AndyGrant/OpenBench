@@ -852,12 +852,12 @@ def update_test(request, machine):
         if test.test_mode == 'SPRT':
 
             # Compute a new LLR for the updated results
-            WLD       = (test.wins, test.losses, test.draws)
-            test.sprt = SPRT(*WLD, test.elolower, test.eloupper)
+            WLD = (test.wins, test.losses, test.draws)
+            test.currentllr = SPRT(*WLD, test.elolower, test.eloupper)
 
             # Check for H0 or H1 being accepted
-            test.passed   = test.sprt > test.upperllr
-            test.failed   = test.sprt < test.lowerllr
+            test.passed   = test.currentllr > test.upperllr
+            test.failed   = test.currentllr < test.lowerllr
             test.finished = test.passed or test.failed
 
         elif test.test_mode == 'GAMES':
