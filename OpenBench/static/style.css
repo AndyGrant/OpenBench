@@ -353,3 +353,8 @@ td pre {
     color: var(--color-font1);
     transform: scale(0.75);
 }
+
+
+#content .numeric {
+    text-align: right;
+}
