@@ -475,7 +475,7 @@ class Cutechess:
         test_id   = int(config.workload['test']['id'])
         result_id = int(config.workload['result']['id'])
 
-        return '-pgnout PGNs/%d.%d.%d' % (test_id, result_id, seed)
+        return '-pgnout PGNs/%d.%d.%d.pgn' % (test_id, result_id, seed)
 
     @staticmethod
     def update_results(results, line):
