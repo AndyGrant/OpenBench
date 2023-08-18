@@ -382,7 +382,7 @@ def search(request):
         filtered.append(test)
 
     error = 'No matching tests found' if not len(filtered) else None
-    return render(request, 'search.html', { 'tests' : filtered }, error=error)
+    return render(request, 'search.html', { 'tests' : reversed(filtered) }, error=error)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                           GENERAL DATA TABLE VIEWS                          #

@@ -65,7 +65,7 @@
                         <select id="test-mode" name="test-mode">
                             <option value="" selected>All Test Types</option>
                                 <option value="SPRT">SPRT</option>
-                                <option value="FIXED">FIXED</option>
+                                <option value="GAMES">FIXED</option>
                         </select><br>
                     </div>
                     <div class="row">
@@ -150,7 +150,10 @@
 
     <table class="test-list stripes hoverable">
         {% for test in tests %}
-            {% include "OpenBench/Blocks/testsummary.html" %}
+            <tr>
+                <td class="datestamp">{{test.creation|date:"U"}}</td>
+                {% include "OpenBench/Blocks/testsummary.html" %}
+            </tr>
         {% endfor %}
     </table>
 {% endblock %}

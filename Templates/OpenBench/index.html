@@ -11,7 +11,9 @@
             {% if pending %}
                 <tr class="table-header"><th colspan='6'>Pending</th></tr>
                 {% for test in pending %}
-                    {% include "OpenBench/Blocks/testsummary.html" %}
+                    <tr>
+                        {% include "OpenBench/Blocks/testsummary.html" %}
+                    </tr>
                 {% endfor %}
                 <tr class="table-spacer"><th colspan='6'></th></tr>
             {% endif %}
@@ -20,7 +22,9 @@
             {% if awaiting %}
                 <tr class="table-header"><th colspan='6'>Awaiting Artifacts</th></tr>
                 {% for test in awaiting %}
-                    {% include "OpenBench/Blocks/testsummary.html" %}
+                    <tr>
+                        {% include "OpenBench/Blocks/testsummary.html" %}
+                    </tr>
                 {% endfor %}
                 <tr class="table-spacer"><th colspan='6'></th></tr>
             {% endif %}
@@ -29,7 +33,9 @@
             {% if active %}
                 <tr class="table-header"><th colspan='6'>Active {{status}}</th></tr>
                 {% for test in active %}
-                    {% include "OpenBench/Blocks/testsummary.html" %}
+                    <tr>
+                        {% include "OpenBench/Blocks/testsummary.html" %}
+                    </tr>
                 {% endfor %}
                 <tr class="table-spacer"><th colspan='6'></th></tr>
             {% endif %}
@@ -39,7 +45,9 @@
         <!-- Tests which have already finished -->
         <tr class="table-header"><th colspan='6'>Finished</th></tr>
         {% for test in completed %}
-            {% include "OpenBench/Blocks/testsummary.html" %}
+            <tr>
+                {% include "OpenBench/Blocks/testsummary.html" %}
+            </tr>
         {% endfor %}
 
     </table>
