@@ -492,23 +492,11 @@ def create_test(request):
 
     username = request.user.username
     profile  = Profile.objects.get(user=request.user)
-    LogEvent.objects.create(author=username, summary='CREATE', log_file='', test_id=test.id)
+    summary  = 'CREATE P=%d TP=%d' % (test.priority, test.throughput)
+    LogEvent.objects.create(author=username, summary=summary, log_file='', test_id=test.id)
 
-    approved = Test.objects.filter(approved=True)
-    A = approved.filter( dev__sha=test.dev.sha).exists()
-    B = approved.filter(base__sha=test.dev.sha).exists()
-    C = approved.filter( dev__sha=test.base.sha).exists()
-    D = approved.filter(base__sha=test.base.sha).exists()
-
-    if (A or B) and (C or D):
+    if not OpenBench.config.USE_CROSS_APPROVAL and profile.approver:
         test.approved = True; test.save()
-        action = "AUTOAPP P={0} TP={1}".format(test.priority, test.throughput)
-        LogEvent.objects.create(author=username, summary=action, log_file='', test_id=test.id)
-
-    elif not OpenBench.config.USE_CROSS_APPROVAL and profile.approver:
-        test.approved = True; test.save()
-        action = "APPROVE P={0} TP={1}".format(test.priority, test.throughput)
-        LogEvent.objects.create(author=username, summary=action, log_file='', test_id=test.id)
 
     return redirect(request, '/index/', warning=warning)
 
@@ -750,11 +738,6 @@ def client_submit_error(request):
     # Pass along any error messages if they appear
     machine, response = client_verify_worker(request)
     if response != None: return response
-
-    # Flag the Test as having an error except for time losses
-    test = Test.objects.get(id=int(request.POST['test_id']))
-    if 'loses on time' not in request.POST['error']:
-        test.error = True; test.save()
 
     # Log the Error into the Events table
     event = LogEvent.objects.create(
