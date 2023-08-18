@@ -11,10 +11,9 @@
             <th>User</th>
             <th>Name</th>
             <th>System</th>
-            <th>CPU</th>
             <th>Workload</th>
             <th>Threads</th>
-            <th>MNPS</th>
+            <th>NPS</th>
         </tr>
 
         {% for machine in machines %}
@@ -23,7 +22,6 @@
                 <td>{{machine.user.username|capfirst}}</td>
                 <td>{{machine.info.machine_name}}</td>
                 <td>{{machine.info.os_name}}</td>
-                <td>{{machine.info.cpu_name}}</td>
                 <td>
                     {% if machine.workload %}
                         <a href="/test/{{machine.workload}}">
@@ -34,7 +32,7 @@
                     {% endif %}
                 </td>
                 <td class="numeric">{{machine.info.concurrency}}</td>
-                <td class="numeric">{{machine.mnps|twoDigitPrecision}}</td>
+                <td class="numeric">{{machine.dev_mnps|twoDigitPrecision}}M / {{machine.base_mnps|twoDigitPrecision}}M</td>
             </tr>
         {% endfor %}
 

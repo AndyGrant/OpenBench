@@ -51,7 +51,7 @@ CLIENT_VERSION   = '12' # Client version to send to the Server
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
 IS_LINUX   = platform.system() != 'Windows' # Don't touch this
 
-class Configuration(object):
+class Configuration:
 
     ## Handles configuring the worker with the server. This means collecting
     ## information about the system, as well as holding any of the command line
@@ -266,7 +266,7 @@ class Configuration(object):
 
         return options[0]
 
-class ServerReporter(object):
+class ServerReporter:
 
     ## Handles reporting things to the server, which are not intended to send a great
     ## deal of information back. Reports to the server can hit various endpoints, with
@@ -317,13 +317,7 @@ class ServerReporter(object):
         return ServerReporter.report(config, 'clientSubmitError', payload)
 
     @staticmethod
-    def report_engine_error(config, cutechess_str, pgn):
-
-        white, black = cutechess_str.split('(')[1].split(')')[0].split(' vs ')
-
-        error = cutechess_str.split('{')[1].rstrip().rstrip('}')
-        error = error.replace('White', '-'.join(white.split('-')[1:]).rstrip())
-        error = error.replace('Black', '-'.join(black.split('-')[1:]).rstrip())
+    def report_engine_error(config, error, pgn):
 
         payload = {
             'test_id'    : config.workload['test']['id'],
@@ -376,17 +370,14 @@ class ServerReporter(object):
 
         return ServerReporter.report(config, 'clientSubmitResults', payload)
 
-class Cutechess(object):
+class Cutechess:
 
     ## Handles building the very long string of arguments that need to be passed
     ## to cutechess in order to launch a set of games. Operates on the Configuration,
     ## and a small number of secondary arguments that are not housed in the Configuration
 
     @staticmethod
-    def basic_settings(config, socket):
-
-        # Book seed, with an offset between concurrent Cutechesses
-        seed = time.time() + socket
+    def basic_settings(config, seed):
 
         # Assume Fischer if FRC, 960, or FISCHER appears in the Opening Book
         book_name = config.workload['test']['book']['name'].upper()
@@ -479,28 +470,12 @@ class Cutechess(object):
         return '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s-%s' % (command, control, options, name, branch)
 
     @staticmethod
-    def pgnout_settings(config, dev_cmd, base_cmd, socket):
+    def pgnout_settings(config, seed):
 
-        # Extract Network names
-        dev_network  = config.workload['test']['dev' ]['network']
-        base_network = config.workload['test']['base']['network']
+        test_id   = int(config.workload['test']['id'])
+        result_id = int(config.workload['result']['id'])
 
-        # Extract private status
-        dev_private  = config.workload['test']['dev' ]['private']
-        base_private = config.workload['test']['base']['private']
-
-        # Append Network name for private engines
-        dev_name = dev_cmd.removesuffix('.exe')
-        if dev_private and dev_network and dev_network != 'None':
-            dev_name += '-%s' % (dev_network)
-
-        # Append Network name for private engines
-        base_name = base_cmd.removesuffix('.exe')
-        if base_private and base_network and base_network != 'None':
-            base_name += '-%s' % (base_network)
-
-        # Tack the socket number onto the end to distinguish the PGNs
-        return '-pgnout PGNs/%s_vs_%s.%d' % (dev_name, base_name, socket)
+        return '-pgnout PGNs/%d.%d.%d.pgn' % (test_id, result_id, seed)
 
     @staticmethod
     def update_results(results, line):
@@ -552,7 +527,55 @@ class Cutechess(object):
         del results['games'][first]
         del results['games'][second]
 
+class PGNHelper:
+
+    @staticmethod
+    def slice_pgn_file(file):
+
+        with open(file) as pgn:
+
+            while True:
+
+                headers = list(iter(lambda: pgn.readline().rstrip(), ''))
+                moves   = list(iter(lambda: pgn.readline().rstrip(), ''))
+
+                if not headers or not moves:
+                    break
+
+                yield (headers, moves)
+
+    @staticmethod
+    def get_pgn_header(sliced_headers, header):
+        for line in sliced_headers:
+            if line.startswith('[%s ' % header):
+                return line.split('"')[1]
+
+    @staticmethod
+    def get_error_reason(sliced_headers):
+
+        reason = PGNHelper.get_pgn_header(sliced_headers, 'Termination')
+
+        if reason and 'time forfeit' in reason:
+            return 'Time Forfeit'
+
+        if reason and 'abandoned' in reason:
+            return 'Disconnect'
+
+        if reason and 'stalled' in reason:
+            return 'Stalled'
+
+        if reason and 'illegal' in reason:
+            return 'Illegal Move'
+
+    @staticmethod
+    def pretty_format(headers, moves):
+        return '\n'.join(headers + [''] + moves)
+
 class ResultsReporter(object):
+
+    ## Handles idle looping while reading from the results Queue that the Cutechess
+    ## workers place results into. Once finished, this class can be used to collect
+    ## all of the errors in the PGN, and send htem back to the server.
 
     def __init__(self, config, tasks, results_queue, abort_flag):
         self.config        = config
@@ -565,10 +588,15 @@ class ResultsReporter(object):
         self.last_report = 0
         self.pending     = []
 
+        # Block up-to 5 seconds to get a new result
+        def get_next_result():
+            try: return self.results_queue.get(timeout=5)
+            except queue.Empty: return False
+
         # Collect results until all Tasks are done
         while any(not task.done() for task in self.tasks):
 
-            if (result := self.get_next_result()):
+            if (result := get_next_result()):
                 self.pending.append(result)
 
             # Send results every 30 seconds, until all Tasks are done
@@ -580,15 +608,11 @@ class ResultsReporter(object):
                 return self.abort_flag.set()
 
         # Exhaust the Results Queue completely since Tasks are done
-        while (result := self.get_next_result()):
+        while (result := get_next_result()):
             self.pending.append(result)
 
         # Send any remaining results immediately
         self.send_results(report_interval=0)
-
-    def get_next_result(self):
-        try: return self.results_queue.get(timeout=5)
-        except queue.Empty: return None
 
     def send_results(self, report_interval):
 
@@ -618,6 +642,19 @@ class ResultsReporter(object):
         except Exception:
             traceback.print_exc()
             print ('[Note] Failed to upload results to server...')
+
+    def send_errors(self, seed):
+
+        for x in range(self.config.sockets):
+
+            # Reuse logic that was given to Cutechess to decide the PGN name
+            fname = Cutechess.pgnout_settings(self.config, seed + x).split()[1]
+
+            # For any game with weird Termination, report it
+            for header, moves in PGNHelper.slice_pgn_file(fname):
+                if (error := PGNHelper.get_error_reason(header)):
+                    as_str = PGNHelper.pretty_format(header, moves)
+                    ServerReporter.report_engine_error(self.config, error, as_str)
 
 
 def get_version(program):
@@ -1029,18 +1066,20 @@ def complete_workload(config):
     # Launch and manage all of the Cutechess workers
     with ThreadPoolExecutor(max_workers=config.sockets) as executor:
 
+        seed       = time.time()
         results    = multiprocessing.Queue()
         abort_flag = threading.Event()
 
         tasks = [] # Create each of the Cutechess workers
         for x in range(config.sockets):
-            cmd = build_cutechess_command(config, dev_name, base_name, avg_factor, x)
+            cmd = build_cutechess_command(config, dev_name, base_name, avg_factor, seed + x)
             tasks.append(executor.submit(run_and_parse_cutechess, config, cmd, x, results, abort_flag))
 
         # Process the Queue until we exit, finish, or are told to stop by the server
         try:
             rr = ResultsReporter(config, tasks, results, abort_flag)
             rr.process_until_finished()
+            rr.send_errors(seed)
 
         # Kill everything during an Exception, but print it
         except Exception:
@@ -1242,15 +1281,15 @@ def run_benchmarks(config, branch, engine, network):
     # Set NPS to 0 if we had any errors
     return 0 if not bench or error else nps
 
-def build_cutechess_command(config, dev_cmd, base_cmd, scale_factor, socket):
+def build_cutechess_command(config, dev_cmd, base_cmd, scale_factor, seed):
 
-    flags  = ' ' + Cutechess.basic_settings(config, socket)
+    flags  = ' ' + Cutechess.basic_settings(config, seed)
     flags += ' ' + Cutechess.concurrency_settings(config)
     flags += ' ' + Cutechess.adjudication_settings(config)
     flags += ' ' + Cutechess.engine_settings(config, dev_cmd, 'dev', scale_factor)
     flags += ' ' + Cutechess.engine_settings(config, base_cmd, 'base', scale_factor)
     flags += ' ' + Cutechess.book_settings(config)
-    flags += ' ' + Cutechess.pgnout_settings(config, dev_cmd, base_cmd, socket)
+    flags += ' ' + Cutechess.pgnout_settings(config, seed)
 
     return ['cutechess-ob.exe', './cutechess-ob'][IS_LINUX] + flags
 
@@ -1274,7 +1313,7 @@ def run_and_parse_cutechess(config, command, socket, results_queue, abort_flag):
     while (line := cutechess.stdout.readline().strip().decode('ascii')):
 
         if abort_flag.is_set():
-            return kill_cutechess(cutechess)
+            break
 
         if 'Started game' not in line and 'Score of' not in line:
             print('[#%d] %s' % (socket, line))
@@ -1304,7 +1343,8 @@ def run_and_parse_cutechess(config, command, socket, results_queue, abort_flag):
             results['timelosses' ] = 0
             results['illegals'   ] = 0
 
-    cutechess.wait() # Gracefully exit
+    # Make sure Cutechess is dead
+    kill_cutechess(cutechess)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                           #
