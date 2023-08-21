@@ -65,13 +65,24 @@ class Result(Model):
 
     test     = ForeignKey('Test', PROTECT, related_name='test')
     machine  = ForeignKey('Machine', PROTECT, related_name='machine')
+    updated  = DateTimeField(auto_now=True)
+
+    # Trinomial Distributions
+    losses = IntegerField(default=0)
+    draws  = IntegerField(default=0)
+    wins   = IntegerField(default=0)
+
+    # Pentanomial Distributions
+    LL = IntegerField(default=0)
+    LD = IntegerField(default=0)
+    DD = IntegerField(default=0)
+    DW = IntegerField(default=0)
+    WW = IntegerField(default=0)
+
+    # Overall collection of Results
     games    = IntegerField(default=0)
-    wins     = IntegerField(default=0)
-    losses   = IntegerField(default=0)
-    draws    = IntegerField(default=0)
     crashes  = IntegerField(default=0)
     timeloss = IntegerField(default=0)
-    updated  = DateTimeField(auto_now=True)
 
     def __str__(self):
         return '{0} {1}'.format(self.test.dev.name, self.machine.__str__())
@@ -123,12 +134,20 @@ class Test(Model):
     upperllr    = FloatField(default=0.0) # SPRT
     max_games   = IntegerField(default=0) # GAMES
 
-    # Summary of all associated result objects
-    games       = IntegerField(default=0)
-    wins        = IntegerField(default=0)
-    draws       = IntegerField(default=0)
-    losses      = IntegerField(default=0)
-    error       = BooleanField(default=False)
+    # Collection of all individual Result() objects
+    games  = IntegerField(default=0) # Overall
+    losses = IntegerField(default=0) # Trinomial
+    draws  = IntegerField(default=0) # Trinomial
+    wins   = IntegerField(default=0) # Trinomial
+    LL     = IntegerField(default=0) # Pentanomial
+    LD     = IntegerField(default=0) # Pentanomial
+    DD     = IntegerField(default=0) # Pentanomial
+    DW     = IntegerField(default=0) # Pentanomial
+    WW     = IntegerField(default=0) # Pentanomial
+
+    # Switching all future tests to Pentanomial
+    use_tri   = BooleanField(default=False)
+    use_penta = BooleanField(default=True)
 
     # All status flags associated with the test
     passed      = BooleanField(default=False)
@@ -137,6 +156,7 @@ class Test(Model):
     deleted     = BooleanField(default=False)
     approved    = BooleanField(default=False)
     awaiting    = BooleanField(default=False)
+    error       = BooleanField(default=False)
 
     # Datetime house keeping for meta data
     creation    = DateTimeField(auto_now_add=True)

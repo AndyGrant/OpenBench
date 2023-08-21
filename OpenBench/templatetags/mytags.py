@@ -58,62 +58,50 @@ def gitDiffLink(test):
 
 def shortStatBlock(test):
 
+    tri_line   = 'Games: %d W: %d L: %d D: %d' % (test.games, test.wins, test.losses, test.draws)
+    penta_line = 'Pntml(0-2): %d, %d, %d, %d, %d' % (test.LL, test.LD, test.DD, test.DW, test.WW)
+
     if test.test_mode == "SPRT":
-
-        currentllr = twoDigitPrecision(test.currentllr)
-        lowerllr   = twoDigitPrecision(test.lowerllr)
-        upperllr   = twoDigitPrecision(test.upperllr)
-        elolower   = twoDigitPrecision(test.elolower)
-        eloupper   = twoDigitPrecision(test.eloupper)
-
-        llrbounds = '({}, {}) '.format(lowerllr, upperllr)
-
-        return 'LLR: {0} {1}[{2}, {3}]\n'.format(currentllr, llrbounds, elolower, eloupper) \
-             + 'Games: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
+        top_line = 'LLR: %0.2f (%0.2f, %0.2f) [%0.2f, %0.2f]' % (
+            test.currentllr, test.lowerllr, test.upperllr, test.elolower, test.eloupper)
 
     if test.test_mode == "GAMES":
-
         lower, elo, upper = OpenBench.stats.ELO(test.wins, test.losses, test.draws)
-        error = max(upper - elo, elo - lower)
+        top_line = 'Elo: %0.2f +- %0.2f (95%%) [N=%d]' % (elo, max(upper - elo, elo - lower), test.max_games)
 
-        elo   = twoDigitPrecision(elo)
-        error = twoDigitPrecision(error)
+    if test.use_penta:
+        return '\n'.join([top_line, tri_line, penta_line])
 
-        return 'Elo: {0} +- {1} (95%) [N={2}]\n'.format(elo, error, test.max_games) \
-             + 'Games: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
+    if test.use_tri:
+        return '\n'.join([top_line, tri_line])
+
+    return 'Test uses neither Trinomoal nor Pentanomial'
 
 def longStatBlock(test):
 
-    threads = OpenBench.utils.extract_option(test.dev_options, 'Threads')
-    hash    = OpenBench.utils.extract_option(test.dev_options, 'Hash')
+    threads     = int(OpenBench.utils.extract_option(test.dev_options, 'Threads'))
+    hash        = int(OpenBench.utils.extract_option(test.dev_options, 'Hash'))
+    timecontrol = test.dev_time_control + ['s', '']['=' in test.dev_time_control]
+    test_type   = 'SPRT' if test.test_mode is 'SPRT' else 'Conf'
 
     lower, elo, upper = OpenBench.stats.ELO(test.wins, test.losses, test.draws)
-    error = max(upper - elo, elo - lower)
 
-    elo   = twoDigitPrecision(elo)
-    error = twoDigitPrecision(error)
+    elo_line   = 'Elo   | %0.2f +- %0.2f (95%%)' % (elo, max(upper - elo, elo - lower))
+    conf_line  = '%-5s | %s Threads=%d Hash=%dMB' % (test_type, timecontrol, threads, hash)
 
-    if test.test_mode == 'SPRT':
+    tri_line   = 'Games | N: %d W: %d L: %d D: %d' % (test.games, test.wins, test.losses, test.draws)
+    penta_line = 'Penta | [%d, %d, %d, %d, %d]' % (test.LL, test.LD, test.DD, test.DW, test.WW)
 
-        lowerllr    = twoDigitPrecision(test.lowerllr)
-        currentllr  = twoDigitPrecision(test.currentllr)
-        upperllr    = twoDigitPrecision(test.upperllr)
-        elolower    = twoDigitPrecision(test.elolower)
-        eloupper    = twoDigitPrecision(test.eloupper)
-        timecontrol = test.dev_time_control + ['s', '']['=' in test.dev_time_control]
+    llr_line   = 'LLR   | %0.2f (%0.2f, %0.2f) [%0.2f, %0.2f]' % (
+        test.currentllr, test.lowerllr, test.upperllr, test.elolower, test.eloupper)
 
-        return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
-             + 'SPRT  | {0} Threads={1} Hash={2}MB\n'.format(timecontrol, threads, hash) \
-             + 'LLR   | {0} ({1}, {2}) [{3}, {4}]\n'.format(currentllr, lowerllr, upperllr, elolower, eloupper) \
-             + 'GAMES | N: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
+    if test.use_penta:
+        return '\n'.join([elo_line, conf_line, llr_line, tri_line, penta_line])
 
-    if test.test_mode == 'GAMES':
+    if test.use_tri:
+        return '\n'.join([elo_line, conf_line, llr_line, tri_line])
 
-        timecontrol = test.dev_time_control + ['s', '']['=' in test.dev_time_control]
-
-        return 'ELO   | {0} +- {1} (95%)\n'.format(elo, error) \
-             + 'CONF  | {0} Threads={1} Hash={2}MB\n'.format(timecontrol, threads, hash) \
-             + 'GAMES | N: {0} W: {1} L: {2} D: {3}'.format(test.games, test.wins, test.losses, test.draws)
+    return 'Test uses neither Trinomoal nor Pentanomial'
 
 def testResultColour(test):
 

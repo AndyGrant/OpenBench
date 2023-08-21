@@ -833,8 +833,7 @@ def update_test(request, machine):
     games = losses + draws + wins
 
     # Pentanomial Implementation
-    # ll, dl, dd, dw, ww = map(int, request.POST['pentanomial'].split())
-    # games = ll + dl + dd + dw + ww
+    LL, LD, DD, DW, WW = map(int, request.POST['pentanomial'].split())
 
     with transaction.atomic():
 
@@ -842,10 +841,15 @@ def update_test(request, machine):
         if test.finished or test.deleted:
             return { 'stop' : True }
 
-        test.losses += losses
+        test.losses += losses # Trinomial
         test.draws  += draws
         test.wins   += wins
-        test.games  += games
+        test.LL     += LL     # Pentanomial
+        test.LD     += LD
+        test.DD     += DD
+        test.DW     += DW
+        test.WW     += WW
+        test.games  += games  # Overall
 
         test.error = test.error or has_error
 
@@ -871,10 +875,18 @@ def update_test(request, machine):
 
     # Update Result object; No risk from concurrent access
     Result.objects.filter(id=result_id).update(
-        games   = F('games')   + games,   wins     = F('wins'    ) + wins,
-        losses  = F('losses')  + losses,  draws    = F('draws'   ) + draws,
-        crashes = F('crashes') + crashes, timeloss = F('timeloss') + timelosses,
-        updated=timezone.now()
+        games    = F('games'   ) + games,
+        losses   = F('losses'  ) + losses,
+        draws    = F('draws'   ) + draws,
+        wins     = F('wins'    ) + wins,
+        LL       = F('LL'      ) + LL,
+        LD       = F('LD'      ) + LD,
+        DD       = F('DD'      ) + DD,
+        DW       = F('DW'      ) + DW,
+        WW       = F('WW'      ) + WW,
+        crashes  = F('crashes' ) + crashes,
+        timeloss = F('timeloss') + timelosses,
+        updated  = timezone.now()
     )
 
     # Update Profile object; No risk from concurrent access
