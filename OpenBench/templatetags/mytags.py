@@ -66,7 +66,7 @@ def shortStatBlock(test):
             test.currentllr, test.lowerllr, test.upperllr, test.elolower, test.eloupper)
 
     if test.test_mode == "GAMES":
-        lower, elo, upper = OpenBench.stats.ELO(test.wins, test.losses, test.draws)
+        lower, elo, upper = OpenBench.stats.ELO([test.losses, test.draws, test.wins])
         top_line = 'Elo: %0.2f +- %0.2f (95%%) [N=%d]' % (elo, max(upper - elo, elo - lower), test.max_games)
 
     if test.use_penta:
@@ -80,26 +80,27 @@ def shortStatBlock(test):
 def longStatBlock(test):
 
     threads     = int(OpenBench.utils.extract_option(test.dev_options, 'Threads'))
-    hash        = int(OpenBench.utils.extract_option(test.dev_options, 'Hash'))
+    hashmb      = int(OpenBench.utils.extract_option(test.dev_options, 'Hash'))
     timecontrol = test.dev_time_control + ['s', '']['=' in test.dev_time_control]
     test_type   = 'SPRT' if test.test_mode == 'SPRT' else 'Conf'
 
-    lower, elo, upper = OpenBench.stats.ELO(test.wins, test.losses, test.draws)
+    lower, elo, upper = OpenBench.stats.ELO([test.losses, test.draws, test.wins])
 
-    elo_line   = 'Elo   | %0.2f +- %0.2f (95%%)' % (elo, max(upper - elo, elo - lower))
-    conf_line  = '%-5s | %s Threads=%d Hash=%dMB' % (test_type, timecontrol, threads, hash)
+    lines = [
+        'Elo   | %0.2f +- %0.2f (95%%)' % (elo, max(upper - elo, elo - lower)),
+        '%-5s | %s Threads=%d Hash=%dMB' % (test_type, timecontrol, threads, hashmb),
+    ]
 
-    tri_line   = 'Games | N: %d W: %d L: %d D: %d' % (test.games, test.wins, test.losses, test.draws)
-    penta_line = 'Penta | [%d, %d, %d, %d, %d]' % (test.LL, test.LD, test.DD, test.DW, test.WW)
+    if test.test_mode == 'SPRT':
+        lines.append('LLR   | %0.2f (%0.2f, %0.2f) [%0.2f, %0.2f]' % (
+            test.currentllr, test.lowerllr, test.upperllr, test.elolower, test.eloupper))
 
-    llr_line   = 'LLR   | %0.2f (%0.2f, %0.2f) [%0.2f, %0.2f]' % (
-        test.currentllr, test.lowerllr, test.upperllr, test.elolower, test.eloupper)
+    lines.append('Games | N: %d W: %d L: %d D: %d' % (test.games, test.wins, test.losses, test.draws))
 
     if test.use_penta:
-        return '\n'.join([elo_line, conf_line, llr_line, tri_line, penta_line])
+        lines.append('Penta | [%d, %d, %d, %d, %d]' % (test.LL, test.LD, test.DD, test.DW, test.WW))
 
-    if test.use_tri:
-        return '\n'.join([elo_line, conf_line, llr_line, tri_line])
+    return '\n'.join(lines)
 
     return 'Test uses neither Trinomoal nor Pentanomial'
 

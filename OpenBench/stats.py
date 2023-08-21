@@ -18,64 +18,70 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+# The implementation for PentanomialSPRT is taken directly from Fishtest.
+# The implementation for TrinomialSPRT was derived directory from Fishtest.
+#
+#
+# Only three functions should be used externally from this Module.
+# 1. llr = TrinomialSPRT([losses, draws, wins], elo0, elo1)
+# 2. llr = PentanomialSPRT([ll, ld, dd, dw, ww], elo0, elo1)
+# 3. elo = ELO([losses, draws, wins])
+
 import math
+import scipy
 
+def TrinomialSPRT(results, elo0, elo1):
 
-def erf_inv(x):
-    a = 8*(math.pi-3)/(3*math.pi*(4-math.pi))
-    y = math.log(1-x*x)
-    z = 2/(math.pi*a) + y/2
-    return math.copysign(math.sqrt(math.sqrt(z*z - y/a) - z), x)
+    # Needs at least 1 Loss, 1 Draw, and 1 Win
+    if any(not x for x in results):
+        return 0.00
 
-def phi_inv(p):
-    return math.sqrt(2)*erf_inv(2*p-1)
+    N   = sum(results)
+    pdf = [x / N for x in results]
 
-
-def bayeselo_to_proba(elo, drawelo):
-    pwin  = 1.0 / (1.0 + math.pow(10.0, (-elo + drawelo) / 400.0))
-    ploss = 1.0 / (1.0 + math.pow(10.0, ( elo + drawelo) / 400.0))
-    pdraw = 1.0 - pwin - ploss
-    return pwin, pdraw, ploss
-
-def proba_to_bayeselo(pwin, pdraw, ploss):
-    elo     = 200 * math.log10(pwin/ploss * (1-ploss)/(1-pwin))
-    drawelo = 200 * math.log10((1-ploss)/ploss * (1-pwin)/pwin)
-    return elo, drawelo
-
-
-def SPRT(wins, losses, draws, elo0, elo1):
-
-    # Estimate drawelo out of sample. Return LLR = 0.0 if there are not enough
-    # games played yet to compute an LLR. 0.0 will always be an active state
-    if wins > 0 and losses > 0 and draws > 0:
-        N = wins + losses + draws
-        elo, drawelo = proba_to_bayeselo(float(wins)/N, float(draws)/N, float(losses)/N)
-    else: return 0.00
+    # Estimated draw elo based on PDF of LDW
+    elo, drawelo = proba_to_bayeselo(*pdf)
 
     # Probability laws under H0 and H1
-    p0win, p0draw, p0loss = bayeselo_to_proba(elo0, drawelo)
-    p1win, p1draw, p1loss = bayeselo_to_proba(elo1, drawelo)
+    pdf0 = bayeselo_to_proba(elo0, drawelo)
+    pdf1 = bayeselo_to_proba(elo1, drawelo)
 
     # Log-Likelyhood Ratio
-    return    wins * math.log(p1win  /  p0win) \
-          + losses * math.log(p1loss / p0loss) \
-          +  draws * math.log(p1draw / p0draw)
+    return sum([results[i] * math.log(pdf1[i] / pdf0[i]) for i in range(3)])
 
-def ELO(wins, losses, draws):
+def PentanomialSPRT(results, elo0, elo1):
 
-    def _elo(x):
-        if x <= 0 or x >= 1: return 0.0
-        return -400*math.log10(1/x-1)
+    ## Implements https://hardy.uhasselt.be/Fishtest/normalized_elo_practical.pdf
 
-    # win/loss/draw ratio
-    N = wins + losses + draws;
-    if N == 0: return (0, 0, 0)
-    w = float(wins)  / N
-    l = float(losses)/ N
-    d = float(draws) / N
+    # Ensure no division by 0 issues
+    results = [max(1e-3, x) for x in results]
+
+    # Partial computation of Normalized t-value
+    nelo_divided_by_nt = 800 / math.log(10)
+    nt0, nt1 = (x / nelo_divided_by_nt for x in (elo0, elo1))
+    t0, t1 = nt0 * math.sqrt(2), nt1 * math.sqrt(2)
+
+    # Number of game-pairs, and the PDF of Pntml(0-2) expressed as (0-1)
+    N = sum(results)
+    pdf = [(i / 4, results[i] / N) for i in range(0, 5)]
+
+    # Pdf given each normalized t-value, and then the LLR process for each
+    pdf0, pdf1 = (MLE_tvalue(pdf, 0.5, t) for t in (t0, t1))
+    mle_pdf    = [(math.log(pdf1[i][1]) - math.log(pdf0[i][1]), pdf[i][1]) for i in range(len(pdf))]
+
+    return N * stats(mle_pdf)[0]
+
+def ELO(results):
+
+    # Need at least one result to do the computation
+    if all(not x for x in results):
+        return (0.00, 0.00, 0.00)
+
+    N = sum(results)
+    l, d, w = [x / N for x in results]
 
     # mu is the empirical mean of the variables (Xi), assumed i.i.d.
-    mu = w + d/2
+    mu = w + d / 2
 
     # stdev is the empirical standard deviation of the random variable (X1+...+X_N)/N
     stdev = math.sqrt(w*(1-mu)**2 + l*(0-mu)**2 + d*(0.5-mu)**2) / math.sqrt(N)
@@ -84,4 +90,99 @@ def ELO(wins, losses, draws):
     mu_min = mu + phi_inv(0.025) * stdev
     mu_max = mu + phi_inv(0.975) * stdev
 
-    return (_elo(mu_min), _elo(mu), _elo(mu_max))
+    return (logistic_elo(mu_min), logistic_elo(mu), logistic_elo(mu_max))
+
+
+def erf_inv(x):
+    a = 8 * (math.pi-3) / (3 * math.pi * (4-math.pi))
+    y = math.log(1-x*x)
+    z = 2 / (math.pi*a) + y / 2
+    return math.copysign(math.sqrt(math.sqrt(z*z - y/a) - z), x)
+
+def phi_inv(p):
+    return math.sqrt(2) * erf_inv(2*p-1)
+
+def bayeselo_to_proba(elo, draw_elo):
+    pwin  = 1.0 / (1.0 + math.pow(10.0, (-elo + draw_elo) / 400.0))
+    ploss = 1.0 / (1.0 + math.pow(10.0, ( elo + draw_elo) / 400.0))
+    pdraw = 1.0 - pwin - ploss
+    return (ploss, pdraw, pwin)
+
+def proba_to_bayeselo(ploss, pdraw, pwin):
+    elo      = 200 * math.log10(pwin/ploss * (1-ploss)/(1-pwin))
+    draw_elo = 200 * math.log10((1-ploss)/ploss * (1-pwin)/pwin)
+    return (elo, draw_elo)
+
+
+def secular(pdf):
+    """
+    Solves the secular equation sum_i pi*ai/(1+x*ai)=0.
+    """
+    epsilon = 1e-9
+    v, w = pdf[0][0], pdf[-1][0]
+    values = [ai for ai, pi in pdf]
+    v = min(values)
+    w = max(values)
+    assert v * w < 0
+    l = -1 / w
+    u = -1 / v
+
+    def f(x):
+        return sum([pi * ai / (1 + x * ai) for ai, pi in pdf])
+
+    x, res = scipy.optimize.brentq(
+        f, l + epsilon, u - epsilon, full_output=True, disp=False
+    )
+    assert res.converged
+    return x
+
+def stats(pdf):
+    epsilon = 1e-6
+    for i in range(0, len(pdf)):
+        assert -epsilon <= pdf[i][1] <= 1 + epsilon
+    n = sum([prob for value, prob in pdf])
+    assert abs(n - 1) < epsilon
+    s = sum([prob * value for value, prob in pdf])
+    var = sum([prob * (value - s) ** 2 for value, prob in pdf])
+    return s, var
+
+def uniform(pdf):
+    n = len(pdf)
+    return [(ai, 1 / n) for ai, pi in pdf]
+
+def MLE_tvalue(pdfhat, ref, s):
+
+    N = len(pdfhat)
+    pdf_MLE = uniform(pdfhat)
+    for i in range(10):
+        pdf_ = pdf_MLE
+        mu, var = stats(pdf_MLE)
+        sigma = var ** (1 / 2)
+        pdf1 = [
+            (ai - ref - s * sigma * (1 + ((mu - ai) / sigma) ** 2) / 2, pi)
+            for ai, pi in pdfhat
+        ]
+        x = secular(pdf1)
+        pdf_MLE = [
+            (pdfhat[i][0], pdfhat[i][1] / (1 + x * pdf1[i][0])) for i in range(N)
+        ]
+        if max([abs(pdf_[i][1] - pdf_MLE[i][1]) for i in range(N)]) < 1e-9:
+            break
+
+    return pdf_MLE
+
+
+def logistic_elo(mu):
+    if mu <= 0 or mu >= 1:
+        return 0.0
+    return -400 * math.log10(1 / mu - 1)
+
+
+if __name__ == '__main__':
+
+    R3 = (22569, 44137, 22976)
+    R5 = (39, 8843, 26675, 9240, 44)
+    elo0, elo1 = (0.50, 2.50)
+
+    print (PentanomialSPRT(R5, elo0, elo1))
+    print (TrinomialSPRT(R3, elo0, elo1))

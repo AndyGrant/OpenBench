@@ -625,7 +625,7 @@ class ResultsReporter(object):
 
         try:
             # Send all of the queued Results at once
-            response = ServerReporter.report_results(self.config, self.pending)
+            response = ServerReporter.report_results(self.config, self.pending).json()
 
             # Log, and then clear pending queue
             for result in self.pending:
@@ -633,11 +633,11 @@ class ResultsReporter(object):
             self.pending = []
 
             # If the test ended, kill all tasks
-            if 'stop' in response.json():
+            if 'stop' in response:
                 self.abort_flag.set()
 
             # Signal an exit if the test ended
-            return 'stop' in response.json()
+            return 'stop' in response
 
         except Exception:
             traceback.print_exc()

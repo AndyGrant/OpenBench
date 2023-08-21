@@ -40,7 +40,7 @@ from OpenSite.settings import MEDIA_ROOT
 
 from OpenBench.config import OPENBENCH_CONFIG
 from OpenBench.models import *
-from OpenBench.stats import SPRT
+from OpenBench.stats import TrinomialSPRT, PentanomialSPRT
 
 import OpenBench.views
 
@@ -855,9 +855,15 @@ def update_test(request, machine):
 
         if test.test_mode == 'SPRT':
 
-            # Compute a new LLR for the updated results
-            WLD = (test.wins, test.losses, test.draws)
-            test.currentllr = SPRT(*WLD, test.elolower, test.eloupper)
+            # Compute a new LLR for the updated results ( Penta )
+            if test.use_penta:
+                results = (test.LL, test.LD, test.DD, test.DW, test.WW)
+                test.currentllr = PentanomialSPRT(results, test.elolower, test.eloupper)
+
+            # Compute a new LLR for the updated results ( Tri )
+            elif test.use_tri:
+                results = (test.losses, test.draws, test.wins)
+                test.currentllr = TrinomialSPRT(results, test.elolower, test.eloupper)
 
             # Check for H0 or H1 being accepted
             test.passed   = test.currentllr > test.upperllr
