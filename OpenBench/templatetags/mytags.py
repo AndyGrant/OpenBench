@@ -82,7 +82,7 @@ def longStatBlock(test):
     threads     = int(OpenBench.utils.extract_option(test.dev_options, 'Threads'))
     hash        = int(OpenBench.utils.extract_option(test.dev_options, 'Hash'))
     timecontrol = test.dev_time_control + ['s', '']['=' in test.dev_time_control]
-    test_type   = 'SPRT' if test.test_mode is 'SPRT' else 'Conf'
+    test_type   = 'SPRT' if test.test_mode == 'SPRT' else 'Conf'
 
     lower, elo, upper = OpenBench.stats.ELO(test.wins, test.losses, test.draws)
 
