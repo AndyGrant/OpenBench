@@ -46,7 +46,7 @@ from concurrent.futures import ThreadPoolExecutor
 TIMEOUT_HTTP     = 30   # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10   # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30   # Timeout in seconds between workload requests
-CLIENT_VERSION   = '12' # Client version to send to the Server
+CLIENT_VERSION   = '13' # Client version to send to the Server
 
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
 IS_LINUX   = platform.system() != 'Windows' # Don't touch this
@@ -1063,6 +1063,11 @@ def complete_workload(config):
     print ('Scale Factor Base : %.4f' % (base_factor))
     print ('Scale Factor Avg  : %.4f' % (avg_factor ))
 
+    # Scale using the base factor only, in the event of a cross-engine test
+    dev_engine    = config.workload['test']['dev' ]['engine']
+    base_engine   = config.workload['test']['base']['engine']
+    scale_factor  = base_factor if dev_engine != base_engine else avg_factor
+
     # Launch and manage all of the Cutechess workers
     with ThreadPoolExecutor(max_workers=config.sockets) as executor:
 
@@ -1072,7 +1077,7 @@ def complete_workload(config):
 
         tasks = [] # Create each of the Cutechess workers
         for x in range(config.sockets):
-            cmd = build_cutechess_command(config, dev_name, base_name, avg_factor, seed + x)
+            cmd = build_cutechess_command(config, dev_name, base_name, scale_factor, seed + x)
             tasks.append(executor.submit(run_and_parse_cutechess, config, cmd, x, results, abort_flag))
 
         # Process the Queue until we exit, finish, or are told to stop by the server
