@@ -30,6 +30,7 @@ import queue
 import re
 import requests
 import shutil
+import subprocess
 import sys
 import threading
 import time
@@ -47,9 +48,11 @@ TIMEOUT_HTTP     = 30   # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10   # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30   # Timeout in seconds between workload requests
 CLIENT_VERSION   = '13' # Client version to send to the Server
+REPORT_INTERVAL  = 30   # Seconds between reports to the Server
 
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
 IS_LINUX   = platform.system() != 'Windows' # Don't touch this
+
 
 class Configuration:
 
@@ -527,6 +530,19 @@ class Cutechess:
         del results['games'][first]
         del results['games'][second]
 
+    @staticmethod
+    def kill_everything(dev_process, base_process):
+
+        if IS_LINUX:
+            subprocess.run(['pkill', 'cutechess-ob'])
+            subprocess.run(['pkill', dev_process])
+            subprocess.run(['pkill', base_process])
+
+        if IS_WINDOWS:
+            subprocess.run(['taskkill', '/f', '/im', 'cutechess-ob.exe'])
+            subprocess.run(['taskkill', '/f', '/im', dev_process])
+            subprocess.run(['taskkill', '/f', '/im', base_process])
+
 class PGNHelper:
 
     @staticmethod
@@ -600,7 +616,7 @@ class ResultsReporter(object):
                 self.pending.append(result)
 
             # Send results every 30 seconds, until all Tasks are done
-            if self.send_results(report_interval=30):
+            if self.send_results(report_interval=REPORT_INTERVAL):
                 return
 
             # Kill everything if openbench.exit is created
@@ -876,22 +892,6 @@ def scale_time_control(workload, scale_factor, branch):
     if moves is None: return 'tc=%.2f+%.2f' % (base, inc)
     return 'tc=%d/%.2f+%.2f' % (int(moves), base, inc)
 
-def kill_cutechess(cutechess):
-
-    try:
-
-        if IS_WINDOWS:
-            call(['taskkill', '/F', '/T', '/PID', str(cutechess.pid)])
-
-        if IS_LINUX:
-            cutechess.kill()
-
-        cutechess.wait()
-        cutechess.stdout.close()
-
-    except Exception:
-        pass
-
 def find_pgn_error(reason, command):
 
     pgn_file = command.split('-pgnout ')[1].split()[0]
@@ -1085,16 +1085,13 @@ def complete_workload(config):
             rr = ResultsReporter(config, tasks, results, abort_flag)
             rr.process_until_finished()
             rr.send_errors(seed)
+            Cutechess.kill_everything(dev_name, base_name)
 
         # Kill everything during an Exception, but print it
-        except Exception:
+        except (Exception, KeyboardInterrupt):
             traceback.print_exc()
             abort_flag.set()
-            raise
-
-        # Kill everything during a Keyboard Interrupt
-        except KeyboardInterrupt:
-            abort_flag.set()
+            Cutechess.kill_everything(dev_name, base_name)
             raise
 
 def download_opening_book(config):
@@ -1347,9 +1344,6 @@ def run_and_parse_cutechess(config, command, socket, results_queue, abort_flag):
             results['crashes'    ] = 0
             results['timelosses' ] = 0
             results['illegals'   ] = 0
-
-    # Make sure Cutechess is dead
-    kill_cutechess(cutechess)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                           #
