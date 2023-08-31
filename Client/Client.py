@@ -571,9 +571,6 @@ class PGNHelper:
 
         reason = PGNHelper.get_pgn_header(sliced_headers, 'Termination')
 
-        if reason and 'time forfeit' in reason:
-            return 'Time Forfeit'
-
         if reason and 'abandoned' in reason:
             return 'Disconnect'
 

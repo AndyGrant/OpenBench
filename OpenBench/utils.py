@@ -821,7 +821,6 @@ def update_test(request, machine):
     crashes    = int(request.POST['crashes'   ])
     timelosses = int(request.POST['timelosses'])
     illegals   = int(request.POST['illegals'  ])
-    has_error  = crashes or timelosses or illegals
 
     # Extract Database information
     machine_id = int(request.POST['machine_id'])
@@ -851,7 +850,8 @@ def update_test(request, machine):
         test.WW     += WW
         test.games  += games  # Overall
 
-        test.error = test.error or has_error
+        # Consider only Crashes or Illegal moves as real errors
+        test.error = bool(test.error or crashes or illegals)
 
         if test.test_mode == 'SPRT':
 
