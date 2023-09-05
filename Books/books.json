@@ -45,5 +45,11 @@
         "name"    : "Endgames.epd",
         "sha"     : "71c7477ca8c8fb097bb565794d8b5ed8754532f8fb499e9d8b1d397692302a6a",
         "source"  : "https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/Endgames.epd.zip"
+    },
+
+    "UHO_4060_v2.epd" : {
+        "name"    : "UHO_4060_v2.epd",
+        "sha"     : "36f2ec751ab78def6be1307430cbe2cd2ba65ade8d2aaae8f10e3df7d0ea83e1",
+        "source"  : "https://raw.githubusercontent.com/AndyGrant/OpenBench/master/Books/UHO_4060_v2.epd.zip"
     }
 }
