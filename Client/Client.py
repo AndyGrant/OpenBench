@@ -870,7 +870,7 @@ def scale_time_control(workload, scale_factor, branch):
     # Scale the time based on this machine's NPS. Add a time Margin to avoid time losses.
     if results:
         mode, value = results.group('mode', 'value')
-        return 'st=%.2f timemargin=100' % ((float(value) * scale_factor / 1000))
+        return 'st=%.2f timemargin=250' % ((float(value) * scale_factor / 1000))
 
     # Searching for "X/Y+Z" time controls
     pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
@@ -886,8 +886,9 @@ def scale_time_control(workload, scale_factor, branch):
     inc  = float(inc ) * scale_factor
 
     # Format the time control for cutechess
-    if moves is None: return 'tc=%.2f+%.2f' % (base, inc)
-    return 'tc=%d/%.2f+%.2f' % (int(moves), base, inc)
+    if moves is None:
+        return 'tc=%.2f+%.2f timemargin=250' % (base, inc)
+    return 'tc=%d/%.2f+%.2f timemargin=250' % (int(moves), base, inc)
 
 def find_pgn_error(reason, command):
 
