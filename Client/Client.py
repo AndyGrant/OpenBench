@@ -44,11 +44,11 @@ from concurrent.futures import ThreadPoolExecutor
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-TIMEOUT_HTTP     = 30   # Timeout in seconds for HTTP requests
-TIMEOUT_ERROR    = 10   # Timeout in seconds when any errors are thrown
-TIMEOUT_WORKLOAD = 30   # Timeout in seconds between workload requests
-CLIENT_VERSION   = '13' # Client version to send to the Server
-REPORT_INTERVAL  = 30   # Seconds between reports to the Server
+CLIENT_VERSION   = 14 # Client version to send to the Server
+TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
+TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
+TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
+REPORT_INTERVAL  = 30 # Seconds between reports to the Server
 
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
 IS_LINUX   = platform.system() != 'Windows' # Don't touch this

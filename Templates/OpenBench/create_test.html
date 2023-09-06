@@ -129,7 +129,15 @@
                 <div class="row">
                     <label> Throughput </label> <input value="1000" id="throughput" , name="throughput">
                 </div>
-
+                <div class="row">
+                    <label> Worker Limit</label> <input value="None" id="worker_limit" name="worker_limit">
+                </div>
+                <div class="row">
+                    <label> Thread Limit </label> <input value="None" id="thread_limit" name="thread_limit">
+                </div>
+                <div class="row">
+                    <label> Workload Size </label> <input id="workload_size" name="workload_size">
+                </div>
                 <div class="row">
                     <label> Syzygy WDL </label> <select name="syzygy_wdl">
                         <option selected value="DISABLED"> Disabled </option>
@@ -140,14 +148,6 @@
                         <option value="4-MAN"> 4-Man </option>
                         <option value="3-MAN"> 3-Man </option>
                     </select>
-                </div>
-
-                <h3> Workload Settings </h3>
-                <div class="row">
-                    <label> Report Rate </label> <input id="report_rate" name="report_rate">
-                </div>
-                <div class="row">
-                    <label> Workload Size </label> <input id="workload_size" name="workload_size">
                 </div>
 
                 <h3> Adjudication Settings </h3>

@@ -112,7 +112,8 @@ class Test(Model):
     base_time_control = CharField(max_length=32)
 
     # Changable Test Parameters
-    report_rate   = IntegerField(default=8)
+    worker_limit  = IntegerField(default=0)
+    thread_limit  = IntegerField(default=0)
     workload_size = IntegerField(default=32)
     priority      = IntegerField(default=0)
     throughput    = IntegerField(default=0)

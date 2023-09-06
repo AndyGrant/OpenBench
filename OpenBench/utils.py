@@ -388,6 +388,10 @@ def verify_test_creation(request):
         try: int(request.POST[field])
         except: errors.append('"{0}" is not an Integer'.format(field_name))
 
+    def verify_integer_or_none(field, field_name):
+        try: True if request.POST[field] == 'None' else int(request.POST[field])
+        except: errors.append('"{0}" is neither an Integer nor "None"'.format(field_name))
+
     def verify_greater_than(field, field_name, value):
         try: assert int(request.POST[field]) > value
         except: errors.append('"{0}" is not greater than {1}'.format(field_name, value))
@@ -462,41 +466,42 @@ def verify_test_creation(request):
     verifications = [
 
         # Verify everything about the Dev Engine
-        (verify_configuration, 'dev_engine', 'Dev Engine', 'engines'),
-        (verify_github_repo  , 'dev_repo'),
-        (verify_network      , 'dev_network', 'Dev Network', 'dev_engine'),
-        (verify_options      , 'dev_options', 'Threads', 'Dev Options'),
-        (verify_options      , 'dev_options', 'Hash', 'Dev Options'),
-        (verify_time_control , 'dev_time_control', 'Dev Time Control'),
+        (verify_configuration  , 'dev_engine', 'Dev Engine', 'engines'),
+        (verify_github_repo    , 'dev_repo'),
+        (verify_network        , 'dev_network', 'Dev Network', 'dev_engine'),
+        (verify_options        , 'dev_options', 'Threads', 'Dev Options'),
+        (verify_options        , 'dev_options', 'Hash', 'Dev Options'),
+        (verify_time_control   , 'dev_time_control', 'Dev Time Control'),
 
         # Verify everything about the Base Engine
-        (verify_configuration, 'base_engine', 'Base Engine', 'engines'),
-        (verify_github_repo  , 'base_repo'),
-        (verify_network      , 'base_network', 'Base Network', 'base_engine'),
-        (verify_options      , 'base_options', 'Threads', 'Base Options'),
-        (verify_options      , 'base_options', 'Hash', 'Base Options'),
-        (verify_time_control , 'base_time_control', 'Base Time Control'),
+        (verify_configuration  , 'base_engine', 'Base Engine', 'engines'),
+        (verify_github_repo    , 'base_repo'),
+        (verify_network        , 'base_network', 'Base Network', 'base_engine'),
+        (verify_options        , 'base_options', 'Threads', 'Base Options'),
+        (verify_options        , 'base_options', 'Hash', 'Base Options'),
+        (verify_time_control   , 'base_time_control', 'Base Time Control'),
 
         # Verify everything about the Test Settings
-        (verify_configuration, 'book_name', 'Book', 'books'),
-        (verify_test_mode    , 'test_mode'),
-        (verify_sprt_bounds  , 'test_bounds'),
-        (verify_sprt_conf    , 'test_confidence'),
-        (verify_max_games    , 'test_max_games'),
+        (verify_configuration  , 'book_name', 'Book', 'books'),
+        (verify_test_mode      , 'test_mode'),
+        (verify_sprt_bounds    , 'test_bounds'),
+        (verify_sprt_conf      , 'test_confidence'),
+        (verify_max_games      , 'test_max_games'),
 
         # Verify everything about the General Settings
-        (verify_integer      , 'priority', 'Priority'),
-        (verify_greater_than , 'throughput', 'Throughput', 0),
-        (verify_syzygy_field , 'syzygy_wdl', 'Syzygy WDL'),
+        (verify_integer        , 'priority', 'Priority'),
+        (verify_greater_than   , 'throughput', 'Throughput', 0),
+        (verify_syzygy_field   , 'syzygy_wdl', 'Syzygy WDL'),
 
         # Verify everything about the Workload Settings
-        (verify_greater_than , 'report_rate', 'Report Rate', 0),
-        (verify_greater_than , 'workload_size', 'Workload Size', 0),
+        (verify_integer_or_none, 'worker_limit', 'Worker Limit'),
+        (verify_integer_or_none, 'thread_limit', 'Thread Limit'),
+        (verify_greater_than   , 'workload_size', 'Workload Size', 0),
 
         # Verify everything about the Adjudicaton Settings
-        (verify_syzygy_field , 'syzygy_adj', 'Syzygy Adjudication'),
-        (verify_win_adj      , 'win_adj'),
-        (verify_draw_adj     , 'draw_adj'),
+        (verify_syzygy_field   , 'syzygy_adj', 'Syzygy Adjudication'),
+        (verify_win_adj        , 'win_adj'),
+        (verify_draw_adj       , 'draw_adj'),
     ]
 
     for verification in verifications:
@@ -533,7 +538,8 @@ def create_new_test(request):
     test.base_network      = request.POST['base_network']
     test.base_time_control = TimeControl.parse(request.POST['base_time_control'])
 
-    test.report_rate       = int(request.POST['report_rate'])
+    test.worker_limit      = 0 if request.POST['worker_limit'] == 'None' else int(request.POST['worker_limit'])
+    test.thread_limit      = 0 if request.POST['thread_limit'] == 'None' else int(request.POST['thread_limit'])
     test.workload_size     = int(request.POST['workload_size'])
     test.priority          = int(request.POST['priority'])
     test.throughput        = int(request.POST['throughput'])
@@ -591,22 +597,6 @@ def get_machine(machineid, user, info):
         return None
 
     return machine
-
-def get_workload(machine):
-
-    # Check to make sure we have a potential workload
-    if not (tests := get_valid_workloads(machine)):
-        return {}
-
-    # Select from valid workloads the most needing test
-    test = select_workload(machine, tests)
-
-    try: result = Result.objects.get(test=test, machine=machine)
-    except: result = Result(test=test, machine=machine)
-
-    # Update the Machine's status and save everything
-    machine.workload = test.id; machine.save(); result.save()
-    return { 'workload' : workload_to_dictionary(test, result) }
 
 
 # Purely Helper functions for Networks views
@@ -695,124 +685,6 @@ def network_download(request, engine, network):
     response['Content-Length'] = os.path.getsize(netfile)
     response['Content-Disposition'] = 'attachment; filename=' + network.sha256
     return response
-
-
-# Purely Helper functions for get_workload()
-
-def get_valid_workloads(machine):
-
-    # Skip anything that is not running
-    tests = get_active_tests()
-
-    # Skip engines that the Machine cannot handle
-    for engine in OPENBENCH_CONFIG['engines'].keys():
-        if engine not in machine.info['supported']:
-            tests = tests.exclude(dev_engine=engine)
-            tests = tests.exclude(base_engine=engine)
-
-    # Skip tests with unmet Syzygy requirments
-    for K in range(machine.info['syzygy_max'] + 1, 10):
-        tests = tests.exclude(syzygy_adj='%d-MAN' % (K))
-        tests = tests.exclude(syzygy_wdl='%d-MAN' % (K))
-
-    # Skip tests that would waste available Threads or exceed them
-    threads      = machine.info['concurrency']
-    sockets      = machine.info['sockets']
-    hyperthreads = machine.info['physical_cores'] < threads
-    options = [x for x in tests if
-        test_maps_onto_thread_count(x, threads, sockets, hyperthreads)]
-
-    # Finally refine for tests of the highest priority
-    if not options: return []
-    highest_prio = max(options, key=lambda x: x.priority).priority
-    return [test for test in options if test.priority == highest_prio]
-
-def test_maps_onto_thread_count(test, threads, sockets, hyperthreads):
-
-    dev_threads  = int(extract_option(test.dev_options,  'Threads'))
-    base_threads = int(extract_option(test.base_options, 'Threads'))
-
-    # Each individual cutechess copy must have access to sufficient Threads
-    if max(dev_threads, base_threads) > (threads / sockets):
-        return False
-
-    # Refuse to run thread-odds when dipping into hyperthreads
-    return dev_threads == base_threads or not hyperthreads
-
-def select_workload(machine, tests, variance=0.25):
-
-    # Determine how many threads are assigned to each workload
-    table = { test.id : { 'cores' : 0, 'throughput' : test.throughput } for test in tests }
-    for m in getRecentMachines():
-        if m.workload in table and m != machine:
-            table[m.workload]['cores'] += m.info['concurrency']
-
-    # Find the tests most deserving of resources currently
-    ratios = [table[x]['cores'] / table[x]['throughput'] for x in table]
-    lowest_idxs = [i for i, r in enumerate(ratios) if r == min(ratios)]
-
-    # Machine is out of date; or there is an unassigned test
-    if machine.workload not in table or min(ratios) == 0:
-        return tests[random.choice(lowest_idxs)]
-
-    # No test has less than (1-variance)% of its deserved resources, and
-    # therefore we may have this machine repeat its existing workload again
-    ideal_ratio = sum([x['cores'] for x in table.values()]) / sum([x['throughput'] for x in table.values()])
-    if min(ratios) / ideal_ratio > 1 - variance:
-        return Test.objects.get(id=machine.workload)
-
-    # Fallback to simply doing the least attention given test
-    return tests[random.choice(lowest_idxs)]
-
-def workload_to_dictionary(test, result):
-
-    return {
-
-        'result' : {
-            'id'  : result.id
-        },
-
-        'test' : {
-            'id'            : test.id,
-            'syzygy_wdl'    : test.syzygy_wdl,
-            'syzygy_adj'    : test.syzygy_adj,
-            'win_adj'       : test.win_adj,
-            'draw_adj'      : test.draw_adj,
-            'report_rate'   : test.report_rate,
-            'workload_size' : test.workload_size,
-            'book'          : OPENBENCH_CONFIG['books'][test.book_name],
-
-            'dev' : {
-                'id'           : test.dev.id,
-                'name'         : test.dev.name,
-                'source'       : test.dev.source,
-                'sha'          : test.dev.sha,
-                'bench'        : test.dev.bench,
-                'engine'       : test.dev_engine,
-                'options'      : test.dev_options,
-                'network'      : test.dev_network,
-                'time_control' : test.dev_time_control,
-                'nps'          : OPENBENCH_CONFIG['engines'][test.dev_engine]['nps'],
-                'build'        : OPENBENCH_CONFIG['engines'][test.dev_engine]['build'],
-                'private'      : OPENBENCH_CONFIG['engines'][test.dev_engine]['private'],
-            },
-
-           'base' : {
-                'id'           : test.base.id,
-                'name'         : test.base.name,
-                'source'       : test.base.source,
-                'sha'          : test.base.sha,
-                'bench'        : test.base.bench,
-                'engine'       : test.base_engine,
-                'options'      : test.base_options,
-                'network'      : test.base_network,
-                'time_control' : test.base_time_control,
-                'nps'          : OPENBENCH_CONFIG['engines'][test.base_engine]['nps'],
-                'build'        : OPENBENCH_CONFIG['engines'][test.base_engine]['build'],
-                'private'      : OPENBENCH_CONFIG['engines'][test.base_engine]['private'],
-            },
-        },
-    }
 
 
 def update_test(request, machine):

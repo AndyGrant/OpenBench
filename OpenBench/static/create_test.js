@@ -140,7 +140,6 @@ function set_test_mode(mode_str) {
     const engine    = selection.options[selection.selectedIndex].value;
     const mode      = extract_mode_config(mode_str, 'dev');
 
-    document.getElementById('report_rate'  ).value = mode['report_rate']   || 8;
     document.getElementById('workload_size').value = mode['workload_size'] || 32;
     document.getElementById('book_name'    ).value = mode['book']          || config.engines[engine].book;
 

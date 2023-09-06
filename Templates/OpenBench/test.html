@@ -143,7 +143,10 @@
                         <label>Throughput</label><input value="{{test.throughput}}" name="throughput">
                     </div>
                     <div class="row">
-                        <label>Report Rate</label><input value="{{test.report_rate}}" name="report_rate">
+                        <label>Worker Limit</label><input value="{{test.worker_limit|default:'None'}}" name="worker_limit">
+                    </div>
+                    <div class="row">
+                        <label>Thread Limit</label><input value="{{test.thread_limit|default:'None'}}" name="thread_limit">
                     </div>
                     <div class="row">
                         <label>Workload Size</label><input value="{{test.workload_size}}" name="workload_size">
@@ -165,12 +168,12 @@
                 <th>#</th>
                 <th>User</th>
                 <th>Updated</th>
-                <th style="width: 60px">Games</th>
-                <th style="width: 60px">Won</th>
-                <th style="width: 60px">Lost</th>
-                <th style="width: 60px">Drawn</th>
-                <th style="width: 60px">Time</th>
-                <th style="width: 60px">Crash</th>
+                <th style="width: 45px">Games</th>
+                <th style="width: 45px">Won</th>
+                <th style="width: 45px">Lost</th>
+                <th style="width: 45px">Drawn</th>
+                <th style="width: 45px">Time</th>
+                <th style="width: 45px">Crash</th>
             </tr>
 
             {% for result in results %}

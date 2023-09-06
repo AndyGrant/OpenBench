@@ -26,6 +26,7 @@ import django.contrib.auth
 
 import OpenBench.config
 import OpenBench.utils
+import OpenBench.workload
 
 from OpenBench.config import OPENBENCH_CONFIG
 
@@ -461,13 +462,34 @@ def test(request, id, action=None):
     if action == 'DELETE' : test.deleted  =  True; test.save()
 
     if action == 'MODIFY':
-        test.priority      = int(request.POST['priority'])
-        test.throughput    = max(1, int(request.POST['throughput']))
-        test.report_rate   = max(1, int(request.POST['report_rate']))
-        test.workload_size = max(1, int(request.POST['workload_size']))
+
+        # Extract everything from the request
+        priority      = request.POST['priority']
+        throughput    = request.POST['throughput']
+        worker_limit  = request.POST['worker_limit']
+        thread_limit  = request.POST['thread_limit']
+        workload_size = request.POST['workload_size']
+
+        # Allow NONE to be passed instead of 0
+        worker_limit  = "0" if worker_limit == "None" else worker_limit
+        thread_limit  = "0" if thread_limit == "None" else thread_limit
+
+        # Fall back on the current settings if we fail to parse
+        priority      = int(priority)      if priority.isdigit()      else test.priority
+        throughput    = int(throughput)    if throughput.isdigit()    else test.throughput
+        worker_limit  = int(worker_limit)  if worker_limit.isdigit()  else test.worker_limit
+        thread_limit  = int(thread_limit)  if thread_limit.isdigit()  else test.thread_limit
+        workload_size = int(workload_size) if workload_size.isdigit() else test.workload_size
+
+        # Bound most of the options
+        test.priority      = priority
+        test.throughput    = max(throughput,    1)
+        test.worker_limit  = max(worker_limit,  0)
+        test.thread_limit  = max(thread_limit,  0)
+        test.workload_size = max(workload_size, 1)
         test.save()
 
-    action += " P=%d TP=%d RR=%d WS=%d" % (test.priority, test.throughput, test.report_rate, test.workload_size)
+    action += " P=%d TP=%d" % (test.priority, test.throughput)
     LogEvent.objects.create(author=request.user.username, summary=action, log_file='', test_id=test.id)
     return django.http.HttpResponseRedirect('/index/')
 
@@ -587,7 +609,7 @@ def client_verify_worker(request):
     # Ensure the Client is using the same version as the Server
     if machine.info['client_ver'] != OPENBENCH_CONFIG['client_version']:
         expected_ver = OPENBENCH_CONFIG['client_version']
-        return machine, JsonResponse({ 'error' : 'Bad Client Version: Expected %s' % (expected_ver)})
+        return machine, JsonResponse({ 'error' : 'Bad Client Version: Expected %d' % (expected_ver)})
 
     # Use the secret token as our soft verification
     if machine.secret != request.POST['secret']:
@@ -672,7 +694,7 @@ def client_get_workload(request):
     if response != None: return response
 
     # Contains keys 'workload', otherwise none
-    return JsonResponse(OpenBench.utils.get_workload(machine))
+    return JsonResponse(OpenBench.workload.get_workload(machine))
 
 @csrf_exempt
 def client_get_network(request, engine, name):
