@@ -639,10 +639,6 @@ class ResultsReporter(object):
         try:
             # Send all of the queued Results at once
             response = ServerReporter.report_results(self.config, self.pending).json()
-
-            # Log, and then clear pending queue
-            for result in self.pending:
-                print (result)
             self.pending = []
 
             # If the test ended, kill all tasks
@@ -1321,11 +1317,8 @@ def run_and_parse_cutechess(config, command, socket, results_queue, abort_flag):
         if 'Finished game' in line:
             Cutechess.update_results(results, line)
 
-        # Report results at the end, or once hitting the report_rate
-        report = 'Elo difference' in line
-        report = report or sum(results['pentanomial']) == config.workload['test']['report_rate']
-
-        if report:
+        # Add to the results queue every time we have a game-pair finished
+        if any(results['pentanomial']):
 
             # Place the results into the Queue, and be sure to copy the lists
             results_queue.put({
