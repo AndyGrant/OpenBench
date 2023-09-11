@@ -116,11 +116,19 @@
         <a class="w-25 mr-2 anchorbutton btn-disabled">Stop</a>
         {% endif %}
 
-        <!-- Delete Button: For Approvers or Test Authors -->
+        <!-- Delete/Restore Button: For Approvers or Test Authors -->
         {% if profile.approver or profile.user.username == test.author %}
-        <a class="w-25 mr-2 anchorbutton btn-red" href="/test/{{test.id}}/DELETE">Delete</a>
+            {% if test.deleted %}
+                <a class="w-25 mr-2 anchorbutton btn-preset" href="/test/{{test.id}}/RESTORE">Restore</a>
+            {% else %}
+                <a class="w-25 mr-2 anchorbutton btn-red" href="/test/{{test.id}}/DELETE">Delete</a>
+            {% endif %}
         {% else %}
-        <a class="w-25 mr-2 anchorbutton btn-disabled">Delete</a>
+            {% if test.deleted %}
+                <a class="w-25 mr-2 anchorbutton btn-disabled">Restore</a>
+            {% else %}
+                <a class="w-25 mr-2 anchorbutton btn-disabled">Delete</a>
+            {% endif %}
         {% endif %}
 
         <!-- Copy Button: Copy the current results statblock -->

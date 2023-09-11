@@ -441,7 +441,7 @@ def test(request, id, action=None):
     if not (test := Test.objects.filter(id=id).first()):
         return django.http.HttpResponseRedirect('/index/')
 
-    if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'MODIFY']:
+    if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'RESTORE', 'MODIFY']:
         data = { 'test' : test, 'results': Result.objects.filter(test=test) }
         return render(request, 'test.html', data)
 
@@ -460,6 +460,7 @@ def test(request, id, action=None):
     if action == 'RESTART': test.finished = False; test.save()
     if action == 'STOP'   : test.finished =  True; test.save()
     if action == 'DELETE' : test.deleted  =  True; test.save()
+    if action == 'RESTORE': test.deleted  = False; test.save()
 
     if action == 'MODIFY':
 
