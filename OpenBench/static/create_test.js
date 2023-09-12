@@ -110,9 +110,13 @@ function set_test_type() {
 
 function set_engine_options(mode_str, target) {
 
+    // Fall back to STC, which tends to exist. Needed for cross-engine play
+    var dev_mode  = extract_mode_config(mode_str, 'dev' ) || extract_mode_config('STC', 'dev' );
+    var base_mode = extract_mode_config(mode_str, 'base') || extract_mode_config('STC', 'base');
+
     // Extract UCI options for both the Dev and Base engines
-    var dev_options  = extract_mode_config(mode_str, 'dev' )['options'] || 'Threads=1 Hash=8';
-    var base_options = extract_mode_config(mode_str, 'base')['options'] || 'Threads=1 Hash=8';
+    var dev_options  = dev_mode  ? dev_mode['options'] : 'Threads=1 Hash=8';
+    var base_options = base_mode ? base_mode['options'] : 'Threads=1 Hash=8';
 
     // Simple case, where we are not updating a base that is cross-engine
     if (target == 'dev' || dev_options == base_options)
@@ -168,7 +172,7 @@ function set_engine(engine, target) {
 
     // Always update the Engine and Repository to the defaults
     document.getElementById(target + '_engine').value = engine;
-    document.getElementById(target + '_repo'  ).value = repos[engine] || 'https://github.com/';
+    document.getElementById(target + '_repo'  ).value = repos[engine] || config.engines[engine].source
 
     // Create dropdown of all Networks associated with the engine
     create_network_options(target + '_network', engine);
