@@ -169,7 +169,7 @@ function set_engine(engine, target) {
 
     // Always update the Engine and Repository to the defaults
     document.getElementById(target + '_engine').value = engine;
-    document.getElementById(target + '_repo'  ).value = repos[engine] || 'https://github.com/';
+    document.getElementById(target + '_repo'  ).value = repos[engine] || config.engines[engine].source
 
     // Create dropdown of all Networks associated with the engine
     create_network_options(target + '_network', engine);
