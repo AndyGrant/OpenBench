@@ -34,19 +34,22 @@
 # 2. Repeat the same test ( if it exists ), if distribution is still "Fair"
 # 3. Select the test with the most "Unfair" distribution of workers
 
+from __future__ import annotations
+
 import random
 import sys
 
 import OpenBench.utils
 
+from typing import Any
 from OpenBench.config import OPENBENCH_CONFIG
 from OpenBench.models import Result, Test
 
-def get_workload(machine):
+def get_workload(machine) -> dict[str, Any] | None:
 
     # Select a workload from the possible ones, if we can
     if not (test := select_workload(machine)):
-        return {}
+        return None
 
     # Fetch or create the Result object for the test
     try: result = Result.objects.get(test=test, machine=machine)
@@ -54,7 +57,7 @@ def get_workload(machine):
 
     # Update the Machine's status and save everything
     machine.workload = test.id; machine.save(); result.save()
-    return { 'workload' : workload_to_dictionary(test, result) }
+    return workload_to_dictionary(test, result)
 
 def select_workload(machine):
 
@@ -167,13 +170,17 @@ def workload_to_dictionary(test, result):
         },
 
         'test' : {
-            'id'            : test.id,
-            'syzygy_wdl'    : test.syzygy_wdl,
-            'syzygy_adj'    : test.syzygy_adj,
-            'win_adj'       : test.win_adj,
-            'draw_adj'      : test.draw_adj,
-            'workload_size' : test.workload_size,
-            'book'          : OPENBENCH_CONFIG['books'][test.book_name],
+            'id'                          : test.id,
+            'syzygy_wdl'                  : test.syzygy_wdl,
+            'syzygy_adj'                  : test.syzygy_adj,
+            'win_adj'                     : test.win_adj,
+            'draw_adj'                    : test.draw_adj,
+            'workload_size'               : test.workload_size,
+            'book'                        : OPENBENCH_CONFIG['books'][test.book_name],
+            'book_rng_seed'               : test.id,
+            'book_start_pos'              : -1, #
+            'number_of_games_to_play'     : -1, # Calculated dynamically in the `client_get_workload()` view
+            'concurrent_games_per_socket' : -1, #
 
             'dev' : {
                 'id'           : test.dev.id,

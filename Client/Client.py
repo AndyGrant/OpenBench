@@ -393,23 +393,10 @@ class Cutechess:
     @staticmethod
     def concurrency_settings(config):
 
-        # Extract # of Threads for the dev engine
-        dev_options  = config.workload['test']['dev' ]['options']
-        dev_threads  = int(extract_option(dev_options,  'Threads'))
-
-        # Extract # of Threads for the base engine
-        base_options = config.workload['test']['base']['options']
-        base_threads = int(extract_option(base_options, 'Threads'))
-
-        # Number of concurrency games that this socket can play
-        concurrency = config.threads / config.sockets
-        concurrency = concurrency // max(dev_threads, base_threads)
-
-        # Play at least a single game-pair per concurrency
-        games = int(concurrency * config.workload['test']['workload_size'])
-        games = max(concurrency * 2, games - (games % (2 * concurrency)))
-
-        return '-concurrency %d -games %d' % (concurrency, games)
+        return (
+            f'-concurrency {config.workload["test"]["concurrent_games_per_socket"]} '
+            f'-games {config.workload["test"]["number_of_games_to_play"]}'
+        )
 
     @staticmethod
     def adjudication_settings(config):
@@ -783,17 +770,6 @@ def unzip_delete_file(source, outdir):
     os.remove(source)
 
 
-def extract_option(options, option):
-
-    match = re.search('(?<={0}=")[^"]*'.format(option), options)
-    if match: return match.group()
-
-    match = re.search('(?<={0}=\')[^\']*'.format(option), options)
-    if match: return match.group()
-
-    match = re.search('(?<={0}=)[^ ]*'.format(option), options)
-    if match: return match.group()
-
 def make_command(config, engine, src_path, network_path):
 
     compiler  = config.compilers[engine][0]
@@ -1006,7 +982,12 @@ def server_request_workload(config):
 
     print('\nRequesting Workload from Server...')
 
-    payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token }
+    payload  = {
+        'machine_id' : config.machine_id,
+        'secret'     : config.secret_token,
+        'threads'    : config.threads,
+        'sockets'    : config.sockets
+    }
     target   = url_join(config.server, 'clientGetWorkload')
     response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
 

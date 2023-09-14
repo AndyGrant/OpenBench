@@ -90,8 +90,11 @@ class Result(Model):
 class Test(Model):
 
     # Misc information
-    author    = CharField(max_length=64)
-    book_name = CharField(max_length=32)
+    author = CharField(max_length=64)
+
+    # Opening book settings
+    book_name      = CharField(max_length=32)
+    book_start_pos = IntegerField(default=0)
 
     # Dev Engine, and all of its settings
     dev              = ForeignKey('Engine', PROTECT, related_name='dev')

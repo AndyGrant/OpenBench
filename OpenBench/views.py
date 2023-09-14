@@ -34,8 +34,9 @@ from OpenBench.models import *
 from django.contrib.auth.models import User
 from OpenSite.settings import MEDIA_ROOT
 
+from django.db import transaction
 from django.db.models import F, Q
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
 from django.core.files.base import ContentFile
@@ -687,15 +688,67 @@ def client_worker_info(request):
     # Pass back the Machine Id, and Secret Token for this session
     return JsonResponse({ 'machine_id' : machine.id, 'secret' : machine.secret })
 
+def extract_option(options, option):
+
+    match = re.search('(?<={0}=")[^"]*'.format(option), options)
+    if match: return match.group()
+
+    match = re.search('(?<={0}=\')[^\']*'.format(option), options)
+    if match: return match.group()
+
+    match = re.search('(?<={0}=)[^ ]*'.format(option), options)
+    if match: return match.group()
+
 @csrf_exempt
-def client_get_workload(request):
+def client_get_workload(request: HttpRequest) -> JsonResponse:
 
     # Pass along any error messages if they appear
-    machine, response = client_verify_worker(request)
-    if response != None: return response
+    machine, error_response = client_verify_worker(request)
+    if error_response != None: return error_response
 
-    # Contains keys 'workload', otherwise none
-    return JsonResponse(OpenBench.workload.get_workload(machine))
+    if (workload_response := OpenBench.workload.get_workload(machine)) is None:
+        return JsonResponse({})
+
+    with transaction.atomic():
+        test = (
+            OpenBench.models.Test.objects
+            .select_for_update()
+            .get(id=workload_response['test']['id'])
+        )
+
+        # Extract # of Threads for the dev engine
+        dev_options  = workload_response['test']['dev' ]['options']
+        dev_threads  = int(extract_option(dev_options,  'Threads'))
+
+        # Extract # of Threads for the base engine
+        base_options = workload_response['test']['base']['options']
+        base_threads = int(extract_option(base_options, 'Threads'))
+
+        # Number of concurrent games that this socket can play
+        concurrency = int(request.POST['threads']) / int(request.POST['sockets'])
+        concurrency = int(concurrency // max(dev_threads, base_threads))
+
+        # Play at least a single game-pair per concurrency
+        games = int(concurrency * workload_response['test']['workload_size'])
+        games = max(concurrency * 2, games - (games % (2 * concurrency)))
+
+        workload_response['test']['book_start_pos'] = test.book_start_pos
+        workload_response['test']['number_of_games_to_play'] = games
+        workload_response['test']['concurrent_games_per_socket'] = concurrency
+
+        # Increment the start position in the opening book, so that subsequent
+        # workloads requested by subsequent workers don't re-use the same
+        # openings (for as long as there remains unused openings in the book).
+        #
+        # We don't need to worry about possibly specifying a start position
+        # greater than the number of openings in the book, as CuteChess
+        # intelligently handles this case for us, by computing the real start
+        # position by taking the specified start position modulo the book size.
+        test.book_start_pos += games
+
+        test.save()
+
+    return JsonResponse({'workload': workload_response})
 
 @csrf_exempt
 def client_get_network(request, engine, name):
