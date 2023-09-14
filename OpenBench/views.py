@@ -26,6 +26,7 @@ import django.contrib.auth
 
 import OpenBench.config
 import OpenBench.utils
+import OpenBench.get_workload
 import OpenBench.workload
 
 from OpenBench.config import OPENBENCH_CONFIG
@@ -495,34 +496,13 @@ def test(request, id, action=None):
     return django.http.HttpResponseRedirect('/index/')
 
 def create_test(request):
+    return OpenBench.workload.create_workload(request, 'TEST')
 
-    if not request.user.is_authenticated:
-        return redirect(request, '/login/', error='Only enabled users can create tests')
+def create_tune(request):
+    return OpenBench.workload.create_workload(request, 'TUNE')
 
-    if not Profile.objects.get(user=request.user).enabled:
-        return redirect(request, '/login/', error='Only enabled users can create tests')
-
-    if request.method == 'GET':
-        data = { 'networks' : list(Network.objects.all().values()) }
-        return render(request, 'create_test.html', data)
-
-    test, errors = OpenBench.utils.create_new_test(request)
-    if errors != [] and errors != None:
-        return redirect(request, '/newTest/', error='\n'.join(errors))
-
-    if warning := OpenBench.utils.branch_is_out_of_date(test):
-        warning = 'Consider Rebasing: Dev (%s) appears behind Base (%s)' % (test.dev.name, test.base.name)
-
-    username = request.user.username
-    profile  = Profile.objects.get(user=request.user)
-    summary  = 'CREATE P=%d TP=%d' % (test.priority, test.throughput)
-    LogEvent.objects.create(author=username, summary=summary, log_file='', test_id=test.id)
-
-    if not OpenBench.config.USE_CROSS_APPROVAL and profile.approver:
-        test.approved = True; test.save()
-
-    return redirect(request, '/index/', warning=warning)
-
+def tune(request, id, action=None):
+    pass
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                          NETWORK MANAGEMENT VIEWS                           #
@@ -695,7 +675,7 @@ def client_get_workload(request):
     if response != None: return response
 
     # Contains keys 'workload', otherwise none
-    return JsonResponse(OpenBench.workload.get_workload(machine))
+    return JsonResponse(OpenBench.get_workload.get_workload(machine))
 
 @csrf_exempt
 def client_get_network(request, engine, name):

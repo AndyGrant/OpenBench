@@ -55,7 +55,7 @@
     color: var(--color-font2)
 }
 
-#content .row input, #content .row select {
+#content .row input, #content .row select, #content .row textarea {
     flex-grow: 1;
     min-width: 0;
     border: 1px solid var(--color3);
@@ -70,7 +70,7 @@
      padding: 2px 2px;
 }
 
-#content .row input:focus, #content .row select:focus {
+#content .row input:focus, #content .row select:focus, #content .row textarea {
     outline: none;
     border-color: var(--color3);
     box-shadow: 0 0 0 3px rgba(77, 144, 254, 0.25);
