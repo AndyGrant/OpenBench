@@ -20,7 +20,7 @@
 
 import re, django
 import OpenBench.config, OpenBench.utils, OpenBench.stats, OpenBench.models
-
+import OpenBench.verify_workload
 
 def oneDigitPrecision(value):
     try:

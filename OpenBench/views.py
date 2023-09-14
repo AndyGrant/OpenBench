@@ -27,7 +27,8 @@ import django.contrib.auth
 import OpenBench.config
 import OpenBench.utils
 import OpenBench.get_workload
-import OpenBench.workload
+import OpenBench.create_workload
+import OpenBench.verify_workload
 
 from OpenBench.config import OPENBENCH_CONFIG
 
@@ -496,10 +497,10 @@ def test(request, id, action=None):
     return django.http.HttpResponseRedirect('/index/')
 
 def create_test(request):
-    return OpenBench.workload.create_workload(request, 'TEST')
+    return OpenBench.create_workload.create_workload(request, 'TEST')
 
 def create_tune(request):
-    return OpenBench.workload.create_workload(request, 'TUNE')
+    return OpenBench.create_workload.create_workload(request, 'TUNE')
 
 def tune(request, id, action=None):
     pass

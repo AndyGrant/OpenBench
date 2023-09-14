@@ -134,6 +134,7 @@ class Test(Model):
     currentllr  = FloatField(default=0.0) # SPRT
     upperllr    = FloatField(default=0.0) # SPRT
     max_games   = IntegerField(default=0) # GAMES
+    spsa        = JSONField(default=dict, blank=True, null=True) # SPSA
 
     # Collection of all individual Result() objects
     games  = IntegerField(default=0) # Overall
