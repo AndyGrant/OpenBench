@@ -58,16 +58,21 @@ def gitDiffLink(test):
 
 def shortStatBlock(test):
 
-    tri_line   = 'Games: %d W: %d L: %d D: %d' % (test.games, test.wins, test.losses, test.draws)
-    penta_line = 'Pntml(0-2): %d, %d, %d, %d, %d' % (test.LL, test.LD, test.DD, test.DW, test.WW)
+    if test.test_mode == 'SPSA':
+        return '\n'.join([
+            '%d/%d Iterations' % (test.games / (2 * test.spsa['pairs-per']), test.spsa['iterations']),
+            '%d/%d Games Played' % (test.games, 2 * test.spsa['iterations'] * test.spsa['pairs-per'])])
 
-    if test.test_mode == "SPRT":
+    if test.test_mode == 'SPRT':
         top_line = 'LLR: %0.2f (%0.2f, %0.2f) [%0.2f, %0.2f]' % (
             test.currentllr, test.lowerllr, test.upperllr, test.elolower, test.eloupper)
 
-    if test.test_mode == "GAMES":
+    if test.test_mode == 'GAMES':
         lower, elo, upper = OpenBench.stats.ELO([test.losses, test.draws, test.wins])
         top_line = 'Elo: %0.2f +- %0.2f (95%%) [N=%d]' % (elo, max(upper - elo, elo - lower), test.max_games)
+
+    tri_line   = 'Games: %d W: %d L: %d D: %d' % (test.games, test.wins, test.losses, test.draws)
+    penta_line = 'Pntml(0-2): %d, %d, %d, %d, %d' % (test.LL, test.LD, test.DD, test.DW, test.WW)
 
     if test.use_penta:
         return '\n'.join([top_line, tri_line, penta_line])

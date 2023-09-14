@@ -65,9 +65,6 @@ def create_workload(request, workload_type):
     return OpenBench.views.redirect(request, '/index/', warning=warning)
 
 
-def create_new_tune(request):
-    return None, ['No endpoint']
-
 def create_new_test(request):
 
 
@@ -136,6 +133,82 @@ def create_new_test(request):
 
     return test, None
 
+def create_new_tune(request):
+
+
+    # Collects erros, and collects all data from the Github API
+    errors, engine_info = OpenBench.verify_workload.verify_workload(request, 'TUNE')
+    dev_info, dev_has_all = engine_info
+
+    if errors:
+        return None, errors
+
+    test                  = Test()
+    test.author           = request.user.username
+    test.book_name        = request.POST['book_name']
+
+    test.dev              = test.base              = get_engine(*dev_info)
+    test.dev_repo         = test.base_repo         = request.POST['dev_repo']
+    test.dev_engine       = test.base_engine       = request.POST['dev_engine']
+    test.dev_options      = test.base_options      = request.POST['dev_options']
+    test.dev_network      = test.base_network      = request.POST['dev_network']
+    test.dev_time_control = test.base_time_control = OpenBench.utils.TimeControl.parse(request.POST['dev_time_control'])
+
+    test.worker_limit     = 0 if request.POST['worker_limit'] == 'None' else int(request.POST['worker_limit'])
+    test.thread_limit     = 0 if request.POST['thread_limit'] == 'None' else int(request.POST['thread_limit'])
+    test.workload_size    = int(request.POST['spsa_pairs_per'])
+    test.priority         = int(request.POST['priority'])
+    test.throughput       = int(request.POST['throughput'])
+
+    test.syzygy_wdl       = request.POST['syzygy_wdl']
+    test.syzygy_adj       = request.POST['syzygy_adj']
+    test.win_adj          = request.POST['win_adj']
+    test.draw_adj         = request.POST['draw_adj']
+
+    test.test_mode        = 'SPSA'
+    test.awaiting         = not dev_has_all
+
+    test.spsa = {
+
+        # SPSA Hyperparams
+        'Alpha'      : float(request.POST['spsa_alpha']),
+        'Gamma'      : float(request.POST['spsa_gamma']),
+        'A-ratio'    : float(request.POST['spsa_A_ratio']),
+
+        # Tuning durations
+        'iterations' : int(request.POST['spsa_iterations']),
+        'pairs-per'  : int(request.POST['spsa_pairs_per']),
+
+        # For Each Parameter: { Name : { Start, Initial, Min, Max, C, R }}
+        'parameters' : extract_spas_params(request),
+    }
+
+    if test.dev_network:
+        name = Network.objects.get(engine=test.dev_engine, sha256=test.dev_network).name
+        test.dev_netname  = test.base_netname = name
+
+    test.save()
+
+    profile = Profile.objects.get(user=request.user)
+    profile.tests += 1
+    profile.save()
+
+    return test, None
+
+
+def extract_spas_params(request):
+
+    parameters = {}
+    for line in request.POST['spsa_inputs'].split('\n'):
+        name, value, minimum, maximum, c, r = line.split(',')
+
+        parameters[name] = {
+            'start' : float(value)   , 'value' : float(value),
+            'min'   : float(minimum) , 'max'   : float(maximum),
+            'c'     : float(c)       , 'r'     : float(r),
+        }
+
+    return parameters
 
 def get_engine(source, name, sha, bench):
 
@@ -144,3 +217,27 @@ def get_engine(source, name, sha, bench):
         return engine.first()
 
     return Engine.objects.create(name=name, source=source, sha=sha, bench=bench)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

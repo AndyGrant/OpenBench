@@ -32,39 +32,39 @@
 
                 <div class="row">
                     <label> Engine </label>
-                    <select id="engine" name="engine" onchange="set_engine(value);">
+                    <select id="engine" name="dev_engine" onchange="set_engine(value);">
                         {% for engine in config.engines %}
                             <option value="{{ engine }}">{{ engine }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div class="row">
-                    <label> Source </label> <input id="repo" name="repo">
+                    <label> Source </label> <input id="repo" name="dev_repo">
                 </div>
 
                 <h3> Engine Settings </h3>
 
                 <div class="row">
-                    <label> Branch </label> <input id="branch" name="branch" autofocus>
+                    <label> Branch </label> <input id="branch" name="dev_branch" autofocus>
                 </div>
                 <div class="row">
-                    <label> Bench </label> <input value="Autofill" name="bench">
+                    <label> Bench </label> <input value="Autofill" name="dev_bench">
                 </div>
                 <div class="row">
-                    <label> Network </label> <select id="network" name="network"></select>
+                    <label> Network </label> <select id="network" name="dev_network"></select>
                 </div>
                 <div class="row">
-                    <label> Options </label> <input id="options" name="options">
+                    <label> Options </label> <input id="options" name="dev_options">
                 </div>
                 <div class="row">
-                    <label> Time </label> <input id="time_control" name="time_control">
+                    <label> Time </label> <input id="time_control" name="dev_time_control">
                 </div>
 
                 <h3> SPSA Input </h3>
 
                 <div class="row">
 
-                    <textarea style="margin-left:24px" id="spsa_input" name="spsa_input" rows=17></textarea>
+                    <textarea style="margin-left:24px" id="spsa_inputs" name="spsa_inputs" rows=17></textarea>
                 </div>
 
             </div>

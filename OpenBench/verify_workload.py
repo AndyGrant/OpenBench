@@ -55,7 +55,7 @@ def verify_workload(request, workload_type):
 
     if workload_type == 'TUNE':
         verify_tune_creation(errors, request)
-        engine = collect_github_info(errors, request, '')
+        engine = collect_github_info(errors, request, 'dev')
         return errors, engine
 
 
@@ -111,12 +111,12 @@ def verify_tune_creation(errors, request):
     verifications = [
 
         # Verify everything about the Engine
-        (verify_configuration  , 'engine', 'Engine', 'engines'),
-        (verify_github_repo    , 'repo'),
-        (verify_network        , 'network', 'Network', 'engine'),
-        (verify_options        , 'options', 'Threads', 'Options'),
-        (verify_options        , 'options', 'Hash', 'Options'),
-        (verify_time_control   , 'time_control', 'Time Control'),
+        (verify_configuration  , 'dev_engine', 'Engine', 'engines'),
+        (verify_github_repo    , 'dev_repo'),
+        (verify_network        , 'dev_network', 'Network', 'dev_engine'),
+        (verify_options        , 'dev_options', 'Threads', 'Options'),
+        (verify_options        , 'dev_options', 'Hash', 'Options'),
+        (verify_time_control   , 'dev_time_control', 'Time Control'),
 
         # Verify everything about the Test Settings
         (verify_configuration  , 'book_name', 'Book', 'books'),
@@ -129,8 +129,6 @@ def verify_tune_creation(errors, request):
         # Verify everything about the Workload Settings
         (verify_integer_or_none, 'worker_limit', 'Worker Limit'),
         (verify_integer_or_none, 'thread_limit', 'Thread Limit'),
-        (verify_integer        , 'workload_size', 'Workload Size'),
-        (verify_greater_than   , 'workload_size', 'Workload Size', 0),
 
         # Verify everything about the Adjudicaton Settings
         (verify_syzygy_field   , 'syzygy_adj', 'Syzygy Adjudication'),
@@ -240,16 +238,20 @@ def verify_syzygy_field(errors, request, field, field_name):
     try: assert request.POST[field] in candidates
     except: errors.append('%s must be in %s' % (field_name, ', '.join(candidates)))
 
-def verify_spsa_inputs(errors, field):
+def verify_spsa_inputs(errors, request, field):
 
     try:
-        for line in request.POST[field].split('\n'):
-            name, value, minimum, maximum, c, r = line.split(',')
+
+        if not (lines := request.POST[field].split('\n')):
+            errors.append('No Parameters Provided')
+
+        for line in lines:
+            name, value, minimum, maximum, c, r = line.split(', ')
 
             if float(minimum) >= float(maximum):
                 errors.append('Max does not exceed Min, for %s' % (name))
 
-            if float(minimum) > float(value) or float(value) < float(maximum):
+            if not (float(minimum) <= float(value) <= float(maximum)):
                 errors.append('Value must be within [Min, Max], for %s' % (name))
 
             if float(c) <= 0.00:
@@ -324,7 +326,7 @@ def collect_github_info(errors, request, field):
 
     except: # Unable to find for whatever reason
         traceback.print_exc()
-        errors.append('%s could not be found' % (branch))
+        errors.append('%s could not be found' % (branch or 'Branch'))
         return (None, None)
 
     # Extract the bench from the web form, or from the commit message
