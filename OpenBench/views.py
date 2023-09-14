@@ -503,7 +503,14 @@ def create_tune(request):
     return OpenBench.create_workload.create_workload(request, 'TUNE')
 
 def tune(request, id, action=None):
-    pass
+
+
+    if not (test := Test.objects.filter(id=id).first()):
+        return django.http.HttpResponseRedirect('/index/')
+
+    if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'RESTORE', 'MODIFY']:
+        data = { 'test' : test, 'results': Result.objects.filter(test=test) }
+        return render(request, 'tune.html', data)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                          NETWORK MANAGEMENT VIEWS                           #

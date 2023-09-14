@@ -84,6 +84,12 @@ def shortStatBlock(test):
 
 def longStatBlock(test):
 
+    if test.test_mode == 'SPSA':
+        lines = shortStatBlock(test).split('\n')
+        lines.append('Alpha=%.3f Gamma=%.3f A-Ratio=%.2f' % (
+            test.spsa['Alpha'], test.spsa['Gamma'], test.spsa['A-ratio']))
+        return '\n'.join(lines)
+
     threads     = int(OpenBench.utils.extract_option(test.dev_options, 'Threads'))
     hashmb      = int(OpenBench.utils.extract_option(test.dev_options, 'Hash'))
     timecontrol = test.dev_time_control + ['s', '']['=' in test.dev_time_control]
