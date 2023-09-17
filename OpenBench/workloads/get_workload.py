@@ -19,22 +19,31 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 # Module serves a singular purpose, to invoke: get_workload(Machine)
-# Selects a Test, from the active tests, with the following criteria...
 #
-# 1. Remove all tests with Engines not supported by the Worker
-# 2. Remove all tests with unmet Syzygy requirements
-# 3. Remove all tests with thread-odds, if the Worker is hyperthreading
-# 4. Remove all tests where our machine will exceed the Worker Limit
-# 5. Remove all tests where our machine will exceed the Thread Limit
-# 6. Remove all tests that don't have the highest priority in the test list
+# Selects a Test, from the active tests, with the following procedure...
+#   1. Remove all tests with Engines not supported by the Worker
+#   2. Remove all tests with unmet Syzygy requirements
+#   3. Remove all tests with thread-odds, if the Worker is hyperthreading
+#   4. Remove all tests where our machine will exceed the Worker Limit
+#   5. Remove all tests where our machine will exceed the Thread Limit
+#   6. Remove all tests that don't have the highest priority in the test list
 #
 # At this point, we select from these candidate tests using the following:
+#   1. Randomly select from any tests that have 0 workers
+#   2. Repeat the same test ( if it exists ), if distribution is still "Fair"
+#   3. Select the test with the most "Unfair" distribution of workers
 #
-# 1. Randomly select from any tests that have 0 workers
-# 2. Repeat the same test ( if it exists ), if distribution is still "Fair"
-# 3. Select the test with the most "Unfair" distribution of workers
+# Our response includes three critical values:
+#
+#   1. cutechess-count      The # of Sockets on the worker for SPRT/FIXED tests
+#                           The # of max possible concurrent games for SPRT tests
+#   2. concurrency-per      The # of concurrent games to run per Cutechess copy.
+#                           Function of the machine, and each engine's options
+#   3. games-per-cutechess  # of total games to run per Cutechess copy
+#                           This is the workload_size times concurrency-per
 
 import random
+import re
 import sys
 
 import OpenBench.utils
@@ -54,7 +63,7 @@ def get_workload(machine):
 
     # Update the Machine's status and save everything
     machine.workload = test.id; machine.save(); result.save()
-    return { 'workload' : workload_to_dictionary(test, result) }
+    return { 'workload' : workload_to_dictionary(test, result, machine) }
 
 def select_workload(machine):
 
@@ -137,8 +146,12 @@ def valid_assignment(machine, test, distribution):
     sockets      = machine.info['sockets']
     hyperthreads = machine.info['physical_cores'] < threads
 
+    # SPSA plays a pair at a time, not a game at a time
+    is_spsa = test.test_mode == 'SPSA'
+    is_sprt = test.test_mode != 'SPSA'
+
     # Refuse if there are not enough threads-per-socket for the test
-    if max(dev_threads, base_threads) > (threads / sockets):
+    if (1 + is_spsa) * max(dev_threads, base_threads) > (threads / sockets):
         return False
 
     # Refuse thread odds if we are using hyperthreads
@@ -158,51 +171,130 @@ def valid_assignment(machine, test, distribution):
     # All Criteria have been met
     return True
 
-def workload_to_dictionary(test, result):
+
+def workload_to_dictionary(test, result, machine):
+
+    workload = {}
+
+    workload['result'] = {
+        'id'  : result.id,
+    }
+
+    workload['test'] = {
+        'id'            : test.id,
+        'type'          : test.test_mode,
+        'syzygy_wdl'    : test.syzygy_wdl,
+        'syzygy_adj'    : test.syzygy_adj,
+        'win_adj'       : test.win_adj,
+        'draw_adj'      : test.draw_adj,
+        'workload_size' : test.workload_size,
+        'book'          : OPENBENCH_CONFIG['books'][test.book_name],
+    }
+
+    workload['test']['dev'] = {
+        'id'           : test.dev.id,
+        'name'         : test.dev.name,
+        'source'       : test.dev.source,
+        'sha'          : test.dev.sha,
+        'bench'        : test.dev.bench,
+        'engine'       : test.dev_engine,
+        'options'      : test.dev_options,
+        'network'      : test.dev_network,
+        'time_control' : test.dev_time_control,
+        'nps'          : OPENBENCH_CONFIG['engines'][test.dev_engine]['nps'],
+        'build'        : OPENBENCH_CONFIG['engines'][test.dev_engine]['build'],
+        'private'      : OPENBENCH_CONFIG['engines'][test.dev_engine]['private'],
+    }
+
+    workload['test']['base'] = {
+        'id'           : test.base.id,
+        'name'         : test.base.name,
+        'source'       : test.base.source,
+        'sha'          : test.base.sha,
+        'bench'        : test.base.bench,
+        'engine'       : test.base_engine,
+        'options'      : test.base_options,
+        'network'      : test.base_network,
+        'time_control' : test.base_time_control,
+        'nps'          : OPENBENCH_CONFIG['engines'][test.base_engine]['nps'],
+        'build'        : OPENBENCH_CONFIG['engines'][test.base_engine]['build'],
+        'private'      : OPENBENCH_CONFIG['engines'][test.base_engine]['private'],
+    }
+
+    workload['allocation'] = game_allocation(test, machine)
+    workload['spsa']       = spsa_to_dictionary(test, workload['allocation']['cutechess-count'])
+
+    return workload
+
+def spsa_to_dictionary(test, permutations):
+
+    if test.test_mode != 'SPSA':
+        return None
+
+    # C & R are scaled over the course of the iterations
+    iteration     = 1 + (test.games / (test.spsa['pairs_per'] * 2))
+    c_compression = iteration ** test.spsa['Gamma']
+    r_compression = (test.spsa['A'] + iteration) ** test.spsa['Alpha']
+
+    spsa = {}
+    for name, param in test.spsa['parameters'].items():
+
+        spsa[name] = {
+            'white' : [], # One for each Permutation the Worker will run
+            'black' : [], # One for each Permutation the Worker will run
+            'flip'  : [], # One for each Permutation the Worker will run
+        }
+
+        # C & R are constants for a particular assignment, for all Permutations
+        spsa[name]['c'] = param['c'] / c_compression
+        spsa[name]['r'] = param['a'] / r_compression / spsa[name]['c'] ** 2
+
+        for f in range(permutations):
+
+            # Adjust current best by +- C
+            flip = 1 if random.getrandbits(1) else -1
+            pw   = max(param['min'], min(param['max'], param['value'] + flip * spsa[name]['c']))
+            pb   = max(param['min'], min(param['max'], param['value'] - flip * spsa[name]['c']))
+
+            # Append each permutation
+            spsa[name]['white'].append(pw)
+            spsa[name]['black'].append(pb)
+            spsa[name]['flip' ].append(flip)
+
+    return spsa
+
+
+def extract_option(options, option):
+
+    if (match := re.search('(?<=%s=")[^"]*' % (option), options)):
+        return match.group()
+
+    if (match := re.search('(?<=%s=\')[^\']*' % (option), options)):
+        return match.group()
+
+    if (match := re.search('(?<=%s=)[^ ]*' % (option), options)):
+        return match.group()
+
+def game_allocation(test, machine):
+
+    # Every Option contains Threads= for both engines
+    dev_threads  = int(extract_option(test.dev_options, 'Threads'))
+    base_threads = int(extract_option(test.base_options, 'Threads'))
+
+    # "concurrency" is the total number of connected Threads
+    worker_threads = machine.info['concurrency']
+    worker_sockets = machine.info['sockets']
+
+    # Concurrency per cutechess, if splitting by sockets
+    concurrency = (worker_threads // worker_sockets) // max(dev_threads, base_threads)
+
+    # Number of params being evaluated at a single time
+    spsa_count = (worker_threads // max(dev_threads, base_threads)) // 2
+
+    is_spsa = test.test_mode == 'SPSA'
 
     return {
-
-        'result' : {
-            'id'  : result.id
-        },
-
-        'test' : {
-            'id'            : test.id,
-            'syzygy_wdl'    : test.syzygy_wdl,
-            'syzygy_adj'    : test.syzygy_adj,
-            'win_adj'       : test.win_adj,
-            'draw_adj'      : test.draw_adj,
-            'workload_size' : test.workload_size,
-            'book'          : OPENBENCH_CONFIG['books'][test.book_name],
-
-            'dev' : {
-                'id'           : test.dev.id,
-                'name'         : test.dev.name,
-                'source'       : test.dev.source,
-                'sha'          : test.dev.sha,
-                'bench'        : test.dev.bench,
-                'engine'       : test.dev_engine,
-                'options'      : test.dev_options,
-                'network'      : test.dev_network,
-                'time_control' : test.dev_time_control,
-                'nps'          : OPENBENCH_CONFIG['engines'][test.dev_engine]['nps'],
-                'build'        : OPENBENCH_CONFIG['engines'][test.dev_engine]['build'],
-                'private'      : OPENBENCH_CONFIG['engines'][test.dev_engine]['private'],
-            },
-
-           'base' : {
-                'id'           : test.base.id,
-                'name'         : test.base.name,
-                'source'       : test.base.source,
-                'sha'          : test.base.sha,
-                'bench'        : test.base.bench,
-                'engine'       : test.base_engine,
-                'options'      : test.base_options,
-                'network'      : test.base_network,
-                'time_control' : test.base_time_control,
-                'nps'          : OPENBENCH_CONFIG['engines'][test.base_engine]['nps'],
-                'build'        : OPENBENCH_CONFIG['engines'][test.base_engine]['build'],
-                'private'      : OPENBENCH_CONFIG['engines'][test.base_engine]['private'],
-            },
-        },
+        'cutechess-count'     : spsa_count if is_spsa else worker_sockets,
+        'concurrency-per'     : 1 if is_spsa else concurrency,
+        'games-per-cutechess' : 2 * test.workload_size * (1 if is_spsa else concurrency),
     }

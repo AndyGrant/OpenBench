@@ -159,26 +159,25 @@
     <div id="parameters" class="w-100 mt-3" style="float:left;">
         <table class="stripes wrappable">
             <tr class="table-header">
-                <th> Param </th>
-                <th> Initial </th>
-                <th> Current </th>
+                <th> Name </th>
+                <th> Start </th>
+                <th> Curr </th>
                 <th> Min </th>
                 <th> Max </th>
                 <th> C </th>
+                <th> C_end </th>
                 <th> R </th>
+                <th> R_end </th>
             </tr>
 
-            {% for name, data in test.spsa.parameters.items %}
+            {% for row in test|spsa_param_digest %}
                 <tr>
-                    <td> {{name}} </td>
-                    <td> {{data.start}} </td>
-                    <td> {{data.value}} </td>
-                    <td> {{data.min}} </td>
-                    <td> {{data.max}} </td>
-                    <td> {{data.c}} </td>
-                    <td> {{data.r}} </td>
-                </tr>
+                    {% for element in row %}
+                        <td> {{ element }} </td>
+                    {% endfor %}
+                <tr>
             {% endfor %}
+
         </table>
     </div>
 

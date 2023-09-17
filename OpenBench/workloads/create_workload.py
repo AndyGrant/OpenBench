@@ -18,6 +18,16 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+# Module serves a singular purpose, to invoke: create_workload(request, type)
+#
+# A Workload can be a "TEST", which is an SPRT, or FIXED type.
+# A Workload can be a "TUNE", which is an SPSA tuning session
+#
+# This module will either create the workload and return the user to the index,
+# which will display their newly created test. Or it will return them to index,
+# with a list of errors that need to be fixed. A warning may also be displayed,
+# if the Base branch appears ahead of the Dev branch.
+
 import math
 
 import OpenBench.utils
@@ -134,7 +144,7 @@ def create_new_test(request):
 def create_new_tune(request):
 
     # Collects erros, and collects all data from the Github API
-    errors, engine_info = OpenBench.verify_workload.verify_workload(request, 'TUNE')
+    errors, engine_info = verify_workload(request, 'TUNE')
     dev_info, dev_has_all = engine_info
 
     if errors:
@@ -163,22 +173,9 @@ def create_new_tune(request):
     test.draw_adj         = request.POST['draw_adj']
 
     test.test_mode        = 'SPSA'
+    test.spsa             = extract_spas_params(request)
+
     test.awaiting         = not dev_has_all
-
-    test.spsa = {
-
-        # SPSA Hyperparams
-        'Alpha'      : float(request.POST['spsa_alpha']),
-        'Gamma'      : float(request.POST['spsa_gamma']),
-        'A'          : float(request.POST['spsa_A_ratio']),
-
-        # Tuning durations
-        'iterations' : int(request.POST['spsa_iterations']),
-        'pairs-per'  : int(request.POST['spsa_pairs_per']),
-
-        # For Each Parameter: { Name : { Start, Initial, Min, Max, C, R }}
-        'parameters' : extract_spas_params(request),
-    }
 
     if test.dev_network:
         name = Network.objects.get(engine=test.dev_engine, sha256=test.dev_network).name
@@ -194,17 +191,39 @@ def create_new_tune(request):
 
 def extract_spas_params(request):
 
-    parameters = {}
+    spsa = {} # SPSA Hyperparams
+    spsa['Alpha'  ] = float(request.POST['spsa_alpha'])
+    spsa['Gamma'  ] = float(request.POST['spsa_gamma'])
+    spsa['A_ratio'] = float(request.POST['spsa_A_ratio'])
+
+    # Tuning durations
+    spsa['iterations'] = int(request.POST['spsa_iterations'])
+    spsa['pairs_per' ] = int(request.POST['spsa_pairs_per'])
+    spsa['A'         ] = spsa['A_ratio'] * spsa['iterations']
+
+    # Each individual tuning parameter
+    spsa['parameters'] = {}
     for line in request.POST['spsa_inputs'].split('\n'):
-        name, value, minimum, maximum, c, r = line.split(',')
 
-        parameters[name] = {
-            'start' : float(value)   , 'value' : float(value),
-            'min'   : float(minimum) , 'max'   : float(maximum),
-            'c'     : float(c)       , 'r'     : float(r),
-        }
+        # Comma-seperated values, already verified in verify_workload()
+        name, value, minimum, maximum, c_end, r_end = line.split(',')
 
-    return parameters
+        param          = {} # Raw extraction
+        param['start'] = float(value)
+        param['value'] = float(value)
+        param['min'  ] = float(minimum)
+        param['max'  ] = float(maximum)
+        param['c_end'] = float(c_end)
+        param['r_end'] = float(r_end)
+
+        # Verbatim Fishtest logic for computing these
+        param['c']     = param['c_end'] * spsa['iterations'] ** spsa['Gamma']
+        param['a_end'] = param['r_end'] * param['c_end'] ** 2
+        param['a']     = param['a_end'] * (spsa['A'] + spsa['iterations']) ** spsa['Alpha']
+
+        spsa['parameters'][name] = param
+
+    return spsa
 
 def get_engine(source, name, sha, bench):
 

@@ -59,8 +59,8 @@ def shortStatBlock(test):
 
     if test.test_mode == 'SPSA':
         return '\n'.join([
-            '%d/%d Iterations' % (test.games / (2 * test.spsa['pairs-per']), test.spsa['iterations']),
-            '%d/%d Games Played' % (test.games, 2 * test.spsa['iterations'] * test.spsa['pairs-per'])])
+            '%d/%d Iterations' % (test.games / (2 * test.spsa['pairs_per']), test.spsa['iterations']),
+            '%d/%d Games Played' % (test.games, 2 * test.spsa['iterations'] * test.spsa['pairs_per'])])
 
     if test.test_mode == 'SPRT':
         top_line = 'LLR: %0.2f (%0.2f, %0.2f) [%0.2f, %0.2f]' % (
@@ -204,6 +204,7 @@ def machine_name(machine_id):
         return machine.info['machine_name']
     except: return 'None'
 
+
 register = django.template.Library()
 register.filter('oneDigitPrecision', oneDigitPrecision)
 register.filter('twoDigitPrecision', twoDigitPrecision)
@@ -223,3 +224,39 @@ register.filter('cpuflagsBlock', cpuflagsBlock)
 register.filter('compilerBlock', compilerBlock)
 register.filter('removePrefix', removePrefix)
 register.filter('machine_name', machine_name)
+
+def spsa_param_digest(test):
+
+    digest = []
+
+    # C and R are compressed as we progress iterations
+    iteration     = 10000 + (test.games / (test.spsa['pairs_per'] * 2))
+    c_compression = iteration ** test.spsa['Gamma']
+    r_compression = (test.spsa['A'] + iteration) ** test.spsa['Alpha']
+
+    for name, param in test.spsa['parameters'].items():
+
+        # C and R if we got a workload right now
+        c = param['c'] / c_compression
+        r = param['a'] / r_compression / c ** 2
+
+        digest.append([
+            name,
+            '%.4f' % (param['start']),
+            '%.4f' % (param['value']),
+            '%.4f' % (param['min'  ]),
+            '%.4f' % (param['max'  ]),
+            '%.4f' % (c),
+            '%.4f' % (param['c_end']),
+            '%.4f' % (r),
+            '%.4f' % (param['r_end']),
+        ])
+
+    return digest
+
+register.filter('spsa_param_digest', spsa_param_digest)
+
+
+
+
+
