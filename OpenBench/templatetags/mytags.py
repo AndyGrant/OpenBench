@@ -20,7 +20,6 @@
 
 import re, django
 import OpenBench.config, OpenBench.utils, OpenBench.stats, OpenBench.models
-import OpenBench.verify_workload
 
 def oneDigitPrecision(value):
     try:
@@ -84,11 +83,7 @@ def shortStatBlock(test):
 
 def longStatBlock(test):
 
-    if test.test_mode == 'SPSA':
-        lines = shortStatBlock(test).split('\n')
-        lines.append('Alpha=%.3f Gamma=%.3f A-Ratio=%.2f' % (
-            test.spsa['Alpha'], test.spsa['Gamma'], test.spsa['A-ratio']))
-        return '\n'.join(lines)
+    assert test.test_mode != 'SPSA'
 
     threads     = int(OpenBench.utils.extract_option(test.dev_options, 'Threads'))
     hashmb      = int(OpenBench.utils.extract_option(test.dev_options, 'Hash'))

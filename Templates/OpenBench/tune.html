@@ -47,7 +47,6 @@
         <table class="test-config left-align wrappable" style="table-layout: auto; width: 100%;">
             <tr><td class="td-label">Author</td><td>{{test.author|capfirst}}</td></tr>
             <tr><td class="td-label">Creation</td><td class="timestamp">{{test.creation|date:'U'}}</td></tr>
-
             <tr><td class="td-label">Engine</td><td>{{test.dev_engine}}</td></tr>
             <tr><td class="td-label">Source</td><td><a href="{{test.dev_repo}}">{{test.dev_repo}}</a></td></tr>
             <tr><td class="td-label">Sha</td><td>{{test.dev.sha}}</td></tr>
@@ -61,16 +60,23 @@
             {% endif %}
             <tr><td class="td-label">Options</td><td>{{test.dev_options}}</td></tr>
             <tr><td class="td-label">Time</td><td>{{test.dev_time_control}}</td></tr>
-
             <tr><td class="td-label">Opening Book</td><td><a href="{{config.framework}}raw/master/Books/{{test.bookname}}.zip">{{test.book_name}}</a></td></tr>
             <tr><td class="td-label">Syzygy WDL</td><td>{{test.syzygy_wdl}}</td></tr>
             <tr><td class="td-label">Syzygy ADJ.</td><td>{{test.syzygy_adj}}</td></tr>
             <tr><td class="td-label">Win ADJ.</td><td>{{test.win_adj}}</td></tr>
             <tr><td class="td-label">Draw ADJ.</td><td>{{test.draw_adj}}</td></tr>
+            <tr><td class="td-label">Alpha</td><td>{{test.spsa.Alpha}}</td></tr>
+            <tr><td class="td-label">Gamma</td><td>{{test.spsa.Gamma}}</td></tr>
+            <tr><td class="td-label">A-Ratio</td><td>{{test.spsa.A}}</td></tr>
         </table>
     </div>
 
     <div id="actions" class="ml-3">
+
+        <!-- Dev vs Base [Git Diff Link] -->
+        <h4><a href="{{test|gitDiffLink}}">
+            {{test.dev.name|prettyName}} vs {{test.base.name|prettyName}}
+        </a></h4>
 
         <!-- Approve Button: For Admins, or Cross-approvers -->
         {% if not test.approved and profile.approver and profile.user.username != test.author %}
@@ -120,7 +126,7 @@
         </a>
 
         <!-- Elo, (SPRT/LRR if SPRT, otherwise CONF), Games -->
-        <pre class="long-statblock" id="long-statblock">{{test|longStatBlock|linebreaksbr}}</pre>
+        <pre class="long-statblock" id="long-statblock">{{test|shortStatBlock|linebreaksbr}}</pre>
 
         <!-- Forum to modify the Priority or Throughput -->
         <form method="POST" action="/test/{{test.id}}/MODIFY">

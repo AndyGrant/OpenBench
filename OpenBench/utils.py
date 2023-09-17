@@ -42,7 +42,6 @@ from OpenBench.config import OPENBENCH_CONFIG
 from OpenBench.models import *
 from OpenBench.stats import TrinomialSPRT, PentanomialSPRT
 
-import OpenBench.verify_workload
 
 import OpenBench.views
 

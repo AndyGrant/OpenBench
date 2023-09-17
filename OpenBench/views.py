@@ -26,9 +26,10 @@ import django.contrib.auth
 
 import OpenBench.config
 import OpenBench.utils
-import OpenBench.get_workload
-import OpenBench.create_workload
-import OpenBench.verify_workload
+
+from OpenBench.workloads.get_workload import get_workload
+from OpenBench.workloads.create_workload import create_workload
+from OpenBench.workloads.verify_workload import verify_workload
 
 from OpenBench.config import OPENBENCH_CONFIG
 
@@ -497,10 +498,10 @@ def test(request, id, action=None):
     return django.http.HttpResponseRedirect('/index/')
 
 def create_test(request):
-    return OpenBench.create_workload.create_workload(request, 'TEST')
+    return create_workload(request, 'TEST')
 
 def create_tune(request):
-    return OpenBench.create_workload.create_workload(request, 'TUNE')
+    return create_workload(request, 'TUNE')
 
 def tune(request, id, action=None):
 
@@ -683,7 +684,7 @@ def client_get_workload(request):
     if response != None: return response
 
     # Contains keys 'workload', otherwise none
-    return JsonResponse(OpenBench.get_workload.get_workload(machine))
+    return JsonResponse(get_workload(machine))
 
 @csrf_exempt
 def client_get_network(request, engine, name):

@@ -24,8 +24,9 @@ import threading
 import time
 import traceback
 
-import OpenBench.utils
-import OpenBench.verify_workload
+from OpenBench.utils import get_awaiting_tests
+from OpenBench.utils import read_git_credentials
+from OpenBench.workloads.verify_workload import fetch_artifact_url
 
 class ArtifactWatcher(threading.Thread):
 
@@ -41,15 +42,15 @@ class ArtifactWatcher(threading.Thread):
         base_has = test.base.source.endswith('.zip') or base_has
 
         if not dev_has: # Check for new Artifacts for Dev
-            dev_headers = OpenBench.utils.read_git_credentials(test.dev_engine)
+            dev_headers = read_git_credentials(test.dev_engine)
             data = [test.dev.source, test.dev_engine, dev_headers, test.dev.sha]
-            test.dev.source, dev_has = OpenBench.verify_workload.fetch_artifact_url(*data)
+            test.dev.source, dev_has = fetch_artifact_url(*data)
             test.dev.save()
 
         if not base_has: # Check for new Artifacts for Base
-            base_headers = OpenBench.utils.read_git_credentials(test.base_engine)
+            base_headers = read_git_credentials(test.base_engine)
             data = [test.base.source, test.base_engine, base_headers, test.base.sha]
-            test.base.source, base_has = OpenBench.verify_workload.fetch_artifact_url(*data)
+            test.base.source, base_has = fetch_artifact_url(*data)
             test.base.save()
 
         # If both finished, flag the test as no longer awaiting
@@ -59,7 +60,7 @@ class ArtifactWatcher(threading.Thread):
 
     def run(self):
         while True:
-            for test in OpenBench.utils.get_awaiting_tests():
+            for test in get_awaiting_tests():
                 try: self.update_test(test)
                 except:
                     traceback.print_exc()

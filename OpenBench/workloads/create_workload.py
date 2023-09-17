@@ -21,10 +21,10 @@
 import math
 
 import OpenBench.utils
-import OpenBench.verify_workload
 import OpenBench.views
 
 from OpenBench.models import *
+from OpenBench.workloads.verify_workload import verify_workload
 
 def create_workload(request, workload_type):
 
@@ -64,12 +64,10 @@ def create_workload(request, workload_type):
 
     return OpenBench.views.redirect(request, '/index/', warning=warning)
 
-
 def create_new_test(request):
 
-
     # Collects erros, and collects all data from the Github API
-    errors, engine_info = OpenBench.verify_workload.verify_workload(request, 'TEST')
+    errors, engine_info = verify_workload(request, 'TEST')
     dev_info, dev_has_all = engine_info[0]
     base_ingo, base_has_all = engine_info[1]
 
@@ -135,7 +133,6 @@ def create_new_test(request):
 
 def create_new_tune(request):
 
-
     # Collects erros, and collects all data from the Github API
     errors, engine_info = OpenBench.verify_workload.verify_workload(request, 'TUNE')
     dev_info, dev_has_all = engine_info
@@ -173,7 +170,7 @@ def create_new_tune(request):
         # SPSA Hyperparams
         'Alpha'      : float(request.POST['spsa_alpha']),
         'Gamma'      : float(request.POST['spsa_gamma']),
-        'A-ratio'    : float(request.POST['spsa_A_ratio']),
+        'A'          : float(request.POST['spsa_A_ratio']),
 
         # Tuning durations
         'iterations' : int(request.POST['spsa_iterations']),
@@ -185,7 +182,7 @@ def create_new_tune(request):
 
     if test.dev_network:
         name = Network.objects.get(engine=test.dev_engine, sha256=test.dev_network).name
-        test.dev_netname  = test.base_netname = name
+        test.dev_netname = test.base_netname = name
 
     test.save()
 
@@ -194,7 +191,6 @@ def create_new_tune(request):
     profile.save()
 
     return test, None
-
 
 def extract_spas_params(request):
 
@@ -217,27 +213,3 @@ def get_engine(source, name, sha, bench):
         return engine.first()
 
     return Engine.objects.create(name=name, source=source, sha=sha, bench=bench)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
