@@ -42,6 +42,7 @@
 #   3. games-per-cutechess  # of total games to run per Cutechess copy
 #                           This is the workload_size times concurrency-per
 
+import math
 import random
 import re
 import sys
@@ -253,12 +254,26 @@ def spsa_to_dictionary(test, permutations):
 
             # Adjust current best by +- C
             flip = 1 if random.getrandbits(1) else -1
-            pw   = max(param['min'], min(param['max'], param['value'] + flip * spsa[name]['c']))
-            pb   = max(param['min'], min(param['max'], param['value'] - flip * spsa[name]['c']))
+            white = param['value'] + flip * spsa[name]['c']
+            black = param['value'] - flip * spsa[name]['c']
+
+            # Probabilistic rounding for integer types
+            if not param['float']:
+                white = math.floor(white + random.uniform(0, 1))
+                black = math.floor(black + random.uniform(0, 1))
+
+            # Clip within [Min, Max]
+            white = max(param['min'], min(param['max'], white))
+            black = max(param['min'], min(param['max'], black))
+
+            # Round integer values down
+            if not param['float']:
+                white = int(white)
+                black = int(black)
 
             # Append each permutation
-            spsa[name]['white'].append(pw)
-            spsa[name]['black'].append(pb)
+            spsa[name]['white'].append(white)
+            spsa[name]['black'].append(black)
             spsa[name]['flip' ].append(flip)
 
     return spsa

@@ -1027,7 +1027,12 @@ def server_request_workload(config):
 
 def complete_workload(config):
 
-    print (config.workload['spsa'])
+    for name, data in config.workload['spsa'].items():
+
+        print (name)
+        print (data['white'])
+        print (data['black'])
+        print ()
 
     # Download the opening book, throws an exception on corruption
     download_opening_book(config)

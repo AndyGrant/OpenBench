@@ -246,7 +246,10 @@ def verify_spsa_inputs(errors, request, field):
             errors.append('No Parameters Provided')
 
         for line in lines:
-            name, value, minimum, maximum, c, r = line.split(', ')
+            name, data_type, value, minimum, maximum, c, r = line.split(',')
+
+            if data_type.strip() not in [ 'int', 'float' ]:
+                errors.append('Datatype must be int for float, for %s' % (name))
 
             if float(minimum) >= float(maximum):
                 errors.append('Max does not exceed Min, for %s' % (name))

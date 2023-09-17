@@ -59,6 +59,7 @@ def shortStatBlock(test):
 
     if test.test_mode == 'SPSA':
         return '\n'.join([
+            'Tuning %d Parameters' % (len(test.spsa['parameters'].keys())),
             '%d/%d Iterations' % (test.games / (2 * test.spsa['pairs_per']), test.spsa['iterations']),
             '%d/%d Games Played' % (test.games, 2 * test.spsa['iterations'] * test.spsa['pairs_per'])])
 
