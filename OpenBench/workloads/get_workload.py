@@ -40,7 +40,7 @@
 #   2. concurrency-per      The # of concurrent games to run per Cutechess copy.
 #                           Function of the machine, and each engine's options
 #   3. games-per-cutechess  # of total games to run per Cutechess copy
-#                           This is the workload_size times concurrency-per
+#                           This is the 2 x workload_size x concurrency-per
 
 import math
 import random
