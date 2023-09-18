@@ -18,7 +18,8 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# Module serves a singular purpose, to invoke: create_workload(request, type)
+# Module serves a singular purpose, to invoke:
+# >>> create_workload(request, type)
 #
 # A Workload can be a "TEST", which is an SPRT, or FIXED type.
 # A Workload can be a "TUNE", which is an SPSA tuning session
@@ -73,6 +74,7 @@ def create_workload(request, workload_type):
         workload.approved = True; workload.save()
 
     return OpenBench.views.redirect(request, '/index/', warning=warning)
+
 
 def create_new_test(request):
 

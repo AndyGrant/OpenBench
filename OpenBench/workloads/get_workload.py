@@ -18,7 +18,8 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# Module serves a singular purpose, to invoke: get_workload(Machine)
+# Module serves a singular purpose, to invoke:
+# >>> get_workload(Machine)
 #
 # Selects a Test, from the active tests, with the following procedure...
 #   1. Remove all tests with Engines not supported by the Worker
@@ -65,6 +66,7 @@ def get_workload(machine):
     # Update the Machine's status and save everything
     machine.workload = test.id; machine.save(); result.save()
     return { 'workload' : workload_to_dictionary(test, result, machine) }
+
 
 def select_workload(machine):
 
@@ -172,7 +174,6 @@ def valid_assignment(machine, test, distribution):
     # All Criteria have been met
     return True
 
-
 def workload_to_dictionary(test, result, machine):
 
     workload = {}
@@ -277,7 +278,6 @@ def spsa_to_dictionary(test, permutations):
             spsa[name]['flip'].append(flip)
 
     return spsa
-
 
 def extract_option(options, option):
 

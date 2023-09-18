@@ -30,6 +30,7 @@ import OpenBench.utils
 from OpenBench.workloads.get_workload import get_workload
 from OpenBench.workloads.create_workload import create_workload
 from OpenBench.workloads.verify_workload import verify_workload
+from OpenBench.workloads.modify_workload import modify_workload
 
 from OpenBench.config import OPENBENCH_CONFIG
 
@@ -441,77 +442,45 @@ def machines(request, machineid=None):
 
 def test(request, id, action=None):
 
+    # Request is to modify or interact with the Test
+    if action != None:
+        return modify_workload(request, id, action)
+
+    # Verify that the Test id exists
     if not (test := Test.objects.filter(id=id).first()):
-        return django.http.HttpResponseRedirect('/index/')
+        return redirect(request, '/index/', error='No such Test exists')
 
-    if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'RESTORE', 'MODIFY']:
-        data = { 'test' : test, 'results': Result.objects.filter(test=test) }
-        return render(request, 'test.html', data)
+    # Verify that it is indeed a Test and not a Tune
+    if test.test_mode != 'SPRT' and test.test_mode != 'FIXED':
+        return redirect(request, '/index/', error='You are trying to view a Tune not Test')
 
-    if not request.user.is_authenticated:
-        return redirect(request, '/login/', error='Only users may interact with tests')
+    # Package everything up and display the test
+    data = { 'test' : test, 'results': Result.objects.filter(test=test) }
+    return render(request, 'test.html', data)
 
-    profile = Profile.objects.get(user=request.user)
-    if not profile.approver and test.author != request.user.username:
-        return redirect(request, '/index/', error='You cannot interact with another user\'s test')
+def tune(request, id, action=None):
 
-    if action == 'APPROVE':
-        if test.author == request.user.username and not user.is_superuser:
-            return redirect(request, '/index/', error='You cannot approve your own test')
+    # Request is to modify or interact with the Tune
+    if action != None:
+        return modify_workload(request, id, action)
 
-    if action == 'APPROVE': test.approved =  True; test.save()
-    if action == 'RESTART': test.finished = False; test.save()
-    if action == 'STOP'   : test.finished =  True; test.save()
-    if action == 'DELETE' : test.deleted  =  True; test.save()
-    if action == 'RESTORE': test.deleted  = False; test.save()
+    # Verify that the Tune id exists
+    if not (tune := Test.objects.filter(id=id).first()):
+        return redirect(request, '/index/', error='No such Tune exists')
 
-    if action == 'MODIFY':
+    # Verify that it is indeed a Tune and not a Test
+    if tune.test_mode == 'SPRT' or tune.test_mode == 'FIXED':
+        return redirect(request, '/index/', error='You are trying to view a Test not Tune')
 
-        # Extract everything from the request
-        priority      = request.POST['priority']
-        throughput    = request.POST['throughput']
-        worker_limit  = request.POST['worker_limit']
-        thread_limit  = request.POST['thread_limit']
-        workload_size = request.POST['workload_size']
-
-        # Allow NONE to be passed instead of 0
-        worker_limit  = "0" if worker_limit == "None" else worker_limit
-        thread_limit  = "0" if thread_limit == "None" else thread_limit
-
-        # Fall back on the current settings if we fail to parse
-        priority      = int(priority)      if priority.isdigit()      else test.priority
-        throughput    = int(throughput)    if throughput.isdigit()    else test.throughput
-        worker_limit  = int(worker_limit)  if worker_limit.isdigit()  else test.worker_limit
-        thread_limit  = int(thread_limit)  if thread_limit.isdigit()  else test.thread_limit
-        workload_size = int(workload_size) if workload_size.isdigit() else test.workload_size
-
-        # Bound most of the options
-        test.priority      = priority
-        test.throughput    = max(throughput,    1)
-        test.worker_limit  = max(worker_limit,  0)
-        test.thread_limit  = max(thread_limit,  0)
-        test.workload_size = max(workload_size, 1)
-        test.save()
-
-    action += " P=%d TP=%d" % (test.priority, test.throughput)
-    LogEvent.objects.create(author=request.user.username, summary=action, log_file='', test_id=test.id)
-    return django.http.HttpResponseRedirect('/index/')
+    # Package everything up and display the Tune
+    data = { 'test' : tune, 'results': Result.objects.filter(test=tune) }
+    return render(request, 'tune.html', data)
 
 def create_test(request):
     return create_workload(request, 'TEST')
 
 def create_tune(request):
     return create_workload(request, 'TUNE')
-
-def tune(request, id, action=None):
-
-
-    if not (test := Test.objects.filter(id=id).first()):
-        return django.http.HttpResponseRedirect('/index/')
-
-    if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'RESTORE', 'MODIFY']:
-        data = { 'test' : test, 'results': Result.objects.filter(test=test) }
-        return render(request, 'tune.html', data)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                          NETWORK MANAGEMENT VIEWS                           #

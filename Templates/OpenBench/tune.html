@@ -80,27 +80,27 @@
 
         <!-- Approve Button: For Admins, or Cross-approvers -->
         {% if not test.approved and profile.approver and profile.user.username != test.author %}
-        <a class="w-25 mr-2 anchorbutton btn-blue" href="/test/{{test.id}}/APPROVE">Approve</a>
+        <a class="w-25 mr-2 anchorbutton btn-blue" href="/tune/{{test.id}}/APPROVE">Approve</a>
         {% elif not test.approved and request.user.is_superuser %}
-        <a class="w-25 mr-2 anchorbutton btn-blue" href="/test/{{test.id}}/APPROVE">Approve</a>
+        <a class="w-25 mr-2 anchorbutton btn-blue" href="/tune/{{test.id}}/APPROVE">Approve</a>
         {% else %}
         <a class="w-25 mr-2 anchorbutton btn-disabled">Approve</a>
         {% endif %}
 
         <!-- Restart Button: For Approvers or Test Authors of finished tests -->
         {% if test.finished and profile.approver %}
-        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/RESTART">Restart</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/tune/{{test.id}}/RESTART">Restart</a>
         {% elif test.finished and profile.user.username == test.author %}
-        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/RESTART">Restart</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/tune/{{test.id}}/RESTART">Restart</a>
         {% elif test.finished %}
         <a class="w-25 mr-2 anchorbutton btn-disabled">Restart</a>
         {% endif %}
 
         <!-- Stop Button: For Approvers or Test Authors of active tests -->
         {% if not test.finished and profile.approver %}
-        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/STOP">Stop</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/tune/{{test.id}}/STOP">Stop</a>
         {% elif not test.finished and profile.user.username == test.author %}
-        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/STOP">Stop</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/tune/{{test.id}}/STOP">Stop</a>
         {% elif not test.finished %}
         <a class="w-25 mr-2 anchorbutton btn-disabled">Stop</a>
         {% endif %}
@@ -108,9 +108,9 @@
         <!-- Delete/Restore Button: For Approvers or Test Authors -->
         {% if profile.approver or profile.user.username == test.author %}
             {% if test.deleted %}
-                <a class="w-25 mr-2 anchorbutton btn-preset" href="/test/{{test.id}}/RESTORE">Restore</a>
+                <a class="w-25 mr-2 anchorbutton btn-preset" href="/tune/{{test.id}}/RESTORE">Restore</a>
             {% else %}
-                <a class="w-25 mr-2 anchorbutton btn-red" href="/test/{{test.id}}/DELETE">Delete</a>
+                <a class="w-25 mr-2 anchorbutton btn-red" href="/tune/{{test.id}}/DELETE">Delete</a>
             {% endif %}
         {% else %}
             {% if test.deleted %}
@@ -126,24 +126,29 @@
         </a>
 
         <!-- Elo, (SPRT/LRR if SPRT, otherwise CONF), Games -->
+        <!-- For SPSA, # of Params, Iterations, and Games -->
         <pre class="long-statblock" id="long-statblock">{{test|shortStatBlock|linebreaksbr}}</pre>
 
         <!-- Forum to modify the Priority or Throughput -->
-        <form method="POST" action="/test/{{test.id}}/MODIFY">
+        <form method="POST" action="/tune/{{test.id}}/MODIFY">
             {% csrf_token %}
             <div class="form">
                 <div class="col-full">
                     <div class="row">
-                        <label>Priority</label><input value="{{test.priority}}" name="priority">
+                        <label>Priority</label>
+                        <input value="{{test.priority}}" name="priority">
                     </div>
                     <div class="row">
-                        <label>Throughput</label><input value="{{test.throughput}}" name="throughput">
+                        <label>Throughput</label>
+                        <input value="{{test.throughput}}" name="throughput">
                     </div>
                     <div class="row">
-                        <label>Worker Limit</label><input value="{{test.worker_limit|default:'None'}}" name="worker_limit">
+                        <label>Worker Limit</label>
+                        <input value="{{test.worker_limit|default:'None'}}" name="worker_limit">
                     </div>
                     <div class="row">
-                        <label>Thread Limit</label><input value="{{test.thread_limit|default:'None'}}" name="thread_limit">
+                        <label>Thread Limit</label>
+                        <input value="{{test.thread_limit|default:'None'}}" name="thread_limit">
                     </div>
                     <!-- Edit Button: For Approvers or Test Authors -->
                     {% if profile.approver or profile.user.username == test.author %}
@@ -177,7 +182,6 @@
                     {% endfor %}
                 <tr>
             {% endfor %}
-
         </table>
     </div>
 
@@ -208,9 +212,7 @@
                     <td class="numeric">{{result.crashes}}</td>
                 </tr>
             {% endfor %}
-
         </table>
-
     </div>
 
 {% endblock %}

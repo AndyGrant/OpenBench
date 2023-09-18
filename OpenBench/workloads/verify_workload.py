@@ -18,7 +18,8 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-# Module serves a singular purpose, to invoke: verify_workload(request, type)
+# Module serves a singular purpose, to invoke:
+# >>> verify_workload(request, type)
 #
 # Given a request, and a workload_type [TEST, TUNE], verify all of the form
 # inputs, collect all of the information from Github, verify all of the data
