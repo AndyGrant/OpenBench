@@ -618,9 +618,8 @@ class ResultsReporter(object):
                 self.pending.append(result)
 
             # Send results every 30 seconds, until all Tasks are done
-            if self.config.workload['test']['type'] != 'SPSA':
-                if self.send_results(report_interval=REPORT_INTERVAL):
-                    return
+            if self.send_results(report_interval=REPORT_INTERVAL):
+                return
 
             # Kill everything if openbench.exit is created
             if os.path.isfile('openbench.exit'):
