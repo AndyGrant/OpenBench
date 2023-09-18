@@ -260,8 +260,9 @@ def spsa_to_dictionary(test, permutations):
 
             # Probabilistic rounding for Integer types
             if not param['float']:
-                dev  = math.floor(dev  + random.uniform(0, 1))
-                base = math.floor(base + random.uniform(0, 1))
+                r    = random.uniform(0, 1)
+                dev  = math.floor(dev  + r)
+                base = math.floor(base + r)
 
             # Clip within [Min, Max]
             dev  = max(param['min'], min(param['max'], dev ))
