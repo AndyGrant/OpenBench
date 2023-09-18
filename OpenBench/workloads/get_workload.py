@@ -222,8 +222,8 @@ def workload_to_dictionary(test, result, machine):
         'private'      : OPENBENCH_CONFIG['engines'][test.base_engine]['private'],
     }
 
-    workload['allocation'] = game_allocation(test, machine)
-    workload['spsa']       = spsa_to_dictionary(test, workload['allocation']['cutechess-count'])
+    workload['distribution'] = game_distribution(test, machine)
+    workload['spsa']         = spsa_to_dictionary(test, workload['distribution']['cutechess-count'])
 
     return workload
 
@@ -241,9 +241,9 @@ def spsa_to_dictionary(test, permutations):
     for name, param in test.spsa['parameters'].items():
 
         spsa[name] = {
-            'white' : [], # One for each Permutation the Worker will run
-            'black' : [], # One for each Permutation the Worker will run
-            'flip'  : [], # One for each Permutation the Worker will run
+            'dev'  : [], # One for each Permutation the Worker will run
+            'base' : [], # One for each Permutation the Worker will run
+            'flip' : [], # One for each Permutation the Worker will run
         }
 
         # C & R are constants for a particular assignment, for all Permutations
@@ -254,27 +254,27 @@ def spsa_to_dictionary(test, permutations):
 
             # Adjust current best by +- C
             flip = 1 if random.getrandbits(1) else -1
-            white = param['value'] + flip * spsa[name]['c']
-            black = param['value'] - flip * spsa[name]['c']
+            dev  = param['value'] + flip * spsa[name]['c']
+            base = param['value'] - flip * spsa[name]['c']
 
-            # Probabilistic rounding for integer types
+            # Probabilistic rounding for Integer types
             if not param['float']:
-                white = math.floor(white + random.uniform(0, 1))
-                black = math.floor(black + random.uniform(0, 1))
+                dev  = math.floor(dev  + random.uniform(0, 1))
+                base = math.floor(base + random.uniform(0, 1))
 
             # Clip within [Min, Max]
-            white = max(param['min'], min(param['max'], white))
-            black = max(param['min'], min(param['max'], black))
+            dev  = max(param['min'], min(param['max'], dev ))
+            base = max(param['min'], min(param['max'], base))
 
             # Round integer values down
             if not param['float']:
-                white = int(white)
-                black = int(black)
+                dev  = int(dev )
+                base = int(base)
 
             # Append each permutation
-            spsa[name]['white'].append(white)
-            spsa[name]['black'].append(black)
-            spsa[name]['flip' ].append(flip)
+            spsa[name]['dev' ].append(dev)
+            spsa[name]['base'].append(base)
+            spsa[name]['flip'].append(flip)
 
     return spsa
 
@@ -290,7 +290,7 @@ def extract_option(options, option):
     if (match := re.search('(?<=%s=)[^ ]*' % (option), options)):
         return match.group()
 
-def game_allocation(test, machine):
+def game_distribution(test, machine):
 
     # Every Option contains Threads= for both engines
     dev_threads  = int(extract_option(test.dev_options, 'Threads'))
@@ -310,6 +310,6 @@ def game_allocation(test, machine):
 
     return {
         'cutechess-count'     : spsa_count if is_spsa else worker_sockets,
-        'concurrency-per'     : 1 if is_spsa else concurrency,
+        'concurrency-per'     : 2 if is_spsa else concurrency,
         'games-per-cutechess' : 2 * test.workload_size * (1 if is_spsa else concurrency),
     }

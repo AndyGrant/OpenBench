@@ -347,15 +347,15 @@ class ServerReporter:
 
         payload = {
 
-            'test_id'     : config.workload['test']['id'],
-            'result_id'   : config.workload['result']['id'],
+            'test_id'      : config.workload['test']['id'],
+            'result_id'    : config.workload['result']['id'],
 
-            'trinomial'   : [0, 0, 0],       # LDW
-            'pentanomial' : [0, 0, 0, 0, 0], # LL DL DD DW WW
+            'trinomial'    : [0, 0, 0],       # LDW
+            'pentanomial'  : [0, 0, 0, 0, 0], # LL DL DD DW WW
 
-            'crashes'     : 0, # " disconnect" or "connection stalls"
-            'timelosses'  : 0, # " loses on time "
-            'illegals'    : 0, # " illegal move "
+            'crashes'      : 0, # " disconnect" or "connection stalls"
+            'timelosses'   : 0, # " loses on time "
+            'illegals'     : 0, # " illegal move "
         }
 
         for batch in batches:
@@ -367,9 +367,21 @@ class ServerReporter:
             payload['timelosses'] += batch['timelosses']
             payload['illegals'  ] += batch['illegals'  ]
 
+            if config.workload['test']['type'] == 'SPSA':
+
+                # Pairs can be added one at a time, or in bulk
+                result = batch['trinomial'][2] - batch['trinomial'][0]
+
+                # For each param compute the update step for the Server
+                for name, param in config.workload['spsa'].items():
+                    delta = param['r'] * param['c'] * result * param['flip'][batch['cutechess_idx']]
+                    payload['spsa_%s' % (name)] = payload.get('spsa_%s' % (name), 0.0) + delta
+
         # Collapse into a JSON friendly format for Django
         payload['trinomial'  ] = ' '.join(map(str, payload['trinomial'  ]))
         payload['pentanomial'] = ' '.join(map(str, payload['pentanomial']))
+
+        print (payload)
 
         return ServerReporter.report(config, 'clientSubmitResults', payload)
 
@@ -393,23 +405,11 @@ class Cutechess:
     @staticmethod
     def concurrency_settings(config):
 
-        # Extract # of Threads for the dev engine
-        dev_options  = config.workload['test']['dev' ]['options']
-        dev_threads  = int(extract_option(dev_options,  'Threads'))
-
-        # Extract # of Threads for the base engine
-        base_options = config.workload['test']['base']['options']
-        base_threads = int(extract_option(base_options, 'Threads'))
-
-        # Number of concurrency games that this socket can play
-        concurrency = config.threads / config.sockets
-        concurrency = concurrency // max(dev_threads, base_threads)
-
-        # Play at least a single game-pair per concurrency
-        games = int(concurrency * config.workload['test']['workload_size'])
-        games = max(concurrency * 2, games - (games % (2 * concurrency)))
-
-        return '-concurrency %d -games %d' % (concurrency, games)
+        # Already computed for us by the Server
+        return '-concurrency %d -games %d' % (
+            config.workload['distribution']['concurrency-per'],
+            config.workload['distribution']['games-per-cutechess'],
+        )
 
     @staticmethod
     def adjudication_settings(config):
@@ -443,7 +443,7 @@ class Cutechess:
         return '-openings file=Books/%s format=%s order=random plies=16' % (book_name, book_suffix)
 
     @staticmethod
-    def engine_settings(config, command, branch, scale_factor):
+    def engine_settings(config, command, branch, scale_factor, cutechess_idx):
 
         # Extract configuration from the Workload
         options = config.workload['test'][branch]['options']
@@ -467,6 +467,11 @@ class Cutechess:
         # Set a SyzygyProbeLimit if we may only use up-to N-Man
         if syzygy != 'DISABLED' and syzygy != 'OPTIONAL':
             options += ' SyzygyProbeLimit=%s' % (syzygy.split('-')[0])
+
+        # Add any of the custom SPSA settings
+        if config.workload['test']['type'] == 'SPSA':
+            for param, data in config.workload['spsa'].items():
+                options += ' %s=%s' % (param, str(data[branch][cutechess_idx]))
 
         # Join options together in the Cutechess format
         options = ' option.'.join([''] + re.findall(r'"[^"]*"|\S+', options))
@@ -613,8 +618,9 @@ class ResultsReporter(object):
                 self.pending.append(result)
 
             # Send results every 30 seconds, until all Tasks are done
-            if self.send_results(report_interval=REPORT_INTERVAL):
-                return
+            if self.config.workload['test']['type'] != 'SPSA':
+                if self.send_results(report_interval=REPORT_INTERVAL):
+                    return
 
             # Kill everything if openbench.exit is created
             if os.path.isfile('openbench.exit'):
@@ -652,9 +658,9 @@ class ResultsReporter(object):
             traceback.print_exc()
             print ('[Note] Failed to upload results to server...')
 
-    def send_errors(self, seed):
+    def send_errors(self, seed, cutechess_cnt):
 
-        for x in range(self.config.sockets):
+        for x in range(cutechess_cnt):
 
             # Reuse logic that was given to Cutechess to decide the PGN name
             fname = Cutechess.pgnout_settings(self.config, seed + x).split()[1]
@@ -782,17 +788,6 @@ def unzip_delete_file(source, outdir):
         fin.extractall(outdir)
     os.remove(source)
 
-
-def extract_option(options, option):
-
-    match = re.search('(?<={0}=")[^"]*'.format(option), options)
-    if match: return match.group()
-
-    match = re.search('(?<={0}=\')[^\']*'.format(option), options)
-    if match: return match.group()
-
-    match = re.search('(?<={0}=)[^ ]*'.format(option), options)
-    if match: return match.group()
 
 def make_command(config, engine, src_path, network_path):
 
@@ -1027,13 +1022,6 @@ def server_request_workload(config):
 
 def complete_workload(config):
 
-    for name, data in config.workload['spsa'].items():
-
-        print (name)
-        print (data['white'])
-        print (data['black'])
-        print ()
-
     # Download the opening book, throws an exception on corruption
     download_opening_book(config)
 
@@ -1069,23 +1057,26 @@ def complete_workload(config):
     base_engine   = config.workload['test']['base']['engine']
     scale_factor  = base_factor if dev_engine != base_engine else avg_factor
 
+    # Server knows how many copies of Cutechess we should run
+    cutechess_cnt = config.workload['distribution']['cutechess-count']
+
     # Launch and manage all of the Cutechess workers
-    with ThreadPoolExecutor(max_workers=config.sockets) as executor:
+    with ThreadPoolExecutor(max_workers=cutechess_cnt) as executor:
 
         seed       = time.time()
         results    = multiprocessing.Queue()
         abort_flag = threading.Event()
 
         tasks = [] # Create each of the Cutechess workers
-        for x in range(config.sockets):
-            cmd = build_cutechess_command(config, dev_name, base_name, scale_factor, seed + x)
+        for x in range(cutechess_cnt):
+            cmd = build_cutechess_command(config, dev_name, base_name, scale_factor, seed + x, x)
             tasks.append(executor.submit(run_and_parse_cutechess, config, cmd, x, results, abort_flag))
 
         # Process the Queue until we exit, finish, or are told to stop by the server
         try:
             rr = ResultsReporter(config, tasks, results, abort_flag)
             rr.process_until_finished()
-            rr.send_errors(seed)
+            rr.send_errors(seed, cutechess_cnt)
             Cutechess.kill_everything(dev_name, base_name)
 
         # Kill everything during an Exception, but print it
@@ -1284,21 +1275,21 @@ def run_benchmarks(config, branch, engine, network):
     # Set NPS to 0 if we had any errors
     return 0 if not bench or error else nps
 
-def build_cutechess_command(config, dev_cmd, base_cmd, scale_factor, seed):
+def build_cutechess_command(config, dev_cmd, base_cmd, scale_factor, seed, cutechess_idx):
 
     flags  = ' ' + Cutechess.basic_settings(config, seed)
     flags += ' ' + Cutechess.concurrency_settings(config)
     flags += ' ' + Cutechess.adjudication_settings(config)
-    flags += ' ' + Cutechess.engine_settings(config, dev_cmd, 'dev', scale_factor)
-    flags += ' ' + Cutechess.engine_settings(config, base_cmd, 'base', scale_factor)
+    flags += ' ' + Cutechess.engine_settings(config, dev_cmd, 'dev', scale_factor, cutechess_idx)
+    flags += ' ' + Cutechess.engine_settings(config, base_cmd, 'base', scale_factor, cutechess_idx)
     flags += ' ' + Cutechess.book_settings(config)
     flags += ' ' + Cutechess.pgnout_settings(config, seed)
 
     return ['cutechess-ob.exe', './cutechess-ob'][IS_LINUX] + flags
 
-def run_and_parse_cutechess(config, command, socket, results_queue, abort_flag):
+def run_and_parse_cutechess(config, command, cutechess_idx, results_queue, abort_flag):
 
-    print('\n[#%d] Launching Cutechess...\n%s\n' % (socket, command))
+    print('\n[#%d] Launching Cutechess...\n%s\n' % (cutechess_idx, command))
     cutechess = Popen(command.split(), stdout=PIPE)
 
     results = {
@@ -1319,7 +1310,7 @@ def run_and_parse_cutechess(config, command, socket, results_queue, abort_flag):
             break
 
         if 'Started game' not in line and 'Score of' not in line:
-            print('[#%d] %s' % (socket, line))
+            print('[#%d] %s' % (cutechess_idx, line))
 
         if 'Finished game' in line:
             Cutechess.update_results(results, line)
@@ -1329,11 +1320,12 @@ def run_and_parse_cutechess(config, command, socket, results_queue, abort_flag):
 
             # Place the results into the Queue, and be sure to copy the lists
             results_queue.put({
-                'trinomial'   : list(results['trinomial']),
-                'pentanomial' : list(results['pentanomial']),
-                'crashes'     : results['crashes'],
-                'timelosses'  : results['timelosses'],
-                'illegals'    : results['illegals'],
+                'trinomial'     : list(results['trinomial']),
+                'pentanomial'   : list(results['pentanomial']),
+                'crashes'       : results['crashes'],
+                'timelosses'    : results['timelosses'],
+                'illegals'      : results['illegals'],
+                'cutechess_idx' : cutechess_idx,
             })
 
             # Clear out all the results, so we can start collecting a new set

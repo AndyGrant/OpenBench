@@ -416,6 +416,15 @@ def update_test(request, machine):
             test.failed   = test.games >= test.max_games and test.wins <  test.losses
             test.finished = test.passed or test.failed
 
+        elif test.test_mode == 'SPSA':
+
+            # Update each parameter, as determined by the Worker
+            for name, param in test.spsa['parameters'].items():
+                x = param['value'] + float(request.POST['spsa_%s' % (name)])
+                param['value'] = max(param['min'], min(param['max'], x))
+
+            test.finished = test.games / test.spsa['pairs_per'] > test.spsa['iterations']
+
         test.save()
 
     # Update Result object; No risk from concurrent access
