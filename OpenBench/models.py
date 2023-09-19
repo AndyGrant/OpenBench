@@ -94,7 +94,7 @@ class Test(Model):
 
     # Opening book settings
     book_name      = CharField(max_length=32)
-    book_start_pos = IntegerField(default=0)
+    book_start_pos = IntegerField(default=1)
 
     # Dev Engine, and all of its settings
     dev              = ForeignKey('Engine', PROTECT, related_name='dev')
