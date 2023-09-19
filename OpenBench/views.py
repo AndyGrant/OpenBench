@@ -451,7 +451,7 @@ def test(request, id, action=None):
         return redirect(request, '/index/', error='No such Test exists')
 
     # Verify that it is indeed a Test and not a Tune
-    if test.test_mode != 'SPRT' and test.test_mode != 'FIXED':
+    if test.test_mode != 'SPRT' and test.test_mode != 'GAMES':
         return redirect(request, '/index/', error='You are trying to view a Tune not Test')
 
     # Package everything up and display the test
@@ -469,7 +469,7 @@ def tune(request, id, action=None):
         return redirect(request, '/index/', error='No such Tune exists')
 
     # Verify that it is indeed a Tune and not a Test
-    if tune.test_mode == 'SPRT' or tune.test_mode == 'FIXED':
+    if tune.test_mode == 'SPRT' or tune.test_mode == 'GAMES':
         return redirect(request, '/index/', error='You are trying to view a Test not Tune')
 
     # Package everything up and display the Tune
