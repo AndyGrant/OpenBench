@@ -52,6 +52,9 @@ def gitDiffLink(test):
     else:
         repo = OpenBench.utils.path_join(*test.dev.source.split('/')[:-2])
 
+    if test.test_mode == 'SPSA':
+        return OpenBench.utils.path_join(repo, 'compare', test.dev.sha[:8])
+
     return OpenBench.utils.path_join(repo, 'compare',
         '{0}..{1}'.format( test.base.sha[:8], test.dev.sha[:8]))
 
