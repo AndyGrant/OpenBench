@@ -47,38 +47,27 @@
         <table class="test-config left-align wrappable" style="table-layout: auto; width: 100%;">
             <tr><td class="td-label">Author</td><td>{{test.author|capfirst}}</td></tr>
             <tr><td class="td-label">Creation</td><td class="timestamp">{{test.creation|date:'U'}}</td></tr>
-
-            <tr><td class="td-label">Dev Engine</td><td>{{test.dev_engine}}</td></tr>
-            <tr><td class="td-label">Dev Source</td><td><a href="{{test.dev_repo}}">{{test.dev_repo}}</a></td></tr>
-            <tr><td class="td-label">Dev Sha</td><td>{{test.dev.sha}}</td></tr>
-            <tr><td class="td-label">Dev Branch</td><td>{{test.dev.name|prettyName}}</td></tr>
-            <tr><td class="td-label">Dev Bench</td><td>{{test.dev.bench}}</td></tr>
+            <tr><td class="td-label">Engine</td><td>{{test.dev_engine}}</td></tr>
+            <tr><td class="td-label">Source</td><td><a href="{{test.dev_repo}}">{{test.dev_repo}}</a></td></tr>
+            <tr><td class="td-label">Sha</td><td>{{test.dev.sha}}</td></tr>
+            <tr><td class="td-label">Branch</td><td>{{test.dev.name|prettyName}}</td></tr>
+            <tr><td class="td-label">Bench</td><td>{{test.dev.bench}}</td></tr>
             {% if test.dev_network %}
             <tr>
-                <td class="td-label">Dev Network</td>
+                <td class="td-label">Network</td>
                 <td><a href="{{test.devnetwork|resolveNetworkURL}}">{{test.dev_netname}}</td>
-            </tr> {% endif %}
-            <tr><td class="td-label">Dev Options</td><td>{{test.dev_options}}</td></tr>
-            <tr><td class="td-label">Dev Time</td><td>{{test.dev_time_control}}</td></tr>
-
-            <tr><td class="td-label">Base Engine</td><td>{{test.base_engine}}</td></tr>
-            <tr><td class="td-label">Base Source</td><td><a href="{{test.base_repo}}">{{test.base_repo}}</a></td></tr>
-            <tr><td class="td-label">Base Sha</td><td>{{test.base.sha}}</td></tr>
-            <tr><td class="td-label">Base Branch</td><td>{{test.base.name|prettyName}}</td></tr>
-            <tr><td class="td-label">Base Bench</td><td>{{test.base.bench}}</td></tr>
-            {% if test.base_network %}
-            <tr>
-                <td class="td-label">Base Network</td>
-                <td><a href="{{test.basenetwork|resolveNetworkURL}}">{{test.base_netname}}</td>
-            </tr> {% endif %}
-            <tr><td class="td-label">Base Options</td><td>{{test.base_options}}</td></tr>
-            <tr><td class="td-label">Base Time</td><td>{{test.base_time_control}}</td></tr>
-
+            </tr>
+            {% endif %}
+            <tr><td class="td-label">Options</td><td>{{test.dev_options}}</td></tr>
+            <tr><td class="td-label">Time</td><td>{{test.dev_time_control}}</td></tr>
             <tr><td class="td-label">Opening Book</td><td><a href="{{config.framework}}raw/master/Books/{{test.bookname}}.zip">{{test.book_name}}</a></td></tr>
             <tr><td class="td-label">Syzygy WDL</td><td>{{test.syzygy_wdl}}</td></tr>
             <tr><td class="td-label">Syzygy ADJ.</td><td>{{test.syzygy_adj}}</td></tr>
             <tr><td class="td-label">Win ADJ.</td><td>{{test.win_adj}}</td></tr>
             <tr><td class="td-label">Draw ADJ.</td><td>{{test.draw_adj}}</td></tr>
+            <tr><td class="td-label">Alpha</td><td>{{test.spsa.Alpha}}</td></tr>
+            <tr><td class="td-label">Gamma</td><td>{{test.spsa.Gamma}}</td></tr>
+            <tr><td class="td-label">A-Ratio</td><td>{{test.spsa.A}}</td></tr>
         </table>
     </div>
 
@@ -91,27 +80,27 @@
 
         <!-- Approve Button: For Admins, or Cross-approvers -->
         {% if not test.approved and profile.approver and profile.user.username != test.author %}
-        <a class="w-25 mr-2 anchorbutton btn-blue" href="/test/{{test.id}}/APPROVE">Approve</a>
+        <a class="w-25 mr-2 anchorbutton btn-blue" href="/tune/{{test.id}}/APPROVE">Approve</a>
         {% elif not test.approved and request.user.is_superuser %}
-        <a class="w-25 mr-2 anchorbutton btn-blue" href="/test/{{test.id}}/APPROVE">Approve</a>
+        <a class="w-25 mr-2 anchorbutton btn-blue" href="/tune/{{test.id}}/APPROVE">Approve</a>
         {% else %}
         <a class="w-25 mr-2 anchorbutton btn-disabled">Approve</a>
         {% endif %}
 
         <!-- Restart Button: For Approvers or Test Authors of finished tests -->
         {% if test.finished and profile.approver %}
-        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/RESTART">Restart</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/tune/{{test.id}}/RESTART">Restart</a>
         {% elif test.finished and profile.user.username == test.author %}
-        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/RESTART">Restart</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/tune/{{test.id}}/RESTART">Restart</a>
         {% elif test.finished %}
         <a class="w-25 mr-2 anchorbutton btn-disabled">Restart</a>
         {% endif %}
 
         <!-- Stop Button: For Approvers or Test Authors of active tests -->
         {% if not test.finished and profile.approver %}
-        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/STOP">Stop</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/tune/{{test.id}}/STOP">Stop</a>
         {% elif not test.finished and profile.user.username == test.author %}
-        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/test/{{test.id}}/STOP">Stop</a>
+        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/tune/{{test.id}}/STOP">Stop</a>
         {% elif not test.finished %}
         <a class="w-25 mr-2 anchorbutton btn-disabled">Stop</a>
         {% endif %}
@@ -119,9 +108,9 @@
         <!-- Delete/Restore Button: For Approvers or Test Authors -->
         {% if profile.approver or profile.user.username == test.author %}
             {% if test.deleted %}
-                <a class="w-25 mr-2 anchorbutton btn-preset" href="/test/{{test.id}}/RESTORE">Restore</a>
+                <a class="w-25 mr-2 anchorbutton btn-preset" href="/tune/{{test.id}}/RESTORE">Restore</a>
             {% else %}
-                <a class="w-25 mr-2 anchorbutton btn-red" href="/test/{{test.id}}/DELETE">Delete</a>
+                <a class="w-25 mr-2 anchorbutton btn-red" href="/tune/{{test.id}}/DELETE">Delete</a>
             {% endif %}
         {% else %}
             {% if test.deleted %}
@@ -137,27 +126,29 @@
         </a>
 
         <!-- Elo, (SPRT/LRR if SPRT, otherwise CONF), Games -->
-        <pre class="long-statblock" id="long-statblock">{{test|longStatBlock|linebreaksbr}}</pre>
+        <!-- For SPSA, # of Params, Iterations, and Games -->
+        <pre class="long-statblock" id="long-statblock">{{test|shortStatBlock|linebreaksbr}}</pre>
 
         <!-- Forum to modify the Priority or Throughput -->
-        <form method="POST" action="/test/{{test.id}}/MODIFY">
+        <form method="POST" action="/tune/{{test.id}}/MODIFY">
             {% csrf_token %}
             <div class="form">
                 <div class="col-full">
                     <div class="row">
-                        <label>Priority</label><input value="{{test.priority}}" name="priority">
+                        <label>Priority</label>
+                        <input value="{{test.priority}}" name="priority">
                     </div>
                     <div class="row">
-                        <label>Throughput</label><input value="{{test.throughput}}" name="throughput">
+                        <label>Throughput</label>
+                        <input value="{{test.throughput}}" name="throughput">
                     </div>
                     <div class="row">
-                        <label>Worker Limit</label><input value="{{test.worker_limit|default:'None'}}" name="worker_limit">
+                        <label>Worker Limit</label>
+                        <input value="{{test.worker_limit|default:'None'}}" name="worker_limit">
                     </div>
                     <div class="row">
-                        <label>Thread Limit</label><input value="{{test.thread_limit|default:'None'}}" name="thread_limit">
-                    </div>
-                    <div class="row">
-                        <label>Workload Size</label><input value="{{test.workload_size}}" name="workload_size">
+                        <label>Thread Limit</label>
+                        <input value="{{test.thread_limit|default:'None'}}" name="thread_limit">
                     </div>
                     <!-- Edit Button: For Approvers or Test Authors -->
                     {% if profile.approver or profile.user.username == test.author %}
@@ -168,6 +159,30 @@
                 </div>
             </div>
         </form>
+    </div>
+
+    <div id="parameters" class="w-100 mt-3" style="float:left;">
+        <table class="stripes wrappable">
+            <tr class="table-header">
+                <th> Name </th>
+                <th> Start </th>
+                <th> Curr </th>
+                <th> Min </th>
+                <th> Max </th>
+                <th> C </th>
+                <th> C_end </th>
+                <th> R </th>
+                <th> R_end </th>
+            </tr>
+
+            {% for row in test|spsa_param_digest %}
+                <tr>
+                    {% for element in row %}
+                        <td> {{ element }} </td>
+                    {% endfor %}
+                <tr>
+            {% endfor %}
+        </table>
     </div>
 
     <div id="results" class="w-100 mt-3" style="float:left;">
@@ -197,9 +212,7 @@
                     <td class="numeric">{{result.crashes}}</td>
                 </tr>
             {% endfor %}
-
         </table>
-
     </div>
 
 {% endblock %}

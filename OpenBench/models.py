@@ -112,7 +112,8 @@ class Test(Model):
     base_time_control = CharField(max_length=32)
 
     # Changable Test Parameters
-    report_rate   = IntegerField(default=8)
+    worker_limit  = IntegerField(default=0)
+    thread_limit  = IntegerField(default=0)
     workload_size = IntegerField(default=32)
     priority      = IntegerField(default=0)
     throughput    = IntegerField(default=0)
@@ -133,6 +134,7 @@ class Test(Model):
     currentllr  = FloatField(default=0.0) # SPRT
     upperllr    = FloatField(default=0.0) # SPRT
     max_games   = IntegerField(default=0) # GAMES
+    spsa        = JSONField(default=dict, blank=True, null=True) # SPSA
 
     # Collection of all individual Result() objects
     games  = IntegerField(default=0) # Overall

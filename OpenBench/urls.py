@@ -48,11 +48,15 @@ urlpatterns = [
     django.urls.path(r'machines/', OpenBench.views.machines),
     django.urls.path(r'machines/<int:machineid>/', OpenBench.views.machines),
 
-    # Links for viewing and managing tests (maintain Legacy)
+    # Links for viewing and managing tests
     django.urls.path(r'test/<int:id>/', OpenBench.views.test),
-    django.urls.path(r'viewTest/<int:id>/', OpenBench.views.test),
     django.urls.path(r'test/<int:id>/<str:action>', OpenBench.views.test),
     django.urls.path(r'newTest/', OpenBench.views.create_test),
+
+    # Links for viewing and managing tunes
+    django.urls.path(r'tune/<int:id>/', OpenBench.views.tune),
+    django.urls.path(r'tune/<int:id>/<str:action>', OpenBench.views.tune),
+    django.urls.path(r'newTune/', OpenBench.views.create_tune),
 
     # Links for viewing and managing Networks
     django.urls.path(r'networks/', OpenBench.views.networks),

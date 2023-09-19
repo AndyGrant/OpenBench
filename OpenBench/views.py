@@ -27,6 +27,11 @@ import django.contrib.auth
 import OpenBench.config
 import OpenBench.utils
 
+from OpenBench.workloads.get_workload import get_workload
+from OpenBench.workloads.create_workload import create_workload
+from OpenBench.workloads.verify_workload import verify_workload
+from OpenBench.workloads.modify_workload import modify_workload
+
 from OpenBench.config import OPENBENCH_CONFIG
 
 from OpenBench.models import *
@@ -437,70 +442,45 @@ def machines(request, machineid=None):
 
 def test(request, id, action=None):
 
+    # Request is to modify or interact with the Test
+    if action != None:
+        return modify_workload(request, id, action)
+
+    # Verify that the Test id exists
     if not (test := Test.objects.filter(id=id).first()):
-        return django.http.HttpResponseRedirect('/index/')
+        return redirect(request, '/index/', error='No such Test exists')
 
-    if action not in ['APPROVE', 'RESTART', 'STOP', 'DELETE', 'RESTORE', 'MODIFY']:
-        data = { 'test' : test, 'results': Result.objects.filter(test=test) }
-        return render(request, 'test.html', data)
+    # Verify that it is indeed a Test and not a Tune
+    if test.test_mode != 'SPRT' and test.test_mode != 'FIXED':
+        return redirect(request, '/index/', error='You are trying to view a Tune not Test')
 
-    if not request.user.is_authenticated:
-        return redirect(request, '/login/', error='Only users may interact with tests')
+    # Package everything up and display the test
+    data = { 'test' : test, 'results': Result.objects.filter(test=test) }
+    return render(request, 'test.html', data)
 
-    profile = Profile.objects.get(user=request.user)
-    if not profile.approver and test.author != request.user.username:
-        return redirect(request, '/index/', error='You cannot interact with another user\'s test')
+def tune(request, id, action=None):
 
-    if action == 'APPROVE':
-        if test.author == request.user.username and not user.is_superuser:
-            return redirect(request, '/index/', error='You cannot approve your own test')
+    # Request is to modify or interact with the Tune
+    if action != None:
+        return modify_workload(request, id, action)
 
-    if action == 'APPROVE': test.approved =  True; test.save()
-    if action == 'RESTART': test.finished = False; test.save()
-    if action == 'STOP'   : test.finished =  True; test.save()
-    if action == 'DELETE' : test.deleted  =  True; test.save()
-    if action == 'RESTORE': test.deleted  = False; test.save()
+    # Verify that the Tune id exists
+    if not (tune := Test.objects.filter(id=id).first()):
+        return redirect(request, '/index/', error='No such Tune exists')
 
-    if action == 'MODIFY':
-        test.priority      = int(request.POST['priority'])
-        test.throughput    = max(1, int(request.POST['throughput']))
-        test.report_rate   = max(1, int(request.POST['report_rate']))
-        test.workload_size = max(1, int(request.POST['workload_size']))
-        test.save()
+    # Verify that it is indeed a Tune and not a Test
+    if tune.test_mode == 'SPRT' or tune.test_mode == 'FIXED':
+        return redirect(request, '/index/', error='You are trying to view a Test not Tune')
 
-    action += " P=%d TP=%d RR=%d WS=%d" % (test.priority, test.throughput, test.report_rate, test.workload_size)
-    LogEvent.objects.create(author=request.user.username, summary=action, log_file='', test_id=test.id)
-    return django.http.HttpResponseRedirect('/index/')
+    # Package everything up and display the Tune
+    data = { 'test' : tune, 'results': Result.objects.filter(test=tune) }
+    return render(request, 'tune.html', data)
 
 def create_test(request):
+    return create_workload(request, 'TEST')
 
-    if not request.user.is_authenticated:
-        return redirect(request, '/login/', error='Only enabled users can create tests')
-
-    if not Profile.objects.get(user=request.user).enabled:
-        return redirect(request, '/login/', error='Only enabled users can create tests')
-
-    if request.method == 'GET':
-        data = { 'networks' : list(Network.objects.all().values()) }
-        return render(request, 'create_test.html', data)
-
-    test, errors = OpenBench.utils.create_new_test(request)
-    if errors != [] and errors != None:
-        return redirect(request, '/newTest/', error='\n'.join(errors))
-
-    if warning := OpenBench.utils.branch_is_out_of_date(test):
-        warning = 'Consider Rebasing: Dev (%s) appears behind Base (%s)' % (test.dev.name, test.base.name)
-
-    username = request.user.username
-    profile  = Profile.objects.get(user=request.user)
-    summary  = 'CREATE P=%d TP=%d' % (test.priority, test.throughput)
-    LogEvent.objects.create(author=username, summary=summary, log_file='', test_id=test.id)
-
-    if not OpenBench.config.USE_CROSS_APPROVAL and profile.approver:
-        test.approved = True; test.save()
-
-    return redirect(request, '/index/', warning=warning)
-
+def create_tune(request):
+    return create_workload(request, 'TUNE')
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                          NETWORK MANAGEMENT VIEWS                           #
@@ -588,7 +568,7 @@ def client_verify_worker(request):
     # Ensure the Client is using the same version as the Server
     if machine.info['client_ver'] != OPENBENCH_CONFIG['client_version']:
         expected_ver = OPENBENCH_CONFIG['client_version']
-        return machine, JsonResponse({ 'error' : 'Bad Client Version: Expected %s' % (expected_ver)})
+        return machine, JsonResponse({ 'error' : 'Bad Client Version: Expected %d' % (expected_ver)})
 
     # Use the secret token as our soft verification
     if machine.secret != request.POST['secret']:
@@ -673,7 +653,7 @@ def client_get_workload(request):
     if response != None: return response
 
     # Contains keys 'workload', otherwise none
-    return JsonResponse(OpenBench.utils.get_workload(machine))
+    return JsonResponse(get_workload(machine))
 
 @csrf_exempt
 def client_get_network(request, engine, name):
