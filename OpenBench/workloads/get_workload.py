@@ -37,9 +37,12 @@
 # Our response includes three critical values:
 #
 #   1. cutechess-count      The # of Sockets on the worker for SPRT/FIXED tests
-#                           The # of max possible concurrent games for SPRT tests
+#                           The # of max possible concurrent pairs for SPSA tests
+#                           Unless the distribution type is SINGLE
+#
 #   2. concurrency-per      The # of concurrent games to run per Cutechess copy.
 #                           Function of the machine, and each engine's options
+#
 #   3. games-per-cutechess  # of total games to run per Cutechess copy
 #                           This is the 2 x workload_size x concurrency-per
 
@@ -223,15 +226,23 @@ def workload_to_dictionary(test, result, machine):
         'private'      : OPENBENCH_CONFIG['engines'][test.base_engine]['private'],
     }
 
-    workload['distribution'] = game_distribution(test, machine)
-    workload['spsa']         = spsa_to_dictionary(test, workload['distribution']['cutechess-count'])
+    workload['distribution']   = game_distribution(test, machine)
+    workload['spsa']           = spsa_to_dictionary(test, workload)
+    workload['reporting_type'] = test.spsa['reporting_type']
 
     return workload
 
-def spsa_to_dictionary(test, permutations):
+def spsa_to_dictionary(test, workload):
 
     if test.test_mode != 'SPSA':
         return None
+
+    # Only use one set of parameters if distribution is SINGLE.
+    # Duplicate the params, even though they are the same, across all
+    # Sockets on the machine, in the event of a singular SPSA distribution
+    is_single    = test.spsa['distribution_type'] == 'SINGLE'
+    permutations = 1 if is_single else workload['distribution']['cutechess-count']
+    duplicates   = 1 if not is_single else workload['distribution']['cutechess-count']
 
     # C & R are scaled over the course of the iterations
     iteration     = 1 + (test.games / (test.spsa['pairs_per'] * 2))
@@ -274,9 +285,11 @@ def spsa_to_dictionary(test, permutations):
                 base = int(base)
 
             # Append each permutation
-            spsa[name]['dev' ].append(dev)
-            spsa[name]['base'].append(base)
-            spsa[name]['flip'].append(flip)
+            for g in range(duplicates):
+                spsa[name]['dev' ].append(dev)
+                spsa[name]['base'].append(base)
+                spsa[name]['flip'].append(flip)
+
 
     return spsa
 
@@ -307,10 +320,11 @@ def game_distribution(test, machine):
     # Number of params being evaluated at a single time
     spsa_count = (worker_threads // max(dev_threads, base_threads)) // 2
 
-    is_spsa = test.test_mode == 'SPSA'
+    # SPSA is treated specially, if we are distributing many parameter sets at once
+    is_multiple_spsa = test.test_mode == 'SPSA' and test.spsa['distribution_type'] == 'MULTIPLE'
 
     return {
-        'cutechess-count'     : spsa_count if is_spsa else worker_sockets,
-        'concurrency-per'     : 2 if is_spsa else concurrency,
-        'games-per-cutechess' : 2 * test.workload_size * (1 if is_spsa else concurrency),
+        'cutechess-count'     : spsa_count if is_multiple_spsa else worker_sockets,
+        'concurrency-per'     : 2 if is_multiple_spsa else concurrency,
+        'games-per-cutechess' : 2 * test.workload_size * (1 if is_multiple_spsa else concurrency),
     }

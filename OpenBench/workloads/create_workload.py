@@ -203,6 +203,10 @@ def extract_spas_params(request):
     spsa['pairs_per' ] = int(request.POST['spsa_pairs_per'])
     spsa['A'         ] = spsa['A_ratio'] * spsa['iterations']
 
+    # Tuning Methodologies
+    spsa['reporting_type'   ] = request.POST['spsa_reporting_type']
+    spsa['distribution_type'] = request.POST['spsa_distribution_type']
+
     # Each individual tuning parameter
     spsa['parameters'] = {}
     for line in request.POST['spsa_inputs'].split('\n'):

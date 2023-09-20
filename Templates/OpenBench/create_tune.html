@@ -60,11 +60,26 @@
                     <label> Time </label> <input id="time_control" name="dev_time_control">
                 </div>
 
+                <h3> SPSA Methodologies </h3>
+
+                <div class="row">
+                    <label> Reporting </label> <select name="spsa_reporting_type">
+                        <option selected value="BATCHED"> Batched </option>
+                        <option value="BULK"> Bulk </option>
+                    </select>
+                </div>
+
+                <div class="row">
+                    <label> Distribution </label> <select name="spsa_distribution_type">
+                        <option selected value="SINGLE"> Single </option>
+                        <option value="MULTIPLE"> Multiple </option>
+                    </select>
+                </div>
+
                 <h3> SPSA Input </h3>
 
                 <div class="row">
-
-                    <textarea style="margin-left:24px" id="spsa_inputs" name="spsa_inputs" rows=17></textarea>
+                    <textarea style="margin-left:24px" id="spsa_inputs" name="spsa_inputs" rows=9></textarea>
                 </div>
 
             </div>
