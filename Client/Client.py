@@ -392,7 +392,7 @@ class Cutechess:
     ## and a small number of secondary arguments that are not housed in the Configuration
 
     @staticmethod
-    def basic_settings(config, seed):
+    def basic_settings(config):
 
         # Assume Fischer if FRC, 960, or FISCHER appears in the Opening Book
         book_name = config.workload['test']['book']['name'].upper()
@@ -400,7 +400,7 @@ class Cutechess:
         variant   = ['standard', 'fischerandom'][is_frc]
 
         # Always include -repeat and -recover
-        return '-repeat -recover -srand %d -variant %s' % (seed, variant)
+        return '-repeat -recover -variant %s' % (variant)
 
     @staticmethod
     def concurrency_settings(config):
@@ -435,12 +435,18 @@ class Cutechess:
         return '%s %s %s' % (win_flags, draw_flags, syzygy_flags)
 
     @staticmethod
-    def book_settings(config):
+    def book_settings(config, cutechess_idx):
 
         # Can handle EPD and PGN Books, which must be specified
         book_name   = config.workload['test']['book']['name']
         book_suffix = book_name.split('.')[-1]
-        return '-openings file=Books/%s format=%s order=random plies=16' % (book_name, book_suffix)
+
+        # Start position is determined partially by cutechess index
+        pairs = config.workload['distribution']['games-per-cutechess'] // 2
+        start = config.workload['test']['book_index'] + cutechess_idx * pairs
+
+        return '-openings file=Books/%s format=%s order=random start=%d -srand %d' % (
+            book_name, book_suffix, start, config.workload['test']['book_seed'])
 
     @staticmethod
     def engine_settings(config, command, branch, scale_factor, cutechess_idx):
@@ -478,12 +484,13 @@ class Cutechess:
         return '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s-%s' % (command, control, options, name, branch)
 
     @staticmethod
-    def pgnout_settings(config, seed):
+    def pgnout_settings(config, timestamp, cutechess_idx):
 
         test_id   = int(config.workload['test']['id'])
         result_id = int(config.workload['result']['id'])
 
-        return '-pgnout PGNs/%d.%d.%d.pgn' % (test_id, result_id, seed)
+        # Format: <Test>-<Result>-<Time>-<Index>.pgn
+        return '-pgnout PGNs/%d.%d.%d.%d.pgn' % (test_id, result_id, timestamp, cutechess_idx)
 
     @staticmethod
     def update_results(results, line):
@@ -661,12 +668,12 @@ class ResultsReporter(object):
             traceback.print_exc()
             print ('[Note] Failed to upload results to server...')
 
-    def send_errors(self, seed, cutechess_cnt):
+    def send_errors(self, timestamp, cutechess_cnt):
 
         for x in range(cutechess_cnt):
 
             # Reuse logic that was given to Cutechess to decide the PGN name
-            fname = Cutechess.pgnout_settings(self.config, seed + x).split()[1]
+            fname = Cutechess.pgnout_settings(self.config, timestamp, x).split()[1]
 
             # For any game with weird Termination, report it
             for header, moves in PGNHelper.slice_pgn_file(fname):
@@ -1066,20 +1073,20 @@ def complete_workload(config):
     # Launch and manage all of the Cutechess workers
     with ThreadPoolExecutor(max_workers=cutechess_cnt) as executor:
 
-        seed       = time.time()
+        timestamp  = time.time()
         results    = multiprocessing.Queue()
         abort_flag = threading.Event()
 
         tasks = [] # Create each of the Cutechess workers
         for x in range(cutechess_cnt):
-            cmd = build_cutechess_command(config, dev_name, base_name, scale_factor, seed + x, x)
+            cmd = build_cutechess_command(config, dev_name, base_name, scale_factor, timestamp, x)
             tasks.append(executor.submit(run_and_parse_cutechess, config, cmd, x, results, abort_flag))
 
         # Process the Queue until we exit, finish, or are told to stop by the server
         try:
             rr = ResultsReporter(config, tasks, results, abort_flag)
             rr.process_until_finished()
-            rr.send_errors(seed, cutechess_cnt)
+            rr.send_errors(timestamp, cutechess_cnt)
             Cutechess.kill_everything(dev_name, base_name)
 
         # Kill everything during an Exception, but print it
@@ -1278,15 +1285,15 @@ def run_benchmarks(config, branch, engine, network):
     # Set NPS to 0 if we had any errors
     return 0 if not bench or error else nps
 
-def build_cutechess_command(config, dev_cmd, base_cmd, scale_factor, seed, cutechess_idx):
+def build_cutechess_command(config, dev_cmd, base_cmd, scale_factor, timestamp, cutechess_idx):
 
-    flags  = ' ' + Cutechess.basic_settings(config, seed)
+    flags  = ' ' + Cutechess.basic_settings(config)
     flags += ' ' + Cutechess.concurrency_settings(config)
     flags += ' ' + Cutechess.adjudication_settings(config)
     flags += ' ' + Cutechess.engine_settings(config, dev_cmd, 'dev', scale_factor, cutechess_idx)
     flags += ' ' + Cutechess.engine_settings(config, base_cmd, 'base', scale_factor, cutechess_idx)
-    flags += ' ' + Cutechess.book_settings(config)
-    flags += ' ' + Cutechess.pgnout_settings(config, seed)
+    flags += ' ' + Cutechess.book_settings(config, cutechess_idx)
+    flags += ' ' + Cutechess.pgnout_settings(config, timestamp, cutechess_idx)
 
     return ['cutechess-ob.exe', './cutechess-ob'][IS_LINUX] + flags
 
