@@ -423,7 +423,7 @@ def update_test(request, machine):
                 x = param['value'] + float(request.POST['spsa_%s' % (name)])
                 param['value'] = max(param['min'], min(param['max'], x))
 
-            test.finished = test.games / test.spsa['pairs_per'] > test.spsa['iterations']
+            test.finished = test.games >= 2 * test.spsa['pairs_per'] * test.spsa['iterations']
 
         test.save()
 
