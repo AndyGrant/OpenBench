@@ -111,45 +111,47 @@ def verify_tune_creation(errors, request):
 
     verifications = [
 
+        # Verify the SPSA raw inputs and methods
+        (verify_spsa_inputs           , 'spsa_inputs'),
+        (verify_spsa_reporting_type   , 'spsa_reporting_type', 'Reporting Method'),
+        (verify_spsa_distribution_type, 'spsa_distribution_type', 'Distribution Method'),
+
         # Verify everything about the Engine
-        (verify_configuration  , 'dev_engine', 'Engine', 'engines'),
-        (verify_github_repo    , 'dev_repo'),
-        (verify_network        , 'dev_network', 'Network', 'dev_engine'),
-        (verify_options        , 'dev_options', 'Threads', 'Options'),
-        (verify_options        , 'dev_options', 'Hash', 'Options'),
-        (verify_time_control   , 'dev_time_control', 'Time Control'),
+        (verify_configuration         , 'dev_engine', 'Engine', 'engines'),
+        (verify_github_repo           , 'dev_repo'),
+        (verify_network               , 'dev_network', 'Network', 'dev_engine'),
+        (verify_options               , 'dev_options', 'Threads', 'Options'),
+        (verify_options               , 'dev_options', 'Hash', 'Options'),
+        (verify_time_control          , 'dev_time_control', 'Time Control'),
 
         # Verify everything about the Test Settings
-        (verify_configuration  , 'book_name', 'Book', 'books'),
+        (verify_configuration         , 'book_name', 'Book', 'books'),
 
         # Verify everything about the General Settings
-        (verify_integer        , 'priority', 'Priority'),
-        (verify_greater_than   , 'throughput', 'Throughput', 0),
-        (verify_syzygy_field   , 'syzygy_wdl', 'Syzygy WDL'),
+        (verify_integer               , 'priority', 'Priority'),
+        (verify_greater_than          , 'throughput', 'Throughput', 0),
+        (verify_syzygy_field          , 'syzygy_wdl', 'Syzygy WDL'),
 
         # Verify everything about the Workload Settings
-        (verify_integer_or_none, 'worker_limit', 'Worker Limit'),
-        (verify_integer_or_none, 'thread_limit', 'Thread Limit'),
+        (verify_integer_or_none       , 'worker_limit', 'Worker Limit'),
+        (verify_integer_or_none       , 'thread_limit', 'Thread Limit'),
 
         # Verify everything about the Adjudicaton Settings
-        (verify_syzygy_field   , 'syzygy_adj', 'Syzygy Adjudication'),
-        (verify_win_adj        , 'win_adj'),
-        (verify_draw_adj       , 'draw_adj'),
+        (verify_syzygy_field          , 'syzygy_adj', 'Syzygy Adjudication'),
+        (verify_win_adj               , 'win_adj'),
+        (verify_draw_adj              , 'draw_adj'),
 
         # Verify everything about the SPSA Settings
-        (verify_float          , 'spsa_alpha', 'SPSA A-Ratio'),
-        (verify_float          , 'spsa_alpha', 'SPSA Alpha'),
-        (verify_float          , 'spsa_gamma', 'SPSA Gamma'),
-        (verify_integer        , 'spsa_iterations', 'SPSA Iterations'),
-        (verify_integer        , 'spsa_pairs_per', 'SPSA Pairs-Per'),
-        (verify_greater_than   , 'spsa_alpha', 'SPSA A-Ratio', 0.00),
-        (verify_greater_than   , 'spsa_alpha', 'SPSA Alpha', 0.00),
-        (verify_greater_than   , 'spsa_gamma', 'SPSA Gamma', 0.00),
-        (verify_greater_than   , 'spsa_iterations', 'SPSA Iterations', 0),
-        (verify_greater_than   , 'spsa_pairs_per', 'SPSA Pairs-Per', 0),
-
-        # Verify the SPSA raw inputs for each parameter
-        (verify_spsa_inputs    , 'spsa_inputs'),
+        (verify_float                 , 'spsa_alpha', 'SPSA A-Ratio'),
+        (verify_float                 , 'spsa_alpha', 'SPSA Alpha'),
+        (verify_float                 , 'spsa_gamma', 'SPSA Gamma'),
+        (verify_integer               , 'spsa_iterations', 'SPSA Iterations'),
+        (verify_integer               , 'spsa_pairs_per', 'SPSA Pairs-Per'),
+        (verify_greater_than          , 'spsa_alpha', 'SPSA A-Ratio', 0.00),
+        (verify_greater_than          , 'spsa_alpha', 'SPSA Alpha', 0.00),
+        (verify_greater_than          , 'spsa_gamma', 'SPSA Gamma', 0.00),
+        (verify_greater_than          , 'spsa_iterations', 'SPSA Iterations', 0),
+        (verify_greater_than          , 'spsa_pairs_per', 'SPSA Pairs-Per', 0),
     ]
 
     for verification in verifications:
@@ -267,6 +269,16 @@ def verify_spsa_inputs(errors, request, field):
     except:
         traceback.print_exc()
         errors.append('Malformed SPSA Input')
+
+def verify_spsa_reporting_type(errors, request, field, field_name):
+    candidates = ['BULK', 'BATCHED']
+    try: assert request.POST[field] in candidates
+    except: errors.append('%s must be in %s' % (field_name, ', '.join(candidates)))
+
+def verify_spsa_distribution_type(errors, request, field, field_name):
+    candidates = ['SINGLE', 'MULTIPLE']
+    try: assert request.POST[field] in candidates
+    except: errors.append('%s must be in %s' % (field_name, ', '.join(candidates)))
 
 
 def collect_github_info(errors, request, field):

@@ -606,6 +606,10 @@ class ResultsReporter(object):
         self.last_report = 0
         self.pending     = []
 
+        # Don't report until finished, for BULK SPSA tests
+        self.bulk = self.config.workload['test']['type'] == 'SPSA'
+        self.bulk = self.bulk and self.config.workload['reporting_type'] == 'BULK'
+
         # Block up-to 5 seconds to get a new result
         def get_next_result():
             try: return self.results_queue.get(timeout=5)
@@ -618,7 +622,7 @@ class ResultsReporter(object):
                 self.pending.append(result)
 
             # Send results every 30 seconds, until all Tasks are done
-            if self.send_results(report_interval=REPORT_INTERVAL):
+            if not self.bulk and self.send_results(report_interval=REPORT_INTERVAL):
                 return
 
             # Kill everything if openbench.exit is created
