@@ -56,6 +56,9 @@ import OpenBench.utils
 from OpenBench.config import OPENBENCH_CONFIG
 from OpenBench.models import Result, Test
 
+from django.db import transaction
+
+
 def get_workload(machine):
 
     # Select a workload from the possible ones, if we can
@@ -228,7 +231,19 @@ def workload_to_dictionary(test, result, machine):
 
     workload['distribution']   = game_distribution(test, machine)
     workload['spsa']           = spsa_to_dictionary(test, workload)
-    workload['reporting_type'] = test.spsa['reporting_type']
+    workload['reporting_type'] = test.spsa.get('reporting_type', 'BATCHED')
+
+    with transaction.atomic():
+
+        test = Test.objects.select_for_update().get(id=test.id)
+        workload['test']['book_seed' ] = test.id
+        workload['test']['book_index'] = test.book_index
+
+        cutechess_cnt = workload['distribution']['cutechess-count']
+        pairs_per_cnt = workload['distribution']['games-per-cutechess'] // 2
+
+        test.book_index += cutechess_cnt * pairs_per_cnt
+        test.save()
 
     return workload
 
