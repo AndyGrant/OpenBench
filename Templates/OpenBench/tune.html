@@ -151,7 +151,11 @@
             {% for row in test|spsa_param_digest %}
                 <tr>
                     {% for element in row %}
-                        <td class='numeric'> {{ element }} </td>
+                        {% if not forloop.first %}
+                            <td class='numeric'> {{ element }} </td>
+                        {% else %}
+                            <td> {{ element }} </td>
+                        {% endif %}
                     {% endfor %}
                 <tr>
             {% endfor %}
