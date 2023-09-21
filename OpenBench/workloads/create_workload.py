@@ -209,12 +209,16 @@ def extract_spas_params(request):
 
     # Each individual tuning parameter
     spsa['parameters'] = {}
-    for line in request.POST['spsa_inputs'].split('\n'):
+    for index, line in enumerate(request.POST['spsa_inputs'].split('\n')):
 
         # Comma-seperated values, already verified in verify_workload()
         name, data_type, value, minimum, maximum, c_end, r_end = line.split(',')
 
-        param          = {} # Raw extraction
+        # Recall the original order of inputs
+        param          = {}
+        param['index'] = index
+
+        # Raw extraction
         param['float'] = data_type.strip() == 'float'
         param['start'] = float(value)
         param['value'] = float(value)
