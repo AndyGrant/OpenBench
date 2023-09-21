@@ -1,44 +1,13 @@
 {% extends "OpenBench/base.html" %}
 
 {% load mytags %}
+{% load static %}
 
 {% block style %}
 {% endblock %}
 
 {% block scripts %}
-
-    <script>
-
-        function copy_statblock() {
-
-            var text = document.getElementById("long-statblock").innerHTML;
-            text = text.replace(/<br>/g, "\n");
-            text += "\n" + window.location.href;
-
-            // navigator.clipboard.writeText(text); // Optimal solution
-
-            // Suboptimal, HTTP solution
-
-            var area = document.createElement("textarea");
-            area.value = text;
-            document.body.append(area);
-
-            area.focus();
-            area.select();
-
-            try {
-                document.execCommand("copy");
-                document.body.removeChild(area);
-            }
-
-            catch (err) {
-                document.body.removeChild(area);
-                console.error("Unable to copy to Clipboard");
-            }
-        }
-
-    </script>
-
+    <script src="{% static 'copy_text.js' %}"></script>
 {% endblock %}
 
 {% block content %}
@@ -132,7 +101,7 @@
         {% endif %}
 
         <!-- Copy Button: Copy the current results statblock -->
-        <a class="copy-button" onclick="copy_statblock()">
+        <a class="copy-button" onclick="copy_text('long-statblock', true)">
             <i class="fa-regular fa-clone copy-button"></i>
         </a>
 

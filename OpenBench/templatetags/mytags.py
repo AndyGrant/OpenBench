@@ -238,18 +238,28 @@ def spsa_param_digest(test):
     c_compression = iteration ** test.spsa['Gamma']
     r_compression = (test.spsa['A'] + iteration) ** test.spsa['Alpha']
 
-    for name, param in test.spsa['parameters'].items():
+    # Maintain the original order, if there was one
+    keys = sorted(
+        test.spsa['parameters'].keys(),
+        key=lambda x: test.spsa['parameters'][x].get('index', -1)
+    )
+
+    for name in keys:
+
+        param = test.spsa['parameters'][name]
 
         # C and R if we got a workload right now
         c = param['c'] / c_compression
         r = param['a'] / r_compression / c ** 2
 
+        fstr = '%.4f' if param['float'] else '%d'
+
         digest.append([
             name,
-            '%.4f' % (param['start']),
             '%.4f' % (param['value']),
-            '%.4f' % (param['min'  ]),
-            '%.4f' % (param['max'  ]),
+            fstr   % (param['start']),
+            fstr   % (param['min'  ]),
+            fstr   % (param['max'  ]),
             '%.4f' % (c),
             '%.4f' % (param['c_end']),
             '%.4f' % (r),
@@ -258,7 +268,35 @@ def spsa_param_digest(test):
 
     return digest
 
+def spsa_original_input(test):
+
+    # Maintain the original order, if there was one
+    keys = sorted(
+        test.spsa['parameters'].keys(),
+        key=lambda x: test.spsa['parameters'][x].get('index', -1)
+    )
+
+    lines = []
+    for name in keys:
+
+        param = test.spsa['parameters'][name]
+        dtype = 'float' if param['float'] else 'int'
+
+        # Original 7 token Input
+        lines.append(', '.join([
+            name,
+            dtype,
+            str(param['start']),
+            str(param['min'  ]),
+            str(param['max'  ]),
+            str(param['c_end']),
+            str(param['r_end']),
+        ]))
+
+    return '\n'.join(lines)
+
 register.filter('spsa_param_digest', spsa_param_digest)
+register.filter('spsa_original_input', spsa_original_input)
 
 
 

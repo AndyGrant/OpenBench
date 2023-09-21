@@ -1,44 +1,13 @@
 {% extends "OpenBench/base.html" %}
 
 {% load mytags %}
+{% load static %}
 
 {% block style %}
 {% endblock %}
 
 {% block scripts %}
-
-    <script>
-
-        function copy_statblock() {
-
-            var text = document.getElementById("long-statblock").innerHTML;
-            text = text.replace(/<br>/g, "\n");
-            text += "\n" + window.location.href;
-
-            // navigator.clipboard.writeText(text); // Optimal solution
-
-            // Suboptimal, HTTP solution
-
-            var area = document.createElement("textarea");
-            area.value = text;
-            document.body.append(area);
-
-            area.focus();
-            area.select();
-
-            try {
-                document.execCommand("copy");
-                document.body.removeChild(area);
-            }
-
-            catch (err) {
-                document.body.removeChild(area);
-                console.error("Unable to copy to Clipboard");
-            }
-        }
-
-    </script>
-
+    <script src="{% static 'copy_text.js' %}"></script>
 {% endblock %}
 
 {% block content %}
@@ -122,8 +91,9 @@
             {% endif %}
         {% endif %}
 
-        <!-- Copy Button: Copy the current results statblock -->
-        <a class="copy-button" onclick="copy_statblock()">
+        <!-- Copies Raw SPSA Input from a hidden element -->
+        <pre id="spsa-input" style="display: none">{{test|spsa_original_input}}</pre>
+        <a class="copy-button" onclick="copy_text('spsa-input', false)">
             <i class="fa-regular fa-clone copy-button"></i>
         </a>
 
@@ -152,6 +122,7 @@
                         <label>Thread Limit</label>
                         <input value="{{test.thread_limit|default:'None'}}" name="thread_limit">
                     </div>
+
                     <!-- Edit Button: For Approvers or Test Authors -->
                     {% if profile.approver or profile.user.username == test.author %}
                     <input class="anchorbutton btn-blue w-100" type="submit" name="submit" value="Modify">
@@ -167,8 +138,8 @@
         <table class="stripes wrappable">
             <tr class="table-header">
                 <th> Name </th>
-                <th> Start </th>
                 <th> Curr </th>
+                <th> Start </th>
                 <th> Min </th>
                 <th> Max </th>
                 <th> C </th>
@@ -180,7 +151,7 @@
             {% for row in test|spsa_param_digest %}
                 <tr>
                     {% for element in row %}
-                        <td> {{ element }} </td>
+                        <td class='numeric'> {{ element }} </td>
                     {% endfor %}
                 <tr>
             {% endfor %}
