@@ -375,7 +375,8 @@ def update_test(request, machine):
 
     with transaction.atomic():
 
-        test = Test.objects.get(id=test_id)
+        test = Test.objects.select_for_update().get(id=test.id)
+
         if test.finished or test.deleted:
             return { 'stop' : True }
 
