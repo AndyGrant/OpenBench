@@ -24,7 +24,7 @@
             {% if test.dev_network %}
             <tr>
                 <td class="td-label">Network</td>
-                <td><a href="{{test.devnetwork|resolveNetworkURL}}">{{test.dev_netname}}</td>
+                <td><a href="{{test|network_download_link:'dev'}}">{{test.dev_netname}}</td>
             </tr>
             {% endif %}
             <tr><td class="td-label">Options</td><td>{{test.dev_options}}</td></tr>

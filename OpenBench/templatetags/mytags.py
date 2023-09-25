@@ -158,11 +158,6 @@ def prettyDevName(test):
 def testIsFRC(test):
     return "FRC" in test.book_name.upper() or "960" in test.book_name.upper()
 
-def resolveNetworkURL(sha256):
-    if OpenBench.models.Network.objects.filter(sha256=sha256):
-        return '/networks/download/{0}'.format(sha256)
-    return sha256 # Legacy Networks
-
 def testIdToPrettyName(test_id):
     return prettyName(OpenBench.models.Test.objects.get(id=test_id).dev.name)
 
@@ -221,7 +216,6 @@ register.filter('insertCommas', insertCommas)
 register.filter('prettyName', prettyName)
 register.filter('prettyDevName', prettyDevName)
 register.filter('testIsFRC', testIsFRC)
-register.filter('resolveNetworkURL', resolveNetworkURL)
 register.filter('testIdToPrettyName', testIdToPrettyName)
 register.filter('testIdToTimeControl', testIdToTimeControl)
 register.filter('cpuflagsBlock', cpuflagsBlock)
@@ -300,10 +294,25 @@ def spsa_original_input(test):
 def book_download_link(test):
     return OpenBench.config.OPENBENCH_CONFIG['books'][test.book_name]['source']
 
+def network_download_link(test, branch):
+
+    assert branch in [ 'dev', 'base' ]
+
+    sha    = test.dev_network if branch == 'dev' else test.base_network
+    engine = test.dev_engine  if branch == 'dev' else test.base_engine
+
+    # Network could have been deleted after this test was finished
+    if (network := OpenBench.models.Network.objects.filter(sha256=sha, engine=engine).first()):
+        return '/networks/%s/download/%s/' % (engine, sha)
+
+    return '/networks/%s/' % (engine)
+
 
 register.filter('spsa_param_digest', spsa_param_digest)
 register.filter('spsa_original_input', spsa_original_input)
+
 register.filter('book_download_link', book_download_link)
+register.filter('network_download_link', network_download_link)
 
 
 
