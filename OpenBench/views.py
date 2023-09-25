@@ -745,6 +745,92 @@ def client_submit_results(request):
     # Returns {}, or { 'stop' : True }
     return JsonResponse(OpenBench.utils.update_test(request, machine))
 
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                                                                             #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+def api_response(data):
+    return HttpResponse(json.dumps(data, indent=4), content_type='application/json')
+
+def api_authenticate(request, require_enabled=False):
+
+    try:
+
+        # Don't require a login for Public frameworks
+        if not require_enabled and not OpenBench.config.REQUIRE_LOGIN_TO_VIEW:
+            return True
+
+        # Request is made from a browser, and is already logged in
+        if request.user.is_authenticated:
+            return not require_enabled or bool(Profile.objects.get(user=request.user).enabled)
+
+        # Request might be made from the command line. Check the headers
+        user = django.contrib.auth.authenticate(
+            request.POST['username'], request.POST['password'])
+        return not require_enabled or Profile.objects.get(user=user).enabled
+
+    except Exception:
+        import traceback
+        traceback.print_exc()
+        return False
+
+def api_configs(request, engine=None):
+
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    if engine == None:
+        engines = list(OPENBENCH_CONFIG['engines'].keys())
+        books   = OPENBENCH_CONFIG['books']
+        return api_response({ 'engines' : engines, 'books' : books })
+
+    if engine in OPENBENCH_CONFIG['engines'].keys():
+        return api_response({ 'config' : OPENBENCH_CONFIG['engines'][engine] })
+
+    return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
+
+def api_networks(request, engine):
+
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    if engine in OPENBENCH_CONFIG['engines'].keys():
+
+        if not (network := Network.objects.filter(engine=engine, default=True).first()):
+            return api_response({ 'error' : 'Engine does not have a default Network' })
+
+        default = {
+            'sha'    : network.sha256, 'name'    : network.name,
+            'author' : network.author, 'created' : str(network.created) }
+
+        networks = [
+          { 'sha'    : network.sha256, 'name'    : network.name,
+            'author' : network.author, 'created' : str(network.created) }
+            for network in Network.objects.filter(engine=engine) ]
+
+        return api_response({ 'default' : default, 'networks' : networks })
+
+    else:
+        return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
+
+def api_network_download(request, engine, identifier):
+
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    if not api_authenticate(request, require_enabled=True):
+        return api_response({ 'error' : 'API requires authentication for this endpoint' })
+
+    if (network := Network.objects.filter(engine=engine, sha256=identifier).first()):
+        return OpenBench.utils.network_download(request, engine, network)
+
+    if (network := Network.objects.filter(engine=engine, name=identifier).first()):
+        return OpenBench.utils.network_download(request, engine, network)
+
+    return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
+
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                BUSINESS VIEWS                               #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #

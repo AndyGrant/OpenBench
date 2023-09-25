@@ -79,6 +79,12 @@ urlpatterns = [
     django.urls.path(r'clientSubmitError/', OpenBench.views.client_submit_error),
     django.urls.path(r'clientSubmitResults/', OpenBench.views.client_submit_results),
 
+    # Nice endpoints, which can be hit from the website or with credentials cleanly
+    django.urls.path(r'api/config/', OpenBench.views.api_configs),
+    django.urls.path(r'api/config/<str:engine>/', OpenBench.views.api_configs),
+    django.urls.path(r'api/networks/<str:engine>/', OpenBench.views.api_networks),
+    django.urls.path(r'api/networks/<str:engine>/<str:identifier>/', OpenBench.views.api_network_download),
+
     # Redirect anything else to the Index
     django.urls.path(r'', OpenBench.views.index),
 
