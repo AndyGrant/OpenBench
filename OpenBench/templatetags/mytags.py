@@ -132,7 +132,7 @@ def insertCommas(value):
     return '{:,}'.format(int(value))
 
 def prettyName(name):
-    if re.search('[0-9a-fA-F]{40}', name):
+    if re.search('^[0-9a-fA-F]{40}$', name):
         return name[:16].upper()
     return name
 
@@ -336,8 +336,3 @@ register.filter('network_download_link', network_download_link)
 
 register.filter('workload_url', workload_url)
 register.filter('workload_pretty_name', workload_pretty_name)
-
-
-
-
-
