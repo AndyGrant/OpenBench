@@ -229,6 +229,8 @@ register.filter('compilerBlock', compilerBlock)
 register.filter('removePrefix', removePrefix)
 register.filter('machine_name', machine_name)
 
+####
+
 def spsa_param_digest(test):
 
     digest = []
@@ -295,8 +297,13 @@ def spsa_original_input(test):
 
     return '\n'.join(lines)
 
+def book_download_link(test):
+    return OpenBench.config.OPENBENCH_CONFIG['books'][test.book_name]['source']
+
+
 register.filter('spsa_param_digest', spsa_param_digest)
 register.filter('spsa_original_input', spsa_original_input)
+register.filter('book_download_link', book_download_link)
 
 
 

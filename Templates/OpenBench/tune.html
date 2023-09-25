@@ -29,7 +29,7 @@
             {% endif %}
             <tr><td class="td-label">Options</td><td>{{test.dev_options}}</td></tr>
             <tr><td class="td-label">Time</td><td>{{test.dev_time_control}}</td></tr>
-            <tr><td class="td-label">Opening Book</td><td><a href="{{config.framework}}raw/master/Books/{{test.bookname}}.zip">{{test.book_name}}</a></td></tr>
+            <tr><td class="td-label">Opening Book</td><td><a href="{{test|book_download_link}}">{{test.book_name}}</a></td></tr>
             <tr><td class="td-label">Syzygy WDL</td><td>{{test.syzygy_wdl}}</td></tr>
             <tr><td class="td-label">Syzygy ADJ.</td><td>{{test.syzygy_adj}}</td></tr>
             <tr><td class="td-label">Win ADJ.</td><td>{{test.win_adj}}</td></tr>
