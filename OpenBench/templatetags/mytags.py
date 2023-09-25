@@ -175,7 +175,7 @@ def cpuflagsBlock(machine, N=8):
     flags    = machine.info['cpu_flags']
 
     general_flags   = ['BMI2', 'POPCNT']
-    broad_avx_flags = ['AVX2', 'AVX', 'SSE4_2', 'SSE4_1', 'SSSE3']
+    broad_avx_flags = ['AVX2', 'AVX', 'SSE42', 'SSE41', 'SSSE3']
 
     for flag in general_flags:
         if flag in flags:
