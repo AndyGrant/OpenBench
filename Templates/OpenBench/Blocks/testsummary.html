@@ -2,12 +2,7 @@
 <td><a href="/user/{{test.author}}">{{test.author|capfirst|slice:":6"}}</a></td>
 <td>{{test.dev_engine}}</td>
 <td>
-    {% if test.test_mode != "SPSA" %}
-        <a href="/test/{{test.id}}">{{test|prettyDevName}}</a>
-    {% else %}
-        <a href="/tune/{{test.id}}">{{test|prettyDevName}}</a>
-    {% endif %}
-
+    <a href="{{test|workload_url}}">{{test|prettyDevName}}</a>
     {% if test.error %} <span style="color: red">*</span> {% endif %}
     {% if test|testIsFRC %} <span style="color: green">*</span> {% endif %}
 </td>

@@ -307,12 +307,35 @@ def network_download_link(test, branch):
 
     return '/networks/%s/' % (engine)
 
+def workload_url(workload):
+
+    # Might be a workload id
+    if type(workload) == int:
+        workload = OpenBench.models.Test.objects.get(id=workload)
+
+    # Differentiate between Tunes ( SPSA ) and Tests ( SPRT / Fixed )
+    return '/%s/%d/' % ('tune' if workload.test_mode == 'SPSA' else 'test', workload.id)
+
+def workload_pretty_name(workload):
+
+    # Might be a workload id
+    if type(workload) == int:
+        workload = OpenBench.models.Test.objects.get(id=workload)
+
+    # Convert commit sha's to just the first 16 characters
+    if re.search('^[0-9a-fA-F]{40}$', workload.dev.name):
+        return workload.dev.name[:16].lower()
+
+    return workload.dev.name
 
 register.filter('spsa_param_digest', spsa_param_digest)
 register.filter('spsa_original_input', spsa_original_input)
 
 register.filter('book_download_link', book_download_link)
 register.filter('network_download_link', network_download_link)
+
+register.filter('workload_url', workload_url)
+register.filter('workload_pretty_name', workload_pretty_name)
 
 
 

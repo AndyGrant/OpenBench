@@ -24,8 +24,8 @@
                 <td>{{machine.info.os_name}}</td>
                 <td>
                     {% if machine.workload %}
-                        <a href="/test/{{machine.workload}}">
-                            {{machine.workload|testIdToPrettyName}}
+                        <a href="{{machine.workload|workload_url}}">
+                            {{machine.workload|workload_pretty_name}}
                         </a>
                     {% else %}
                         None
