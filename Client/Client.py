@@ -44,7 +44,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 16 # Client version to send to the Server
+CLIENT_VERSION   = 17 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -481,7 +481,7 @@ class Cutechess:
 
         # Join options together in the Cutechess format
         options = ' option.'.join([''] + re.findall(r'"[^"]*"|\S+', options))
-        return '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s-%s' % (command, control, options, name, branch)
+        return '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s' % (command, control, options, branch)
 
     @staticmethod
     def pgnout_settings(config, timestamp, cutechess_idx):
@@ -1128,13 +1128,13 @@ def download_opening_book(config):
 def download_network_weights(config, branch):
 
     # Some tests may not use Neural Networks
-    engine_name = config.workload['test'][branch]['engine']
-    network_sha = config.workload['test'][branch]['network']
+    engine_name  = config.workload['test'][branch]['engine']
+    network_sha  = config.workload['test'][branch]['network']
+    network_name = config.workload['test'][branch]['netname']
     if not network_sha or network_sha == 'None': return None
 
     # Log that we are obtaining a Neural Network
-    pattern = 'Fetching Neural Network [ %s, %-4s ]'
-    print(pattern % (network_sha, branch.upper()))
+    print ('Fetching Neural Network [ %s, %-4s ]' % (branch, network_name))
 
     # Fetch the Netural Network if we do not already have it
     network_path = os.path.join('Networks', network_sha)

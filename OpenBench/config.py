@@ -42,7 +42,7 @@ REQUIRE_MANUAL_REGISTRATION = False # Disable the public facing registration pag
 OPENBENCH_CONFIG = {
 
     # Server Client version control
-    'client_version' : 16,
+    'client_version' : 17,
 
     # Generic Error Messages useful to those setting up their own instance
     'error' : {
