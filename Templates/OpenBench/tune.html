@@ -48,53 +48,65 @@
         <!-- Dev vs Base [Git Diff Link] -->
         <h4><a href="{{test|gitDiffLink}}">{{test|workload_pretty_name}}</a></h4>
 
-        <!-- Approve Button: For Admins, or Cross-approvers -->
-        {% if not test.approved and profile.approver and profile.user.username != test.author %}
-        <a class="w-25 mr-2 anchorbutton btn-blue" href="/tune/{{test.id}}/APPROVE">Approve</a>
-        {% elif not test.approved and request.user.is_superuser %}
-        <a class="w-25 mr-2 anchorbutton btn-blue" href="/tune/{{test.id}}/APPROVE">Approve</a>
-        {% else %}
-        <a class="w-25 mr-2 anchorbutton btn-disabled">Approve</a>
-        {% endif %}
-
-        <!-- Restart Button: For Approvers or Test Authors of finished tests -->
-        {% if test.finished and profile.approver %}
-        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/tune/{{test.id}}/RESTART">Restart</a>
-        {% elif test.finished and profile.user.username == test.author %}
-        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/tune/{{test.id}}/RESTART">Restart</a>
-        {% elif test.finished %}
-        <a class="w-25 mr-2 anchorbutton btn-disabled">Restart</a>
-        {% endif %}
-
-        <!-- Stop Button: For Approvers or Test Authors of active tests -->
-        {% if not test.finished and profile.approver %}
-        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/tune/{{test.id}}/STOP">Stop</a>
-        {% elif not test.finished and profile.user.username == test.author %}
-        <a class="w-25 mr-2 anchorbutton btn-yellow" href="/tune/{{test.id}}/STOP">Stop</a>
-        {% elif not test.finished %}
-        <a class="w-25 mr-2 anchorbutton btn-disabled">Stop</a>
-        {% endif %}
-
-        <!-- Delete/Restore Button: For Approvers or Test Authors -->
-        {% if profile.approver or profile.user.username == test.author %}
-            {% if test.deleted %}
-                <a class="w-25 mr-2 anchorbutton btn-preset" href="/tune/{{test.id}}/RESTORE">Restore</a>
+        <div class="anchor-container">
+            <!-- Approve Button: For Admins, or Cross-approvers -->
+            {% if not test.approved and profile.approver and profile.user.username != test.author %}
+            <a class="anchorbutton btn-blue" href="/tune/{{test.id}}/APPROVE">Approve</a>
+            {% elif not test.approved and request.user.is_superuser %}
+            <a class="anchorbutton btn-blue" href="/tune/{{test.id}}/APPROVE">Approve</a>
             {% else %}
-                <a class="w-25 mr-2 anchorbutton btn-red" href="/tune/{{test.id}}/DELETE">Delete</a>
+            <a class="anchorbutton btn-disabled">Approve</a>
             {% endif %}
-        {% else %}
-            {% if test.deleted %}
-                <a class="w-25 mr-2 anchorbutton btn-disabled">Restore</a>
-            {% else %}
-                <a class="w-25 mr-2 anchorbutton btn-disabled">Delete</a>
-            {% endif %}
-        {% endif %}
 
-        <!-- Copies Raw SPSA Input from a hidden element -->
-        <pre id="spsa-input" style="display: none">{{test|spsa_original_input}}</pre>
-        <a class="copy-button" onclick="copy_text('spsa-input', false)">
-            <i class="fa-regular fa-clone copy-button"></i>
-        </a>
+            <!-- Restart Button: For Approvers or Test Authors of finished tests -->
+            {% if test.finished and profile.approver %}
+            <a class="anchorbutton btn-yellow" href="/tune/{{test.id}}/RESTART">Restart</a>
+            {% elif test.finished and profile.user.username == test.author %}
+            <a class="anchorbutton btn-yellow" href="/tune/{{test.id}}/RESTART">Restart</a>
+            {% elif test.finished %}
+            <a class="anchorbutton btn-disabled">Restart</a>
+            {% endif %}
+
+            <!-- Stop Button: For Approvers or Test Authors of active tests -->
+            {% if not test.finished and profile.approver %}
+            <a class="anchorbutton btn-yellow" href="/tune/{{test.id}}/STOP">Stop</a>
+            {% elif not test.finished and profile.user.username == test.author %}
+            <a class="anchorbutton btn-yellow" href="/tune/{{test.id}}/STOP">Stop</a>
+            {% elif not test.finished %}
+            <a class="anchorbutton btn-disabled">Stop</a>
+            {% endif %}
+
+            <!-- Delete/Restore Button: For Approvers or Test Authors -->
+            {% if profile.approver or profile.user.username == test.author %}
+                {% if test.deleted %}
+                    <a class="anchorbutton btn-preset" href="/tune/{{test.id}}/RESTORE">Restore</a>
+                {% else %}
+                    <a class="anchorbutton btn-red" href="/tune/{{test.id}}/DELETE">Delete</a>
+                {% endif %}
+            {% else %}
+                {% if test.deleted %}
+                    <a class="anchorbutton btn-disabled">Restore</a>
+                {% else %}
+                    <a class="anchorbutton btn-disabled">Delete</a>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        <div class="anchor-container">
+            <!-- Copies Raw SPSA Input from a hidden element -->
+            <pre id="spsa-input" style="display: none">{{test|spsa_original_input}}</pre>
+            <a class="mt-1 anchorbutton btn-blue" onclick="copy_text('spsa-input', false)">
+                Copy SPSA Inputs
+            </a>
+        </div>
+
+        <div class="anchor-container">
+            <!-- Copies SPSA Optimal Values from a hidden element -->
+            <pre id="spsa-output" style="display: none">{{test|spsa_optimal_values}}</pre>
+            <a class="mt-1 anchorbutton btn-blue" onclick="copy_text('spsa-output', false)">
+                Copy SPSA Outputs
+            </a>
+        </div>
 
         <!-- Elo, (SPRT/LRR if SPRT, otherwise CONF), Games -->
         <!-- For SPSA, # of Params, Iterations, and Games -->

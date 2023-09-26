@@ -184,15 +184,30 @@ body, html, main{
     padding: 10px 12px 6px 12px;
 }
 
+#content .anchor-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+#content .anchor-container > .anchorbutton {
+    flex: 1;
+    margin-right: 4px;
+}
+
+#content .anchor-container > .anchorbutton:last-child {
+    margin-right: 0px;
+}
+
 #content .anchorbutton {
     border-radius: 4px;
-    padding: 8px 8px 6px;
+    padding: 8px 0px 6px;
     border-color: transparent;
     color: var(--color-font1);
     display: inline-block;
     text-align: center;
     transition: background-color 0.3s ease;
     font-family: "Courier Prime", serif;
+    font-size: 13px;
     cursor: pointer;
 }
 

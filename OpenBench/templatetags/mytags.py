@@ -291,6 +291,23 @@ def spsa_original_input(workload):
 
     return '\n'.join(lines)
 
+def spsa_optimal_values(workload):
+
+    # Maintain the original order, if there was one
+    keys = sorted(
+        workload.spsa['parameters'].keys(),
+        key=lambda x: workload.spsa['parameters'][x].get('index', -1)
+    )
+
+    lines = []
+    for name in keys:
+        param = workload.spsa['parameters'][name]
+        value = param['value'] if param['float'] else round(param['value'])
+        lines.append(', '.join([name, str(value)]))
+
+    return '\n'.join(lines)
+
+
 def book_download_link(workload):
     return OpenBench.config.OPENBENCH_CONFIG['books'][workload.book_name]['source']
 
@@ -340,6 +357,7 @@ def git_diff_text(workload, N=24):
 
 register.filter('spsa_param_digest', spsa_param_digest)
 register.filter('spsa_original_input', spsa_original_input)
+register.filter('spsa_optimal_values', spsa_optimal_values)
 
 register.filter('book_download_link', book_download_link)
 register.filter('network_download_link', network_download_link)
