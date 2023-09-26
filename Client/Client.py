@@ -199,15 +199,15 @@ class Configuration:
 
         # Get all flags, and for sanity uppercase them
         info   = cpuinfo.get_cpu_info()
-        actual = [x.upper() for x in info.get('flags', [])]
+        actual = [x.replace("_", "").replace(".", "").upper() for x in info.get('flags', [])]
 
         # Set the CPU name which has to be done via global
         self.cpu_name = info.get('brand_raw', info.get('brand', 'Unknown'))
 
         # This should cover virtually all compiler flags that we would care about
         desired  = ['POPCNT', 'BMI2']
-        desired += ['SSSE3', 'SSE4_1', 'SSE4_2', 'SSE4A', 'AVX', 'AVX2', 'FMA']
-        desired += ['AVX512_VNNI', 'AVX512BW', 'AVX512DQ', 'AVX512F']
+        desired += ['SSSE3', 'SSE41', 'SSE42', 'SSE4A', 'AVX', 'AVX2', 'FMA']
+        desired += ['AVX512VNNI', 'AVX512BW', 'AVX512DQ', 'AVX512F']
 
         # Add any custom flags from the OpenBench configs, just in case we missed one
         requested = set(sum([info['cpuflags'] for engine, info in data.items()], []))
@@ -231,11 +231,11 @@ class Configuration:
 
         # Pick betwen various Vector instruction sets that might apply
         has_ssse3  =                all(x in self.cpu_flags for x in ['SSSE3'])
-        has_sse4   = has_ssse3  and all(x in self.cpu_flags for x in ['SSE4_1', 'SSE4_2'])
+        has_sse4   = has_ssse3  and all(x in self.cpu_flags for x in ['SSE41', 'SSE42'])
         has_avx    = has_sse4   and all(x in self.cpu_flags for x in ['AVX'])
         has_avx2   = has_avx    and all(x in self.cpu_flags for x in ['AVX2', 'FMA'])
         has_avx512 = has_avx2   and all(x in self.cpu_flags for x in ['AVX512BW', 'AVX512DQ', 'AVX512F'])
-        has_vnni   = has_avx512 and all(x in self.cpu_flags for x in ['AVX512_VNNI'])
+        has_vnni   = has_avx512 and all(x in self.cpu_flags for x in ['AVX512VNNI'])
 
         # Filtering system, where we remove everything but the strongest that is available
         selection = [
