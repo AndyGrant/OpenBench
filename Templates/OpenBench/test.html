@@ -16,11 +16,10 @@
         <table class="test-config left-align wrappable" style="table-layout: auto; width: 100%;">
             <tr><td class="td-label">Author</td><td>{{test.author|capfirst}}</td></tr>
             <tr><td class="td-label">Creation</td><td class="timestamp">{{test.creation|date:'U'}}</td></tr>
-
             <tr><td class="td-label">Dev Engine</td><td>{{test.dev_engine}}</td></tr>
             <tr><td class="td-label">Dev Source</td><td><a href="{{test.dev_repo}}">{{test.dev_repo}}</a></td></tr>
             <tr><td class="td-label">Dev Sha</td><td>{{test.dev.sha}}</td></tr>
-            <tr><td class="td-label">Dev Branch</td><td>{{test.dev.name|prettyName}}</td></tr>
+            <tr><td class="td-label">Dev Branch</td><td class="branch_name">{{test.dev.name|prettyName}}</td></tr>
             <tr><td class="td-label">Dev Bench</td><td>{{test.dev.bench}}</td></tr>
             {% if test.dev_network %}
             <tr>
@@ -29,11 +28,10 @@
             </tr> {% endif %}
             <tr><td class="td-label">Dev Options</td><td>{{test.dev_options}}</td></tr>
             <tr><td class="td-label">Dev Time</td><td>{{test.dev_time_control}}</td></tr>
-
             <tr><td class="td-label">Base Engine</td><td>{{test.base_engine}}</td></tr>
             <tr><td class="td-label">Base Source</td><td><a href="{{test.base_repo}}">{{test.base_repo}}</a></td></tr>
             <tr><td class="td-label">Base Sha</td><td>{{test.base.sha}}</td></tr>
-            <tr><td class="td-label">Base Branch</td><td>{{test.base.name|prettyName}}</td></tr>
+            <tr><td class="td-label">Base Branch</td><td class="branch_name">{{test.base.name|prettyName}}</td></tr>
             <tr><td class="td-label">Base Bench</td><td>{{test.base.bench}}</td></tr>
             {% if test.base_network %}
             <tr>
@@ -42,7 +40,6 @@
             </tr> {% endif %}
             <tr><td class="td-label">Base Options</td><td>{{test.base_options}}</td></tr>
             <tr><td class="td-label">Base Time</td><td>{{test.base_time_control}}</td></tr>
-
             <tr><td class="td-label">Opening Book</td><td><a href="{{test|book_download_link}}">{{test.book_name}}</a></td></tr>
             <tr><td class="td-label">Syzygy WDL</td><td>{{test.syzygy_wdl}}</td></tr>
             <tr><td class="td-label">Syzygy ADJ.</td><td>{{test.syzygy_adj}}</td></tr>
@@ -54,9 +51,7 @@
     <div id="actions" class="ml-3">
 
         <!-- Dev vs Base [Git Diff Link] -->
-        <h4><a href="{{test|gitDiffLink}}">
-            {{test.dev.name|prettyName}} vs {{test.base.name|prettyName}}
-        </a></h4>
+        <h4><a href="{{test|gitDiffLink}}">{{test|git_diff_text}}</a></h4>
 
         <!-- Approve Button: For Admins, or Cross-approvers -->
         {% if not test.approved and profile.approver and profile.user.username != test.author %}

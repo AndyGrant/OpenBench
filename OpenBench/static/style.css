@@ -30,7 +30,7 @@ body, html, main{
 
 #sidebar {
     padding: 60px 16px 16px 16px;
-    flex-basis: calc(min(300px, max(200px, 15%)));
+    flex-basis: calc(min(300px, max(200px, 10%)));
 }
 
 #content-parent{
@@ -163,7 +163,7 @@ body, html, main{
 
 /* Table Spacer for chaining Tables as a hack */
 
-#content .table-spacer th {
+#content .table-spacer th, #content .table-spacer tr {
     background-color: var(--color1);
     height: 1rem;
 }
@@ -357,4 +357,8 @@ td pre {
 
 #content .numeric {
     text-align: right;
+}
+
+#content .branch_name {
+    font-style: italic;
 }

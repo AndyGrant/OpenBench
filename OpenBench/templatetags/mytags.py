@@ -225,24 +225,24 @@ register.filter('machine_name', machine_name)
 
 ####
 
-def spsa_param_digest(test):
+def spsa_param_digest(workload):
 
     digest = []
 
     # C and R are compressed as we progress iterations
-    iteration     = 10000 + (test.games / (test.spsa['pairs_per'] * 2))
-    c_compression = iteration ** test.spsa['Gamma']
-    r_compression = (test.spsa['A'] + iteration) ** test.spsa['Alpha']
+    iteration     = 10000 + (workload.games / (workload.spsa['pairs_per'] * 2))
+    c_compression = iteration ** workload.spsa['Gamma']
+    r_compression = (workload.spsa['A'] + iteration) ** workload.spsa['Alpha']
 
     # Maintain the original order, if there was one
     keys = sorted(
-        test.spsa['parameters'].keys(),
-        key=lambda x: test.spsa['parameters'][x].get('index', -1)
+        workload.spsa['parameters'].keys(),
+        key=lambda x: workload.spsa['parameters'][x].get('index', -1)
     )
 
     for name in keys:
 
-        param = test.spsa['parameters'][name]
+        param = workload.spsa['parameters'][name]
 
         # C and R if we got a workload right now
         c = param['c'] / c_compression
@@ -264,18 +264,18 @@ def spsa_param_digest(test):
 
     return digest
 
-def spsa_original_input(test):
+def spsa_original_input(workload):
 
     # Maintain the original order, if there was one
     keys = sorted(
-        test.spsa['parameters'].keys(),
-        key=lambda x: test.spsa['parameters'][x].get('index', -1)
+        workload.spsa['parameters'].keys(),
+        key=lambda x: workload.spsa['parameters'][x].get('index', -1)
     )
 
     lines = []
     for name in keys:
 
-        param = test.spsa['parameters'][name]
+        param = workload.spsa['parameters'][name]
         dtype = 'float' if param['float'] else 'int'
 
         # Original 7 token Input
@@ -291,17 +291,17 @@ def spsa_original_input(test):
 
     return '\n'.join(lines)
 
-def book_download_link(test):
-    return OpenBench.config.OPENBENCH_CONFIG['books'][test.book_name]['source']
+def book_download_link(workload):
+    return OpenBench.config.OPENBENCH_CONFIG['books'][workload.book_name]['source']
 
-def network_download_link(test, branch):
+def network_download_link(workload, branch):
 
     assert branch in [ 'dev', 'base' ]
 
-    sha    = test.dev_network if branch == 'dev' else test.base_network
-    engine = test.dev_engine  if branch == 'dev' else test.base_engine
+    sha    = workload.dev_network if branch == 'dev' else workload.base_network
+    engine = workload.dev_engine  if branch == 'dev' else workload.base_engine
 
-    # Network could have been deleted after this test was finished
+    # Network could have been deleted after this workload was finished
     if (network := OpenBench.models.Network.objects.filter(sha256=sha, engine=engine).first()):
         return '/networks/%s/download/%s/' % (engine, sha)
 
@@ -328,6 +328,16 @@ def workload_pretty_name(workload):
 
     return workload.dev.name
 
+def git_diff_text(workload, N=24):
+
+    dev_name = workload.dev.name
+    dev_name = dev_name[:N] + '...' if len(dev_name) > N else dev_name
+
+    base_name = workload.base.name
+    base_name = base_name[:N] + '...' if len(base_name) > N else base_name
+
+    return '%s vs %s' % (dev_name, base_name)
+
 register.filter('spsa_param_digest', spsa_param_digest)
 register.filter('spsa_original_input', spsa_original_input)
 
@@ -336,3 +346,5 @@ register.filter('network_download_link', network_download_link)
 
 register.filter('workload_url', workload_url)
 register.filter('workload_pretty_name', workload_pretty_name)
+
+register.filter('git_diff_text', git_diff_text)
