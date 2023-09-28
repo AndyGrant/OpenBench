@@ -94,9 +94,10 @@ def select_workload(machine):
     total_throughput = sum([x.throughput for x in tests])
     fair_ratio       = total_threads / total_throughput
 
-    # Repeat the same test if the distribution is still fair
+    # Repeat the same test if the distribution is fair, and has the previous test
     if min(ratios) / fair_ratio > 0.75:
-        return Test.objects.get(id=machine.workload)
+        if (test := Test.objects.get(id=machine.workload)) in tests:
+            return test
 
     # Fallback to simply doing the least attention given test
     return tests[random.choice(lowest_indices)]
