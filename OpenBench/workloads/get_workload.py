@@ -24,10 +24,9 @@
 # Selects a Test, from the active tests, with the following procedure...
 #   1. Remove all tests with Engines not supported by the Worker
 #   2. Remove all tests with unmet Syzygy requirements
-#   3. Remove all tests with thread-odds, if the Worker is hyperthreading
-#   4. Remove all tests where our machine will exceed the Worker Limit
-#   5. Remove all tests where our machine will exceed the Thread Limit
-#   6. Remove all tests that don't have the highest priority in the test list
+#   3. Remove all tests where our machine will exceed the Worker Limit
+#   4. Remove all tests where our machine will exceed the Thread Limit
+#   5. Remove all tests that don't have the highest priority in the test list
 #
 # At this point, we select from these candidate tests using the following:
 #   1. Randomly select from any tests that have 0 workers
@@ -135,9 +134,6 @@ def filter_valid_workloads(tests, machine, distribution):
         tests = tests.exclude(syzygy_wdl='%d-MAN' % (K))
 
     # Skip tests that would waste available Threads or exceed them
-    threads      = machine.info['concurrency']
-    sockets      = machine.info['sockets']
-    hyperthreads = machine.info['physical_cores'] < threads
     options = [x for x in tests if valid_assignment(machine, x, distribution)]
 
     # Finally refine for tests of the highest priority
@@ -154,7 +150,7 @@ def valid_assignment(machine, test, distribution):
     # Extract the information from our machine
     threads      = machine.info['concurrency']
     sockets      = machine.info['sockets']
-    hyperthreads = machine.info['physical_cores'] < threads
+    # hyperthreads = machine.info['physical_cores'] < threads
 
     # SPSA plays a pair at a time, not a game at a time
     is_spsa = test.test_mode == 'SPSA'
@@ -164,9 +160,9 @@ def valid_assignment(machine, test, distribution):
     if (1 + is_spsa) * max(dev_threads, base_threads) > (threads / sockets):
         return False
 
-    # Refuse thread odds if we are using hyperthreads
-    if dev_threads != base_threads and hyperthreads:
-        return False
+    # # Refuse thread odds if we are using hyperthreads
+    # if dev_threads != base_threads and hyperthreads:
+    #     return False
 
     # Refuse to assign more workers than the test will allow
     current_workers = distribution[test.id]['workers'] if test.id in distribution else 0
