@@ -799,11 +799,11 @@ def unzip_delete_file(source, outdir):
     os.remove(source)
 
 
-def make_command(config, engine, src_path, network_path):
+def make_command(config, engine, output_name, src_path, network_path):
 
     compiler  = config.compilers[engine][0]
     comp_flag = ['CC', 'CXX']['++' in compiler]
-    command   = 'make %s=%s EXE=%s -j%d' % (comp_flag, compiler, engine, config.threads)
+    command   = 'make %s=%s EXE=%s -j%d' % (comp_flag, compiler, output_name, config.threads)
 
     if network_path != None:
         path     = os.path.relpath(os.path.abspath(network_path), src_path)
@@ -1203,12 +1203,12 @@ def download_engine(arguments, branch, network):
 
         # Unzip the binary, and place it into a known output name
         unzip_delete_file('artifact.zip', 'tmp/')
-        output_name = os.path.join('tmp', engine.replace(' ', '').lower())
-        os.rename(os.path.join('tmp', os.listdir('tmp/')[0]), output_name)
+        binary_path = os.path.join('tmp', engine.replace(' ', '').lower())
+        os.rename(os.path.join('tmp', os.listdir('tmp/')[0]), binary_path)
 
         # Binaries don't have execute permissions by default
         if IS_LINUX:
-            os.system('chmod 777 %s\n' % (output_name))
+            os.system('chmod 777 %s\n' % (binary_path))
 
     if not private:
 
@@ -1223,22 +1223,22 @@ def download_engine(arguments, branch, network):
         src_path   = os.path.join('tmp', unzip_name, *build_path.split('/'))
 
         # Build the engine and drop it into src_path
-        print('\nBuilding [%s]' % (final_path))
-        output_name = os.path.join(src_path, engine)
-        command     = make_command(config, engine, src_path, network)
+        print('\nBuilding [%s]' % (branch_name))
+        binary_path = os.path.join(src_path, final_name)
+        command     = make_command(config, engine, final_name, src_path, network)
         process     = Popen(command, cwd=src_path, stdout=PIPE, stderr=STDOUT)
         cxx_output  = process.communicate()[0].decode('utf-8')
         print (cxx_output)
 
     # Move the file to the final location ( Linux )
-    if os.path.isfile(output_name):
-        os.rename(output_name, final_path)
+    if os.path.isfile(binary_path):
+        os.rename(binary_path, final_path)
         shutil.rmtree('tmp')
         return final_name
 
     # Move the file to the final location ( Windows )
-    if os.path.isfile(output_name + '.exe'):
-        os.rename(output_name + '.exe', final_path + '.exe')
+    if os.path.isfile(binary_path + '.exe'):
+        os.rename(binary_path + '.exe', final_path + '.exe')
         shutil.rmtree('tmp')
         return final_name + '.exe'
 
