@@ -786,7 +786,7 @@ def api_configs(request, engine=None):
         return api_response({ 'engines' : engines, 'books' : books })
 
     if engine in OPENBENCH_CONFIG['engines'].keys():
-        return api_response({ 'config' : OPENBENCH_CONFIG['engines'][engine] })
+        return api_response(OPENBENCH_CONFIG['engines'][engine])
 
     return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
 
