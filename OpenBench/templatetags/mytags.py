@@ -309,7 +309,8 @@ def spsa_optimal_values(workload):
 
 
 def book_download_link(workload):
-    return OpenBench.config.OPENBENCH_CONFIG['books'][workload.book_name]['source']
+    if workload.book_name in OpenBench.config.OPENBENCH_CONFIG['books']:
+        return OpenBench.config.OPENBENCH_CONFIG['books'][workload.book_name]['source']
 
 def network_download_link(workload, branch):
 
