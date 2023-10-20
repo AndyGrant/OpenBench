@@ -458,7 +458,7 @@ class Cutechess:
         syzygy  = config.workload['test']['syzygy_wdl']
 
         # Human-readable name, and scale the time control
-        name    = command.removesuffix('.exe')
+        name    = command.replace('.exe', '')
         control = scale_time_control(config.workload, scale_factor, branch)
 
         # Private engines, when using Networks, must set them via UCI
@@ -625,7 +625,8 @@ class ResultsReporter(object):
         # Collect results until all Tasks are done
         while any(not task.done() for task in self.tasks):
 
-            if (result := get_next_result()):
+            result = get_next_result()
+            if result:
                 self.pending.append(result)
 
             # Send results every 30 seconds, until all Tasks are done
@@ -637,8 +638,12 @@ class ResultsReporter(object):
                 return self.abort_flag.set()
 
         # Exhaust the Results Queue completely since Tasks are done
-        while (result := get_next_result()):
-            self.pending.append(result)
+        while True:
+            result = get_next_result()
+            if result:
+                self.pending.append(result)
+            else:
+                break
 
         # Send any remaining results immediately
         self.send_results(report_interval=0)
@@ -677,7 +682,8 @@ class ResultsReporter(object):
 
             # For any game with weird Termination, report it
             for header, moves in PGNHelper.slice_pgn_file(fname):
-                if (error := PGNHelper.get_error_reason(header)):
+                error = PGNHelper.get_error_reason(header)
+                if error:
                     as_str = PGNHelper.pretty_format(header, moves)
                     ServerReporter.report_engine_error(self.config, error, as_str)
 
@@ -824,11 +830,13 @@ def parse_bench_output(stream):
         bench_pattern = r'(\d+\s+nodes)|(nodes\s+\d+)|(nodes searched\s+\d+)'
 
         # Search for and set only once the NPS value
-        if (re_nps := re.search(nps_pattern, line, re.IGNORECASE)):
+        re_nps = re.search(nps_pattern, line, re.IGNORECASE)
+        if re_nps:
             nps = nps if nps else re_nps.group()
 
         # Search for and set only once the Bench value
-        if (re_bench := re.search(bench_pattern, line, re.IGNORECASE)):
+        re_bench = re.search(bench_pattern, line, re.IGNORECASE)
+        if re_bench:
             bench = bench if bench else re_bench.group()
 
     # Parse out the integer portion from our matches
@@ -1279,7 +1287,8 @@ def run_benchmarks(config, branch, engine, network):
     print('Speed for %s is %d' % (name, nps))
 
     # Flag the test to abort if we have a bench mismatch
-    if error := (bench != int(config.workload['test'][branch]['bench'])):
+    error = (bench != int(config.workload['test'][branch]['bench']))
+    if error:
         ServerReporter.report_bad_bench(config, branch, bench)
 
     # Set NPS to 0 if we had any errors
@@ -1313,8 +1322,12 @@ def run_and_parse_cutechess(config, command, cutechess_idx, results_queue, abort
         'illegals'    : 0,               # " illegal move "
     }
 
-    # Read each line of output until the pipe closes and we get "" back
-    while (line := cutechess.stdout.readline().strip().decode('ascii')):
+    while True:
+
+        # Read each line of output until the pipe closes and we get "" back
+        line = cutechess.stdout.readline().strip().decode('ascii')
+        if not line:
+            break
 
         if abort_flag.is_set():
             break
