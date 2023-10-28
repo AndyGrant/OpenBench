@@ -1,0 +1,49 @@
+{
+    "private"  : false,
+    "nps"      : 1000000,
+    "base"     : "master",
+    "source"   : "https://github.com/OmerFarukTutkun/Devre",
+
+    "bounds"   : "[0.00, 3.00]",
+    "book"     : "Pohl.epd",
+    "win_adj"  : "movecount=3 score=400",
+    "draw_adj" : "movenumber=40 movecount=8 score=10",
+
+    "build" : {
+        "path"      : "src",
+        "compilers" : ["g++"],
+        "cpuflags"  : ["AVX2"],
+        "systems"   : ["Windows", "Linux"]
+    },
+
+    "testmodes" : {
+
+        "STC" : {
+            "options"       : "Threads=1 Hash=16",
+            "timecontrol"   : "10.0+0.1",
+            "report_rate"   : 16,
+            "workload_size" : 32
+        },
+
+        "LTC" : {
+            "options"       : "Threads=1 Hash=64",
+            "timecontrol"   : "60.0+0.6",
+            "report_rate"   : 4,
+            "workload_size" : 8
+        },
+
+        "SMP STC" : {
+            "options"       : "Threads=8 Hash=64",
+            "timecontrol"   : "5.0+0.05",
+            "report_rate"   : 1,
+            "workload_size" : 64
+        },
+
+        "SMP LTC" : {
+            "options"       : "Threads=8 Hash=256",
+            "timecontrol"   : "20.0+0.2",
+            "report_rate"   : 1,
+            "workload_size" : 16
+        }
+    }
+}
