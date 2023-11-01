@@ -149,20 +149,18 @@ def valid_assignment(machine, test, distribution):
 
     # Extract the information from our machine
     threads      = machine.info['concurrency']
-    sockets      = machine.info['sockets']
-    # hyperthreads = machine.info['physical_cores'] < threads
+    hyperthreads = machine.info['physical_cores'] < threads
+
+    # For core-odds tests, disable hyperthreads, by halving the thread count
+    if hyperthreads and dev_threads != base_threads:
+        threads = threads // 2
 
     # SPSA plays a pair at a time, not a game at a time
     is_spsa = test.test_mode == 'SPSA'
-    is_sprt = test.test_mode != 'SPSA'
 
-    # Refuse if there are not enough threads-per-socket for the test
-    if (1 + is_spsa) * max(dev_threads, base_threads) > (threads / sockets):
+    # Refuse if there are not enough threads for the test
+    if (1 + is_spsa) * max(dev_threads, base_threads) > threads):
         return False
-
-    # # Refuse thread odds if we are using hyperthreads
-    # if dev_threads != base_threads and hyperthreads:
-    #     return False
 
     # Refuse to assign more workers than the test will allow
     current_workers = distribution[test.id]['workers'] if test.id in distribution else 0
@@ -320,18 +318,24 @@ def extract_option(options, option):
 
 def game_distribution(test, machine):
 
-    # Every Option contains Threads= for both engines
     dev_threads  = int(extract_option(test.dev_options, 'Threads'))
     base_threads = int(extract_option(test.base_options, 'Threads'))
 
-    # "concurrency" is the total number of connected Threads
     worker_threads = machine.info['concurrency']
     worker_sockets = machine.info['sockets']
 
-    # Concurrency per cutechess, if splitting by sockets
-    concurrency = (worker_threads // worker_sockets) // max(dev_threads, base_threads)
+    # For core-odds tests, disable hyperthreads, by halving the thread count
+    if machine.info['physical_cores'] < worker_threads and dev_threads != base_threads:
+        worker_threads = worker_threads // 2
 
-    # Number of params being evaluated at a single time
+    # Ignore sockets for concurrent cutechess, when playing with more than one thread
+    if max(dev_threads, base_threads) > 1:
+        worker_sockets = 1
+
+    # Max possible concurrent engine games, per copy of cutechess
+    max_concurrency = (worker_threads // worker_sockets) // max(dev_threads, base_threads)
+
+    # Number of params being evaluated at a single time, if doing SPSA in SINGLE mode
     spsa_count = (worker_threads // max(dev_threads, base_threads)) // 2
 
     # SPSA is treated specially, if we are distributing many parameter sets at once
@@ -339,6 +343,6 @@ def game_distribution(test, machine):
 
     return {
         'cutechess-count'     : spsa_count if is_multiple_spsa else worker_sockets,
-        'concurrency-per'     : 2 if is_multiple_spsa else concurrency,
-        'games-per-cutechess' : 2 * test.workload_size * (1 if is_multiple_spsa else concurrency),
+        'concurrency-per'     : 2 if is_multiple_spsa else max_concurrency,
+        'games-per-cutechess' : 2 * test.workload_size * (1 if is_multiple_spsa else max_concurrency),
     }

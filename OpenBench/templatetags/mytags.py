@@ -155,9 +155,6 @@ def prettyDevName(test):
 
     return prettyName(test.dev.name)
 
-def testIsFRC(test):
-    return "FRC" in test.book_name.upper() or "960" in test.book_name.upper()
-
 def testIdToPrettyName(test_id):
     return prettyName(OpenBench.models.Test.objects.get(id=test_id).dev.name)
 
@@ -215,7 +212,6 @@ register.filter('sumAttributes', sumAttributes)
 register.filter('insertCommas', insertCommas)
 register.filter('prettyName', prettyName)
 register.filter('prettyDevName', prettyDevName)
-register.filter('testIsFRC', testIsFRC)
 register.filter('testIdToPrettyName', testIdToPrettyName)
 register.filter('testIdToTimeControl', testIdToTimeControl)
 register.filter('cpuflagsBlock', cpuflagsBlock)
@@ -356,6 +352,19 @@ def git_diff_text(workload, N=24):
 
     return '%s vs %s' % (dev_name, base_name)
 
+
+def test_is_smp_odds(test):
+    dev_threads  = int(OpenBench.utils.extract_option(test.dev_options , 'Threads'))
+    base_threads = int(OpenBench.utils.extract_option(test.base_options, 'Threads'))
+    return dev_threads != base_threads
+
+def test_is_time_odds(test):
+    return test.dev_time_control != test.base_time_control
+
+def test_is_fischer(test):
+    return 'FRC' in test.book_name.upper() or '960' in test.book_name.upper()
+
+
 register.filter('spsa_param_digest', spsa_param_digest)
 register.filter('spsa_original_input', spsa_original_input)
 register.filter('spsa_optimal_values', spsa_optimal_values)
@@ -367,3 +376,7 @@ register.filter('workload_url', workload_url)
 register.filter('workload_pretty_name', workload_pretty_name)
 
 register.filter('git_diff_text', git_diff_text)
+
+register.filter('test_is_smp_odds'  , test_is_smp_odds  )
+register.filter('test_is_time_odds' , test_is_time_odds )
+register.filter('test_is_fischer'   , test_is_fischer   )

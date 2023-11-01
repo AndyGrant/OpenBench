@@ -4,11 +4,12 @@
 <td>
     <a href="{{test|workload_url}}">{{test|prettyDevName}}</a>
     {% if test.error %} <span style="color: red">*</span> {% endif %}
-    {% if test|testIsFRC %} <span style="color: green">*</span> {% endif %}
+    {% if test|test_is_fischer %} <span style="color: green">*</span> {% endif %}
 </td>
 <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
 <td>
     {{test.dev_time_control}}
-    {% if test.dev_time_control != test.base_time_control %} <span style="color: yellow">*</span> {% endif %}
+    {% if test|test_is_time_odds %} <span style="color: yellow">*</span> {% endif %}
+    {% if test|test_is_smp_odds %} <span style="color: orange">*</span> {% endif %}
 </td>
 <td class='statblock statblock-{{test|testResultColour}}'><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
