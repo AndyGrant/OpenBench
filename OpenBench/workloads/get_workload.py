@@ -21,29 +21,7 @@
 # Module serves a singular purpose, to invoke:
 # >>> get_workload(Machine)
 #
-# Selects a Test, from the active tests, with the following procedure...
-#   1. Remove all tests with Engines not supported by the Worker
-#   2. Remove all tests with unmet Syzygy requirements
-#   3. Remove all tests where our machine will exceed the Worker Limit
-#   4. Remove all tests where our machine will exceed the Thread Limit
-#   5. Remove all tests that don't have the highest priority in the test list
-#
-# At this point, we select from these candidate tests using the following:
-#   1. Randomly select from any tests that have 0 workers
-#   2. Repeat the same test ( if it exists ), if distribution is still "Fair"
-#   3. Select the test with the most "Unfair" distribution of workers
-#
-# Our response includes three critical values:
-#
-#   1. cutechess-count      The # of Sockets on the worker for SPRT/FIXED tests
-#                           The # of max possible concurrent pairs for SPSA tests
-#                           Unless the distribution type is SINGLE
-#
-#   2. concurrency-per      The # of concurrent games to run per Cutechess copy.
-#                           Function of the machine, and each engine's options
-#
-#   3. games-per-cutechess  # of total games to run per Cutechess copy
-#                           This is the 2 x workload_size x concurrency-per
+# Refer to: https://github.com/AndyGrant/OpenBench/wiki/Workload-Assignment
 
 import math
 import random
