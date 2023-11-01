@@ -159,7 +159,7 @@ def valid_assignment(machine, test, distribution):
     is_spsa = test.test_mode == 'SPSA'
 
     # Refuse if there are not enough threads for the test
-    if (1 + is_spsa) * max(dev_threads, base_threads) > threads):
+    if (1 + is_spsa) * max(dev_threads, base_threads) > threads:
         return False
 
     # Refuse to assign more workers than the test will allow

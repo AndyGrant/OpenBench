@@ -1076,7 +1076,14 @@ def complete_workload(config):
     scale_factor  = base_factor if dev_engine != base_engine else avg_factor
 
     # Server knows how many copies of Cutechess we should run
-    cutechess_cnt = config.workload['distribution']['cutechess-count']
+    cutechess_cnt   = config.workload['distribution']['cutechess-count']
+    concurrency_per = config.workload['distribution']['concurrency-per']
+    games_per       = config.workload['distribution']['games-per-cutechess']
+
+    print () # Record this information
+    print ('%d cutechess copies' % (cutechess_cnt))
+    print ('%d concurrent games per copy' % (concurrency_per))
+    print ('%d total games per cutechess copy' % (games_per))
 
     # Launch and manage all of the Cutechess workers
     with ThreadPoolExecutor(max_workers=cutechess_cnt) as executor:
