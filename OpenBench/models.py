@@ -186,12 +186,13 @@ class LogEvent(Model):
 
 class Network(Model):
 
-    default   = BooleanField(default=False)
-    sha256    = CharField(max_length=8)
-    name      = CharField(max_length=64)
-    engine    = CharField(max_length=64)
-    author    = CharField(max_length=64)
-    created   = DateTimeField(auto_now_add=True)
+    default     = BooleanField(default=False)
+    was_default = BooleanField(default=False)
+    sha256      = CharField(max_length=8)
+    name        = CharField(max_length=64)
+    engine      = CharField(max_length=64)
+    author      = CharField(max_length=64)
+    created     = DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return '[{}] {} ({})'.format(self.engine, self.name, self.sha256)

@@ -320,14 +320,19 @@ def network_upload(request, engine, name):
 def network_default(request, engine, network):
 
     # Update default to False for all Networks, except this one
-    Network.objects.filter(engine=engine).update(default=False)
-    network.default = True; network.save()
+    Network.objects.filter(engine=engine, default=True).update(default=False, was_default=True)
+    network.default = network.was_default = True; network.save()
 
     # Report this, and refer to the Engine specific view
     status = 'Set %s as default for %s' % (network.name, network.engine)
     return OpenBench.views.redirect(request, '/networks/%s/' % (network.engine), status=status)
 
 def network_delete(request, engine, network):
+
+    # Don't allow deletion of important networks
+    if network.default or network.was_default:
+        error = 'You may not delete Default, or previous Default networks.'
+        return OpenBench.views.redirect(request, '/networks/%s/' % (engine), error=error)
 
     # Save information before deleting the Network Model
     status = 'Deleted %s for %s' % (network.name, network.engine)
@@ -352,6 +357,44 @@ def network_download(request, engine, network):
     response['Content-Length'] = os.path.getsize(netfile)
     response['Content-Disposition'] = 'attachment; filename=' + network.sha256
     return response
+
+def network_edit(request, engine, network):
+
+    if request.method == 'GET':
+        return OpenBench.views.render(request, 'network.html', { 'network' : network })
+
+    new_name        = request.POST['name']
+    new_default     = request.POST['default'] == 'TRUE'
+    new_was_default = request.POST['was_default'] == 'TRUE'
+
+    # Reject new names that are already in use for this particular engine
+    if new_name != network.name and Network.objects.filter(engine=network.engine, name=new_name):
+        error = 'A Network already exists with the name %s for the %s engine' % (new_name, network.engine)
+        return OpenBench.views.redirect(request, '/networks/%s/EDIT/%s' % (network.engine, network.sha256), error=error)
+
+    # Rejecct new names with strange characters
+    if not re.match(r'^[a-zA-Z0-9_.-]+$', new_name):
+        return OpenBench.views.redirect(request, '/networks/', error='Valid characters are [a-zA-Z0-9_.-]')
+
+    # Ensure all changes are made, or no changes are made
+    with transaction.atomic():
+
+        # Swap any references in tests, which use dev_netname and base_netname
+        if new_name != network.name:
+            Test.objects.filter(dev_engine=network.engine, dev_netname=network.name).update(dev_netname=new_name)
+            Test.objects.filter(base_engine=network.engine, base_netname=network.name).update(base_netname=new_name)
+
+        # Swap any current default Networks to a previous default
+        if new_default:
+            Network.objects.filter(engine=engine, default=True).update(default=False, was_default=True)
+
+        # Update the actual Network. Ensure was_default is set if default is
+        network.name        = new_name
+        network.default     = new_default
+        network.was_default = new_default or new_was_default
+        network.save()
+
+    return OpenBench.views.redirect(request, '/networks/%s' % (network.engine), status='Applied changes')
 
 
 def update_test(request, machine):

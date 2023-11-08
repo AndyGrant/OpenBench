@@ -490,7 +490,7 @@ def create_tune(request):
 def networks(request, engine=None, action=None, name=None, client=False):
 
     # Without an identifier and a valid action, all we can do is view the list
-    if not name or action.upper() not in ['UPLOAD', 'DEFAULT', 'DELETE', 'DOWNLOAD']:
+    if not name or action.upper() not in ['UPLOAD', 'DEFAULT', 'DELETE', 'DOWNLOAD', 'EDIT']:
         networks = Network.objects.all()
         if engine and engine in OPENBENCH_CONFIG['engines'].keys():
             networks = networks.filter(engine=engine)
@@ -513,6 +513,7 @@ def networks(request, engine=None, action=None, name=None, client=False):
         'DEFAULT'  : OpenBench.utils.network_default,
         'DELETE'   : OpenBench.utils.network_delete,
         'DOWNLOAD' : OpenBench.utils.network_download,
+        'EDIT'     : OpenBench.utils.network_edit,
     }
 
     # Update the Network, if we can find one for the given name/sha256

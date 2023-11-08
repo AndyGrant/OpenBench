@@ -362,11 +362,17 @@ td pre {
 
 #content .default-network {
     color: var(--color-font3);
+    transform: scale(1.10);
+}
+
+#content .was-default-network {
+    color: #EFF891;
+    transform: scale(0.90);
 }
 
 #content .non-default-network {
     color: var(--color-font1);
-    transform: scale(0.75);
+    transform: scale(0.70);
 }
 
 

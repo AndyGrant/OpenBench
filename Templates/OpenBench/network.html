@@ -1,0 +1,63 @@
+{% extends "OpenBench/base.html" %}
+
+{% load static %}
+
+{% block content %}
+
+    <form method="POST" action="/networks/{{network.engine}}/EDIT/{{network.sha256}}/">
+        {% csrf_token %}
+        <div class="form">
+            <div class="col">
+
+                <div class="row">
+                    <label> Hash </label><input readonly value="{{network.sha256}}">
+                </div>
+
+                <div class="row">
+                    <label> Engine </label><input readonly value="{{network.engine}}">
+                </div>
+
+                <div class="row">
+                    <label> Author </label><input readonly value="{{network.author}}">
+                </div>
+
+                <div class="row">
+                    <label> Created </label><input readonly value="{{network.created}}">
+                </div>
+
+                <div class="row">
+                    <label> Name </label><input name='name' value="{{network.name}}">
+                </div>
+
+                <div class="row">
+                    <label> Default </label>
+                    <select id="default" name="default">
+                        {% if network.default %}
+                            <option selected value="TRUE"> True </option>
+                            <option value="FALSE"> False </option>
+                        {% else %}
+                            <option value="TRUE"> True </option>
+                            <option selected value="FALSE"> False </option>
+                        {% endif %}
+                    <select>
+                </div>
+
+                <div class="row">
+                    <label> Was Default </label>
+                    <select id="was_default" name="was_default">
+                        {% if network.was_default %}
+                            <option selected value="TRUE"> True </option>
+                            <option value="FALSE"> False </option>
+                        {% else %}
+                            <option value="TRUE"> True </option>
+                            <option selected value="FALSE"> False </option>
+                        {% endif %}
+                    <select>
+                </div>
+
+                <input class="anchorbutton btn-blue w-100" type="submit" value="Update Network">
+            </div>
+        </div>
+    </form>
+
+{% endblock %}

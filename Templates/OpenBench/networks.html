@@ -29,27 +29,42 @@
             <th class="cursor" onclick="sort_networks(['name'])">Name</th>
             <th class="cursor" onclick="sort_networks(['sha256'])")>Hash</th>
             <th></th>
+            <th></th>
         </tr>
 
         {% for network in networks %}
             <tr>
                 {% if network.default %}
                     <td><i class="fas fa-star default-network" aria-hidden="true"></i></td>
+                {% elif network.was_default %}
+                    <td><a href="/networks/{{network.engine}}/DEFAULT/{{network.sha256}}">
+                    <i class="fas fa-star was-default-network" aria-hidden="true"></i></a></td>
                 {% else %}
-                    <td><a href="/networks/{{network.engine}}/default/{{network.sha256}}">
+                    <td><a href="/networks/{{network.engine}}/DEFAULT/{{network.sha256}}">
                     <i class="far fa-star non-default-network" aria-hidden="true"></i></a></td>
                 {% endif %}
 
                 <td><a href="/networks/{{network.engine}}/">{{network.engine}}</a></td>
                 <td>{{network.author|capfirst}}</td>
-                <td><a href="/networks/{{network.engine}}/download/{{network.sha256}}">{{network.name}}</a></td>
+                <td><a href="/networks/{{network.engine}}/DOWNLOAD/{{network.sha256}}">{{network.name}}</a></td>
                 <td>{{network.sha256}}</td>
 
                 <td>
-                    <a class="redlink"
-                        onclick="return confirm('YOU ARE DELETING THIS NETWORK FILE FOREVER')"
-                        href="/networks/{{network.engine}}/delete/{{network.sha256}}">
-                    <i class="fa-solid fa-trash-can" style="color: #A00000;"></i></a>
+                    <a href="/networks/{{network.engine}}/EDIT/{{network.sha256}}">
+                        <i class="fa-solid fa-pen-to-square" style="color: grey;"></i>
+                    </a>
+                </td>
+
+                <td>
+                    {% if not network.default and not network.was_default %}
+                        <a onclick="return confirm('YOU ARE DELETING THIS NETWORK FILE FOREVER')"
+                            href="/networks/{{network.engine}}/DELETE/{{network.sha256}}">
+                        <i class="fa-solid fa-trash-can" style="color: #A03030;"></i></a>
+                    {% else %}
+                        <a onclick="return alert('You must unset the default and previous-default flags manually before deleting')"
+                            href="/networks/{{network.engine}}/EDIT/{{network.sha256}}">
+                        <i class="fa-solid fa-trash-can" style="color: grey;"></i></a>
+                    {% endif %}
                 </td>
             </tr>
         {% endfor %}
