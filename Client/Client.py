@@ -385,6 +385,15 @@ class ServerReporter:
 
         return ServerReporter.report(config, 'clientSubmitResults', payload)
 
+    @staticmethod
+    def report_heartbeat(config):
+
+        payload = {
+            'test_id' : config.workload['test']['id']
+        }
+
+        return ServerReporter.report(config, 'clientHeartbeat', payload)
+
 class Cutechess:
 
     ## Handles building the very long string of arguments that need to be passed
@@ -629,8 +638,8 @@ class ResultsReporter(object):
             if result:
                 self.pending.append(result)
 
-            # Send results every 30 seconds, until all Tasks are done
-            if not self.bulk and self.send_results(report_interval=REPORT_INTERVAL):
+            # Send results, or a heartbeat, every REPORT_INTERVAL seconds until done
+            if self.send_results(report_interval=REPORT_INTERVAL):
                 return
 
             # Kill everything if openbench.exit is created
@@ -646,21 +655,26 @@ class ResultsReporter(object):
                 break
 
         # Send any remaining results immediately
-        self.send_results(report_interval=0)
+        self.send_results(report_interval=0, final_report=True)
 
-    def send_results(self, report_interval):
+    def send_results(self, report_interval, final_report=False):
 
-        # Nothing to send, or we are sending too frequently
-        if not self.pending or self.last_report + report_interval > time.time():
+        # Do not send more often than report_interval dictates
+        if self.last_report + report_interval > time.time():
             return False
 
-        # Most recent time we sent a report is now
+        # Most recent time we attempted to sent a report is now
         self.last_report = time.time()
 
         try:
-            # Send all of the queued Results at once
-            response = ServerReporter.report_results(self.config, self.pending).json()
-            self.pending = []
+
+            # Heartbeat when no results, or still awaiting bulk results
+            if not self.pending or (self.bulk and not final_report):
+                response = ServerReporter.report_heartbeat(self.config).json()
+
+            else: # Send all of the queued Results at once
+                response = ServerReporter.report_results(self.config, self.pending).json()
+                self.pending = []
 
             # If the test ended, kill all tasks
             if 'stop' in response:

@@ -43,6 +43,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
 from django.core.files.base import ContentFile
+from django.utils import timezone
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              GENERAL UTILITIES                              #
@@ -745,6 +746,19 @@ def client_submit_results(request):
     # Returns {}, or { 'stop' : True }
     return JsonResponse(OpenBench.utils.update_test(request, machine))
 
+@csrf_exempt
+def client_heartbeat(request):
+
+    # Pass along any error messages if they appear
+    machine, response = client_verify_worker(request)
+    if response != None: return response
+
+    # Force a refresh of the updated timestamp
+    machine.save()
+
+    # Include a 'stop' header iff the test was finished
+    test = Test.objects.get(id=int(request.POST['test_id']))
+    return JsonResponse([{}, { 'stop' : True }][test.finished])
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                             #
