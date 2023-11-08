@@ -557,25 +557,27 @@ def scripts(request):
 #                              CLIENT HOOK VIEWS                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def client_verify_worker(request):
+def verify_worker(function):
 
-    ## Returns the machine, or None. Returns a JsonResponse or None.
-    ## Presence of a JsonResponse indicates a failure to verify
+    def wrapped_verify_worker(*args, **kwargs):
 
-    # Get the machine, assuming it exists
-    try: machine = Machine.objects.get(id=int(request.POST['machine_id']))
-    except: return None, JsonResponse({ 'error' : 'Bad Machine Id' })
+        # Get the machine, assuming it exists
+        try: machine = Machine.objects.get(id=int(args[0].POST['machine_id']))
+        except: JsonResponse({ 'error' : 'Bad Machine Id' })
 
-    # Ensure the Client is using the same version as the Server
-    if machine.info['client_ver'] != OPENBENCH_CONFIG['client_version']:
-        expected_ver = OPENBENCH_CONFIG['client_version']
-        return machine, JsonResponse({ 'error' : 'Bad Client Version: Expected %d' % (expected_ver)})
+        # Ensure the Client is using the same version as the Server
+        if machine.info['client_ver'] != OPENBENCH_CONFIG['client_version']:
+            expected_ver = OPENBENCH_CONFIG['client_version']
+            return JsonResponse({ 'error' : 'Bad Client Version: Expected %d' % (expected_ver)})
 
-    # Use the secret token as our soft verification
-    if machine.secret != request.POST['secret']:
-        return machine, JsonResponse({ 'error' : 'Invalid Secret Token' })
+        # Use the secret token as our soft verification
+        if machine.secret != args[0].POST['secret']:
+            return JsonResponse({ 'error' : 'Invalid Secret Token' })
 
-    return machine, None
+        # Otherwise, carry on, and pass along the machine
+        return function(*args, machine)
+
+    return wrapped_verify_worker
 
 @csrf_exempt
 def client_get_files(request):
@@ -647,16 +649,6 @@ def client_worker_info(request):
     return JsonResponse({ 'machine_id' : machine.id, 'secret' : machine.secret })
 
 @csrf_exempt
-def client_get_workload(request):
-
-    # Pass along any error messages if they appear
-    machine, response = client_verify_worker(request)
-    if response != None: return response
-
-    # Contains keys 'workload', otherwise none
-    return JsonResponse(get_workload(machine))
-
-@csrf_exempt
 def client_get_network(request, engine, name):
 
     # Verify the User's credentials
@@ -667,11 +659,13 @@ def client_get_network(request, engine, name):
     return networks(request, engine, 'DOWNLOAD', name, client=True)
 
 @csrf_exempt
-def client_wrong_bench(request):
+@verify_worker
+def client_get_workload(request, machine):
+    return JsonResponse(get_workload(machine))
 
-    # Pass along any error messages if they appear
-    machine, response = client_verify_worker(request)
-    if response != None: return response
+@csrf_exempt
+@verify_worker
+def client_wrong_bench(request, machine):
 
     # Find and stop the test with the bad bench
     if int(request.POST['wrong']) != 0:
@@ -694,11 +688,8 @@ def client_wrong_bench(request):
     return JsonResponse({})
 
 @csrf_exempt
-def client_submit_nps(request):
-
-    # Pass along any error messages if they appear
-    machine, response = client_verify_worker(request)
-    if response != None: return response
+@verify_worker
+def client_submit_nps(request, machine):
 
     # Update the NPS counters for the GUI views
     machine.mnps      = float(request.POST['nps'     ]) / 1e6;
@@ -710,16 +701,13 @@ def client_submit_nps(request):
     return JsonResponse({})
 
 @csrf_exempt
-def client_submit_error(request):
+@verify_worker
+def client_submit_error(request, machine):
 
     ## Report an error when working on test. This could be one three kinds.
     ## 1. Error building the engine. Does not compile, for whatever reason.
     ## 2. Error getting the artifacts. Does not exist, lacks credentials.
     ## 3. Error during actual gameplay. Timeloss, Disconnect, Crash, etc.
-
-    # Pass along any error messages if they appear
-    machine, response = client_verify_worker(request)
-    if response != None: return response
 
     # Log the Error into the Events table
     event = LogEvent.objects.create(
@@ -737,21 +725,15 @@ def client_submit_error(request):
     return JsonResponse({})
 
 @csrf_exempt
-def client_submit_results(request):
-
-    # Pass along any error messages if they appear
-    machine, response = client_verify_worker(request)
-    if response != None: return response
+@verify_worker
+def client_submit_results(request, machine):
 
     # Returns {}, or { 'stop' : True }
     return JsonResponse(OpenBench.utils.update_test(request, machine))
 
 @csrf_exempt
-def client_heartbeat(request):
-
-    # Pass along any error messages if they appear
-    machine, response = client_verify_worker(request)
-    if response != None: return response
+@verify_worker
+def client_heartbeat(request, machine):
 
     # Force a refresh of the updated timestamp
     machine.save()
