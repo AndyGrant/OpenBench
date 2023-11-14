@@ -125,7 +125,7 @@ class TimeControl(object):
 
 
 def read_git_credentials(engine):
-    fname = 'credentials.%s' % (engine.replace(' ', '').lower())
+    fname = 'Config/credentials.%s' % (engine.replace(' ', '').lower())
     if os.path.exists(fname):
         with open(fname) as fin:
             return { 'Authorization' : 'token %s' % fin.readlines()[0].rstrip() }

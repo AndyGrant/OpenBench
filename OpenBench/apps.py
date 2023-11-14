@@ -20,5 +20,14 @@
 
 import django.apps
 
-class OpenBench(django.apps.AppConfig):
+
+class OpenBenchConfig(django.apps.AppConfig):
+
     name = 'OpenBench'
+
+    def ready(self):
+
+        from OpenBench import config
+
+        if config.OPENBENCH_CONFIG is None:
+            config.OPENBENCH_CONFIG = config.create_openbench_config()

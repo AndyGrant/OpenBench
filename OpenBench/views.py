@@ -49,6 +49,13 @@ from django.utils import timezone
 #                              GENERAL UTILITIES                              #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+ERROR_MESSAGES = {
+    'disabled'            : 'Account has not been enabled. Contact an Administrator',
+    'fakeuser'            : 'This is not a real OpenBench User. Create an OpenBench account',
+    'requires_login'      : 'All pages require a user login to access',
+    'manual_registration' : 'Registration can only be done via an Administrator',
+}
+
 class UnableToAuthenticate(Exception):
     pass
 
@@ -57,9 +64,9 @@ def render(request, template, content={}, always_allow=False, error=None, warnin
     data = content.copy()
     data.update({ 'config' : OPENBENCH_CONFIG })
 
-    if OpenBench.config.REQUIRE_LOGIN_TO_VIEW:
+    if OPENBENCH_CONFIG['require_login_to_view']:
         if not request.user.is_authenticated and not always_allow:
-            return redirect(request, '/login/',  error=data['config']['error']['requires_login'])
+            return redirect(request, '/login/',  error=ERROR_MESSAGES['requires_login'])
 
     if request.user.is_authenticated:
 
@@ -67,10 +74,10 @@ def render(request, template, content={}, always_allow=False, error=None, warnin
         data.update({'profile' : profile.first()})
 
         if profile.first() and not profile.first().enabled:
-            request.session['error_message'] = data['config']['error']['disabled']
+            request.session['error_message'] = ERROR_MESSAGES['disabled']
 
         elif request.user.is_authenticated and not profile.first():
-            request.session['error_message'] = data['config']['error']['fakeuser']
+            request.session['error_message'] = ERROR_MESSAGES['fakeuser']
 
     if error:
         request.session['error_message'] = error
@@ -127,9 +134,9 @@ def authenticate(request, requireEnabled=False):
 def register(request):
 
     if request.method == 'GET':
-        if not OpenBench.config.REQUIRE_MANUAL_REGISTRATION:
+        if not OPENBENCH_CONFIG['require_manual_registration']:
             return render(request, 'register.html', always_allow=True)
-        return redirect(request, '/login/', error=OPENBENCH_CONFIG['error']['manual_registration'])
+        return redirect(request, '/login/', error=ERROR_MESSAGES['manual_registration'])
 
     if request.POST['password1'] != request.POST['password2']:
         return redirect(request, '/register/', error='Passwords do not match')
@@ -586,7 +593,11 @@ def client_get_files(request):
     ## Location of static compile of Cutechess for Windows and Linux.
     ## OpenBench does not serve these files, but points to a repo ideally.
 
-    return JsonResponse( {'location' : OPENBENCH_CONFIG['corefiles'] })
+    repo = '%s/%s' % (OPENBENCH_CONFIG['client_repo_url'], OPENBENCH_CONFIG['client_repo_ref'])
+    repo = repo.replace('/github.com/', '/raw.githubusercontent.com/')
+    repo = OpenBench.utils.path_join(repo, 'CoreFiles')
+
+    return JsonResponse({ 'location' : repo })
 
 @csrf_exempt
 def client_get_build_info(request):
@@ -755,7 +766,7 @@ def api_authenticate(request, require_enabled=False):
     try:
 
         # Don't require a login for Public frameworks
-        if not require_enabled and not OpenBench.config.REQUIRE_LOGIN_TO_VIEW:
+        if not require_enabled and not OPENBENCH_CONFIG['require_login_to_view']:
             return True
 
         # Request is made from a browser, and is already logged in
