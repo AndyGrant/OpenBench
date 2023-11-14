@@ -44,7 +44,7 @@ function create_testmode_buttons(engine) {
         button_div.removeChild(button_div.lastChild);
 
     var index = 0;
-    for (let mode in config.engines[engine].tunemodes) {
+    for (let mode in config.engines[engine].tune_modes) {
 
         // Create a new button for the test mode
         var btn       = document.createElement('button')
@@ -80,7 +80,7 @@ function extract_mode_config(mode_str) {
     // Find test mode configuration for the engine
     var selection = document.getElementById('engine');
     var engine    = selection.options[selection.selectedIndex].value;
-    return config.engines[engine].tunemodes[mode_str];
+    return config.engines[engine].tune_modes[mode_str];
 }
 
 function set_engine_options(mode_str) {

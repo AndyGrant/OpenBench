@@ -16,7 +16,7 @@
         "systems"   : ["Windows", "Linux"]
     },
 
-    "testmodes" : {
+    "test_modes" : {
 
         "STC" : {
             "options"       : "Threads=1 Hash=8",
@@ -44,6 +44,29 @@
             "timecontrol"   : "20.0+0.2",
             "report_rate"   : 1,
             "workload_size" : 16
+        }
+    },
+
+    "tune_modes" : {
+
+        "STC" : {
+            "options"       : "Threads=1 Hash=8",
+            "timecontrol"   : "10.0+0.10"
+        },
+
+        "MTC" : {
+            "options"       : "Threads=1 Hash=32",
+            "timecontrol"   : "30.0+0.30"
+        },
+
+        "LTC" : {
+            "options"       : "Threads=1 Hash=64",
+            "timecontrol"   : "60.0+0.60"
+        },
+
+        "VLTC" : {
+            "options"       : "Threads=1 Hash=128",
+            "timecontrol"   : "180.0+1.80"
         }
     }
 }
