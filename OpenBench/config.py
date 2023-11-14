@@ -63,7 +63,7 @@ OPENBENCH_CONFIG = {
     },
 
     # Take a look at Books/books.json
-    'books'   : load_json_config('Books', 'books.json'),
+    'books'   : load_folder_of_configs('Books'),
 
     # Take a look at json file in Engines/
     'engines' : load_folder_of_configs('Engines'),

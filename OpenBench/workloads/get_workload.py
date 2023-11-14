@@ -50,7 +50,6 @@ def get_workload(machine):
     machine.workload = test.id; machine.save(); result.save()
     return { 'workload' : workload_to_dictionary(test, result, machine) }
 
-
 def select_workload(machine):
 
     # Find valid workloads, given the current distribution of workers
@@ -169,7 +168,12 @@ def workload_to_dictionary(test, result, machine):
         'win_adj'       : test.win_adj,
         'draw_adj'      : test.draw_adj,
         'workload_size' : test.workload_size,
-        'book'          : OPENBENCH_CONFIG['books'][test.book_name],
+    }
+
+    workload['test']['book'] = {
+        'name'   : test.book_name,
+        'sha'    : OPENBENCH_CONFIG['books'][test.book_name]['sha'],
+        'source' : OPENBENCH_CONFIG['books'][test.book_name]['source'],
     }
 
     workload['test']['dev'] = {
