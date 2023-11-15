@@ -139,16 +139,6 @@ def valid_assignment(machine, test, distribution):
     if (1 + is_spsa) * max(dev_threads, base_threads) > threads:
         return False
 
-    # Refuse to assign more workers than the test will allow
-    current_workers = distribution[test.id]['workers'] if test.id in distribution else 0
-    if test.worker_limit and current_workers >= test.worker_limit:
-        return False
-
-    # Refuse to assign more threads than the test will allow
-    current_threads = distribution[test.id]['threads'] if test.id in distribution else 0
-    if test.thread_limit and current_threads + threads > test.thread_limit:
-        return False
-
     # All Criteria have been met
     return True
 

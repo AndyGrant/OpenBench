@@ -93,8 +93,6 @@ def verify_test_creation(errors, request):
         (verify_syzygy_field   , 'syzygy_wdl', 'Syzygy WDL'),
 
         # Verify everything about the Workload Settings
-        (verify_integer_or_none, 'worker_limit', 'Worker Limit'),
-        (verify_integer_or_none, 'thread_limit', 'Thread Limit'),
         (verify_integer        , 'workload_size', 'Workload Size'),
         (verify_greater_than   , 'workload_size', 'Workload Size', 0),
 
@@ -132,10 +130,6 @@ def verify_tune_creation(errors, request):
         (verify_greater_than          , 'throughput', 'Throughput', 0),
         (verify_syzygy_field          , 'syzygy_wdl', 'Syzygy WDL'),
 
-        # Verify everything about the Workload Settings
-        (verify_integer_or_none       , 'worker_limit', 'Worker Limit'),
-        (verify_integer_or_none       , 'thread_limit', 'Thread Limit'),
-
         # Verify everything about the Adjudicaton Settings
         (verify_syzygy_field          , 'syzygy_adj', 'Syzygy Adjudication'),
         (verify_win_adj               , 'win_adj'),
@@ -161,10 +155,6 @@ def verify_tune_creation(errors, request):
 def verify_integer(errors, request, field, field_name):
     try: int(request.POST[field])
     except: errors.append('"{0}" is not an Integer'.format(field_name))
-
-def verify_integer_or_none(errors, request, field, field_name):
-    try: True if request.POST[field] == 'None' else int(request.POST[field])
-    except: errors.append('"{0}" is neither an Integer nor "None"'.format(field_name))
 
 def verify_float(errors, request, field, field_name):
     try: float(request.POST[field])

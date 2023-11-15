@@ -93,16 +93,6 @@ def tweak_workload(request, profile, workload):
         workload.throughput = max(1, int(request.POST['throughput']))
     except: pass
 
-    try: # Must be at least 0. Convert "None" to 0
-        x = request.POST['worker_limit']
-        workload.worker_limit = 0 if x == 'None' else max(0, int(x))
-    except: pass
-
-    try: # Must be at least 0. Convert "None" to 0
-        x = request.POST['thread_limit']
-        workload.thread_limit = 0 if x == 'None' else max(0, int(x))
-    except: pass
-
     try: # Must be at least one. Cannot be changed for Tuning workloads
         if workload.test_mode != 'SPSA':
             workload.workload_size = max(1, int(request.POST['workload_size']))
