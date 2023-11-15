@@ -70,21 +70,8 @@ def verify_engine_basics(engine_name, conf):
 
     assert type(conf.get('private')) == bool
     assert type(conf.get('nps')) == int and conf['nps'] > 0
-    assert type(conf.get('base')) == str
     assert type(conf.get('source')) == str
-
-    assert type(conf.get('bounds')) == str
-    assert type(conf.get('book')) == str
-    assert type(conf.get('win_adj')) == str
-    assert type(conf.get('draw_adj')) == str
-
     assert type(conf.get('build')) == dict
-
-    assert type(conf.get('test_modes')) == dict
-    assert type(conf['test_modes'].get('STC')) == dict
-
-    assert type(conf.get('tune_modes')) == dict
-    assert type(conf['tune_modes'].get('STC')) == dict
 
 def verify_engine_build(engine_name, conf):
 

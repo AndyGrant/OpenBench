@@ -36,7 +36,7 @@ function create_network_options(field_id, engine) {
     }
 }
 
-function create_testmode_buttons(engine) {
+function create_preset_buttons(engine) {
 
     // Clear out all of the existing buttons
     var button_div = document.getElementById('test-mode-buttons');
@@ -44,12 +44,16 @@ function create_testmode_buttons(engine) {
         button_div.removeChild(button_div.lastChild);
 
     var index = 0;
-    for (let mode in config.engines[engine].test_modes) {
+    for (let mode in config.engines[engine].test_presets) {
+
+        // Don't include the global defaults
+        if (mode == 'default')
+            continue;
 
         // Create a new button for the test mode
         var btn       = document.createElement('button')
         btn.innerHTML = mode;
-        btn.onclick   = function() { set_test_mode(mode); };
+        btn.onclick   = function() { apply_preset(mode); };
 
         // Apply all of our CSS bootstrapping
         btn.classList.add('anchorbutton');
@@ -76,143 +80,133 @@ function create_testmode_buttons(engine) {
 }
 
 
-function extract_mode_config(mode_str, target) {
-
-    // Find test mode configuration for either Dev or Base
-
-    var selection = document.getElementById(target + '_engine');
-    var engine    = selection.options[selection.selectedIndex].value;
-
-    return config.engines[engine].test_modes[mode_str];
-}
-
-
-function set_test_type() {
-
-    var selectA = document.getElementById('test_mode');
-    var mode    = selectA.options[selectA.selectedIndex].value;
-
-    var selectB = document.getElementById('dev_engine');
-    var engine  = selectB.options[selectB.selectedIndex].value;
-
-    if (mode == 'SPRT') {
-        document.getElementById('test_bounds'    ).value = config.engines[engine].bounds
-        document.getElementById('test_confidence').value = config.tests.confidence;
-        document.getElementById('test_max_games' ).value = 'N/A';
-    }
-
-    if (mode == 'GAMES') {
-        document.getElementById('test_bounds'    ).value = 'N/A';
-        document.getElementById('test_confidence').value = 'N/A';
-        document.getElementById('test_max_games' ).value = config.tests.max_games;
-    }
-}
-
-function set_engine_options(mode_str, target) {
-
-    // Fall back to STC, which tends to exist. Needed for cross-engine play
-    var dev_mode  = extract_mode_config(mode_str, 'dev' ) || extract_mode_config('STC', 'dev' );
-    var base_mode = extract_mode_config(mode_str, 'base') || extract_mode_config('STC', 'base');
-
-    // Extract UCI options for both the Dev and Base engines
-    var dev_options  = dev_mode  ? dev_mode['options'] : 'Threads=1 Hash=8';
-    var base_options = base_mode ? base_mode['options'] : 'Threads=1 Hash=8';
-
-    // Simple case, where we are not updating a base that is cross-engine
-    if (target == 'dev' || dev_options == base_options)
-        document.getElementById(target + '_options').value = dev_options;
-
-    else {
-
-        // Use the Threads= and Hash= from the dev options, but then make
-        // sure to include any specific options that appear in dev options
-
-        var regex   = /(Threads=\d+)\s(Hash=\d+)/;
-        var matches = dev_options.match(regex);
-
-        var standard_options = matches[1] + ' ' + matches[2];
-        var specific_options = base_options.replace(regex, '');
-        var combined_options = standard_options.trim() + ' ' + specific_options.trim();
-
-        document.getElementById('base_options').value = combined_options.trim();
-    }
-}
-
-function set_test_mode(mode_str) {
-
+function get_dev_engine() {
     const selection = document.getElementById('dev_engine');
-    const engine    = selection.options[selection.selectedIndex].value;
-    const mode      = extract_mode_config(mode_str, 'dev');
-
-    document.getElementById('workload_size').value = mode['workload_size'] || 32;
-    document.getElementById('book_name'    ).value = mode['book']          || config.engines[engine].book;
-
-    document.getElementById('dev_time_control' ).value = mode['timecontrol'] || '10.0+0.1';
-    document.getElementById('base_time_control').value = mode['timecontrol'] || '10.0+0.1';
-
-    set_engine_options(mode_str, 'dev');
-    set_engine_options(mode_str, 'base');
-
-    if (mode['bounds'] != null) {
-        document.getElementById('test_mode').value = 'SPRT'; set_test_type();
-        document.getElementById('test_bounds').value = mode['bounds'];
-    }
-
-    if (mode['games'] != null) {
-        document.getElementById('test_mode').value = 'GAMES'; set_test_type();
-        document.getElementById('test_max_games').value = mode['games'];
-    }
-
-    if (mode['bounds'] == null && mode['games'] == null) {
-        document.getElementById('test_mode').value = 'SPRT'; set_test_type();
-    }
+    return selection.options[selection.selectedIndex].value;
 }
+
+function get_base_engine() {
+    const selection = document.getElementById('base_engine');
+    return selection.options[selection.selectedIndex].value;
+}
+
+function add_defaults_to_preset(engine, preset) {
+
+    // Use both the defaults, and this specific preset's settings
+    const default_settings = config.engines[engine].test_presets['default'] || {};
+    const preset_settings  = config.engines[engine].test_presets[preset] || {};
+
+    let settings = {}
+
+    for (const key in default_settings)
+        settings[key] = default_settings[key];
+
+    for (const key in preset_settings)
+        settings[key] = preset_settings[key];
+
+    return settings;
+}
+
 
 function set_engine(engine, target) {
 
-    // Always update the Engine and Repository to the defaults
     document.getElementById(target + '_engine').value = engine;
     document.getElementById(target + '_repo'  ).value = repos[engine] || config.engines[engine].source
 
-    // Create dropdown of all Networks associated with the engine
     create_network_options(target + '_network', engine);
+}
 
-    // Set default UCI options as if we were running an STC when changing
-    set_engine_options('STC', target);
+function set_option(option_name, option_value) {
 
-    if (target == 'dev') {
+    const element = document.getElementById(option_name);
 
-        // Dev engine decides the Adjudication and Book settings
-        document.getElementById('book_name'  ).value = config.engines[engine].book;
-        document.getElementById('win_adj'    ).value = config.engines[engine].win_adj;
-        document.getElementById('draw_adj'   ).value = config.engines[engine].draw_adj;
+    if (element == null)
+        console.log(option_name + ' was not found.');
 
-        // When swapping the dev engine, redo buttons, base, and test mode
-        create_testmode_buttons(engine);
-        set_engine(engine, 'base');
-        set_test_mode('STC');
+    else if (element.tagName.toLowerCase() != 'select') {
+
+        element.value = option_value;
+
+        if (option_name == 'test_max_games') {
+            document.getElementById('test_mode').value = "GAMES";
+            document.getElementById('test_bounds').value = 'N/A';
+            document.getElementById('test_confidence').value = 'N/A';
+        }
+
+        if (option_name == 'test_bounds') {
+            document.getElementById('test_mode').value = "SPRT";
+            document.getElementById('test_max_games').value = 'N/A';
+        }
     }
 
-    // Default the base engine to it's own base branch
-    else document.getElementById(target + '_branch').value = config.engines[engine].base;
+    else {
+        for (let i = 0; i < element.options.length; i++)
+            if (element.options[i].text === option_value || element.options[i].value === option_value)
+                element.value = element.options[i].value;
+    }
+}
+
+function retain_specific_options(engine, preset) {
+
+    // This is not applicable for self-play
+    if (get_dev_engine() == get_base_engine())
+        return;
+
+    // Extract the Threads and Hash settings from the Dev Options
+
+    const dev_options = document.getElementById('dev_options').value;
+    const dev_threads = dev_options.match(/\bThreads\s*=\s*(\d+)\b/)[1];
+    const dev_hash    = dev_options.match(/\bHash\s*=\s*(\d+)\b/)[1];
+
+    // From the base options, replace the Threads= and Hash=
+
+    let base_options = add_defaults_to_preset(engine, preset)['base_options']
+                    || add_defaults_to_preset(engine, preset)['both_options'];
+
+    base_options = base_options.replace(/\bThreads\s*=\s*\d+\b/g, 'Threads=' + dev_threads);
+    base_options = base_options.replace(/\bHash\s*=\s*\d+\b/g, 'Hash=' + dev_hash);
+
+    set_option('base_options', base_options);
 }
 
 
-function enforce_default_text(id, text) {
+function apply_preset(preset) {
 
-    window.addEventListener('DOMContentLoaded', function() {
+    // Add the defaults to the preset-specific options
+    const settings  = add_defaults_to_preset(get_dev_engine(), preset)
 
-        var field = document.getElementById(id);
+    for (const option in settings) {
 
-        field.addEventListener('input', function() {
+        if (!settings.hasOwnProperty(option))
+            continue;
 
-            if (field.value.startsWith(text) || field.value === text)
-                return;
+        else if (!option.startsWith('both_'))
+            set_option(option, settings[option]);
 
-            if (field.value.endsWith('/'))
-                field.value = text + field.value.substr(text.length).replace(/\/+$/, '');
-            else
-                field.value = text + field.value.substr(text.length);
-        });
-    });
+        else {
+            set_option(option.replace('both_', 'dev_'), settings[option]);
+            set_option(option.replace('both_', 'base_'), settings[option]);
+        }
+    }
+
+    // For cross-engine, keep the original Hash/Threads, but
+    // add any other settings that might be specific to the engine
+    retain_specific_options(get_base_engine(), preset);
+}
+
+function change_engine(engine, target) {
+
+    // Set the Engine, Repo, and init the Networks dropdown
+    set_engine(engine, target);
+
+    // 1. Always set base, when setting the dev engine
+    // 2. When changing the dev engine, update the test-mode buttons
+
+    if (target == 'dev') {
+        set_engine(engine, 'base');
+        create_preset_buttons(engine);
+    }
+
+    // Always reinit to STC for clarity to the user
+    apply_preset('STC');
 }

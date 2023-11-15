@@ -104,8 +104,6 @@ def create_new_test(request):
     test.base_network      = request.POST['base_network']
     test.base_time_control = OpenBench.utils.TimeControl.parse(request.POST['base_time_control'])
 
-    test.worker_limit      = 0 if request.POST['worker_limit'] == 'None' else int(request.POST['worker_limit'])
-    test.thread_limit      = 0 if request.POST['thread_limit'] == 'None' else int(request.POST['thread_limit'])
     test.workload_size     = int(request.POST['workload_size'])
     test.priority          = int(request.POST['priority'])
     test.throughput        = int(request.POST['throughput'])
@@ -163,8 +161,6 @@ def create_new_tune(request):
     test.dev_network      = test.base_network      = request.POST['dev_network']
     test.dev_time_control = test.base_time_control = OpenBench.utils.TimeControl.parse(request.POST['dev_time_control'])
 
-    test.worker_limit     = 0 if request.POST['worker_limit'] == 'None' else int(request.POST['worker_limit'])
-    test.thread_limit     = 0 if request.POST['thread_limit'] == 'None' else int(request.POST['thread_limit'])
     test.workload_size    = int(request.POST['spsa_pairs_per'])
     test.priority         = int(request.POST['priority'])
     test.throughput       = int(request.POST['throughput'])
