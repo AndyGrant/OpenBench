@@ -42,9 +42,15 @@ from subprocess import PIPE, Popen, call, STDOUT
 from itertools import combinations_with_replacement
 from concurrent.futures import ThreadPoolExecutor
 
+# from client import BadVersionException
+
+from client import BadVersionException
+from client import url_join
+from client import try_forever
+
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 18 # Client version to send to the Server
+CLIENT_VERSION   = 19 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -258,10 +264,22 @@ class ServerReporter:
 
     @staticmethod
     def report(config, endpoint, payload):
+
         payload['machine_id'] = config.machine_id
         payload['secret']     = config.secret_token
-        target = url_join(config.server, endpoint)
-        return requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
+
+        target  = url_join(config.server, endpoint)
+        reponse = requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
+
+        # Check for a json repsone, to look for Client Version Errors
+        try: as_json = response.json()
+        except: return response
+
+        # Throw all the way back to the client.py
+        if 'Bad Client Version' in as_json.get('error', ''):
+            raise BadVersionException()
+
+        return response
 
     @staticmethod
     def report_nps(config, dev_nps, base_nps):
@@ -761,26 +779,6 @@ def validate_syzygy_exists(config, K):
 
     return True
 
-def try_forever(func, args, message):
-
-    while True:
-        try:
-            return func(*args)
-
-        except Exception as exception:
-            print ('\n\n' + message)
-            print ('[Note] Sleeping for %d seconds' % (TIMEOUT_ERROR))
-            print ('[Note] Traceback:')
-            traceback.print_exc()
-            print ()
-
-        time.sleep(TIMEOUT_ERROR)
-
-
-def url_join(*args):
-
-    # Join a set of URL paths while maintaining the correct format
-    return '/'.join([f.lstrip('/').rstrip('/') for f in args]) + '/'
 
 def download_file(source, outname, post_data=None, headers=None):
 
@@ -915,43 +913,6 @@ def find_pgn_error(reason, command):
 ## Functions interacting with the OpenBench server that establish the initial
 ## connection and then make simple requests to retrieve Workloads as json objects
 
-def server_download_cutechess(config):
-
-    print('\nFetching Cutechess Binary...')
-
-    if IS_WINDOWS and not locate_utility('cutechess-ob.exe', False, False):
-
-        # Fetch the source location if we are missing the binary
-        source = requests.get(
-            url_join(config.server, 'clientGetFiles'),
-            timeout=TIMEOUT_HTTP).json()['location']
-
-        if config.proxy: source = 'https://ghproxy.com/' + source
-
-        # Windows workers simply need a static compile (64-bit)
-        download_file(url_join(source, 'cutechess-windows.exe').rstrip('/'), 'cutechess-ob.exe')
-
-        # Verify that we can execute Cutechess
-        if not locate_utility('cutechess-ob.exe', False):
-            raise Exception
-
-    if IS_LINUX and not locate_utility('./cutechess-ob', False, False):
-
-        # Fetch the source location if we are missing the binary
-        source = requests.get(
-            url_join(config.server, 'clientGetFiles'),
-            timeout=TIMEOUT_HTTP).json()['location']
-
-        if config.proxy: source = 'https://ghproxy.com/' + source
-
-        # Linux workers need a static compile (64-bit) with execute permissions
-        download_file(url_join(source, 'cutechess-linux').rstrip('/'), 'cutechess-ob')
-        os.system('chmod 777 cutechess-ob')
-
-        # Verify that we can execute Cutechess
-        if not locate_utility('./cutechess-ob', False):
-            raise Exception
-
 def server_configure_worker(config):
 
     # Server tells us how to build or obtain binaries
@@ -998,6 +959,10 @@ def server_configure_worker(config):
         config.machine_id = 'None'
         os.remove('machine.txt')
 
+    # Throw all the way back to the client.py
+    if 'Bad Client Version' in response.get('error', ''):
+        raise BadVersionException();
+
     # The 'error' header is included if there was an issue
     if 'error' in response:
         raise Exception('[Error] %s' % (response['error']))
@@ -1017,6 +982,10 @@ def server_request_workload(config):
     payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token }
     target   = url_join(config.server, 'clientGetWorkload')
     response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
+
+    # Throw all the way back to the client.py
+    if 'Bad Client Version' in response.get('error', ''):
+        raise BadVersionException();
 
     # The 'error' header is included if there was an issue
     if 'error' in response:
@@ -1165,7 +1134,7 @@ def download_network_weights(config, branch):
 
     return network_path
 
-def download_engine(arguments, branch, network):
+def download_engine(config, branch, network):
 
     engine      = config.workload['test'][branch]['engine']
     branch_name = config.workload['test'][branch]['name']
@@ -1366,16 +1335,14 @@ def run_and_parse_cutechess(config, command, cutechess_idx, results_queue, abort
 #                                                                           #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-if __name__ == '__main__':
+def run_openbench_worker(args):
 
-    config = Configuration() # System info, Cmdline arguments, and Workload
+    config = Configuration(args) # System info, Cmdline arguments, and Workload
 
-    cutechess_error  = '[Note] Unable to fetch Cutechess location and download it!'
     setup_error      = '[Note] Unable to establish initial connection with the Server!'
     connection_error = '[Note] Unable to reach the server to request a workload!'
 
-    try_forever(server_download_cutechess, [config], cutechess_error)
-    try_forever(server_configure_worker,   [config], setup_error    )
+    try_forever(server_configure_worker, [config], setup_error)
 
     while True:
         try:
@@ -1399,6 +1366,11 @@ if __name__ == '__main__':
                 print('Exited via openbench.exit')
                 break
 
+        except BadVersionException:
+            raise BadVersionException()
+
         except Exception:
+            raise BadVersionException()
             traceback.print_exc()
             time.sleep(TIMEOUT_ERROR)
+
