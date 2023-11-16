@@ -20,7 +20,25 @@
     ],
 
     "engines" : [
+        "4ku",
+        "Berserk",
+        "Bit-Genie",
+        "BlackMarlin",
+        "Demolito",
+        "Drofa",
         "Ethereal",
-        "Torch"
+        "FabChess",
+        "Halogen",
+        "Igel",
+        "Koivisto",
+        "Laser",
+        "RubiChess",
+        "Seer",
+        "Stash",
+        "Stockfish",
+        "Torch",
+        "Weiss",
+        "Winter",
+        "Zahak"
     ]
 }

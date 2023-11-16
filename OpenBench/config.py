@@ -52,17 +52,16 @@ def load_book_config(book_name):
 
 def load_engine_config(engine_name):
 
-    with open(os.path.join(PROJECT_PATH, 'Engines', '%s.json' % (engine_name))) as fin:
-        conf = json.load(fin)
+    try:
+        with open(os.path.join(PROJECT_PATH, 'Engines', '%s.json' % (engine_name))) as fin:
+            conf = json.load(fin)
 
-    verify_engine_basics(engine_name, conf)
-    verify_engine_build(engine_name, conf)
+        verify_engine_basics(engine_name, conf)
+        verify_engine_build(engine_name, conf)
 
-    # for test_mode in conf['test_modes']:
-    #     verify_engine_test_mode(test_mode)
-    #
-    # for tune_mode in conf['tune_modes']:
-    #     verify_engine_test_mode(test_mode)
+    except Exception as error:
+        print (error)
+        print (engine_name)
 
     return conf
 
