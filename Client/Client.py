@@ -21,13 +21,50 @@
 import argparse
 import os
 import requests
+import shutil
 import tempfile
+import time
+import traceback
 import zipfile
+
+class BadVersionException(Exception):
+    def __init__(self, message='Wrong Client Version'):
+        self.message = message
+        super().__init__(self.message)
 
 def url_join(*args):
 
     # Join a set of URL paths while maintaining the correct format
     return '/'.join([f.lstrip('/').rstrip('/') for f in args]) + '/'
+
+def try_forever(func, args, message, timeout=15):
+
+    # Execute func(arg1, arg2, ...) until success
+
+    while True:
+
+        try:
+            return func(*args)
+
+        except BadVersionException:
+            raise BadVersionException()
+
+        except Exception as exception:
+            print ('\n\n' + message)
+            print ('[Note] Sleeping for %d seconds' % (timeout))
+            print ('[Note] Traceback:')
+            traceback.print_exc()
+            print ()
+
+        time.sleep(timeout)
+
+
+def has_worker():
+    try:
+        import worker
+        return True
+    except ImportError:
+        return False
 
 def parse_arguments():
 
@@ -51,6 +88,7 @@ def parse_arguments():
     p.add_argument(      '--syzygy'     , help='Syzygy WDL'        , required=False     )
     p.add_argument(      '--fleet'      , help='Fleet Mode'        , action='store_true')
     p.add_argument(      '--proxy'      , help='Github Proxy'      , action='store_true')
+    p.add_argument(      '--clean'      , help='Force New Client'  , action='store_true')
 
     args = p.parse_args()
 
@@ -62,32 +100,69 @@ def parse_arguments():
 
 def download_client_files(args):
 
-    # Reponse may contain an error header for invalid credentials
-    payload     = { 'username' : args.username, 'password' : args.password }
-    target      = url_join(args.server, 'clientVersionRef')
-    version_ref = requests.post(target, data=payload).json()
+    try: # Reponse may contain an error header for invalid credentials
+        payload     = { 'username' : args.username, 'password' : args.password }
+        target      = url_join(args.server, 'clientVersionRef')
+        version_ref = requests.post(target, data=payload).json()
 
-    # Download the entire .zip for the branch / tag / commit ref
-    repo_url = version_ref['client_repo_url']
-    repo_ref = version_ref['client_repo_ref']
-    ## response = requests.get(url_join(repo_url, 'archive', '%s.zip' % (repo_ref)))
-    ##
-    ## # Save the content into client.zip
-    ## assert response.status_code == 200
-    ## with open('client.zip', 'wb') as zip_file:
-    ##     zip_file.write(response.content)
+    except:
+        raise Exception('Unable to retrieve Client Version from OpenBench server')
 
-    with tempfile.TemporaryDirectory() as temp_dir:
+    try: # Download the entire .zip for the branch / tag / commit ref
+        repo_url = version_ref['client_repo_url']
+        repo_ref = version_ref['client_repo_ref']
+        response = requests.get(url_join(repo_url, 'archive', '%s.zip' % (repo_ref)))
+        assert response.status_code == 200
 
-        with zipfile.ZipFile('client.zip', 'r') as zip_file:
-            zip_file.extractall(temp_dir)
+    except:
+        raise Exception('Unable to retrieve .zip archive from Github')
 
-        client_dir = os.path.join(temp_dir, 'OpenBench-%s' % (repo_ref), 'Client')
-        for root, dirs, files in os.walk(client_dir):
-            for file in files:
-                print (os.path.relpath(os.path.join(root, file), temp_dir))
+    try: # Save to .zip, extract, and copy contents
+
+        # Save response content to a temp file
+        with tempfile.TemporaryFile() as temp_zip_file:
+            temp_zip_file.write(response.content)
+
+            # Extract the zip with a temp file
+            with tempfile.TemporaryDirectory() as temp_dir:
+                with zipfile.ZipFile(temp_zip_file) as zip_file:
+                    zip_file.extractall(temp_dir)
+
+                # Copy all files except client.py
+                client_dir = os.path.join(temp_dir, 'OpenBench-%s' % (repo_ref), 'Client')
+                for root, dirs, files in os.walk(client_dir):
+                    for file in files:
+                        if file != 'client.py':
+                            shutil.copy2(os.path.join(root, file), os.path.join(os.getcwd(), file))
+
+    except:
+        raise Exception('Unable to extract .zip archive contents')
+
 
 if __name__ == '__main__':
 
     args = parse_arguments()
-    download_client_files(args)
+
+    if args.clean or not has_worker():
+        try_forever(download_client_files, [args], 'Failed to download Client files')
+
+    from client import BadVersionException
+
+    while True:
+
+        try:
+            import worker
+            worker.run_openbench_worker(args)
+
+        except BadVersionException:
+            print ('[NOTE] Downloading newer version of Client...')
+            try_forever(download_client_files, [args], 'Failed to download Client files')
+
+        except Exception as err:
+            print (err)
+            print (type(err))
+            print (type(BadVersionException()))
+            break
+
+        except KeyboardInterrupt:
+            break
