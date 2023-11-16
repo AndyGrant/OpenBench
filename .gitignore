@@ -10,6 +10,4 @@ Scripts/Binaries/*
 Scripts/Networks/*
 Scripts/Repositories/*
 
-Engines/*.json
-
 Media/*
