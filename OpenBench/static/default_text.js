@@ -4,6 +4,9 @@ function enforce_default_text(id, text) {
 
         var field = document.getElementById(id);
 
+        if (!field)
+            return;
+
         field.addEventListener('input', function() {
 
             if (field.value.startsWith(text) || field.value === text)

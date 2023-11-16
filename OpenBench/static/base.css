@@ -240,6 +240,10 @@
     padding-bottom: 3rem;
 }
 
+.pl-half {
+    padding-left: 0.125rem;
+}
+
 .pl-1 {
     padding-left: 0.25rem;
 }
@@ -258,6 +262,10 @@
 
 .pl-5 {
     padding-left: 3rem;
+}
+
+.pr-half {
+    padding-right: 0.125rem;
 }
 
 .pr-1 {

@@ -35,6 +35,7 @@ import OpenBench.utils
 import OpenBench.views
 
 from OpenBench.models import *
+from OpenBench.config import OPENBENCH_CONFIG
 from OpenBench.workloads.verify_workload import verify_workload
 
 def create_workload(request, workload_type):
@@ -48,9 +49,24 @@ def create_workload(request, workload_type):
         return OpenBench.views.redirect(request, '/login/', error='Only enabled users can create tests')
 
     if request.method == 'GET':
-        data     = { 'networks' : list(Network.objects.all().values()) }
-        template = 'create_test.html' if workload_type == 'TEST' else 'create_tune.html'
-        return OpenBench.views.render(request, template, data)
+
+        data = { 'networks' : list(Network.objects.all().values()) }
+
+        if workload_type == 'TEST':
+            data['workload']        = workload_type
+            data['dev_text']        = 'Dev'
+            data['dev_title_text']  = 'Dev'
+            data['submit_text']     = 'Create Engine Test'
+            data['submit_endpoint'] = '/newTest/'
+
+        if workload_type == 'TUNE':
+            data['workload']        = workload_type
+            data['dev_text']        = ''
+            data['dev_title_text']  = 'Engine'
+            data['submit_text']     = 'Create SPSA Tune'
+            data['submit_endpoint'] = '/newTune/'
+
+        return OpenBench.views.render(request, 'create_workload.html', data)
 
     if workload_type == 'TEST':
         workload, errors = create_new_test(request)
@@ -70,7 +86,7 @@ def create_workload(request, workload_type):
     summary  = 'CREATE P=%d TP=%d' % (workload.priority, workload.throughput)
     LogEvent.objects.create(author=username, summary=summary, log_file='', test_id=workload.id)
 
-    if not OpenBench.config.USE_CROSS_APPROVAL and profile.approver:
+    if not OPENBENCH_CONFIG['use_cross_approval'] and profile.approver:
         workload.approved = True; workload.save()
 
     return OpenBench.views.redirect(request, '/index/', warning=warning)
