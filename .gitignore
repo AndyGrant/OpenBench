@@ -11,3 +11,7 @@ Scripts/Networks/*
 Scripts/Repositories/*
 
 Media/*
+
+!Client/*.py
+!Client/cutechess-ob
+!Client/cutechess-ob.exe

@@ -69,7 +69,7 @@ urlpatterns = [
     django.urls.path(r'scripts/', OpenBench.views.scripts),
 
     # Links for the Client to work with the Server
-    django.urls.path(r'clientGetFiles/', OpenBench.views.client_get_files),
+    django.urls.path(r'clientVersionRef/', OpenBench.views.client_version_ref),
     django.urls.path(r'clientGetBuildInfo/', OpenBench.views.client_get_build_info),
     django.urls.path(r'clientWorkerInfo/', OpenBench.views.client_worker_info),
     django.urls.path(r'clientGetWorkload/', OpenBench.views.client_get_workload),
