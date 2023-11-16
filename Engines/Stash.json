@@ -44,7 +44,6 @@
             "both_time_control" : "20.0+0.2",
             "workload_size"     : 16
         }
-
     },
 
     "tune_presets" : {
@@ -54,6 +53,5 @@
             "win_adj"   : "movecount=3 score=400",
             "draw_adj"  : "movenumber=40 movecount=8 score=10"
         }
-
     }
 }

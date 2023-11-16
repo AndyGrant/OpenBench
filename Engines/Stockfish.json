@@ -90,7 +90,6 @@
             "workload_size"     : 8,
             "games"             : 40000
         }
-
     },
 
     "tune_presets" : {
@@ -100,6 +99,5 @@
             "win_adj"   : "movecount=5 score=600",
             "draw_adj"  : "movenumber=32 movecount=6 score=15"
         }
-
     }
 }
