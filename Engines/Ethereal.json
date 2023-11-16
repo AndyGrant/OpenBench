@@ -1,7 +1,7 @@
 {
-    "private"  : false,
-    "nps"      : 1128000,
-    "source"   : "https://github.com/AndyGrant/Ethereal",
+    "private" : false,
+    "nps"     : 1128000,
+    "source"  : "https://github.com/AndyGrant/Ethereal",
 
     "build" : {
         "path"      : "src",
