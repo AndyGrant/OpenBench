@@ -589,16 +589,19 @@ def verify_worker(function):
     return wrapped_verify_worker
 
 @csrf_exempt
-def client_get_files(request):
+def client_version_ref(request):
 
-    ## Location of static compile of Cutechess for Windows and Linux.
-    ## OpenBench does not serve these files, but points to a repo ideally.
+    # Verify the User's credentials
+    try: user = authenticate(request, True)
+    except UnableToAuthenticate:
+        return JsonResponse({ 'error' : 'Bad Credentials' })
 
-    repo = '%s/%s' % (OPENBENCH_CONFIG['client_repo_url'], OPENBENCH_CONFIG['client_repo_ref'])
-    repo = repo.replace('/github.com/', '/raw.githubusercontent.com/')
-    repo = OpenBench.utils.path_join(repo, 'CoreFiles')
-
-    return JsonResponse({ 'location' : repo })
+    # Enough information to download the right Client
+    return JsonResponse({
+        'client_version'  : OPENBENCH_CONFIG['client_version' ],
+        'client_repo_url' : OPENBENCH_CONFIG['client_repo_url'],
+        'client_repo_ref' : OPENBENCH_CONFIG['client_repo_ref'],
+    })
 
 @csrf_exempt
 def client_get_build_info(request):
