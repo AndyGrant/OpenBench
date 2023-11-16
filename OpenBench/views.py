@@ -33,6 +33,7 @@ from OpenBench.workloads.verify_workload import verify_workload
 from OpenBench.workloads.modify_workload import modify_workload
 
 from OpenBench.config import OPENBENCH_CONFIG
+from OpenSite.settings import PROJECT_PATH
 
 from OpenBench.models import *
 from django.contrib.auth.models import User
@@ -794,7 +795,8 @@ def api_configs(request, engine=None):
         return api_response({ 'engines' : engines, 'books' : books })
 
     if engine in OPENBENCH_CONFIG['engines'].keys():
-        return api_response(OPENBENCH_CONFIG['engines'][engine])
+        with open(os.path.join(PROJECT_PATH, 'Engines', '%s.json' % (engine))) as fin:
+            return HttpResponse('<pre>' + str(fin.read()) + '</pre>')
 
     return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
 
