@@ -572,7 +572,7 @@ def verify_worker(function):
 
         # Get the machine, assuming it exists
         try: machine = Machine.objects.get(id=int(args[0].POST['machine_id']))
-        except: JsonResponse({ 'error' : 'Bad Machine Id' })
+        except: return JsonResponse({ 'error' : 'Bad Machine Id' })
 
         # Ensure the Client is using the same version as the Server
         if machine.info['client_ver'] != OPENBENCH_CONFIG['client_version']:
