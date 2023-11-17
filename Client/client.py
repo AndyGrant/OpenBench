@@ -20,7 +20,6 @@
 
 import argparse
 import os
-import platform
 import requests
 import shutil
 import tempfile
@@ -138,10 +137,6 @@ def download_client_files(args):
 
     except:
         raise Exception('Unable to extract .zip archive contents')
-
-    if platform.system() != 'Windows':
-        os.system('chmod 777 cutechess-ob')
-
 
 if __name__ == '__main__':
 
