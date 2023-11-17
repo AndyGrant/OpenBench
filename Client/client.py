@@ -145,6 +145,9 @@ def download_client_files(args):
 
 if __name__ == '__main__':
 
+    # Use client.py's path as the base pathway
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
     args = parse_arguments()
 
     if args.clean or not has_worker():
