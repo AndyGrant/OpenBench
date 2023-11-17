@@ -20,6 +20,7 @@
 
 import argparse
 import os
+import platform
 import requests
 import shutil
 import tempfile
@@ -138,12 +139,16 @@ def download_client_files(args):
     except:
         raise Exception('Unable to extract .zip archive contents')
 
+    if platform.system() != 'Windows':
+        os.system('chmod +x  cutechess-ob')
+
 
 if __name__ == '__main__':
 
     args = parse_arguments()
 
     if args.clean or not has_worker():
+        print ('[NOTE] Downloading Client...')
         try_forever(download_client_files, [args], 'Failed to download Client files')
 
     from client import BadVersionException
