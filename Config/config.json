@@ -4,7 +4,7 @@
     "client_repo_ref" : "master",
 
     "use_cross_approval"          : false,
-    "require_login_to_view"       : true,
+    "require_login_to_view"       : false,
     "require_manual_registration" : false,
 
     "books" : [
@@ -20,6 +20,25 @@
     ],
 
     "engines" : [
-        "Ethereal"
+        "4ku",
+        "Berserk",
+        "Bit-Genie",
+        "BlackMarlin",
+        "Demolito",
+        "Drofa",
+        "Ethereal",
+        "FabChess",
+        "Halogen",
+        "Igel",
+        "Koivisto",
+        "Laser",
+        "RubiChess",
+        "Seer",
+        "Stash",
+        "Stockfish",
+        "Torch",
+        "Weiss",
+        "Winter",
+        "Zahak"
     ]
 }
