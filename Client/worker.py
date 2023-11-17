@@ -268,8 +268,8 @@ class ServerReporter:
         payload['machine_id'] = config.machine_id
         payload['secret']     = config.secret_token
 
-        target  = url_join(config.server, endpoint)
-        reponse = requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
+        target   = url_join(config.server, endpoint)
+        response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
         # Check for a json repsone, to look for Client Version Errors
         try: as_json = response.json()
@@ -681,6 +681,10 @@ class ResultsReporter(object):
 
             # Signal an exit if the test ended
             return 'stop' in response
+
+        except BadVersionException:
+            self.abort_flag.set()
+            return True
 
         except Exception:
             traceback.print_exc()
@@ -1370,7 +1374,6 @@ def run_openbench_worker(args):
             raise BadVersionException()
 
         except Exception:
-            raise BadVersionException()
             traceback.print_exc()
             time.sleep(TIMEOUT_ERROR)
 
