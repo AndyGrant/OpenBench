@@ -87,7 +87,6 @@ def parse_arguments():
     p.add_argument('-I', '--identity'   , help='Machine pseudonym' , required=False     )
     p.add_argument(      '--syzygy'     , help='Syzygy WDL'        , required=False     )
     p.add_argument(      '--fleet'      , help='Fleet Mode'        , action='store_true')
-    p.add_argument(      '--proxy'      , help='Github Proxy'      , action='store_true')
     p.add_argument(      '--clean'      , help='Force New Client'  , action='store_true')
 
     args = p.parse_args()
@@ -137,6 +136,7 @@ def download_client_files(args):
 
     except:
         raise Exception('Unable to extract .zip archive contents')
+
 
 if __name__ == '__main__':
 

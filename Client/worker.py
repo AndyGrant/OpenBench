@@ -100,7 +100,6 @@ class Configuration:
         self.identity    = args.identity if args.identity else 'None'
         self.syzygy_path = args.syzygy   if args.syzygy   else None
         self.fleet       = args.fleet    if args.fleet    else False
-        self.proxy       = args.proxy    if args.proxy    else False
 
     def init_client(self):
 
@@ -1090,7 +1089,6 @@ def download_opening_book(config):
 
     # Download file if we do not already have it
     if not os.path.isfile(book_path):
-        if config.proxy: book_source = 'https://ghproxy.com/' + book_source
         download_file(book_source, book_name + '.zip')
         unzip_delete_file(book_name + '.zip', 'Books/')
 
