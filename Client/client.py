@@ -158,11 +158,5 @@ if __name__ == '__main__':
             print ('[NOTE] Downloading newer version of Client...')
             try_forever(download_client_files, [args], 'Failed to download Client files')
 
-        except Exception as err:
-            print (err)
-            print (type(err))
-            print (type(BadVersionException()))
-            break
-
         except KeyboardInterrupt:
             break
