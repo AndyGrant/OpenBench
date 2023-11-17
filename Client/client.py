@@ -140,7 +140,7 @@ def download_client_files(args):
         raise Exception('Unable to extract .zip archive contents')
 
     if platform.system() != 'Windows':
-        os.system('chmod +x  cutechess-ob')
+        os.system('chmod 777 cutechess-ob')
 
 
 if __name__ == '__main__':
