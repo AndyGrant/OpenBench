@@ -50,7 +50,7 @@ from client import try_forever
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 20 # Client version to send to the Server
+CLIENT_VERSION   = 21 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -1347,7 +1347,11 @@ def run_openbench_worker(args):
     try_forever(server_configure_worker, [config], setup_error)
 
     if IS_LINUX:
-        os.system('chmod 777 cutechess-ob')
+
+        status = os.system('sudo -n chmod 777 cutechess-ob')
+
+        if status != 0:
+            os.system('chmod 777 cutechess-ob')
 
     while True:
         try:
