@@ -50,7 +50,7 @@ from client import try_forever
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 21 # Client version to send to the Server
+CLIENT_VERSION   = 22 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -727,6 +727,16 @@ def locate_utility(util, force_exit=True, report_error=True):
         if report_error: print('[Error] Unable to locate %s' % (util))
         if force_exit: sys.exit()
 
+def set_cutechess_permissions():
+
+    status = os.system('sudo -n chmod 777 cutechess-ob > /dev/null 2>&1')
+
+    if status != 0:
+        status = os.system('chmod 777 cutechess-ob > /dev/null 2>&1')
+
+    if status != 0:
+        print ('[ERROR] Unable to set execute permissions on cutechess-ob')
+
 
 def cleanup_client():
 
@@ -1347,11 +1357,7 @@ def run_openbench_worker(args):
     try_forever(server_configure_worker, [config], setup_error)
 
     if IS_LINUX:
-
-        status = os.system('sudo -n chmod 777 cutechess-ob')
-
-        if status != 0:
-            os.system('chmod 777 cutechess-ob')
+        set_cutechess_permissions()
 
     while True:
         try:

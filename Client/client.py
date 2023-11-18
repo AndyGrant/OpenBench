@@ -19,6 +19,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import argparse
+import importlib
 import os
 import requests
 import shutil
@@ -155,6 +156,7 @@ if __name__ == '__main__':
 
         try:
             import worker
+            importlib.reload(worker)
             worker.run_openbench_worker(args)
 
         except BadVersionException:
