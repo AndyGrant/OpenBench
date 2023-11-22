@@ -74,8 +74,8 @@
         },
 
         "LTC" : {
-            "dev_options"      : "Threads=1 Hash=32",
-            "dev_time_control" : "8.0+0.08"
+            "dev_options"      : "Threads=1 Hash=128",
+            "dev_time_control" : "40.0+0.4"
         }
     }
 }
