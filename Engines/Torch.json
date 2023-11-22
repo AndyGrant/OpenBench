@@ -39,7 +39,7 @@
         },
 
         "SMP LTC" : {
-            "both_options"      : "Threads=15 Hash=1024 Minimal=true",
+            "both_options"      : "Threads=15 Hash=256 Minimal=true",
             "both_time_control" : "30.0+0.3",
             "workload_size"     : 16,
             "test_bounds"       : "[0.50, 2.50]"
@@ -100,23 +100,23 @@
     "tune_presets" : {
 
         "STC" : {
-            "options"     : "Threads=1 Hash=16 Minimal=true",
-            "timecontrol" : "10.0+0.10"
+            "dev_options"      : "Threads=1 Hash=16 Minimal=true",
+            "dev_time_control" : "10.0+0.10"
         },
 
         "MTC" : {
-            "options"     : "Threads=1 Hash=32 Minimal=true",
-            "timecontrol" : "30.0+0.30"
+            "dev_options"      : "Threads=1 Hash=32 Minimal=true",
+            "dev_time_control" : "30.0+0.30"
         },
 
         "LTC" : {
-            "options"     : "Threads=1 Hash=64 Minimal=true",
-            "timecontrol" : "60.0+0.60"
+            "dev_options"      : "Threads=1 Hash=64 Minimal=true",
+            "dev_time_control" : "60.0+0.60"
         },
 
         "VLTC" : {
-            "options"     : "Threads=1 Hash=128 Minimal=true",
-            "timecontrol" : "180.0+1.80"
+            "dev_options"      : "Threads=1 Hash=128 Minimal=true",
+            "dev_time_control" : "180.0+1.80"
         }
     }
 }

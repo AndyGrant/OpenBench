@@ -20,6 +20,8 @@
 
 import json
 import os
+import sys
+import traceback
 
 from OpenSite.settings import PROJECT_PATH
 
@@ -56,16 +58,24 @@ def load_engine_config(engine_name):
         with open(os.path.join(PROJECT_PATH, 'Engines', '%s.json' % (engine_name))) as fin:
             conf = json.load(fin)
 
-        verify_engine_basics(engine_name, conf)
+        verify_engine_basics(conf)
         verify_engine_build(engine_name, conf)
 
+        for key, test_preset in conf['test_presets'].items():
+            verify_engine_test_preset(test_preset)
+
+        for key, tune_preset in conf['tune_presets'].items():
+            verify_engine_tune_preset(tune_preset)
+
     except Exception as error:
-        print (error)
-        print (engine_name)
+        traceback.print_exc()
+        print ('%s has errors on the configuration json' % (engine_name))
+        sys.exit()
 
     return conf
 
-def verify_engine_basics(engine_name, conf):
+
+def verify_engine_basics(conf):
 
     assert type(conf.get('private')) == bool
     assert type(conf.get('nps')) == int and conf['nps'] > 0
@@ -88,3 +98,76 @@ def verify_engine_build(engine_name, conf):
         assert type(conf['build'].get('path')) == str
         assert type(conf['build'].get('compilers')) == list
         assert all(type(x) == str for x in conf['build']['compilers'])
+
+def verify_engine_test_preset(test_preset):
+
+    valid_keys = [
+
+        'both_branch',
+        'both_bench',
+        'both_network',
+        'both_options',
+        'both_time_control',
+
+        'dev_branch',
+        'dev_bench',
+        'dev_network',
+        'dev_options',
+        'dev_time_control',
+
+        'base_branch',
+        'base_bench',
+        'base_network',
+        'base_options',
+        'base_time_control',
+
+        'test_bounds',
+        'test_confidence',
+        'test_max_games',
+
+        'book_name',
+        'priority',
+        'throughput',
+        'workload_size',
+        'syzygy_wdl',
+
+        'syzygy_adj',
+        'win_adj',
+        'draw_adj',
+    ]
+
+    for key in test_preset.keys():
+        if key not in valid_keys:
+            raise Exception('Contains invalid key: %s' % (key))
+
+def verify_engine_tune_preset(tune_preset):
+
+    valid_keys = [
+
+        'dev_branch',
+        'dev_bench',
+        'dev_network',
+        'dev_options',
+        'dev_time_control',
+
+        'spsa_reporting_type',
+        'spsa_distribution_type',
+        'spsa_alpha',
+        'spsa_gamma',
+        'spsa_A_ratio',
+        'spsa_iterations',
+        'spsa_pairs_per',
+
+        'book_name',
+        'priority',
+        'throughput',
+        'syzygy_wdl',
+
+        'syzygy_adj',
+        'win_adj',
+        'draw_adj',
+    ]
+
+    for key in tune_preset.keys():
+        if key not in valid_keys:
+            raise Exception('Contains invalid key: %s' % (key))

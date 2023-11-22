@@ -140,7 +140,7 @@ function set_option(option_name, option_value) {
             document.getElementById('test_confidence').value = 'N/A';
         }
 
-        if (option_name == 'test_bounds') {
+        if (option_name == 'test_bounds' || option_name == 'test_confidence') {
             document.getElementById('test_mode').value = "SPRT";
             document.getElementById('test_max_games').value = 'N/A';
         }

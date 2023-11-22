@@ -37,28 +37,28 @@
             "both_options"      : "Threads=1 Hash=8",
             "both_time_control" : "10.0+0.1",
             "workload_size"     : 32,
-            "bounds"            : "[-2.00, 0.00]"
+            "test_bounds"       : "[-2.00, 0.00]"
         },
 
         "LTC Simplify" : {
             "both_options"      : "Threads=1 Hash=64",
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
-            "bounds"            : "[-2.00, 0.00]"
+            "test_bounds"       : "[-2.00, 0.00]"
         },
 
         "STC Fixed" : {
             "both_options"      : "Threads=1 Hash=8",
             "both_time_control" : "10.0+0.1",
             "workload_size"     : 32,
-            "games"             : 20000
+            "test_max_games"    : 20000
         },
 
         "LTC Fixed" : {
             "both_options"      : "Threads=1 Hash=64",
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
-            "games"             : 20000
+            "test_max_games"    : 20000
         },
 
         "SMP STC" : {
@@ -83,8 +83,8 @@
         },
 
         "STC" : {
-            "both_options"      : "Threads=1 Hash=8",
-            "both_time_control" : "10.0+0.10"
+            "dev_options"      : "Threads=1 Hash=8",
+            "dev_time_control" : "10.0+0.10"
         }
     }
 }
