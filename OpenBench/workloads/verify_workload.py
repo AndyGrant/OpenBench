@@ -82,6 +82,7 @@ def verify_test_creation(errors, request):
 
         # Verify everything about the Test Settings
         (verify_configuration  , 'book_name', 'Book', 'books'),
+        (verify_upload_pgns    , 'upload_pgns', 'Upload PGNs'),
         (verify_test_mode      , 'test_mode'),
         (verify_sprt_bounds    , 'test_bounds'),
         (verify_sprt_conf      , 'test_confidence'),
@@ -124,6 +125,7 @@ def verify_tune_creation(errors, request):
 
         # Verify everything about the Test Settings
         (verify_configuration         , 'book_name', 'Book', 'books'),
+        (verify_upload_pgns           , 'upload_pgns', 'Upload PGNs'),
 
         # Verify everything about the General Settings
         (verify_integer               , 'priority', 'Priority'),
@@ -269,6 +271,10 @@ def verify_spsa_distribution_type(errors, request, field, field_name):
     candidates = ['SINGLE', 'MULTIPLE']
     try: assert request.POST[field] in candidates
     except: errors.append('%s must be in %s' % (field_name, ', '.join(candidates)))
+
+def verify_upload_pgns(errors, request, field, field_name):
+    try: request.POST[field] in ['FALSE', 'COMPACT', 'VERBOSE']
+    except: errors.append('"%s" must be FALSE, COMPACT, or VERBOSE' % (field_name))
 
 
 def collect_github_info(errors, request, field):

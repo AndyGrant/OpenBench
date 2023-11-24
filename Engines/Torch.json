@@ -29,20 +29,23 @@
             "both_options"      : "Threads=1 Hash=64 Minimal=true",
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
-            "test_bounds"       : "[0.00, 2.25]"
+            "test_bounds"       : "[0.00, 2.25]",
+            "upload_pgns"       : "COMPACT"
         },
 
         "SMP STC" : {
             "both_options"      : "Threads=6 Hash=128 Minimal=true",
             "both_time_control" : "10.0+0.1",
-            "workload_size"     : 64
+            "workload_size"     : 64,
+            "upload_pgns"       : "COMPACT"
         },
 
         "SMP LTC" : {
             "both_options"      : "Threads=15 Hash=256 Minimal=true",
             "both_time_control" : "30.0+0.3",
             "workload_size"     : 16,
-            "test_bounds"       : "[0.50, 2.50]"
+            "test_bounds"       : "[0.50, 2.50]",
+            "upload_pgns"       : "COMPACT"
         },
 
         "STC Simplification" : {
@@ -56,7 +59,8 @@
             "both_options"      : "Threads=1 Hash=64 Minimal=true",
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
-            "test_bounds"       : "[-1.75, 0.25]"
+            "test_bounds"       : "[-1.75, 0.25]",
+            "upload_pgns"       : "COMPACT"
         },
 
         "STC Regression" : {
@@ -72,7 +76,8 @@
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
             "book_name"         : "8moves_v3.epd",
-            "test_max_games"    : 40000
+            "test_max_games"    : 40000,
+            "upload_pgns"       : "COMPACT"
         },
 
         "STC Fixed Games" : {

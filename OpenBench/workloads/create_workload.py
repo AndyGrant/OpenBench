@@ -105,6 +105,7 @@ def create_new_test(request):
     test                   = Test()
     test.author            = request.user.username
     test.book_name         = request.POST['book_name']
+    test.upload_pgns       = request.POST['upload_pgns']
 
     test.dev               = get_engine(*dev_info)
     test.dev_repo          = request.POST['dev_repo']
@@ -169,6 +170,7 @@ def create_new_tune(request):
     test                  = Test()
     test.author           = request.user.username
     test.book_name        = request.POST['book_name']
+    test.upload_pgns      = request.POST['upload_pgns']
 
     test.dev              = test.base              = get_engine(*dev_info)
     test.dev_repo         = test.base_repo         = request.POST['dev_repo']

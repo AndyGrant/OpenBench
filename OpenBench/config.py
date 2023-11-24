@@ -126,6 +126,7 @@ def verify_engine_test_preset(test_preset):
         'test_max_games',
 
         'book_name',
+        'upload_pgns',
         'priority',
         'throughput',
         'workload_size',
@@ -159,6 +160,7 @@ def verify_engine_tune_preset(tune_preset):
         'spsa_pairs_per',
 
         'book_name',
+        'upload_pgns',
         'priority',
         'throughput',
         'syzygy_wdl',
