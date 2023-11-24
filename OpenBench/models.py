@@ -90,7 +90,8 @@ class Result(Model):
 class Test(Model):
 
     # Misc information
-    author    = CharField(max_length=64)
+    author      = CharField(max_length=64)
+    upload_pgns = CharField(max_length=16, default='FALSE')
 
     # Opening book settings
     book_name  = CharField(max_length=32)
@@ -194,3 +195,6 @@ class Network(Model):
 
     def __str__(self):
         return '[{}] {} ({})'.format(self.engine, self.name, self.sha256)
+
+class PGN(Model):
+    pass
