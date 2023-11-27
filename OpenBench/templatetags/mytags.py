@@ -226,7 +226,7 @@ def spsa_param_digest(workload):
     digest = []
 
     # C and R are compressed as we progress iterations
-    iteration     = 10000 + (workload.games / (workload.spsa['pairs_per'] * 2))
+    iteration     = 1 + (workload.games / (workload.spsa['pairs_per'] * 2))
     c_compression = iteration ** workload.spsa['Gamma']
     r_compression = (workload.spsa['A'] + iteration) ** workload.spsa['Alpha']
 
