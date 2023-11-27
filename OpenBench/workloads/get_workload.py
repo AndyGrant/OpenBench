@@ -158,6 +158,7 @@ def workload_to_dictionary(test, result, machine):
         'win_adj'       : test.win_adj,
         'draw_adj'      : test.draw_adj,
         'workload_size' : test.workload_size,
+        'upload_pgns'   : test.upload_pgns,
     }
 
     workload['test']['book'] = {

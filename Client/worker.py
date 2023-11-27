@@ -42,11 +42,11 @@ from subprocess import PIPE, Popen, call, STDOUT
 from itertools import combinations_with_replacement
 from concurrent.futures import ThreadPoolExecutor
 
-# from client import BadVersionException
-
 from client import BadVersionException
 from client import url_join
 from client import try_forever
+
+from pgn_util import compress_list_of_pgns
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
@@ -492,12 +492,7 @@ class Cutechess:
 
     @staticmethod
     def pgnout_settings(config, timestamp, cutechess_idx):
-
-        test_id   = int(config.workload['test']['id'])
-        result_id = int(config.workload['result']['id'])
-
-        # Format: <Test>-<Result>-<Time>-<Index>.pgn
-        return '-pgnout PGNs/%d.%d.%d.%d.pgn' % (test_id, result_id, timestamp, cutechess_idx)
+        return '-pgnout %s' % (Cutechess.pgn_name(config, timestamp, cutechess_idx))
 
     @staticmethod
     def update_results(results, line):
@@ -561,6 +556,16 @@ class Cutechess:
             subprocess.run(['taskkill', '/f', '/im', 'cutechess-ob.exe'])
             subprocess.run(['taskkill', '/f', '/im', dev_process])
             subprocess.run(['taskkill', '/f', '/im', base_process])
+
+    @staticmethod
+    def pgn_name(config, timestamp, cutechess_idx):
+
+        test_id   = int(config.workload['test']['id'])
+        result_id = int(config.workload['result']['id'])
+
+        # Format: <Test>-<Result>-<Time>-<Index>.pgn
+        return 'PGNs/%d.%d.%d.%d.pgn' % (test_id, result_id, timestamp, cutechess_idx)
+
 
 class PGNHelper:
 
@@ -694,7 +699,7 @@ class ResultsReporter(object):
         for x in range(cutechess_cnt):
 
             # Reuse logic that was given to Cutechess to decide the PGN name
-            fname = Cutechess.pgnout_settings(self.config, timestamp, x).split()[1]
+            fname = Cutechess.pgn_name(self.config, timestamp, x)
 
             # For any game with weird Termination, report it
             for header, moves in PGNHelper.slice_pgn_file(fname):
@@ -1087,6 +1092,18 @@ def complete_workload(config):
             abort_flag.set()
             Cutechess.kill_everything(dev_name, base_name)
             raise
+
+        if config.workload['test']['upload_pgns'] == 'FALSE':
+            return
+
+        compact    = config.workload['test']['upload_pgns'] == 'COMPACT'
+        pgn_files  = [Cutechess.pgn_name(config, timestamp, x) for x in range(cutechess_cnt)]
+        compressed = compress_list_of_pgns(pgn_files, compact)
+
+        with open('compressed.pgn.bz2', 'wb') as fout:
+            fout.write(compressed)
+
+        sys.exit()
 
 def download_opening_book(config):
 
