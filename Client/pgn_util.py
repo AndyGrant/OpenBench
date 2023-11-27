@@ -38,7 +38,7 @@ def pgn_list_to_headers(lines):
 def pgn_strip_headers(headers):
     # PGN Format: [<Header> "<Value>"]
     desired = [ 'White', 'Black', 'Result', 'PlyCount', 'FEN', 'TimeControl' ]
-    return '\n'.join('[%s "%s"]' % (f, headers[f]) for f in desired)
+    return '\n'.join('[%s "%s"]' % (f, headers[f]) for f in desired if f in headers)
 
 def pgn_strip_movelist(move_text, compact):
 
@@ -61,18 +61,20 @@ def pgn_strip_movelist(move_text, compact):
     # PGNs expect trailing game result text
     return stripped + result_regex.search(move_text).group(1)
 
-def strip_entire_pgn(file_name, compact=True):
+def strip_entire_pgn(file_name, compact):
 
     stripped = ''
-    for header_dict, move_text in pgn_iterator(sys.argv[1]):
-        stripped += pgn_strip_headers(header_dict) + '\n'
-        stripped += pgn_strip_movelist(move_text, compact) + '\n'
+    for header_dict, move_text in pgn_iterator(file_name):
+        stripped += pgn_strip_headers(header_dict) + '\n\n'
+        stripped += pgn_strip_movelist(move_text, compact) + '\n\n'
 
     return stripped
 
+def compress_list_of_pgns(file_names, compact):
 
-if __name__ == '__main__':
+    text = ''
+    for fname in file_names:
+        print ('Compressing %s...' % (fname))
+        text += strip_entire_pgn(fname, compact)
 
-    text = strip_entire_pgn(sys.argv[1], compact=True)
-
-    compressed = bz2.compress(text.encode())
+    return bz2.compress(text.encode())
