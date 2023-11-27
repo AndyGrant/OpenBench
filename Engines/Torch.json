@@ -104,6 +104,12 @@
 
     "tune_presets" : {
 
+        "default" : {
+            "book_name"       : "UHO_4060_v2.epd",
+            "win_adj"         : "movecount=5 score=300",
+            "draw_adj"        : "movenumber=32 movecount=6 score=8"
+        },
+
         "STC" : {
             "dev_options"      : "Threads=1 Hash=16 Minimal=true",
             "dev_time_control" : "10.0+0.10"
