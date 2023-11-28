@@ -36,8 +36,16 @@ def pgn_list_to_headers(lines):
     return { f.split()[0][1:] : re.search(r'"([^"]*)"', f).group(1) for f in lines }
 
 def pgn_strip_headers(headers):
+
+    # First 7 + FEN are required. Rest are useful.
+    desired = [
+        'Event', 'Site', 'Date',
+        'Round', 'White', 'Black',
+        'Result', 'PlyCount', 'FEN',
+        'TimeControl', 'Variant'
+    ]
+
     # PGN Format: [<Header> "<Value>"]
-    desired = [ 'White', 'Black', 'Result', 'PlyCount', 'FEN', 'TimeControl' ]
     return '\n'.join('[%s "%s"]' % (f, headers[f]) for f in desired if f in headers)
 
 def pgn_strip_movelist(move_text, compact):
