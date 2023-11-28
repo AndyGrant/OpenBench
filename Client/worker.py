@@ -462,6 +462,7 @@ class Cutechess:
         options = config.workload['test'][branch]['options']
         network = config.workload['test'][branch]['network']
         private = config.workload['test'][branch]['private']
+        engine  = config.workload['test'][branch]['engine']
         syzygy  = config.workload['test']['syzygy_wdl']
 
         # Human-readable name, and scale the time control
@@ -488,7 +489,7 @@ class Cutechess:
 
         # Join options together in the Cutechess format
         options = ' option.'.join([''] + re.findall(r'"[^"]*"|\S+', options))
-        return '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s' % (command, control, options, branch)
+        return '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s-%s' % (command, control, options, engine, branch)
 
     @staticmethod
     def pgnout_settings(config, timestamp, cutechess_idx):
