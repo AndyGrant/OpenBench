@@ -262,13 +262,13 @@ class ServerReporter:
     ## differing payloads. Payloads must always include the machine id, and secret token
 
     @staticmethod
-    def report(config, endpoint, payload):
+    def report(config, endpoint, payload, files=None):
 
         payload['machine_id'] = config.machine_id
         payload['secret']     = config.secret_token
 
         target   = url_join(config.server, endpoint)
-        response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
+        response = requests.post(target, data=payload, files=files, timeout=TIMEOUT_HTTP)
 
         # Check for a json repsone, to look for Client Version Errors
         try: as_json = response.json()
@@ -391,6 +391,24 @@ class ServerReporter:
         }
 
         return ServerReporter.report(config, 'clientHeartbeat', payload)
+
+    @staticmethod
+    def report_pgn(config, compressed_pgn_text):
+
+        payload = {
+            'test_id'      : config.workload['test']['id'],
+            'result_id'    : config.workload['result']['id'],
+            'book_index'   : config.workload['test']['book_index'],
+            'Content-Type' : 'application/octet-stream',
+        }
+
+        files = {
+            'file' : ('games.pgn', compressed_pgn_text)
+        }
+
+        print (type(compressed_pgn_text))
+
+        return ServerReporter.report(config, 'clientSubmitPGN', payload, files)
 
 class Cutechess:
 
@@ -1094,17 +1112,11 @@ def complete_workload(config):
             Cutechess.kill_everything(dev_name, base_name)
             raise
 
-        if config.workload['test']['upload_pgns'] == 'FALSE':
-            return
-
-        compact    = config.workload['test']['upload_pgns'] == 'COMPACT'
-        pgn_files  = [Cutechess.pgn_name(config, timestamp, x) for x in range(cutechess_cnt)]
-        compressed = compress_list_of_pgns(pgn_files, compact)
-
-        with open('compressed.pgn.bz2', 'wb') as fout:
-            fout.write(compressed)
-
-        sys.exit()
+        # Upload the PGN if requested
+        if config.workload['test']['upload_pgns'] != 'FALSE':
+            compact    = config.workload['test']['upload_pgns'] == 'COMPACT'
+            pgn_files  = [Cutechess.pgn_name(config, timestamp, x) for x in range(cutechess_cnt)]
+            ServerReporter.report_pgn(config, compress_list_of_pgns(pgn_files, compact))
 
 def download_opening_book(config):
 
