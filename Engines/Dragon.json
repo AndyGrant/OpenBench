@@ -1,7 +1,7 @@
 {
     "private" : true,
-    "nps"     : 560000,
-    "source"  : "https://github.com/ChessCom/TorchDev",
+    "nps"     : 710000,
+    "source"  : "https://github.com/ChessCom/komodo",
 
     "build" : {
         "cpuflags" : ["AVX2", "FMA", "POPCNT"],
@@ -11,7 +11,7 @@
     "test_presets" : {
 
         "default" : {
-            "base_branch"     : "master",
+            "base_branch"     : "openbench",
             "book_name"       : "UHO_4060_v2.epd",
             "test_bounds"     : "[0.00, 2.00]",
             "test_confidence" : "[0.10, 0.05]",
