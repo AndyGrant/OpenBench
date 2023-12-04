@@ -61,6 +61,9 @@ def load_engine_config(engine_name):
         verify_engine_basics(conf)
         verify_engine_build(engine_name, conf)
 
+        assert 'default' in conf['test_presets'].keys()
+        assert 'default' in conf['tune_presets'].keys()
+
         for key, test_preset in conf['test_presets'].items():
             verify_engine_test_preset(test_preset)
 

@@ -223,3 +223,36 @@ function change_engine(engine, target, workload_type) {
 
     apply_preset('STC', workload_type);
 }
+
+function set_test_type() {
+
+    // When swapping from SPRT -> FIXED, we disable test_bounds and test_confidence
+    // When swapping from FIXED -> SPRT, we disable test_max_games
+    //
+    // Attempt to fill SPRT fields using default settings, then STC settings.
+    // Attempt to fill FIXED fields using default settings, then just use 40,000
+
+    var selectA  = document.getElementById('test_mode');
+    var mode     = selectA.options[selectA.selectedIndex].value;
+
+    var selectB  = document.getElementById('dev_engine');
+    var engine   = selectB.options[selectB.selectedIndex].value;
+
+    var base = get_presets(engine, 'default', 'TEST');
+    var stc  = get_presets(engine, 'STC', 'TEST');
+
+    if (!stc) // If there are no STC settings, re-use the defaults
+        stc = base;
+
+    if (mode == 'SPRT') {
+        document.getElementById('test_bounds'    ).value = base.test_bounds || stc.test_bounds;
+        document.getElementById('test_confidence').value = base.test_confidence || stc.test_confidence;
+        document.getElementById('test_max_games' ).value = 'N/A';
+    }
+
+    if (mode == 'GAMES') {
+        document.getElementById('test_bounds'    ).value = 'N/A';
+        document.getElementById('test_confidence').value = 'N/A';
+        document.getElementById('test_max_games' ).value = base.test_max_games || stc.test_max_games || 40000;
+    }
+}
