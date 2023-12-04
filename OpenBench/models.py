@@ -197,4 +197,13 @@ class Network(Model):
         return '[{}] {} ({})'.format(self.engine, self.name, self.sha256)
 
 class PGN(Model):
-    pass
+
+    test_id    = IntegerField(default=0)
+    result_id  = IntegerField(default=0)
+    book_index = IntegerField(default=0)
+
+    def __str__(self):
+        return self.filename()
+
+    def filename(self):
+        return '%s.%s.%s.pgn.bz2' % (self.test_id, self.result_id, self.book_index)

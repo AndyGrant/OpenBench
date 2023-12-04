@@ -758,6 +758,22 @@ def client_heartbeat(request, machine):
     test = Test.objects.get(id=int(request.POST['test_id']))
     return JsonResponse([{}, { 'stop' : True }][test.finished])
 
+@csrf_exempt
+@verify_worker
+def client_submit_pgn(request, machine):
+
+    # Format: test.result.book-index.pgn.bz2
+    pgn            = PGN()
+    pgn.test_id    = int(request.POST['test_id']   )
+    pgn.result_id  = int(request.POST['result_id'] )
+    pgn.book_index = int(request.POST['book_index'])
+    pgn.save()
+
+    # Save the .pgn.bz2 to /Media/
+    FileSystemStorage().save(pgn.filename(), ContentFile(request.FILES['file'].read()))
+
+    return JsonResponse({})
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
