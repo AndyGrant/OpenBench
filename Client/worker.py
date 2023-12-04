@@ -50,7 +50,7 @@ from pgn_util import compress_list_of_pgns
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 22 # Client version to send to the Server
+CLIENT_VERSION   = 23 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -405,8 +405,6 @@ class ServerReporter:
         files = {
             'file' : ('games.pgn', compressed_pgn_text)
         }
-
-        print (type(compressed_pgn_text))
 
         return ServerReporter.report(config, 'clientSubmitPGN', payload, files)
 
