@@ -1407,7 +1407,7 @@ def run_openbench_worker(args):
             # Check for exit signal via openbench.exit
             if os.path.isfile('openbench.exit'):
                 print('Exited via openbench.exit')
-                break
+                sys.exit()
 
         except BadVersionException:
             raise BadVersionException()
@@ -1415,4 +1415,3 @@ def run_openbench_worker(args):
         except Exception:
             traceback.print_exc()
             time.sleep(TIMEOUT_ERROR)
-
