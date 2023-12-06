@@ -781,6 +781,7 @@ def client_submit_pgn(request, machine):
 def api_response(data):
     return HttpResponse(json.dumps(data, indent=4), content_type='application/json')
 
+@csrf_exempt
 def api_authenticate(request, require_enabled=False):
 
     try:
@@ -795,7 +796,7 @@ def api_authenticate(request, require_enabled=False):
 
         # Request might be made from the command line. Check the headers
         user = django.contrib.auth.authenticate(
-            request.POST['username'], request.POST['password'])
+            username=request.POST['username'], password=request.POST['password'])
         return not require_enabled or Profile.objects.get(user=user).enabled
 
     except Exception:
@@ -803,6 +804,7 @@ def api_authenticate(request, require_enabled=False):
         traceback.print_exc()
         return False
 
+@csrf_exempt
 def api_configs(request, engine=None):
 
     if not api_authenticate(request):
@@ -814,11 +816,11 @@ def api_configs(request, engine=None):
         return api_response({ 'engines' : engines, 'books' : books })
 
     if engine in OPENBENCH_CONFIG['engines'].keys():
-        with open(os.path.join(PROJECT_PATH, 'Engines', '%s.json' % (engine))) as fin:
-            return HttpResponse('<pre>' + str(fin.read()) + '</pre>')
+        return api_response(OPENBENCH_CONFIG['engines'][engine])
 
     return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
 
+@csrf_exempt
 def api_networks(request, engine):
 
     if not api_authenticate(request):
@@ -843,6 +845,7 @@ def api_networks(request, engine):
     else:
         return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
 
+@csrf_exempt
 def api_network_download(request, engine, identifier):
 
     if not api_authenticate(request):

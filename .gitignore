@@ -6,9 +6,8 @@ credentials
 credentials.*
 db.sqlite3
 
-Scripts/Binaries/*
+Scripts/Engines/*
 Scripts/Networks/*
-Scripts/Repositories/*
 
 Media/*
 
