@@ -21,6 +21,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import argparse
+import cpuinfo
 import os
 import requests
 import sys
@@ -32,8 +33,11 @@ sys.path.append(os.path.abspath(PARENT))
 from Client.utils import url_join
 from Client.utils import credentialed_cmdline_args
 from Client.utils import credentialed_request
+from Client.utils import read_git_credentials
 from Client.utils import download_network
 from Client.utils import download_public_engine
+from Client.utils import download_private_engine
+
 
 def get_default_network_if_any(args, networks):
 
@@ -49,6 +53,37 @@ def get_default_network_if_any(args, networks):
 
     return net_path
 
+def get_public_engine(engine, config, net_path):
+
+    make_path = config['build']['path']
+    branch    = config['test_presets']['default']['base_branch']
+    out_path  = os.path.join('Engines', engine)
+    target    = url_join(config['source'], 'archive', '%s.zip' % (branch))
+
+    download_public_engine(engine, net_paths[engine], branch, target, make_path, out_path)
+
+def get_private_engine(engine, config):
+
+    out_path = os.path.join('Engines', engine)
+    branch   = config['test_presets']['default']['base_branch']
+
+    # Format an API request to get the most recent openbench.yml workflow on the primary branch
+    api_repo = config['source'].replace('github.com', 'api.github.com/repos')
+    target   = url_join(api_repo, 'actions/workflows/openbench.yml/runs', trailing_slash=False)
+    target  += '?branch=%s' % (branch)
+
+    # Use the run_id for the primary branch's openbench.yml workflow to locate the artifacts
+    headers  = read_git_credentials(engine)
+    run_id   = requests.get(url=target, headers=headers).json()['workflow_runs'][0]['id']
+    source   = url_join(api_repo, 'actions/runs/%d/artifacts' % (run_id), trailing_slash=False)
+
+    # Selecting an artifact requires knowledge of the CPU
+    cpu_info  = cpuinfo.get_cpu_info()
+    cpu_name  = cpu_info.get('brand_raw', cpu_info.get('brand', 'Unknown'))
+    cpu_flags = [x.replace('_', '').replace('.', '').upper() for x in cpu_info.get('flags', [])]
+
+    download_private_engine(engine, branch, source, out_path, cpu_name, cpu_flags, None)
+
 if __name__ == '__main__':
 
     # Use bench_all.py's path as the base pathway
@@ -63,24 +98,27 @@ if __name__ == '__main__':
     args    = credentialed_cmdline_args()
     request = credentialed_request(args.server, args.username, args.password, 'api/config')
 
+    configs = {} # Get the configuration file for all the engines
     for engine in request.json()['engines']:
-
-        if engine == 'Torch':
-            continue
-
-        # Get the configuration file for the engine
         endpoint = 'api/config/%s' % (engine)
         request  = credentialed_request(args.server, args.username, args.password, endpoint)
-        config   = request.json()
+        configs[engine] = request.json()
 
-        # Get the list of all Networks for the engine
+    net_paths = {} # Get all the Network files for the engines
+    for engine, config in configs.items():
         endpoint = 'api/networks/%s' % (engine)
         request  = credentialed_request(args.server, args.username, args.password, endpoint)
-        net_path = get_default_network_if_any(args, request.json())
+        net_paths[engine] = get_default_network_if_any(args, request.json())
 
-        # Download, build, and move the engine to Engines/<engine>
-        make_path = config['build']['path']
-        branch    = config['test_presets']['default']['base_branch']
-        out_path  = os.path.join('Engines', engine)
-        target    = url_join(config['source'], 'archive', '%s.zip' % (branch))
-        download_public_engine(engine, net_path, branch, target, make_path, out_path)
+    # Download, build, and move the Private engines to Engines/<engine>
+    for engine, config in configs.items():
+        if config['private']:
+            get_private_engine(engine, config)
+
+    # Download and move the Public engines to Engines/<engine>
+    for engine, config in configs.items():
+        if not config['private']:
+            get_public_engine(engine, config, net_paths[engine])
+
+
+
