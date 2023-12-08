@@ -23,6 +23,7 @@
 import argparse
 import cpuinfo
 import os
+import re
 import requests
 import sys
 
@@ -34,33 +35,33 @@ from Client.utils import url_join
 from Client.utils import credentialed_cmdline_args
 from Client.utils import credentialed_request
 from Client.utils import read_git_credentials
+from Client.utils import check_for_engine_binary
 from Client.utils import download_network
 from Client.utils import download_public_engine
 from Client.utils import download_private_engine
 
 
-def get_default_network_if_any(args, networks):
-
-    # Not all engines use Networks
-    if 'default' not in networks:
-        return None
+def get_default_network(args, network):
 
     # Download the default Network
-    net_name = networks['default']['name']
-    net_sha  = networks['default']['sha']
+    net_name = network['name']
+    net_sha  = network['sha']
     net_path = os.path.join('Networks', net_sha)
     download_network(args.server, args.username, args.password, engine, net_name, net_sha, net_path)
 
     return net_path
 
-def get_public_engine(engine, config, net_path):
+def get_public_engine(engine, config):
 
     make_path = config['build']['path']
     branch    = config['test_presets']['default']['base_branch']
     out_path  = os.path.join('Engines', engine)
     target    = url_join(config['source'], 'archive', '%s.zip' % (branch))
 
-    download_public_engine(engine, net_paths[engine], branch, target, make_path, out_path)
+    net_sha   = config.get('network', {}).get('sha')
+    net_path  = os.path.join('Networks', net_sha) if net_sha else None
+
+    download_public_engine(engine, net_path, branch, target, make_path, out_path)
 
 def get_private_engine(engine, config):
 
@@ -94,31 +95,42 @@ if __name__ == '__main__':
         if not os.path.isdir(folder):
             os.mkdir(folder)
 
-    # Get the list of engines on the Server
-    args    = credentialed_cmdline_args()
-    request = credentialed_request(args.server, args.username, args.password, 'api/config')
+    # credentialed_cmdline_args() adds --user, --password, and --server
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--rebuild', help='Forcefully rebuild all engines', action='store_true')
+    parser.add_argument('--regex',   help='Regex to match Engine names')
+    parser.add_argument('--engines', help='List of specific engines', nargs='+')
+    args   = credentialed_cmdline_args(parser)
 
-    configs = {} # Get the configuration file for all the engines
-    for engine in request.json()['engines']:
-        endpoint = 'api/config/%s' % (engine)
-        request  = credentialed_request(args.server, args.username, args.password, endpoint)
-        configs[engine] = request.json()
+    # Get the build info, and default network info, for all applicable engines
+    request = credentialed_request(args.server, args.username, args.password, 'api/buildinfo')
+    configs = request.json()
 
-    net_paths = {} # Get all the Network files for the engines
-    for engine, config in configs.items():
-        endpoint = 'api/networks/%s' % (engine)
-        request  = credentialed_request(args.server, args.username, args.password, endpoint)
-        net_paths[engine] = get_default_network_if_any(args, request.json())
+    # Filter down to only engines provided via --engines, if applicable
+    engines = configs.keys() if not args.engines else args.engines
+    engines = list(set(engines) & set(configs.keys()))
 
-    # Download, build, and move the Private engines to Engines/<engine>
-    for engine, config in configs.items():
-        if config['private']:
-            get_private_engine(engine, config)
+    # Filter down to only engines matching --regex, if applicable
+    if args.regex:
+        engines = list(filter(lambda x: re.match(args.regex, x), engines))
 
-    # Download and move the Public engines to Engines/<engine>
-    for engine, config in configs.items():
-        if not config['private']:
-            get_public_engine(engine, config, net_paths[engine])
+    # Delete any existing engines that are to be rebuilt
+    if args.rebuild:
+        for engine in engines:
+            if (bin_path := check_for_engine_binary(os.path.join('Engines', engine))):
+                os.remove(bin_path)
 
+    # Get all the default Network files for the engines
+    for engine in engines:
+        if configs[engine].get('network'):
+            get_default_network(args, configs[engine]['network'])
 
+    # Download artifacts for Private engines
+    for engine in engines:
+        if configs[engine]['private']:
+            get_private_engine(engine, configs[engine])
 
+    # Download source and build Public engines
+    for engine in engines:
+        if not configs[engine]['private']:
+            get_public_engine(engine, configs[engine])

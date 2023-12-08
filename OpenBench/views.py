@@ -862,6 +862,29 @@ def api_network_download(request, engine, identifier):
 
     return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
 
+@csrf_exempt
+def api_build_info(request):
+
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    data = {}
+    for engine, config in OPENBENCH_CONFIG['engines'].items():
+        data[engine] = config
+
+    for network in Network.objects.filter(default=True):
+
+        if network.engine not in data:
+            continue
+
+        data[network.engine]['network'] = {
+            'sha'     : network.sha256,
+            'name'    : network.name,
+            'author'  : network.author,
+            'created' : str(network.created)
+        }
+
+    return api_response(data)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                BUSINESS VIEWS                               #
