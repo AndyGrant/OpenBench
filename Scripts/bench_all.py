@@ -31,15 +31,8 @@ import sys
 PARENT = os.path.join(os.path.dirname(__file__), os.path.pardir)
 sys.path.append(os.path.abspath(PARENT))
 
-from Client.utils import url_join
-from Client.utils import credentialed_cmdline_args
-from Client.utils import credentialed_request
-from Client.utils import read_git_credentials
-from Client.utils import check_for_engine_binary
-from Client.utils import download_network
-from Client.utils import download_public_engine
-from Client.utils import download_private_engine
-
+from Client.utils import *
+from bench_engine import run_benchmark
 
 def get_default_network(args, network):
 
@@ -61,7 +54,14 @@ def get_public_engine(engine, config):
     net_sha   = config.get('network', {}).get('sha')
     net_path  = os.path.join('Networks', net_sha) if net_sha else None
 
-    download_public_engine(engine, net_path, branch, target, make_path, out_path)
+    try:
+        download_public_engine(engine, net_path, branch, target, make_path, out_path)
+
+    except OpenBenchBuildFailedException as error:
+        print ('Failed to build %s...\n\nCompiler Output:' % (engine))
+        for line in error.message.split('\n'):
+            print ('> %s' % (line))
+        print ()
 
 def get_private_engine(engine, config):
 
@@ -83,7 +83,11 @@ def get_private_engine(engine, config):
     cpu_name  = cpu_info.get('brand_raw', cpu_info.get('brand', 'Unknown'))
     cpu_flags = [x.replace('_', '').replace('.', '').upper() for x in cpu_info.get('flags', [])]
 
-    download_private_engine(engine, branch, source, out_path, cpu_name, cpu_flags, None)
+    try:
+        download_private_engine(engine, branch, source, out_path, cpu_name, cpu_flags, None)
+
+    except OpenBenchMissingArtifactExceptionException as error:
+        print ('Failed to download %s... %s', engine, error.message)
 
 if __name__ == '__main__':
 
@@ -100,6 +104,8 @@ if __name__ == '__main__':
     parser.add_argument('--rebuild', help='Forcefully rebuild all engines', action='store_true')
     parser.add_argument('--regex',   help='Regex to match Engine names')
     parser.add_argument('--engines', help='List of specific engines', nargs='+')
+    parser.add_argument('--threads', help='Concurrent Benchmarks',  required=True, type=int)
+    parser.add_argument('--sets'   , help='Benchmark Sample Count', required=True, type=int)
     args   = credentialed_cmdline_args(parser)
 
     # Get the build info, and default network info, for all applicable engines
@@ -134,3 +140,17 @@ if __name__ == '__main__':
     for engine in engines:
         if not configs[engine]['private']:
             get_public_engine(engine, configs[engine])
+
+    for engine in engines:
+
+        # Builds may have failed in previous steps, which we can ignore
+        if not (bin_path := check_for_engine_binary(os.path.join('Engines', engine))):
+            print ('Unable to find binary for %s...' % (engine))
+            continue
+
+        # Private engines need to set the Network from the command line
+        private_net = configs[engine]['private'] and configs[engine].get('network')
+        net_path    = os.path.join('Networks', configs[engine]['network']['sha']) if private_net else None
+
+        nps, nodes = run_benchmark(bin_path, net_path, args.threads, args.sets)
+        print ('%s %d nps %d nodes in %.3f seconds' % (engine, nps, nodes, nodes / max(1e-6, nps)))

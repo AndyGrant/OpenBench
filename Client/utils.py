@@ -204,6 +204,7 @@ def download_public_engine(engine, net_path, branch, source, make_path, out_path
 
     # Check to see if we already have the binary
     if check_for_engine_binary(out_path):
+        print('Found [%s-%s]' % (engine, branch))
         return check_for_engine_binary(out_path)
 
     # Work with temp files and directories until finished building
@@ -246,6 +247,7 @@ def download_private_engine(engine, branch, source, out_path, cpu_name, cpu_flag
 
     # Check to see if we already have the binary
     if check_for_engine_binary(out_path):
+        print('Found [%s-%s]' % (engine, branch))
         return check_for_engine_binary(out_path)
 
     # Pick the best artifact to match this machine
