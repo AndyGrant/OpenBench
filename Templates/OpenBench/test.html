@@ -105,6 +105,15 @@
             </a>
         </div>
 
+        {% if test.upload_pgns != 'FALSE' %}
+            <div class="anchor-container">
+                <!-- PGN Download Button -->
+                <a class="mt-1 anchorbutton btn-blue" href="/api/pgns/{{test.id}}/">
+                    Download PGN Archive
+                </a>
+            </div>
+        {% endif %}
+
         <!-- Elo, (SPRT/LRR if SPRT, otherwise CONF), Games -->
         <pre class="long-statblock" id="long-statblock">{{test|longStatBlock|linebreaksbr}}</pre>
 

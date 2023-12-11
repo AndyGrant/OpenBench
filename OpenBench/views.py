@@ -41,11 +41,13 @@ from OpenSite.settings import MEDIA_ROOT
 
 from django.db import transaction
 from django.db.models import F, Q
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, FileResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
 from django.core.files.base import ContentFile
 from django.utils import timezone
+
+from wsgiref.util import FileWrapper
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              GENERAL UTILITIES                              #
@@ -888,6 +890,27 @@ def api_build_info(request):
         }
 
     return api_response(data)
+
+@csrf_exempt
+def api_pgns(request, pgn_id):
+
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    # Possible to request a PGN that does not exist
+    pgn_path = FileSystemStorage('Media/PGNs').path('%d.pgn.tar' % (pgn_id))
+    if not os.path.exists(pgn_path):
+        return api_response({ 'error' : 'Unable to find PGN for Workload #%d' % (pgn_id) })
+
+    # Craft the download HTML response
+    fwrapper = FileWrapper(open(pgn_path, 'rb'), 8192)
+    response = FileResponse(fwrapper, content_type='application/octet-stream')
+
+    # Set all headers and return response
+    response['Expires'] = -1
+    response['Content-Length'] = os.path.getsize(pgn_path)
+    response['Content-Disposition'] = 'attachment; filename=%d.pgn.tar' % (pgn_id)
+    return response
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                BUSINESS VIEWS                               #
