@@ -201,6 +201,7 @@ class PGN(Model):
     test_id    = IntegerField(default=0)
     result_id  = IntegerField(default=0)
     book_index = IntegerField(default=0)
+    processed  = BooleanField(default=False)
 
     def __str__(self):
         return self.filename()

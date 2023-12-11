@@ -14,3 +14,7 @@ Media/*
 !Client/*.py
 !Client/cutechess-ob
 !Client/cutechess-ob.exe
+
+Media/PGNs/*
+Media/Networks/*
+Media/Events/*

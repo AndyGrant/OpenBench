@@ -18,22 +18,49 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-from OpenBench.watcher import ArtifactWatcher
-from OpenBench.pgn_watcher import PGNWatcher
+import os
+import sys
+import tarfile
+import threading
+import time
+import traceback
 
-from django.core.management.commands.runserver import Command as BaseRunserverCommand
+from OpenBench.models import PGN
 
-class Command(BaseRunserverCommand):
+from django.db import transaction
+from django.core.files.base import ContentFile
+from django.core.files.storage import FileSystemStorage
 
-    def inner_run(self, *args, **options):
-        self.pre_start()
-        super().inner_run(*args, **options)
-        self.pre_quit()
+class PGNWatcher(threading.Thread):
 
-    def pre_start(self):
-        self.watcher = ArtifactWatcher().start()
-        self.pgn_watcher = PGNWatcher().start()
+    def process_pgn(self, pgn):
 
-    def pre_quit(self):
-        self.watcher.kill()
-        self.pgn_watcher.kill()
+        tar_path = FileSystemStorage('Media/PGNs').path('%d.pgn.tar' % (pgn.test_id))
+        pgn_path = FileSystemStorage().path(pgn.filename())
+
+        with transaction.atomic():
+
+            # Ensure Media/PGNs exists
+            dir_name = os.path.dirname(tar_path)
+            if not os.path.exists(dir_name):
+                os.makedirs(dir_name)
+
+            # First PGN will create the initial .tar file
+            mode = 'a' if os.path.exists(tar_path) else 'w'
+            with tarfile.open(tar_path, mode) as tar:
+                tar.add(pgn_path, arcname=pgn.filename())
+
+            # Delete the raw .pgn.bz2 file, and don't process it again
+            FileSystemStorage().delete(pgn.filename())
+            pgn.processed = True
+            pgn.save()
+
+    def run(self):
+        while True:
+            for pgn in PGN.objects.filter(processed=False):
+                try:
+                    self.process_pgn(pgn)
+                except:
+                    traceback.print_exc()
+                    sys.stdout.flush()
+            time.sleep(15)

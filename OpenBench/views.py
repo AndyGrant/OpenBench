@@ -39,6 +39,7 @@ from OpenBench.models import *
 from django.contrib.auth.models import User
 from OpenSite.settings import MEDIA_ROOT
 
+from django.db import transaction
 from django.db.models import F, Q
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -762,15 +763,17 @@ def client_heartbeat(request, machine):
 @verify_worker
 def client_submit_pgn(request, machine):
 
-    # Format: test.result.book-index.pgn.bz2
-    pgn            = PGN()
-    pgn.test_id    = int(request.POST['test_id']   )
-    pgn.result_id  = int(request.POST['result_id'] )
-    pgn.book_index = int(request.POST['book_index'])
-    pgn.save()
+    with transaction.atomic():
 
-    # Save the .pgn.bz2 to /Media/
-    FileSystemStorage().save(pgn.filename(), ContentFile(request.FILES['file'].read()))
+        # Format: test.result.book-index.pgn.bz2
+        pgn            = PGN()
+        pgn.test_id    = int(request.POST['test_id']   )
+        pgn.result_id  = int(request.POST['result_id'] )
+        pgn.book_index = int(request.POST['book_index'])
+        pgn.save()
+
+        # Save the .pgn.bz2 to /Media/
+        FileSystemStorage().save(pgn.filename(), ContentFile(request.FILES['file'].read()))
 
     return JsonResponse({})
 
