@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 1758000,
+    "nps"     : 1685000,
     "source"  : "https://github.com/TerjeKir/weiss",
 
     "build" : {

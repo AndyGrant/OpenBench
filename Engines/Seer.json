@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 736000,
+    "nps"     : 764000,
     "source"  : "https://github.com/connormcmonigle/seer-nnue",
 
     "build" : {

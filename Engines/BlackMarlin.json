@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 1106000,
+    "nps"     : 1066000,
     "source"  : "https://github.com/dsekercioglu/blackmarlin",
 
     "build" : {

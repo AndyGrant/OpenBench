@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 470000,
+    "nps"     : 483000,
     "source"  : "https://github.com/vshcherbyna/igel",
 
     "build" : {

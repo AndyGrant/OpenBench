@@ -1,6 +1,6 @@
 {
     "private" : true,
-    "nps"     : 560000,
+    "nps"     : 376000,
     "source"  : "https://github.com/ChessCom/TorchDev",
 
     "build" : {

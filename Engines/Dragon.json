@@ -1,6 +1,6 @@
 {
     "private" : true,
-    "nps"     : 710000,
+    "nps"     : 584000,
     "source"  : "https://github.com/ChessCom/komodo",
 
     "build" : {
