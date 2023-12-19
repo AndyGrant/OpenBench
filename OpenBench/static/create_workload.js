@@ -171,13 +171,19 @@ function retain_specific_options(engine, preset, workload_type) {
 
     // From the base options, replace the Threads= and Hash=
 
-    let base_options = add_defaults_to_preset(engine, preset, workload_type)['base_options']
-                    || add_defaults_to_preset(engine, preset, workload_type)['both_options'];
+    const settings = add_defaults_to_preset(engine, preset, workload_type);
+
+    let base_options = settings['base_options'] || settings['both_options'];
 
     base_options = base_options.replace(/\bThreads\s*=\s*\d+\b/g, 'Threads=' + dev_threads);
     base_options = base_options.replace(/\bHash\s*=\s*\d+\b/g, 'Hash=' + dev_hash);
 
     set_option('base_options', base_options);
+
+    // Retain the base engine's original base_branch, instead of leeting the dev engine override
+
+    if (settings.hasOwnProperty('base_branch'))
+        set_option('base_branch', settings['base_branch']);
 }
 
 
