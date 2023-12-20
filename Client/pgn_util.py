@@ -25,25 +25,35 @@ import sys
 def pgn_iterator(fname):
     with open(fname) as pgn:
         while True:
-            headers   = pgn_list_to_headers(iter(lambda: pgn.readline().rstrip(), ''))
+            headers   = pgn_header_list(iter(lambda: pgn.readline().rstrip(), ''))
             move_list = ' '.join(iter(lambda: pgn.readline().rstrip(), ''))
             if not headers or not move_list:
                 break
             yield (headers, move_list)
 
-def pgn_list_to_headers(lines):
+def pgn_header_list(lines):
     # PGN Format: [<Header> "<Value>"]
     return { f.split()[0][1:] : re.search(r'"([^"]*)"', f).group(1) for f in lines }
 
-def pgn_strip_headers(headers):
+def pgn_strip_headers(headers, compact):
 
-    # First 7 + FEN are required. Rest are useful.
+    # 7-Tag Roster that is required to be a legal PGN
     desired = [
-        'Event', 'Site', 'Date',
-        'Round', 'White', 'Black',
-        'Result', 'PlyCount', 'FEN',
-        'TimeControl', 'Variant'
+        'Event',  'Site',
+        'Date',   'Round',
+        'White',  'Black',
+        'Result',
     ]
+
+    desired += [
+        'FEN',         # Required due to .epd openings
+        'TimeControl', # Useful to extract statistics
+        'Variant',     # Useful to account for FRC/DFRC
+        'ScaleFactor', # Useful to extract statistics
+    ]
+
+    if not compact: # Useful to reconstruct time events
+        desired += ['GameEndTime']
 
     # PGN Format: [<Header> "<Value>"]
     return '\n'.join('[%s "%s"]' % (f, headers[f]) for f in desired if f in headers)
@@ -51,38 +61,39 @@ def pgn_strip_headers(headers):
 def pgn_strip_movelist(move_text, compact):
 
     if not compact: # Captures Score Depth/SelDepth Time Nodes
-        comment_regex = r'([+-]?M?\d+(?:\.\d+)? \d+/\d+ \d+ \d+)[^}]*'
+        comment_regex = r'(book|[+-]?M?\d+(?:\.\d+)? \d+/\d+ \d+ \d+)[^}]*'
 
     else: # Captures Score and nothing else
-        comment_regex = r'([+-]?M?\d+(?:\.\d+)?) \d+/\d+ \d+ \d+[^}]*'
+        comment_regex = r'(book|[+-]?M?\d+(?:\.\d+)?) \d+/\d+ \d+ \d+[^}]*'
 
     # Captures the Move and Comment, discarding extra commentary and move numbers
-    one_ply_regex = re.compile(r'\s*(?:\d+\. )?([a-zA-Z0-9+=#-]+) {%s}' % (comment_regex))
+    one_ply_regex = re.compile(r'\s*(?:\d+\. )?([a-zA-Z0-9+=#-]+) (?:{%s})?' % (comment_regex))
 
     # Captures the trailing game result
     result_regex  = re.compile(r'\s*(1-0|0-1|1/2-1/2|\*)')
 
     stripped = '' # Add each: <Move> {<Comment>}
     for move, comment in one_ply_regex.findall(move_text):
-        stripped += '%s {%s} ' % (move, comment)
+        stripped += '%s {%s} ' % (move, comment if comment else 'unknown')
 
     # PGNs expect trailing game result text
     return stripped + result_regex.search(move_text).group(1)
 
-def strip_entire_pgn(file_name, compact):
+def strip_entire_pgn(file_name, scale_factor, compact):
 
     stripped = ''
     for header_dict, move_text in pgn_iterator(file_name):
-        stripped += pgn_strip_headers(header_dict) + '\n\n'
+        header_dict['ScaleFactor'] = str(scale_factor)
+        stripped += pgn_strip_headers(header_dict, compact) + '\n\n'
         stripped += pgn_strip_movelist(move_text, compact) + '\n\n'
 
     return stripped
 
-def compress_list_of_pgns(file_names, compact):
+def compress_list_of_pgns(file_names, scale_factor, compact):
 
     text = ''
     for fname in file_names:
         print ('Compressing %s...' % (fname))
-        text += strip_entire_pgn(fname, compact)
+        text += strip_entire_pgn(fname, scale_factor, compact)
 
     return bz2.compress(text.encode())
