@@ -1,4 +1,5 @@
-Django==4.2.1
+Django==4.2.8
 django-htmlmin==0.11.0
-requests==2.25.1
-scipy==1.11.1
+requests==2.31.0
+scipy==1.11.4
+whitenoise==6.6.0

@@ -1244,6 +1244,22 @@ def download_engine(config, branch, network):
         # Build the engine and drop it into src_path
         print('\nBuilding [%s]' % (branch_name))
         binary_path = os.path.join(src_path, final_name)
+        
+        # Hacky way of handling cmake
+        if "cmake" in config.compilers[engine]:
+            command     = "cmake -DAPPEND_VERSION=OFF -DENABLE_OPTIMIZATION_FAST_MATH=ON -DMARCH_VALUE=native -DCMAKE_BUILD_TYPE=Release".split()
+            command.append("-G")
+            command.append("Unix Makefiles")
+            command.append(".")
+            process     = Popen(command, cwd=src_path, stdout=PIPE, stderr=STDOUT)
+            cxx_output  = process.communicate()[0].decode('utf-8')
+            print (cxx_output)
+            
+            command     = "cmake --build .".split()
+            process     = Popen(command, cwd=src_path, stdout=PIPE, stderr=STDOUT)
+            cxx_output  = process.communicate()[0].decode('utf-8')
+            print (cxx_output)
+        
         command     = make_command(config, engine, final_name, src_path, network)
         process     = Popen(command, cwd=src_path, stdout=PIPE, stderr=STDOUT)
         cxx_output  = process.communicate()[0].decode('utf-8')
