@@ -1243,7 +1243,7 @@ def download_engine(config, branch, network):
 
         # Build the engine and drop it into src_path
         print('\nBuilding [%s]' % (branch_name))
-        binary_path = os.path.join(src_path, final_name)
+        binary_path = os.path.join(src_path, engine)
         
         # Hacky way of handling cmake
         if "cmake" in config.compilers[engine]:
