@@ -4,7 +4,7 @@
     "source"  : "https://github.com/Dannyj1/Zagreus",
 
     "build" : {
-        "path"      : "src",
+        "path"      : "",
         "compilers" : ["cmake", "clang", "gcc"],
         "cpuflags"  : ["AVX2", "FMA", "POPCNT"],
         "systems"   : ["Windows", "Linux"]
