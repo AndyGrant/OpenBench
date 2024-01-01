@@ -1,10 +1,10 @@
 {
     "client_version"  : 23,
-    "client_repo_url" : "https://github.com/AndyGrant/OpenBench",
+    "client_repo_url" : "https://github.com/Alex2262/OpenBench",
     "client_repo_ref" : "master",
 
     "use_cross_approval"          : false,
-    "require_login_to_view"       : false,
+    "require_login_to_view"       : true,
     "require_manual_registration" : false,
 
     "books" : [
@@ -21,6 +21,7 @@
 
     "engines" : [
         "4ku",
+	"Altair",
         "Berserk",
         "Bit-Genie",
         "BlackMarlin",
