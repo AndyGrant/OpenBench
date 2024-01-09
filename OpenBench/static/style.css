@@ -174,6 +174,12 @@ body, html, main{
     height: 1rem;
 }
 
+#content .table-spacer-small th, #content .table-spacer-small tr {
+    background-color: #171717;
+    height: 0.4rem;
+    padding: 0px;
+}
+
 /* Generic Table CSS for all Tables */
 
 #content table {

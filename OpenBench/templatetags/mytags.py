@@ -380,3 +380,14 @@ register.filter('git_diff_text', git_diff_text)
 register.filter('test_is_smp_odds'  , test_is_smp_odds  )
 register.filter('test_is_time_odds' , test_is_time_odds )
 register.filter('test_is_fischer'   , test_is_fischer   )
+
+
+@register.filter
+def next(iterable, index):
+    try: return iterable[int(index) + 1]
+    except: return None
+
+@register.filter
+def previous(iterable, index):
+    try: return iterable[int(index) - 1]
+    except: return None
