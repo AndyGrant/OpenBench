@@ -251,6 +251,14 @@ def profile_config(request):
 #                               TEST LIST VIEWS                               #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+def priority_grouped(active):
+    active_grouped = []
+    for t in active:
+        if len(active_grouped) == 0 or active_grouped[-1]["priority"] != t.priority:
+            active_grouped.append({"priority": t.priority, "tests": []})
+        active_grouped[-1]["tests"].append(t)
+    return active_grouped
+
 def index(request, page=1):
 
     pending   = OpenBench.utils.get_pending_tests()
@@ -262,7 +270,7 @@ def index(request, page=1):
 
     data = {
         'pending'   : pending,
-        'active'    : active,
+        'active'    : priority_grouped(active),
         'completed' : completed[start:end],
         'awaiting'  : awaiting,
         'paging'    : paging,
@@ -282,7 +290,7 @@ def user(request, username, page=1):
 
     data = {
         'pending'   : pending,
-        'active'    : active,
+        'active'    : priority_grouped(active),
         'completed' : completed[start:end],
         'awaiting'  : awaiting,
         'paging'    : paging,
