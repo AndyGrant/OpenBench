@@ -565,9 +565,9 @@ class Cutechess:
     def kill_everything(dev_process, base_process):
 
         if IS_LINUX:
-            subprocess.run(['pkill', 'cutechess-ob'])
-            subprocess.run(['pkill', dev_process])
-            subprocess.run(['pkill', base_process])
+            subprocess.run(['pkill', '-f', 'cutechess-ob'])
+            subprocess.run(['pkill', '-f', dev_process])
+            subprocess.run(['pkill', '-f', base_process])
 
         if IS_WINDOWS:
             subprocess.run(['taskkill', '/f', '/im', 'cutechess-ob.exe'])
