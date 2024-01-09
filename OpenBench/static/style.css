@@ -161,17 +161,17 @@ body, html, main{
     background-color: #171717;
 }
 
-#content .table-small-header th {
-    color: var(--color-font3);
-    font-size: small;
-    background-color: #171717;
-}
-
 /* Table Spacer for chaining Tables as a hack */
 
 #content .table-spacer th, #content .table-spacer tr {
     background-color: var(--color1);
     height: 1rem;
+}
+
+#content .table-spacer-small th, #content .table-spacer-small tr {
+    background-color: #171717;
+    height: 0.4rem;
+    padding: 0px;
 }
 
 /* Generic Table CSS for all Tables */
