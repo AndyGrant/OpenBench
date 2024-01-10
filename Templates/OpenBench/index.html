@@ -1,5 +1,7 @@
 {% extends "OpenBench/base.html" %}
 
+{% load mytags %}
+
 {% block content %}
 
     <table class="test-list stripes hoverable">
@@ -33,6 +35,15 @@
             {% if active %}
                 <tr class="table-header"><th colspan='6'>Active {{status}}</th></tr>
                 {% for test in active %}
+
+                    <!-- Add two empty rows ( for the colouring scheme ) when changing prio -->
+                    {% with prev_test=active|previous:forloop.counter0 %}
+                        {% if prev_test and prev_test.priority != test.priority %}
+                            <tr class="table-spacer-small"><th colspan='6'></th></tr>
+                            <tr class="table-spacer-small"><th colspan='6'></th></tr>
+                        {% endif %}
+                    {% endwith %}
+
                     <tr>
                         {% include "OpenBench/Blocks/testsummary.html" %}
                     </tr>
