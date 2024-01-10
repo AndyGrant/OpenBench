@@ -4,7 +4,7 @@
     "client_repo_ref" : "master",
 
     "use_cross_approval"          : false,
-    "require_login_to_view"       : true,
+    "require_login_to_view"       : false,
     "require_manual_registration" : false,
 
     "books" : [
