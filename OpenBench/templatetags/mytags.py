@@ -260,6 +260,9 @@ def spsa_param_digest(workload):
 
     return digest
 
+def spsa_param_digest_headers(workload):
+    return ['Name', 'Curr', 'Start', 'Min', 'Max', 'C', 'C_end', 'R', 'R_end']
+
 def spsa_original_input(workload):
 
     # Maintain the original order, if there was one
@@ -366,6 +369,7 @@ def test_is_fischer(test):
 
 
 register.filter('spsa_param_digest', spsa_param_digest)
+register.filter('spsa_param_digest_headers', spsa_param_digest_headers)
 register.filter('spsa_original_input', spsa_original_input)
 register.filter('spsa_optimal_values', spsa_optimal_values)
 

@@ -27,10 +27,11 @@ import django.contrib.auth
 import OpenBench.config
 import OpenBench.utils
 
-from OpenBench.workloads.get_workload import get_workload
 from OpenBench.workloads.create_workload import create_workload
-from OpenBench.workloads.verify_workload import verify_workload
+from OpenBench.workloads.get_workload import get_workload
 from OpenBench.workloads.modify_workload import modify_workload
+from OpenBench.workloads.verify_workload import verify_workload
+from OpenBench.workloads.view_workload import view_workload
 
 from OpenBench.config import OPENBENCH_CONFIG
 from OpenSite.settings import PROJECT_PATH
@@ -464,11 +465,9 @@ def test(request, id, action=None):
 
     # Verify that it is indeed a Test and not a Tune
     if test.test_mode != 'SPRT' and test.test_mode != 'GAMES':
-        return redirect(request, '/index/', error='You are trying to view a Tune not Test')
+        return redirect(request, '/tune/%d' % (id))
 
-    # Package everything up and display the test
-    data = { 'test' : test, 'results': Result.objects.filter(test=test) }
-    return render(request, 'test.html', data)
+    return view_workload(request, test, 'TEST')
 
 def tune(request, id, action=None):
 
@@ -482,11 +481,9 @@ def tune(request, id, action=None):
 
     # Verify that it is indeed a Tune and not a Test
     if tune.test_mode == 'SPRT' or tune.test_mode == 'GAMES':
-        return redirect(request, '/index/', error='You are trying to view a Test not Tune')
+        return redirect(request, '/test/%d' % (id))
 
-    # Package everything up and display the Tune
-    data = { 'test' : tune, 'results': Result.objects.filter(test=tune) }
-    return render(request, 'tune.html', data)
+    return view_workload(request, tune, 'TUNE')
 
 def create_test(request):
     return create_workload(request, 'TEST')
