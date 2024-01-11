@@ -395,3 +395,8 @@ td pre {
 #content .branch_name {
     font-style: italic;
 }
+
+#content .green-tint {
+    background-image: linear-gradient(to right, rgba(123, 192, 123, 0.5), rgba(123, 192, 123, 0.5));
+    background-blend-mode: overlay;
+}

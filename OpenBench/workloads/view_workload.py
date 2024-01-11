@@ -24,8 +24,10 @@
 # A Workload can be a "TEST", which is an SPRT, or FIXED type.
 # A Workload can be a "TUNE", which is an SPSA tuning session
 
+import datetime
 import OpenBench.views
 
+from django.utils import timezone
 from OpenBench.models import *
 
 def view_workload(request, workload, workload_type):
@@ -34,8 +36,11 @@ def view_workload(request, workload, workload_type):
 
     data = {
         'workload' : workload,
-        'results'  : Result.objects.filter(test=workload)
+        'results'  : [],
     }
+
+    for result in Result.objects.filter(test=workload):
+        data['results'].append({ 'data'   : result, 'active' : is_active(result) })
 
     if workload_type == 'TEST':
         data['type']            = workload_type
@@ -48,3 +53,12 @@ def view_workload(request, workload, workload_type):
         data['submit_endpoint'] = '/newTune/'
 
     return OpenBench.views.render(request, 'workload.html', data)
+
+def is_active(result):
+
+    # One minute prior to now
+    target = datetime.datetime.utcnow()
+    target = target.replace(tzinfo=timezone.utc)
+    target = target - datetime.timedelta(minutes=1)
+
+    return result.test.id == result.machine.workload and result.machine.updated >= target
