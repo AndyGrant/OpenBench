@@ -31,6 +31,8 @@ def create_openbench_config():
 
     with open(os.path.join(PROJECT_PATH, 'Config', 'config.json')) as fin:
         config_dict = json.load(fin)
+        verify_general_config(config_dict)
+
 
     config_dict['books'] = {
         book : load_book_config(book) for book in config_dict['books']
@@ -77,6 +79,17 @@ def load_engine_config(engine_name):
 
     return conf
 
+
+def verify_general_config(conf):
+
+    assert type(conf.get("client_version"  ) == int)
+    assert type(conf.get("client_repo_url" ) == str)
+    assert type(conf.get("client_repo_ref" ) == str)
+
+    assert type(conf.get("use_cross_approval"         ) == bool)
+    assert type(conf.get("require_login_to_view"      ) == bool)
+    assert type(conf.get("require_manual_registration") == bool)
+    assert type(conf.get("balance_engine_throughputs" ) == bool)
 
 def verify_engine_basics(conf):
 

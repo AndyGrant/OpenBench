@@ -58,11 +58,11 @@ def select_workload(machine):
         return {}
 
     # Find the tests most deserving of resources currently
-    ratios = [distribution[x.id]['threads'] / x.throughput for x in tests]
-    lowest_indices = [i for i, r in enumerate(ratios) if r == min(ratios)]
+    test_ratios    = effective_allocation(tests, distribution)
+    lowest_indices = [i for i, r in enumerate(test_ratios) if r == min(test_ratios)]
 
     # Machine is out of date; or there is an unassigned test
-    if machine.workload not in distribution or min(ratios) == 0:
+    if machine.workload not in distribution or min(test_ratios) == 0:
         return tests[random.choice(lowest_indices)]
 
     # Determine the "fair" ratio given the total threads and total throughput of tests
@@ -70,8 +70,8 @@ def select_workload(machine):
     total_throughput = sum([x.throughput for x in tests])
     fair_ratio       = total_threads / total_throughput
 
-    # Repeat the same test if the distribution is fair, and has the previous test
-    if min(ratios) / fair_ratio > 0.75:
+    # Repeat the same test if the distribution, is fair, and has the previous test
+    if min(test_ratios) / fair_ratio > 0.75:
         if (test := Test.objects.get(id=machine.workload)) in tests:
             return test
 
@@ -90,7 +90,7 @@ def worker_distribution(machine):
     }
 
     # Don't count ourselves; and don't include non-active tests
-    for x in OpenBench.utils.getRecentMachines():
+    for x in OpenBench.utils.getRecentMachines(1200):
         if machine != x and x.workload in distribution:
             distribution[x.workload]['workers'] += 1
             distribution[x.workload]['threads'] += x.info['concurrency']
@@ -319,3 +319,28 @@ def game_distribution(test, machine):
         'concurrency-per'     : 2 if is_multiple_spsa else max_concurrency,
         'games-per-cutechess' : 2 * test.workload_size * (1 if is_multiple_spsa else max_concurrency),
     }
+
+def effective_allocation(tests, distribution):
+
+    # We track the "ratio" of threads relative to the effective-throughput (ETP) of a test.
+    # This is used to determine which tests have more or less resources, relative to each
+    # other, when taking into account the ETP.
+    #
+    # The ETP is just the throughput of a test by default. The 'balance_engine_throughputs'
+    # option in the main configuration file will scale the throughput of each test in relation
+    # to the number of tests that exist for the same engine.
+    #
+    # For example: Suppose there are four tests, each with Throughput=1000. Three of the tests
+    # are for Ethereal, and one is for Laser. When computing resources, the Throughput of the
+    # Ethereal tests will be scaled down by a factor of 3.
+
+    # Count of total tests, and total throughput, for each engine
+    engines    = set([x.dev_engine for x in tests])
+    test_count = { engine : sum(x.dev_engine == engine for x in tests) for engine in engines }
+
+    # Ignore the test_count entirely when not doing engine balancing
+    if not OPENBENCH_CONFIG['balance_engine_throughputs']:
+        test_count = { engine : 1 for engine in engines }
+
+    # Threads working on the test, per unit of effective-throughput
+    return [distribution[x.id]['threads'] / (x.throughput / test_count[x.dev_engine]) for x in tests]
