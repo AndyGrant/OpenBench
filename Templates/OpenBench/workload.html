@@ -199,7 +199,7 @@
 
             {% for result in results %}
 
-                <tr {% if result.active %} class="green-tint" {% endif %}>
+                <tr {% if result.active %} class="active-highlight" {% endif %}>
                     <td><a href="/machines/{{result.data.machine.id}}">{{result.data.machine.id}}</a></td>
                     <td>{{result.data.machine.user.username|capfirst}}</td>
                     <td class="timestamp">{{result.data.updated|date:'U'}}</td>

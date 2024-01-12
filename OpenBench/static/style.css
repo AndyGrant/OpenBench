@@ -396,7 +396,6 @@ td pre {
     font-style: italic;
 }
 
-#content .green-tint {
-    background-image: linear-gradient(to right, rgba(123, 192, 123, 0.5), rgba(123, 192, 123, 0.5));
-    background-blend-mode: overlay;
+#content .active-highlight {
+    border-left: 4px solid var(--color-font3);
 }
