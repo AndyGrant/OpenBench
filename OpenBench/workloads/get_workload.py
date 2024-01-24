@@ -47,7 +47,10 @@ def get_workload(machine):
     except: result = Result(test=test, machine=machine)
 
     # Update the Machine's status and save everything
-    machine.workload = test.id; machine.save(); result.save()
+    machine.workload = test.id;
+    machine.mnps = machine.dev_mnps = machine.base_mnps = 0.00
+    machine.save(); result.save()
+
     return { 'workload' : workload_to_dictionary(test, result, machine) }
 
 def select_workload(machine):
