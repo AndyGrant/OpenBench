@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 900000,
+    "nps"     : 750000,
     "source"  : "https://github.com/jhonnold/berserk",
 
     "build" : {
