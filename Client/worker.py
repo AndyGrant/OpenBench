@@ -100,6 +100,7 @@ class Configuration:
         self.identity    = args.identity if args.identity else 'None'
         self.syzygy_path = args.syzygy   if args.syzygy   else None
         self.fleet       = args.fleet    if args.fleet    else False
+        self.focus       = args.focus    if args.focus    else []
 
     def init_client(self):
 
@@ -976,6 +977,7 @@ def server_configure_worker(config):
         'concurrency'    : config.threads,        # Threads to use to play games
         'sockets'        : config.sockets,        # Cutechess copies, usually equal to Socket count
         'syzygy_max'     : config.syzygy_max,     # Whether or not the machine has Syzygy support
+        'focus'          : config.focus,          # List of engines we have a preference to help
         'client_ver'     : CLIENT_VERSION,        # Version of the Client, which the server may reject
     }
 
@@ -1396,7 +1398,6 @@ def parse_arguments(client_args):
 
     # Add the client args (Username, Password, and Server) to the worker args
     return argparse.Namespace(**{ **vars(client_args), **vars(worker_args) })
-
 
 def run_openbench_worker(client_args):
 

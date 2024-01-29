@@ -67,6 +67,17 @@ def has_worker():
     except ImportError:
         return False
 
+def custom_help(default_help):
+
+    print (default_help)
+
+    if has_worker():
+        import worker
+        importlib.reload(worker)
+        worker.run_openbench_worker(None)
+
+    exit()
+
 def parse_arguments():
 
     # We can use ENV variables for the Username, Passwords, and Servers
@@ -90,17 +101,7 @@ def parse_arguments():
     p.add_argument('-S', '--server'  , help=help_server       , required=req_server)
     p.add_argument(      '--clean'   , help='Force New Client', action='store_true')
 
-    def custom_help(default_help):
-
-        print (default_help)
-
-        if has_worker():
-            import worker
-            importlib.reload(worker)
-            worker.run_openbench_worker(None)
-
-        exit()
-
+    # Override, to possibly print worker.py's help as well as client.py's
     p.print_help = lambda: custom_help(p.format_help())
 
     # Replace with ENV variables if needed
