@@ -1,7 +1,7 @@
 {
-    "client_version"  : 23,
+    "client_version"  : 24,
     "client_repo_url" : "https://github.com/AndyGrant/OpenBench",
-    "client_repo_ref" : "master",
+    "client_repo_ref" : "focus",
 
     "use_cross_approval"          : false,
     "require_login_to_view"       : false,

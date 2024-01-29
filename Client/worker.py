@@ -50,7 +50,7 @@ from pgn_util import compress_list_of_pgns
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 23 # Client version to send to the Server
+CLIENT_VERSION   = 24 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -1375,9 +1375,33 @@ def run_and_parse_cutechess(config, command, cutechess_idx, results_queue, abort
 #                                                                           #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def run_openbench_worker(args):
+def parse_arguments(client_args):
 
-    config = Configuration(args) # System info, Cmdline arguments, and Workload
+    # Pretty formatting
+    p = argparse.ArgumentParser(
+        formatter_class=lambda prog:
+            argparse.ArgumentDefaultsHelpFormatter(prog, max_help_position=10)
+    )
+
+    # Arguments specific to worker.py
+    p.add_argument('-T', '--threads' , help='Total Threads'           , required=True      )
+    p.add_argument('-N', '--nsockets', help='Number of Sockets'       , required=True      )
+    p.add_argument('-I', '--identity', help='Machine pseudonym'       , required=False     )
+    p.add_argument(      '--syzygy'  , help='Syzygy WDL'              , required=False     )
+    p.add_argument(      '--fleet'   , help='Fleet Mode'              , action='store_true')
+    p.add_argument(      '--focus'   , help='Prefer certain engine(s)', nargs='+'          )
+
+    # Ignore unknown arguments ( from client )
+    worker_args, unknown = p.parse_known_args()
+
+    # Add the client args (Username, Password, and Server) to the worker args
+    return argparse.Namespace(**{ **vars(client_args), **vars(worker_args) })
+
+
+def run_openbench_worker(client_args):
+
+    args   = parse_arguments(client_args) # Merge client.py and worker.py args
+    config = Configuration(args)          # Holds System info, args, and Workload info
 
     setup_error      = '[Note] Unable to establish initial connection with the Server!'
     connection_error = '[Note] Unable to reach the server to request a workload!'
