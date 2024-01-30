@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 780023,
+    "nps"     : 1100000,
     "source"  : "https://github.com/Alex2262/AltairChessEngine",
 
     "build" : {
@@ -15,7 +15,7 @@
         "default" : {
             "base_branch"     : "master",
             "book_name"       : "Pohl.epd",
-            "test_bounds"     : "[0.00, 5.00]",
+            "test_bounds"     : "[0.00, 4.00]",
             "test_confidence" : "[0.10, 0.05]",
             "win_adj"         : "movecount=3 score=400",
             "draw_adj"        : "movenumber=40 movecount=8 score=10"
