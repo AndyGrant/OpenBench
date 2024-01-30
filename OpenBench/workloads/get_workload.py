@@ -55,77 +55,79 @@ def get_workload(machine):
 
 def select_workload(machine):
 
-    # Find valid workloads, given the current distribution of workers
-    active, distribution = worker_distribution(machine)
-    if not (tests := filter_valid_workloads(active, machine, distribution)):
-        return {}
+    # Step 1: Refine active workloads to the candidate assignments
+    candidates, has_focus = filter_valid_workloads(machine)
 
-    # Find the tests most deserving of resources currently
-    test_ratios    = effective_allocation(tests, distribution)
-    lowest_indices = [i for i, r in enumerate(test_ratios) if r == min(test_ratios)]
+    # Step 2: Count relevant threads on each candidate test
+    worker_dist, engine_freq = compute_resource_distribution(candidates, machine, has_focus)
 
-    # Machine is out of date; or there is an unassigned test
-    if machine.workload not in distribution or min(test_ratios) == 0:
-        return tests[random.choice(lowest_indices)]
+    # Step 3: Determine the effective-throughput for each workload
+    if OPENBENCH_CONFIG['balance_engine_throughputs']:
+        for id, data in worker_dist.items():
+            data['throughput'] = data['throughput'] / engine_dist[data['engine']]
 
-    # Determine the "fair" ratio given the total threads and total throughput of tests
-    total_threads    = sum([distribution[x.id]['threads'] for x in tests])
-    total_throughput = sum([x.throughput for x in tests])
-    fair_ratio       = total_threads / total_throughput
+    # Step 4: Compute the Resource Ratios for each of the workloads
+    for id, data in worker_dist.items():
+        data['ratio'] = data['threads'] / data['throughput']
 
-    # Repeat the same test if the distribution, is fair, and has the previous test
-    if min(test_ratios) / fair_ratio > 0.75:
-        if (test := Test.objects.get(id=machine.workload)) in tests:
-            return test
+    # Step 5: Compute the idealized "Fair-Ratio"
+    min_ratio      = min(x['ratio'] for x in worker_dist.values())
+    thread_sum     = sum(x['threads'] for x in worker_dist.values())
+    throughput_sum = sum(x['throughput'] for x in worker_dist.values())
+    fair_ratio     = thread_sum / throughput_sum
 
-    # Fallback to simply doing the least attention given test
-    return tests[random.choice(lowest_indices)]
+    for id, data in worker_dist.items():
+        print (id, data)
+    print (engine_freq)
+    print (min_ratio)
+    print (fair_ratio)
 
-def worker_distribution(machine):
+    # Step 6: Repeat the same machine, if we are still at least 75% fair across the board
+    if machine.workload in worker_dist.keys():
+        if thread_sum > 0 and min_ratio / fair_ratio > 0.75:
+            return Test.objects.get(machine.workload)
 
-    # For each test ( which some worker claims to be running ), return
-    # a dict with the # of workers and # of threads actively on the test
+    # Step 7: Pick a random test, amongst those who share the min_ratio, weighted by throughput
+    choices = [id for id, data in worker_dist.items() if data['ratio'] == min_ratio]
+    weights = [data['throughput'] for id, data in worker_dist.items() if data['ratio'] == min_ratio]
+    return Test.objects.get(id=random.choices(choices, weights=weights)[0])
 
-    tests = OpenBench.utils.get_active_tests()
+def filter_valid_workloads(machine):
 
-    distribution = {
-        test.id : { 'workers' : 0, 'threads' : 0 } for test in tests
-    }
-
-    # Don't count ourselves; and don't include non-active tests
-    for x in OpenBench.utils.getRecentMachines(1200):
-        if machine != x and x.workload in distribution:
-            distribution[x.workload]['workers'] += 1
-            distribution[x.workload]['threads'] += x.info['concurrency']
-
-    return tests, distribution
-
-def filter_valid_workloads(tests, machine, distribution):
+    workloads = OpenBench.utils.get_active_tests()
 
     # Skip engines that the Machine cannot handle
     for engine in OPENBENCH_CONFIG['engines'].keys():
         if engine not in machine.info['supported']:
-            tests = tests.exclude(dev_engine=engine)
-            tests = tests.exclude(base_engine=engine)
+            workloads = workloads.exclude(dev_engine=engine)
+            workloads = workloads.exclude(base_engine=engine)
 
-    # Skip tests with unmet Syzygy requirements
+    # Skip workloads with unmet Syzygy requirements
     for K in range(machine.info['syzygy_max'] + 1, 10):
-        tests = tests.exclude(syzygy_adj='%d-MAN' % (K))
-        tests = tests.exclude(syzygy_wdl='%d-MAN' % (K))
+        workloads = workloads.exclude(syzygy_adj='%d-MAN' % (K))
+        workloads = workloads.exclude(syzygy_wdl='%d-MAN' % (K))
 
-    # Skip tests that would waste available Threads or exceed them
-    options = [x for x in tests if valid_assignment(machine, x, distribution)]
+    # Skip workloads that we have insufficient threads to play
+    options = [x for x in workloads if valid_hardware_assignment(x, machine)]
 
-    # Finally refine for tests of the highest priority
-    if not options: return []
-    highest_prio = max(options, key=lambda x: x.priority).priority
-    return [test for test in options if test.priority == highest_prio]
+    # Refine to workloads of the highest priority
+    priorities = [x.priority for x in options]
+    candidates = [x for x in options if x.priority == max(priorities)]
 
-def valid_assignment(machine, test, distribution):
+    # Refine to workloads that match our focus, if applicable
+    focuses    = machine.info.get('focus', [])
+    has_focus  = any(x.dev_engine in focuses for x in candidates)
 
-    # Extract thread requirements from the test itself
-    dev_threads  = int(OpenBench.utils.extract_option(test.dev_options,  'Threads'))
-    base_threads = int(OpenBench.utils.extract_option(test.base_options, 'Threads'))
+    if has_focus:
+        candidates = list(filter(lambda x: x.dev_engine in focuses, candidates))
+
+    return candidates, has_focus
+
+def valid_hardware_assignment(workload, machine):
+
+    # Extract thread requirements from the workload itself
+    dev_threads  = int(OpenBench.utils.extract_option(workload.dev_options,  'Threads'))
+    base_threads = int(OpenBench.utils.extract_option(workload.base_options, 'Threads'))
 
     # Extract the information from our machine
     threads      = machine.info['concurrency']
@@ -136,7 +138,7 @@ def valid_assignment(machine, test, distribution):
         threads = threads // 2
 
     # SPSA plays a pair at a time, not a game at a time
-    is_spsa = test.test_mode == 'SPSA'
+    is_spsa = workload.test_mode == 'SPSA'
 
     # Refuse if there are not enough threads for the test
     if (1 + is_spsa) * max(dev_threads, base_threads) > threads:
@@ -144,6 +146,33 @@ def valid_assignment(machine, test, distribution):
 
     # All Criteria have been met
     return True
+
+def compute_resource_distribution(workloads, machine, has_focus):
+
+    # Return a thread count, and engine name for each workload, as well as the throughput.
+    # The throughput may be scaled down later, due to balance_engine_throughputs
+
+    worker_dist = {
+        workload.id : { 'threads' : 0, 'engine' : workload.dev_engine, 'throughput' : workload.throughput }
+            for workload in workloads
+    }
+
+    # Ignore our own machine;
+    # Ignore machines working on non-candidates;
+    # Ignore focus-assigned machines when has_focus is false
+
+    for x in OpenBench.utils.getRecentMachines():
+        if x != machine and x.workload in worker_dist:
+            if has_focus or worker_dist[x.workload]['engine'] not in x.info.get('focus', []):
+                worker_dist[x.workload]['threads'] += x.info['concurrency']
+
+    # Count of tests that exist for a particular dev_engine
+
+    engine_freq = {}
+    for workload in workloads:
+        engine_freq[workload.dev_engine] = engine_freq.get(workload.dev_engine, 0) + 1
+
+    return worker_dist, engine_freq
 
 def workload_to_dictionary(test, result, machine):
 
