@@ -76,12 +76,6 @@ def select_workload(machine):
     throughput_sum = sum(x['throughput'] for x in worker_dist.values())
     fair_ratio     = thread_sum / throughput_sum
 
-    for id, data in worker_dist.items():
-        print (id, data)
-    print (engine_freq)
-    print (min_ratio)
-    print (fair_ratio)
-
     # Step 6: Repeat the same machine, if we are still at least 75% fair across the board
     if machine.workload in worker_dist.keys():
         if thread_sum > 0 and min_ratio / fair_ratio > 0.75:
