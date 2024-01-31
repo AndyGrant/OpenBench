@@ -67,6 +67,17 @@ def has_worker():
     except ImportError:
         return False
 
+def custom_help(default_help):
+
+    print (default_help)
+
+    if has_worker():
+        import worker
+        importlib.reload(worker)
+        worker.run_openbench_worker(None)
+
+    exit()
+
 def parse_arguments():
 
     # We can use ENV variables for the Username, Passwords, and Servers
@@ -74,24 +85,27 @@ def parse_arguments():
     req_pass   = 'OPENBENCH_PASSWORD' not in os.environ
     req_server = 'OPENBENCH_SERVER'   not in os.environ
 
-    help_user   = 'Username. May also be passed as OPENBENCH_USERNAME environment variable'
-    help_pass   = 'Password. May also be passed as OPENBENCH_PASSWORD environment variable'
-    help_server = 'Server URL. May also be passed as OPENBENCH_SERVER environment variable'
+    help_user   = 'Username. May also be provided via OPENBENCH_USERNAME environment variable'
+    help_pass   = 'Password. May also be provided via OPENBENCH_PASSWORD environment variable'
+    help_server = 'Server URL. May also be provided via OPENBENCH_SERVER environment variable'
+
+    # Pretty formatting
+    p = argparse.ArgumentParser(
+        formatter_class=lambda prog:
+            argparse.ArgumentDefaultsHelpFormatter(prog, max_help_position=10)
+    )
 
     # Create and parse all arguments into a raw format
-    p = argparse.ArgumentParser()
-    p.add_argument('-U', '--username'   , help=help_user           , required=req_user  )
-    p.add_argument('-P', '--password'   , help=help_pass           , required=req_pass  )
-    p.add_argument('-S', '--server'     , help=help_server         , required=req_server)
-    p.add_argument('-T', '--threads'    , help='Total Threads'     , required=True      )
-    p.add_argument('-N', '--nsockets'   , help='Number of Sockets' , required=True      )
-    p.add_argument('-I', '--identity'   , help='Machine pseudonym' , required=False     )
-    p.add_argument(      '--syzygy'     , help='Syzygy WDL'        , required=False     )
-    p.add_argument(      '--fleet'      , help='Fleet Mode'        , action='store_true')
-    p.add_argument(      '--clean'      , help='Force New Client'  , action='store_true')
+    p.add_argument('-U', '--username', help=help_user         , required=req_user  )
+    p.add_argument('-P', '--password', help=help_pass         , required=req_pass  )
+    p.add_argument('-S', '--server'  , help=help_server       , required=req_server)
+    p.add_argument(      '--clean'   , help='Force New Client', action='store_true')
 
-    args = p.parse_args()
+    # Override, to possibly print worker.py's help as well as client.py's
+    p.print_help = lambda: custom_help(p.format_help())
 
+    # Replace with ENV variables if needed
+    args, unknown = p.parse_known_args()
     args.username = args.username if args.username else os.environ['OPENBENCH_USERNAME']
     args.password = args.password if args.password else os.environ['OPENBENCH_PASSWORD']
     args.server   = args.server   if args.server   else os.environ['OPENBENCH_SERVER'  ]
