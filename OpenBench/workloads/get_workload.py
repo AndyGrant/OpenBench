@@ -64,7 +64,7 @@ def select_workload(machine):
     # Step 3: Determine the effective-throughput for each workload
     if OPENBENCH_CONFIG['balance_engine_throughputs']:
         for id, data in worker_dist.items():
-            data['throughput'] = data['throughput'] / engine_dist[data['engine']]
+            data['throughput'] = data['throughput'] / engine_freq[data['engine']]
 
     # Step 4: Compute the Resource Ratios for each of the workloads
     for id, data in worker_dist.items():
