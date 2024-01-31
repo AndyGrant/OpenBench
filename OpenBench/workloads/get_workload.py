@@ -57,6 +57,8 @@ def select_workload(machine):
 
     # Step 1: Refine active workloads to the candidate assignments
     candidates, has_focus = filter_valid_workloads(machine)
+    if not candidates:
+        return None
 
     # Step 2: Count relevant threads on each candidate test
     worker_dist, engine_freq = compute_resource_distribution(candidates, machine, has_focus)
@@ -103,6 +105,10 @@ def filter_valid_workloads(machine):
 
     # Skip workloads that we have insufficient threads to play
     options = [x for x in workloads if valid_hardware_assignment(x, machine)]
+
+    # Possible that no work exists for the machine
+    if not options:
+        return [], False
 
     # Refine to workloads of the highest priority
     priorities = [x.priority for x in options]
