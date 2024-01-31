@@ -79,7 +79,7 @@ def select_workload(machine):
     # Step 6: Repeat the same machine, if we are still at least 75% fair across the board
     if machine.workload in worker_dist.keys():
         if thread_sum > 0 and min_ratio / fair_ratio > 0.75:
-            return Test.objects.get(machine.workload)
+            return Test.objects.get(id=machine.workload)
 
     # Step 7: Pick a random test, amongst those who share the min_ratio, weighted by throughput
     choices = [id for id, data in worker_dist.items() if data['ratio'] == min_ratio]
