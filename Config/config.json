@@ -17,7 +17,9 @@
         "Endgames.epd",
         "Pohl.epd",
         "Pohl.pgn",
-        "UHO_4060_v2.epd"
+        "UHO_4060_v2.epd",
+        "UHO_4060_vB.epd",
+        "UHO_4060_vT.epd"
     ],
 
     "engines" : [
