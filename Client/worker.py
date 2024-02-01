@@ -20,7 +20,6 @@
 
 import argparse
 import cpuinfo
-import hashlib
 import json
 import multiprocessing
 import os
@@ -29,7 +28,6 @@ import psutil
 import queue
 import re
 import requests
-import shutil
 import subprocess
 import sys
 import threading
@@ -46,6 +44,7 @@ from client import BadVersionException
 from client import url_join
 from client import try_forever
 
+from utils import *
 from pgn_util import compress_list_of_pgns
 
 ## Basic configuration of the Client. These timeouts can be changed at will
@@ -210,51 +209,6 @@ class Configuration:
         if os.path.isfile('machine.txt'):
             with open('machine.txt') as fin:
                 self.machine_id = fin.readlines()[0]
-
-    def choose_best_artifact(self, options):
-
-        # Step 1. Filter down to our operating system only
-        options = [x for x in options if x.split('-')[1] == self.os_name.lower()]
-
-        # Pick betwen various Vector instruction sets that might apply
-        has_ssse3  =                all(x in self.cpu_flags for x in ['SSSE3'])
-        has_sse4   = has_ssse3  and all(x in self.cpu_flags for x in ['SSE41', 'SSE42'])
-        has_avx    = has_sse4   and all(x in self.cpu_flags for x in ['AVX'])
-        has_avx2   = has_avx    and all(x in self.cpu_flags for x in ['AVX2', 'FMA'])
-        has_avx512 = has_avx2   and all(x in self.cpu_flags for x in ['AVX512BW', 'AVX512DQ', 'AVX512F'])
-        has_vnni   = has_avx512 and all(x in self.cpu_flags for x in ['AVX512VNNI'])
-
-        # Filtering system, where we remove everything but the strongest that is available
-        selection = [
-            (has_vnni  , 'vnni'  ), (has_avx512, 'avx512'), (has_avx2  , 'avx2'  ),
-            (has_avx   , 'avx'   ), (has_sse4  , 'sse4'  ), (has_ssse3 , 'ssse3' ),
-        ]
-
-        # Step 2. Filter everything but the best Vector instruction set that was available
-        for boolean, identifier in selection:
-            if boolean and identifier in [x.split('-')[2] for x in options]:
-                options = [x for x in options if x.split('-')[2] == identifier]
-                break
-
-        # Identify any Ryzen or AMD chip, excluding the 7B12
-        ryzen = 'AMD' in self.cpu_name.upper()
-        ryzen = 'RYZEN' in self.cpu_name.upper() or ryzen
-        ryzen = ryzen and '7B12' not in self.cpu_name.upper()
-
-        # Pick between POPCNT and BMI2/PEXT
-        has_popcnt = 'POPCNT' in self.cpu_flags
-        has_bmi2   = 'BMI2' in self.cpu_flags and not ryzen
-
-        # Filtering system, where we remove everything but the strongest that is available
-        selection = [ (has_bmi2, 'pext'), (has_popcnt, 'popcnt') ]
-
-        # Step 3. Filter everything but the best bitop instruction set that was available
-        for boolean, identifier in selection:
-            if boolean and identifier in [x.split('-')[3] for x in options]:
-                options = [x for x in options if x.split('-')[3] == identifier]
-                break
-
-        return options[0]
 
 class ServerReporter:
 
@@ -816,36 +770,6 @@ def validate_syzygy_exists(config, K):
     return True
 
 
-def download_file(source, outname, post_data=None, headers=None):
-
-    arguments = { 'stream' : True, 'timeout' : TIMEOUT_ERROR, 'headers' : headers }
-    function  = [requests.get, requests.post][post_data != None]
-    if post_data: arguments['data'] = post_data
-
-    request = function(source, **arguments)
-    with open(outname, 'wb') as fout:
-        for chunk in request.iter_content(chunk_size=1024):
-            if chunk: fout.write(chunk)
-        fout.flush()
-
-def unzip_delete_file(source, outdir):
-    with zipfile.ZipFile(source) as fin:
-        fin.extractall(outdir)
-    os.remove(source)
-
-
-def make_command(config, engine, output_name, src_path, network_path):
-
-    compiler  = config.compilers[engine][0]
-    comp_flag = ['CC', 'CXX']['++' in compiler]
-    command   = 'make %s=%s EXE=%s -j%d' % (comp_flag, compiler, output_name, config.threads)
-
-    if network_path != None:
-        path     = os.path.relpath(os.path.abspath(network_path), src_path)
-        command += ' EVALFILE=%s' % (path.replace('\\', '/'))
-
-    return command.split()
-
 def parse_bench_output(stream):
 
     nps = bench = None # Search through output Stream
@@ -1018,7 +942,12 @@ def server_request_workload(config):
 
     payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token }
     target   = url_join(config.server, 'clientGetWorkload')
-    response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
+    response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
+
+    # Server errors produce garbage back, which we should not alarm a user with
+    try: response = response.json()
+    except json.decoder.JSONDecodeError:
+        raise OpenBenchBadServerResponseException() from None
 
     # Throw all the way back to the client.py
     if 'Bad Client Version' in response.get('error', ''):
@@ -1042,7 +971,11 @@ def server_request_workload(config):
 def complete_workload(config):
 
     # Download the opening book, throws an exception on corruption
-    download_opening_book(config)
+    download_opening_book(
+        config.workload['test']['book']['sha'   ],
+        config.workload['test']['book']['source'],
+        config.workload['test']['book']['name'  ],
+    )
 
     # Download each NNUE file, throws an exception on corruption
     dev_network  = download_network_weights(config, 'dev' )
@@ -1118,65 +1051,28 @@ def complete_workload(config):
             pgn_files  = [Cutechess.pgn_name(config, timestamp, x) for x in range(cutechess_cnt)]
             ServerReporter.report_pgn(config, compress_list_of_pgns(pgn_files, scale_factor, compact))
 
-def download_opening_book(config):
-
-    # Log our attempts to download and verify the book
-    book_sha256 = config.workload['test']['book']['sha'   ]
-    book_source = config.workload['test']['book']['source']
-    book_name   = config.workload['test']['book']['name'  ]
-    book_path   = os.path.join('Books', book_name)
-    print('Fetching Opening Book [%s]' % (book_name))
-
-    # Download file if we do not already have it
-    if not os.path.isfile(book_path):
-        download_file(book_source, book_name + '.zip')
-        unzip_delete_file(book_name + '.zip', 'Books/')
-
-    # Verify SHAs match with the server
-    with open(book_path) as fin:
-        content = fin.read().encode('utf-8')
-        sha256  = hashlib.sha256(content).hexdigest()
-    if book_sha256 != sha256: os.remove(book_path)
-
-    # Log SHAs on every workload
-    print('Correct  SHA256 %s' % (book_sha256.upper()))
-    print('Download SHA256 %s\n' % (   sha256.upper()))
-
-    # We have to have the correct SHA to continue
-    if book_sha256 != sha256:
-        raise Exception('Invalid SHA for %s' % (book_name))
-
 def download_network_weights(config, branch):
 
-    # Some tests may not use Neural Networks
-    engine_name  = config.workload['test'][branch]['engine']
-    network_sha  = config.workload['test'][branch]['network']
-    network_name = config.workload['test'][branch]['netname']
-    if not network_sha or network_sha == 'None': return None
+    # Wraps utils.py:download_network()
+    # May raise OpenBenchCorruptedNetworkException
 
-    # Log that we are obtaining a Neural Network
-    print ('Fetching Neural Network [ %s, %-4s ]' % (branch, network_name))
+    engine   = config.workload['test'][branch]['engine' ]
+    net_name = config.workload['test'][branch]['netname']
+    net_sha  = config.workload['test'][branch]['network']
+    net_path = os.path.join('Networks', net_sha)
 
-    # Fetch the Netural Network if we do not already have it
-    network_path = os.path.join('Networks', network_sha)
-    if not os.path.isfile(network_path):
-        target  = url_join(config.server, 'clientGetNetwork')
-        payload = { 'username' : config.username, 'password' : config.password }
-        download_file(url_join(target, engine_name, network_sha), network_path, payload)
+    # Not all engines use Network files
+    if not net_sha or net_sha == 'None':
+        return None
 
-    # Verify the download and delete partial or corrupted ones
-    with open(network_path, 'rb') as network:
-        sha256 = hashlib.sha256(network.read()).hexdigest()
-        sha256 = sha256[:8].upper()
-    if network_sha != sha256: os.remove(network_path)
+    credentials = (config.server, config.username, config.password)
+    download_network(*credentials, engine, net_name, net_sha, net_path)
 
-    # We have to have the correct Neural Network to continue
-    if network_sha != sha256:
-        raise Exception('Invalid SHA for %s' % (network_sha))
+    return net_path
 
-    return network_path
+def download_engine(config, branch, net_path):
 
-def download_engine(config, branch, network):
+    # Wraps utils.py:download_public_engine() and utils.py:download_private_engine()
 
     engine      = config.workload['test'][branch]['engine']
     branch_name = config.workload['test'][branch]['name']
@@ -1184,89 +1080,31 @@ def download_engine(config, branch, network):
     source      = config.workload['test'][branch]['source']
     private     = config.workload['test'][branch]['private']
 
-    # Naming as Engine-CommitSha[:8]-NetworkSha[:8]
-    final_name = '%s-%s' % (engine, commit_sha.upper()[:8])
-    if network and not private: final_name += '-%s' % (network[-8:])
-
-    # Check to see if we already have the final binary
-    final_path = os.path.join('Engines', final_name)
-    if os.path.isfile(final_path): return final_name
-    if os.path.isfile(final_path + '.exe'): return final_name + '.exe'
+    bin_name = engine_binary_name(engine, commit_sha, net_path, private)
+    out_path = os.path.join('Engines', bin_name)
 
     if private:
 
-        # Get the candidate artifacts that we can pick from
-        print ('\nFetching Artifacts for %s' % branch_name)
-        with open('credentials.%s' % (engine.replace(' ', '').lower())) as fin:
-            auth_headers = { 'Authorization' : 'token %s' % fin.readlines()[0].rstrip() }
+        try:
+            return download_private_engine(
+                engine, branch_name, source, out_path, config.cpu_name, config.cpu_flags)
 
-        # Pick from available artifacts the name of the best one
-        artifacts = requests.get(url=source, headers=auth_headers).json()['artifacts']
-        options   = [artifact['name'] for artifact in artifacts]
-        best      = config.choose_best_artifact(options)
+        except OpenBenchMissingArtifactException as error:
+            ServerReporter.report_missing_artifact(config, branch, error.name, error.logs)
+            raise
 
-        # Search for our artifact in the list provided
-        artifact_id = None
-        for artifact in artifacts:
-            if artifact['name'] == best:
-                artifact_id = artifact['id']
+    else:
 
-        # Artifact was missing, workload cannot be completed
-        if artifact_id == None:
-            ServerReporter.report_missing_artifact(config, branch, best, artifacts)
-            return None
+        make_path = config.workload['test'][branch]['build']['path']
+        compiler  = config.compilers[engine][0]
 
-        # Download the binary that matches our desired artifact
-        print ('Downloading [%s] %s' % (branch_name, best))
-        base = source.split('/runs/')[0]
-        url  = url_join(base, 'artifacts', str(artifact_id), 'zip').rstrip('/')
-        download_file(url, 'artifact.zip', None, auth_headers)
+        try:
+            return download_public_engine(
+                engine, net_path, branch_name, source, make_path, out_path, compiler)
 
-        # Unzip the binary, and place it into a known output name
-        unzip_delete_file('artifact.zip', 'tmp/')
-        binary_path = os.path.join('tmp', engine.replace(' ', '').lower())
-        os.rename(os.path.join('tmp', os.listdir('tmp/')[0]), binary_path)
-
-        # Binaries don't have execute permissions by default
-        if IS_LINUX:
-            os.system('chmod 777 %s\n' % (binary_path))
-
-    if not private:
-
-        # Download and unzip the source from Github
-        download_file(source, '%s.zip' % (engine))
-        unzip_delete_file('%s.zip' % (engine), 'tmp/')
-
-        # Parse out paths to find the makefile location
-        tokens     = source.split('/')
-        unzip_name = '%s-%s' % (tokens[-3], tokens[-1].rstrip('.zip'))
-        build_path = config.workload['test'][branch]['build']['path']
-        src_path   = os.path.join('tmp', unzip_name, *build_path.split('/'))
-
-        # Build the engine and drop it into src_path
-        print('\nBuilding [%s]' % (branch_name))
-        binary_path = os.path.join(src_path, final_name)
-        command     = make_command(config, engine, final_name, src_path, network)
-        process     = Popen(command, cwd=src_path, stdout=PIPE, stderr=STDOUT)
-        cxx_output  = process.communicate()[0].decode('utf-8')
-        print (cxx_output)
-
-    # Move the file to the final location ( Linux )
-    if os.path.isfile(binary_path):
-        os.rename(binary_path, final_path)
-        shutil.rmtree('tmp')
-        return final_name
-
-    # Move the file to the final location ( Windows )
-    if os.path.isfile(binary_path + '.exe'):
-        os.rename(binary_path + '.exe', final_path + '.exe')
-        shutil.rmtree('tmp')
-        return final_name + '.exe'
-
-    # Manual builds should have exited by now
-    if not private:
-        ServerReporter.report_build_fail(config, branch, cxx_output)
-        return None
+        except OpenBenchBuildFailedException as error:
+            ServerReporter.report_build_fail(config, branch, error.message)
+            raise
 
 
 def run_benchmarks(config, branch, engine, network):
