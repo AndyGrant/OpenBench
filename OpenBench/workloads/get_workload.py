@@ -42,9 +42,8 @@ def get_workload(machine):
     if not (test := select_workload(machine)):
         return {}
 
-    # Fetch or create the Result object for the test
-    try: result = Result.objects.get(test=test, machine=machine)
-    except: result = Result(test=test, machine=machine)
+    # Avoid creating duplicate Result objects
+    result, created = Result.objects.get_or_create(test=test, machine=machine)
 
     # Update the Machine's status and save everything
     machine.workload = test.id;
