@@ -68,19 +68,20 @@ def select_workload(machine):
         for id, data in worker_dist.items():
             data['throughput'] = data['throughput'] / engine_freq[data['engine']]
 
-    # Step 4: Compute the Resource Ratios for each of the workloads
+    # Step 4: Compute the Resource Ratios for each of the workloads, if we were assigned
     for id, data in worker_dist.items():
-        data['ratio'] = data['threads'] / data['throughput']
+        data['ratio'] = (data['threads'] + machine.info['concurrency']) / data['throughput']
 
-    # Step 5: Compute the idealized "Fair-Ratio"
+    # Step 5: Compute the idealized "Fair-Ratio" once our machine is added
     min_ratio      = min(x['ratio'] for x in worker_dist.values())
-    thread_sum     = sum(x['threads'] for x in worker_dist.values())
+    thread_sum     = sum(x['threads'] for x in worker_dist.values()) + machine.info['concurrency']
     throughput_sum = sum(x['throughput'] for x in worker_dist.values())
     fair_ratio     = thread_sum / throughput_sum
 
-    # Step 6: Repeat the same machine, if we are still at least 75% fair across the board
+    # Step 6: Repeat the same machine, if we are still within +- 25% fairness
     if machine.workload in worker_dist.keys():
-        if thread_sum > 0 and min_ratio / fair_ratio > 0.75:
+        this_ratio = worker_dist[machine.workload]['ratio']
+        if min_ratio / fair_ratio > 0.75 and this_ratio / fair_ratio < 1.25:
             return Test.objects.get(id=machine.workload)
 
     # Step 7: Pick a random test, amongst those who share the min_ratio, weighted by throughput
