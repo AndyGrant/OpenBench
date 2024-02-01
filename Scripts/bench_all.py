@@ -84,9 +84,9 @@ def get_private_engine(engine, config):
     cpu_flags = [x.replace('_', '').replace('.', '').upper() for x in cpu_info.get('flags', [])]
 
     try:
-        download_private_engine(engine, branch, source, out_path, cpu_name, cpu_flags, None)
+        download_private_engine(engine, branch, source, out_path, cpu_name, cpu_flags)
 
-    except OpenBenchMissingArtifactExceptionException as error:
+    except OpenBenchMissingArtifactException as error:
         print ('Failed to download %s... %s', engine, error.message)
 
 if __name__ == '__main__':
