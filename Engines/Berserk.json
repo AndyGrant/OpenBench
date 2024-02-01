@@ -14,7 +14,7 @@
 
         "default" : {
             "base_branch"     : "main",
-            "book_name"       : "UHO_4060_v2.epd",
+            "book_name"       : "UHO_4060_vB.epd",
             "test_bounds"     : "[0.00, 2.00]",
             "test_confidence" : "[0.1, 0.05]",
             "win_adj"         : "movecount=4 score=300",
@@ -78,7 +78,7 @@
     "tune_presets" : {
 
         "default" : {
-            "book_name" : "UHO_4060_v2.epd",
+            "book_name" : "UHO_4060_vB.epd",
             "win_adj"   : "movecount=4 score=300",
             "draw_adj"  : "movenumber=32 movecount=6 score=6"
         },
