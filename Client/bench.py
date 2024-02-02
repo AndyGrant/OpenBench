@@ -50,13 +50,13 @@ def parse_stream_output(stream):
         nps_pattern   = r'(\d+\s+nps)|(nps\s+\d+)|(nodes second\s+\d+)'
         bench_pattern = r'(\d+\s+nodes)|(nodes\s+\d+)|(nodes searched\s+\d+)'
 
-        # Search for and set only once the NPS value
-        if (re_nps := re.search(nps_pattern, line, re.IGNORECASE)):
-            nps = nps if nps else re_nps.group()
+        # Search for and set only once the NPS and Bench values
+        re_nps = re.search(nps_pattern, line, re.IGNORECASE)
+        re_bench = re.search(bench_pattern, line, re.IGNORECASE)
 
-        # Search for and set only once the Bench value
-        if (re_bench := re.search(bench_pattern, line, re.IGNORECASE)):
-            bench = bench if bench else re_bench.group()
+        # Set, but don't override
+        if re_nps: nps = nps if nps else re_nps.group()
+        if re_bench: bench = bench if bench else re_bench.group()
 
     # Parse out the integer portion from our matches
     nps   = int(re.search(r'\d+', nps  ).group()) if nps   else None
