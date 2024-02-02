@@ -32,6 +32,7 @@ PARENT = os.path.join(os.path.dirname(__file__), os.path.pardir)
 sys.path.append(os.path.abspath(PARENT))
 
 from Client.utils import *
+from Client.bench import run_benchmark
 from bench_engine import run_benchmark
 
 def get_default_network(args, network):
@@ -141,6 +142,10 @@ if __name__ == '__main__':
         if not configs[engine]['private']:
             get_public_engine(engine, configs[engine])
 
+    # Pretty Formatting
+    max_length   = max(len(engine) for engine in engines)
+    print_format = '%-' + str(max_length) + 's %8d nps %10d nodes in %6.3f seconds'
+
     for engine in engines:
 
         # Builds may have failed in previous steps, which we can ignore
@@ -152,5 +157,5 @@ if __name__ == '__main__':
         private_net = configs[engine]['private'] and configs[engine].get('network')
         net_path    = os.path.join('Networks', configs[engine]['network']['sha']) if private_net else None
 
-        nps, nodes = run_benchmark(bin_path, net_path, args.threads, args.sets)
-        print ('%s %d nps %d nodes in %.3f seconds' % (engine, nps, nodes, nodes / max(1e-6, nps)))
+        nps, nodes = run_benchmark(bin_path, net_path, private_net, args.threads, args.sets)
+        print (print_format % (engine, nps, nodes, nodes / max(1e-6, nps)))

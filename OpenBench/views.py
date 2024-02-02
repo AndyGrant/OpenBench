@@ -681,22 +681,16 @@ def client_get_workload(request, machine):
 
 @csrf_exempt
 @verify_worker
-def client_wrong_bench(request, machine):
+def client_bench_error(request, machine):
 
     # Find and stop the test with the bad bench
-    if int(request.POST['wrong']) != 0:
-        test = Test.objects.get(id=int(request.POST['test_id']))
-        test.finished = True; test.save()
-
-    # Collect information on the Error
-    wrong   = int(request.POST['wrong'])
-    correct = int(request.POST['correct'])
-    name    = request.POST['engine']
+    test = Test.objects.get(id=int(request.POST['test_id']))
+    test.finished = True; test.save()
 
     # Log the error into the Events table
     LogEvent.objects.create(
         author     = machine.user.username,
-        summary    = 'Got %d Expected %d for %s' % (wrong, correct, name),
+        summary    = request.POST['error'],
         log_file   = '',
         machine_id = int(request.POST['machine_id']),
         test_id    = int(request.POST['test_id']))
