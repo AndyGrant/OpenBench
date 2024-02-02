@@ -244,7 +244,7 @@ def download_network(server, username, password, engine, net_name, net_sha, net_
 
         # Format the API request, including credentials
         print ('Fetching %s (%s) for %s' % (net_name, net_sha, engine))
-        endpoint = '/api/networks/%s/%s' % (engine, net_sha)
+        endpoint = 'api/networks/%s/%s' % (engine, net_sha)
         request  = credentialed_request(server, username, password, endpoint)
 
         # Write the content out to the net_path in kb chunks
