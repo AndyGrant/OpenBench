@@ -40,6 +40,10 @@ from subprocess import PIPE, Popen, call, STDOUT
 from itertools import combinations_with_replacement
 from concurrent.futures import ThreadPoolExecutor
 
+## Local imports
+
+import bench
+
 from client import BadVersionException
 from client import url_join
 from client import try_forever
@@ -284,16 +288,14 @@ class ServerReporter:
         return ServerReporter.report(config, 'clientSubmitError', payload)
 
     @staticmethod
-    def report_bad_bench(config, branch, bench):
+    def report_bad_bench(config, error):
 
         payload = {
             'test_id'    : config.workload['test']['id'],
-            'engine'     : config.workload['test'][branch]['name'],
-            'correct'    : config.workload['test'][branch]['bench'],
-            'wrong'      : bench,
+            'error'      : error,
         }
 
-        return ServerReporter.report(config, 'clientWrongBench', payload)
+        return ServerReporter.report(config, 'clientBenchError', payload)
 
     @staticmethod
     def report_results(config, batches):
@@ -770,46 +772,6 @@ def validate_syzygy_exists(config, K):
     return True
 
 
-def parse_bench_output(stream):
-
-    nps = bench = None # Search through output Stream
-    for line in stream.decode('ascii').strip().split('\n')[::-1]:
-
-        # Convert non alpha-numerics to spaces
-        line = re.sub(r'[^a-zA-Z0-9 ]+', ' ', line)
-
-        # Multiple methods, including Ethereal and Stockfish
-        nps_pattern   = r'(\d+\s+nps)|(nps\s+\d+)|(nodes second\s+\d+)'
-        bench_pattern = r'(\d+\s+nodes)|(nodes\s+\d+)|(nodes searched\s+\d+)'
-
-        # Search for and set only once the NPS value
-        re_nps = re.search(nps_pattern, line, re.IGNORECASE)
-        if re_nps:
-            nps = nps if nps else re_nps.group()
-
-        # Search for and set only once the Bench value
-        re_bench = re.search(bench_pattern, line, re.IGNORECASE)
-        if re_bench:
-            bench = bench if bench else re_bench.group()
-
-    # Parse out the integer portion from our matches
-    nps   = int(re.search(r'\d+', nps  ).group()) if nps   else None
-    bench = int(re.search(r'\d+', bench).group()) if bench else None
-
-    return (bench, nps)
-
-def run_bench(engine, outqueue, private_net=None):
-
-    try:
-        # We may need to set an EvalFile via the UCI Options
-        if not private_net: cmd = ['./' + engine, 'bench']
-        else: cmd = ['./' + engine, 'setoption name EvalFile value %s' % (private_net), 'bench', 'quit']
-
-        # Launch the engine and parse output for statistics
-        stdout, stderr = Popen(cmd, stdout=PIPE, stderr=STDOUT).communicate()
-        outqueue.put(parse_bench_output(stdout))
-    except Exception: outqueue.put((0, 0))
-
 def scale_time_control(workload, scale_factor, branch):
 
     # Extract everything from the workload dictionary
@@ -984,14 +946,10 @@ def complete_workload(config):
     # Build or download each engine, or exit if an error occured
     dev_name  = download_engine(config, 'dev' , dev_network )
     base_name = download_engine(config, 'base', base_network)
-    if not dev_name or not base_name: return
 
     # Run the benchmarks and compute the scaling NPS value
     dev_nps  = run_benchmarks(config, 'dev' , dev_name , dev_network )
     base_nps = run_benchmarks(config, 'base', base_name, base_network)
-
-    # Report NPS to server, or exit if an error occured
-    if not dev_nps or not base_nps: return
     ServerReporter.report_nps(config, dev_nps, base_nps)
 
     # Scale the engines together, using their NPS relative to expected
@@ -1103,47 +1061,29 @@ def download_engine(config, branch, net_path):
                 engine, net_path, branch_name, source, make_path, out_path, compiler)
 
         except OpenBenchBuildFailedException as error:
-            ServerReporter.report_build_fail(config, branch, error.message)
+            ServerReporter.report_build_fail(config, branch, error.logs)
             raise
 
 
 def run_benchmarks(config, branch, engine, network):
 
-    queue   = multiprocessing.Queue()
-    name    = config.workload['test'][branch]['name']
-    private = config.workload['test'][branch]['private']
-    print('\nRunning %dx Benchmarks for %s' % (config.threads, name))
+    name     = config.workload['test'][branch]['name']
+    private  = config.workload['test'][branch]['private']
+    expected = int(config.workload['test'][branch]['bench'])
+    binary   = os.path.join('Engines', engine)
 
-    args = [os.path.join('Engines', engine), queue]
-    if private and network:
-        args.append(network)
+    try:
+        print('\nRunning %dx Benchmarks for %s' % (config.threads, name))
+        speed, nodes = bench.run_benchmark(
+            binary, network, private, config.threads, 1, expected)
 
-    # Run the benchmark on all threads we are using
-    workers = [
-        multiprocessing.Process(target=run_bench, args=args)
-        for ii in range(config.threads)
-    ]
+    except OpenBenchBadBenchException as error:
+        ServerReporter.report_bad_bench(config, error.message)
+        raise
 
-    # Start and wait for each worker to finish
-    for worker in workers: worker.start()
-    for worker in workers: worker.join()
-
-    # Collect all bench and nps values, and set bench to 0 if any vary
-    bench, nps = list(zip(*[queue.get() for ii in range(config.threads)]))
-    bench = [0, bench[0]][len(set(bench)) == 1]
-    nps   = sum(nps) // config.threads
-
-    # Output everything, including 0 for an error
-    print('Bench for %s is %d' % (name, bench))
-    print('Speed for %s is %d' % (name, nps))
-
-    # Flag the test to abort if we have a bench mismatch
-    error = (bench != int(config.workload['test'][branch]['bench']))
-    if error:
-        ServerReporter.report_bad_bench(config, branch, bench)
-
-    # Set NPS to 0 if we had any errors
-    return 0 if not bench or error else nps
+    print('Bench for %s is %d' % (name, nodes))
+    print('Speed for %s is %d' % (name, speed))
+    return speed
 
 def build_cutechess_command(config, dev_cmd, base_cmd, scale_factor, timestamp, cutechess_idx):
 

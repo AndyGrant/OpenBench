@@ -29,6 +29,12 @@ import tempfile
 import zipfile
 
 class OpenBenchBuildFailedException(Exception):
+    def __init__(self, message, logs):
+        self.message = message
+        self.logs    = logs
+        super().__init__(self.message)
+
+class OpenBenchBadBenchException(Exception):
     def __init__(self, message):
         self.message = message
         super().__init__(self.message)
@@ -247,8 +253,11 @@ def download_network(server, username, password, engine, net_name, net_sha, net_
                 if chunk: fout.write(chunk)
             fout.flush()
 
+    else:
+        print ('Found %s (%s) for %s' % (net_name, net_sha, engine))
+
     # Check for the first 8 characters of the sha256
-    print ('Verifying %s (%s) for %s' % (net_name, net_sha, engine))
+    print ('Verifying %s (%s) for %s\n' % (net_name, net_sha, engine))
     with open(net_path, 'rb') as network:
         sha256 = hashlib.sha256(network.read()).hexdigest()[:8].upper()
 
@@ -298,7 +307,8 @@ def download_public_engine(engine, net_path, branch, source, make_path, out_path
         return os.path.basename(check_for_engine_binary(out_path))
 
     # Someone should catch this, and possibly report it to the OpenBench server
-    raise OpenBenchBuildFailedException(comp_output)
+    message = 'Error during compilation. The logs have been sent to the server'
+    raise OpenBenchBuildFailedException(message, comp_output)
 
 def download_private_engine(engine, branch, source, out_path, cpu_name, cpu_flags):
 
