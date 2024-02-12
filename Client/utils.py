@@ -294,15 +294,19 @@ def download_public_engine(engine, net_path, branch, source, make_path, out_path
         os.rename(unzip_root, src_path)
 
         # Prepare the MAKEFILE command
-        make_path    = os.path.join(src_path, make_path)
-        rel_out_path = os.path.relpath(os.path.abspath(out_path), make_path)
-        make_cmd     = makefile_command(net_path, make_path, rel_out_path, compiler)
+        make_path = os.path.join(src_path, make_path)
+        bin_path  = os.path.join(make_path, os.path.basename(out_path))
+        make_cmd  = makefile_command(net_path, make_path, bin_path, compiler)
 
-        # Build the engine, which will produce a binary to the original out_path
+        # Build the engine, which will produce a binary to bin_path, to be moved after
         process     = subprocess.Popen(make_cmd, cwd=make_path, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         comp_output = process.communicate()[0].decode('utf-8')
 
-    # Check to see if we already have the binary
+        # Move the binary to the proper out_path, account for Windows and cross-drive moves
+        if check_for_engine_binary(bin_path):
+            shutil.move(check_for_engine_binary(bin_path), os.path.dirname(out_path))
+
+    # Check to see if we have the binary
     if check_for_engine_binary(out_path):
         return os.path.basename(check_for_engine_binary(out_path))
 
