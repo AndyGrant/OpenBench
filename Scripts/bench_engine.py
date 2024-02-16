@@ -26,9 +26,9 @@ import sys
 
 # Needed to include from ../Client/*.py
 PARENT = os.path.join(os.path.dirname(__file__), os.path.pardir)
-sys.path.append(os.path.abspath(PARENT))
+sys.path.append(os.path.abspath(os.path.join(PARENT, 'Client')))
 
-from Client.bench import run_benchmark
+from bench import run_benchmark
 
 if __name__ == '__main__':
 

@@ -29,11 +29,10 @@ import sys
 
 # Needed to include from ../Client/*.py
 PARENT = os.path.join(os.path.dirname(__file__), os.path.pardir)
-sys.path.append(os.path.abspath(PARENT))
+sys.path.append(os.path.abspath(os.path.join(PARENT, 'Client')))
 
-from Client.utils import *
-from Client.bench import run_benchmark
-from bench_engine import run_benchmark
+from utils import *
+from bench import run_benchmark
 
 def get_default_network(args, network):
 
@@ -60,7 +59,7 @@ def get_public_engine(engine, config):
 
     except OpenBenchBuildFailedException as error:
         print ('Failed to build %s...\n\nCompiler Output:' % (engine))
-        for line in error.message.split('\n'):
+        for line in error.logs.split('\n'):
             print ('> %s' % (line))
         print ()
 
