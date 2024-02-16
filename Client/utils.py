@@ -259,13 +259,12 @@ def download_network(server, username, password, engine, net_name, net_sha, net_
     # Check for the first 8 characters of the sha256
     print ('Verifying %s (%s) for %s\n' % (net_name, net_sha, engine))
     with open(net_path, 'rb') as network:
-        sha256 = hashlib.sha256(network.read()).hexdigest()[:8].upper()
+        sha256 = hashlib.sha256(network.read()).hexdigest()[:8]
 
     # Verify the download and delete partial or corrupted ones
-    net_sha = net_sha.upper()
-    if net_sha != sha256:
+    if net_sha.upper() != sha256.upper():
         os.remove(net_path)
-        raise OpenBenchCorruptedNetworkException('Invalid SHA for %s' % (net_sha))
+        raise OpenBenchCorruptedNetworkException('Invalid SHA for %s' % (net_name))
 
 def download_public_engine(engine, net_path, branch, source, make_path, out_path, compiler=None):
 
