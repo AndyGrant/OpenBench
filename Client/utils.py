@@ -233,7 +233,7 @@ def download_opening_book(book_sha, book_source, book_name):
     print ('Download %s\n' % (sha256.upper()))
 
     # We have to have the correct SHA to continue
-    if book_sha != sha256:
+    if book_sha.upper() != sha256.upper():
         os.remove(book_path)
         raise OpenBenchCorruptedBookException('Invalid sha for %s' % (book_name))
 
@@ -262,9 +262,10 @@ def download_network(server, username, password, engine, net_name, net_sha, net_
         sha256 = hashlib.sha256(network.read()).hexdigest()[:8].upper()
 
     # Verify the download and delete partial or corrupted ones
+    net_sha = net_sha.upper()
     if net_sha != sha256:
         os.remove(net_path)
-        raise OpenBenchCorruptedNetworkException('Invalid SHA for %s' % (network_sha))
+        raise OpenBenchCorruptedNetworkException('Invalid SHA for %s' % (net_sha))
 
 def download_public_engine(engine, net_path, branch, source, make_path, out_path, compiler=None):
 
