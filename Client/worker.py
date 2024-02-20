@@ -1061,6 +1061,12 @@ def download_engine(config, branch, net_path):
                 engine, net_path, branch_name, source, make_path, out_path, compiler)
 
         except OpenBenchBuildFailedException as error:
+
+            print ('Failed to build %s-%s...\n\nCompiler Output:' % (engine, branch_name))
+            for line in error.logs.split('\n'):
+                print ('> %s' % (line))
+            print ()
+
             ServerReporter.report_build_fail(config, branch, error.logs)
             raise
 
