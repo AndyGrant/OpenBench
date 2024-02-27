@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 1450000,
+    "nps"     : 1340000,
     "source"  : "https://github.com/Witek902/Caissa",
 
     "build" : {

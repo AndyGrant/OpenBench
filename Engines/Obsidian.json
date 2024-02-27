@@ -1,6 +1,6 @@
 {
     "private"  : false,
-    "nps"      : 1800000,
+    "nps"      : 1000000,
     "base"     : "main",
     "source"   : "https://github.com/gab8192/Obsidian",
 

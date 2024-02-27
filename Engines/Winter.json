@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 644000,
+    "nps"     : 360000,
     "source"  : "https://github.com/rosenthj/Winter",
 
     "build" : {

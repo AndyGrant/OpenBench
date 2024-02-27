@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 1700000,
+    "nps"     : 1615000,
     "source"  : "https://github.com/mhouppin/stash-bot",
 
     "build" : {

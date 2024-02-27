@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 1008000,
+    "nps"     : 1025000,
     "source"  : "https://github.com/AndyGrant/Stockfish",
 
     "build" : {
@@ -13,7 +13,7 @@
     "test_presets" : {
 
         "default" : {
-            "base_branch"     : "ob_16",
+            "base_branch"     : "ob_16.1",
             "book_name"       : "Pohl.epd",
             "test_bounds"     : "[0.00, 2.00]",
             "test_confidence" : "[0.05, 0.05]",
