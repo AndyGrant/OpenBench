@@ -146,8 +146,7 @@ def makefile_command(net_path, make_path, out_path, compiler):
 
     # Build with EVALFILE= to embed NNUE files
     if net_path:
-        rel_net_path = os.path.relpath(os.path.abspath(net_path), make_path)
-        command += ['EVALFILE=%s' % (rel_net_path.replace('\\', '/'))]
+        command += ['EVALFILE=%s' % (os.path.abspath(net_path).replace('\\', '/'))]
 
     return command
 
