@@ -241,7 +241,7 @@ def spsa_param_digest(workload):
         param = workload.spsa['parameters'][name]
 
         # C and R if we got a workload right now
-        c = param['c'] / c_compression
+        c = max(param['c'] / c_compression, 0.00 if param['float'] else 0.50)
         r = param['a'] / r_compression / c ** 2
 
         fstr = '%.4f' if param['float'] else '%d'

@@ -276,7 +276,7 @@ def spsa_to_dictionary(test, workload):
         }
 
         # C & R are constants for a particular assignment, for all Permutations
-        spsa[name]['c'] = param['c'] / c_compression
+        spsa[name]['c'] = max(param['c'] / c_compression, 0.00 if param['float'] else 0.50)
         spsa[name]['r'] = param['a'] / r_compression / spsa[name]['c'] ** 2
 
         for f in range(permutations):

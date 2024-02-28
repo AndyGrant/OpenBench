@@ -252,11 +252,11 @@ def verify_spsa_inputs(errors, request, field):
             if not (float(minimum) <= float(value) <= float(maximum)):
                 errors.append('Value must be within [Min, Max], for %s' % (name))
 
-            if float(c) <= 0.00:
-                errors.append('C must be > 0.00, for %s' % (name))
+            if data_type.strip() == 'float' and float(c) <= 0.00:
+                errors.append('C for floats must be > 0.00, for %s' % (name))
 
             if float(r) <= 0.00:
-                errors.append('C must be > 0.00, for %s' % (name))
+                errors.append('R must be > 0.00, for %s' % (name))
 
     except:
         traceback.print_exc()
