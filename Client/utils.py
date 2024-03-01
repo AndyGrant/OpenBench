@@ -278,7 +278,7 @@ def download_public_engine(engine, net_path, branch, source, make_path, out_path
         print('Building [%s-%s]' % (engine, branch))
 
         # Download the zip file from Github
-        zip_path = os.path.join(temp_dir, '%s-%s' % (engine, branch))
+        zip_path = os.path.join(temp_dir, '%s-tmp' % (engine))
         with open(zip_path, 'wb') as zip_file:
             zip_file.write(requests.get(source).content)
 
@@ -331,13 +331,15 @@ def download_private_engine(engine, branch, source, out_path, cpu_name, cpu_flag
     options   = { artifact['name'] : artifact for artifact in artifacts }
     best      = select_best_artifact(options, cpu_name, cpu_flags)
 
+    print (artifacts)
+
     # Work with temp files and directories until finished extracting
     with tempfile.TemporaryDirectory() as temp_dir:
 
         print('Fetching [%s-%s]' % (engine, branch))
 
         # Download the zip file from Github
-        zip_path = os.path.join(temp_dir, '%s-%s' % (engine, branch))
+        zip_path = os.path.join(temp_dir, '%s-tmp' % (engine))
         with open(zip_path, 'wb') as zip_file:
             zip_file.write(requests.get(best['archive_download_url'], headers=headers).content)
 
