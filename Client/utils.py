@@ -331,8 +331,6 @@ def download_private_engine(engine, branch, source, out_path, cpu_name, cpu_flag
     options   = { artifact['name'] : artifact for artifact in artifacts }
     best      = select_best_artifact(options, cpu_name, cpu_flags)
 
-    print (artifacts)
-
     # Work with temp files and directories until finished extracting
     with tempfile.TemporaryDirectory() as temp_dir:
 
