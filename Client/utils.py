@@ -289,7 +289,7 @@ def download_public_engine(engine, net_path, branch, source, make_path, out_path
 
         # Rename the Root folder for ease of conventions
         unzip_root = os.path.join(unzip_path, os.listdir(unzip_path)[0])
-        src_path   = os.path.join(unzip_path, '%s-%s' % (engine, branch))
+        src_path   = os.path.join(unzip_path, '%s-tmp' % (engine))
         os.rename(unzip_root, src_path)
 
         # Prepare the MAKEFILE command
