@@ -114,6 +114,12 @@ body, html, main{
         flex-direction: column;
     }
 
+    /* Disable vertical body scrolling when the sidebar is open */
+    body.sidebar-open {
+        position: fixed;
+        overflow-y: hidden;
+    }
+
     /* Horizontally scrollable table */
     table {
         display: block;
