@@ -392,24 +392,25 @@ td pre {
         top: 0;
         bottom: 0;
         width: 100%;
-        transition: transform cubic-bezier(0.82, 0.08, 0.1, 0.93) 0.3s;
-        transform: translateX(-100%);
         background-color: var(--color1);
         overflow-y: auto;
+        transition: transform cubic-bezier(0.82, 0.08, 0.1, 0.93) 0.3s;
+        transform: translateX(-100%);
+    }
+
+    body.sidebar-open #sidebar {
+        transform: none;
     }
 
     #sidebar-toggle {
-        display: block;
+        display: flex;
         padding: 10px;
         color: var(--color-font1);
+        background-color: transparent;
+        border: none;
         position: relative;
         z-index: 10;
         font-size: 2.2rem;
-    }
-
-    /* Hide the sidebar when the checkbox is checked */
-    #sidebar-toggle-checkbox:checked ~ #sidebar {
-        transform: none;
     }
 
     #content-parent {
@@ -435,11 +436,12 @@ td pre {
     }
 
     #content-header h2 {
+        font-size: 1.4rem;
         margin: 8px 0;
     }
 
     #content-header .site-title {
-        white-space: break-spaces;        
+        white-space: break-spaces;
     }
 
     body {
@@ -458,9 +460,9 @@ td pre {
         overflow-x: auto;
     }
 
-    /* Some tables cannot break words to avoid issues such as single-letter lines */
-    /* They have horizontal scrolling regardless */
-    #content .wrappable:not(.test-config) td {
+    /* Tables cannot break words to avoid issues such as single-letter lines */
+    /* The only exception is the test config table */
+    #content .wrappable:not(.workload-container .test-config) td {
         word-break: normal;
     }
 
