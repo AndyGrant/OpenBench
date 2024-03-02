@@ -62,6 +62,12 @@ body, html, main{
         height: auto;
         flex-grow: 0;
         flex-basis: 100%;
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+
+    #content {
+        overflow-x: hidden;
     }
 
     body {
