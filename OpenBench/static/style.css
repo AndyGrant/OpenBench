@@ -460,4 +460,23 @@ td pre {
     #content .wrappable:not(.test-config) td {
         word-break: normal;
     }
+
+    /* Test Views */  
+    .workload-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+    #content #actions {
+        order: -1;
+        margin: 0 0 1rem 0;
+    }
+
+    #content #config {
+        float: none;
+    }
+
+    #content .long-statblock {
+        overflow-x: auto;
+    }
 }
