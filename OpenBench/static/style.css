@@ -33,6 +33,10 @@ body, html, main{
     flex-basis: calc(min(300px, max(200px, 10%)));
 }
 
+#sidebar-toggle {
+    display: none;
+}
+
 #content-parent{
     flex-grow: 1;
     justify-content: left;
@@ -55,19 +59,55 @@ body, html, main{
 @media (max-width: 599px) {
     #sidebar {
         flex-basis: 100%;
-        padding: 16px;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        transition: transform cubic-bezier(0.82, 0.08, 0.1, 0.93) 0.3s;
+        transform: translateX(-100%);
+        background-color: var(--color1);
+        overflow-y: auto;
+    }
+
+    #sidebar-toggle {
+        display: block;
+        padding: 10px;
+        color: var(--color-font1);
+        position: relative;
+        z-index: 10;
+        font-size: 2.2rem;
+    }
+
+    /* Hide the sidebar when the checkbox is checked */
+    #sidebar-toggle-checkbox:checked ~ #sidebar {
+        transform: none;
     }
 
     #content-parent {
         height: auto;
         flex-grow: 0;
         flex-basis: 100%;
-        padding-left: 8px;
-        padding-right: 8px;
+        padding: 0 8px;
     }
 
     #content {
         overflow-x: hidden;
+    }
+
+    #content-header {
+        display: flex;
+        align-items: center;
+        background-color: var(--color1);
+        position: relative;
+        z-index: 10;
+    }
+
+    #content-header h2 {
+        margin: 16px 0;
+    }
+
+    #content-header .site-title {
+        white-space: break-spaces;        
     }
 
     body {
