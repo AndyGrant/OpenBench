@@ -454,4 +454,10 @@ td pre {
         display: block;
         overflow-x: auto;
     }
+
+    /* Some tables cannot break words to avoid issues such as single-letter lines */
+    /* They have horizontal scrolling regardless */
+    #content .wrappable:not(.test-config) td {
+        word-break: normal;
+    }
 }
