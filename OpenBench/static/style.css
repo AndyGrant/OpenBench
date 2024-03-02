@@ -384,8 +384,8 @@ td pre {
     border-left: 4px solid var(--color-font3);
 }
 
-/* Styles for screen widths less than 600px */
-@media (max-width: 599px) {
+/* Styles for screen widths less than 768px */
+@media (max-width: 767px) {
     #sidebar {
         flex-basis: 100%;
         position: fixed;
