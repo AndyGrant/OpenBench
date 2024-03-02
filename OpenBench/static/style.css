@@ -113,6 +113,12 @@ body, html, main{
     body {
         flex-direction: column;
     }
+
+    /* Horizontally scrollable table */
+    table {
+        display: block;
+        overflow-x: auto;
+    }
 }
 
 
