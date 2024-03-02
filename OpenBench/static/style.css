@@ -421,18 +421,21 @@ td pre {
 
     #content {
         overflow-x: hidden;
+        margin-top: 70px;
     }
 
     #content-header {
         display: flex;
         align-items: center;
         background-color: var(--color1);
-        position: relative;
+        position: absolute;
+        top: 0;
+        left: 0;
         z-index: 10;
     }
 
     #content-header h2 {
-        margin: 16px 0;
+        margin: 8px 0;
     }
 
     #content-header .site-title {
