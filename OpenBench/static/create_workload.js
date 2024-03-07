@@ -56,7 +56,10 @@ function create_preset_buttons(engine, workload_type) {
         // Create a new button for the test mode
         var btn       = document.createElement('button')
         btn.innerHTML = mode;
-        btn.onclick   = function() { apply_preset(mode, workload_type); };
+        btn.onclick   = function() {
+            apply_preset('default', workload_type);
+            apply_preset(mode, workload_type);
+        };
 
         // Apply all of our CSS bootstrapping
         btn.classList.add('anchorbutton');
