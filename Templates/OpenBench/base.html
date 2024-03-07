@@ -5,6 +5,8 @@
     {% load static %}
 
     <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
         <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
         <link rel="stylesheet" href="{% static 'style.css' %}">
         <link rel="stylesheet" href="{% static 'base.css' %}">
@@ -54,6 +56,10 @@
                 }
 
             }, false);
+
+            function toggleSidebar() {
+                document.body.classList.toggle('sidebar-open')
+            }
         </script>
     </head>
 
@@ -124,9 +130,14 @@
 
         <div id="content-parent">
             <div id="content" class="pb-5">
-                <h2>
-                    <a class="site-title" href="/">OpenBench Testing Framework</a>
-                </h2>
+                <div id="content-header">
+                    <button id="sidebar-toggle" onclick="toggleSidebar()">
+                        <i class="fa-solid fa-bars fa-fw"></i>
+                    </button>
+                    <h2>
+                        <a class="site-title" href="/">OpenBench Testing&nbsp;Framework</a>
+                    </h2>
+                </div>
 
                 {% if request.session.error_message %}
                     <div class="error-message">
