@@ -34,15 +34,15 @@
             <div class="form">
                 <div class="col">
                     <div class="row">
-                        <label>Keywords</label>
-                        <input name="keywords" placeholder="Seperated By Spaces"><br>
+                        <label for="keywords">Keywords</label>
+                        <input id="keywords" name="keywords" placeholder="Seperated By Spaces"><br>
                     </div>
                     <div class="row">
-                        <label>Author</label>
-                        <input name="author" placeholder="All Authors By Default"><br>
+                        <label for="author">Author</label>
+                        <input id="author" name="author" placeholder="All Authors By Default"><br>
                     </div>
                     <div class="row">
-                        <label>Engine</label>
+                        <label for="engine">Engine</label>
                         <select id="engine" name="engine">
                             <option value="" selected>All Engines</option>
                             {% for name, data in config.engines.items %}
@@ -52,7 +52,7 @@
                     </div>
                     <br>
                     <div class="row">
-                        <label>Opening Book</label>
+                        <label for="opening-book">Opening Book</label>
                         <select id="opening-book" name="opening-book">
                             <option value="" selected>All Books</option>
                             {% for name, data in config.books.items %}
@@ -61,7 +61,7 @@
                         </select><br>
                     </div>
                     <div class="row">
-                        <label>Test Mode</label>
+                        <label for="test-mode">Test Mode</label>
                         <select id="test-mode" name="test-mode">
                             <option value="" selected>All Test Types</option>
                                 <option value="SPRT">SPRT</option>
@@ -69,7 +69,7 @@
                         </select><br>
                     </div>
                     <div class="row">
-                        <label>Syzygy WDL</label>
+                        <label for="syzygy-wdl">Syzygy WDL</label>
                         <select id="syzygy-wdl" name="syzygy-wdl">
                             <option value="" selected>All Syzygy Configurations</option>
                             <option value="DISABLED"> Disabled </option>
@@ -81,7 +81,7 @@
                         </select><br>
                     </div>
                     <div class="row">
-                        <label>Time Type</label>
+                        <label for="tc-type">Time Type</label>
                         <select id="tc-type" name="tc-type" onchange="changed_timecontrol()">
                             <option value="" selected>All Time Controls</option>
                             <option value="FIXED-DEPTH">Fixed Depth</option>
@@ -92,7 +92,7 @@
                         </select><br>
                     </div>
                     <div class="row">
-                        <label>Time Value</label>
+                        <label for="tc-value-input">Time Value</label>
                         <select id="tc-value-select" name="tc-value-select" style="margin-right: 8px; flex-grow: 0">
                             <option value="=" selected>==</option>
                             <option value=">=">&gt;=</option>
@@ -101,7 +101,7 @@
                         <input id="tc-value-input" name="tc-value-input"><br>
                     </div>
                     <div class="row">
-                        <label>Threads</label>
+                        <label for="threads-input">Threads</label>
                         <select id="threads-select" name="threads-select" style="margin-right: 8px; flex-grow: 0">
                             <option value="=">==</option>
                             <option value=">=" selected>&gt;=</option>
@@ -113,31 +113,31 @@
                     <div class="row">
                         <div class="col">
                             <div class="row">
-                                <label>Greens</label>
+                                <label for="show-greens">Greens</label>
                                 <input checked type="checkbox" id="show-greens" name="show-greens" value="">
                             </div>
                            <div class="row">
-                                <label>Blues</label>
+                                <label for="show-blues">Blues</label>
                                 <input checked type="checkbox" id="show-blues" name="show-blues" value="">
                             </div>
                         </div>
                         <div class="col">
                             <div class="row">
-                                <label>Yellows</label>
+                                <label for="show-yellows">Yellows</label>
                                 <input checked type="checkbox" id="show-yellows" name="show-yellows" value="">
                             </div>
                            <div class="row">
-                                <label>Stopped</label>
+                                <label for="show-stopped">Stopped</label>
                                 <input checked type="checkbox" id="show-stopped" name="show-stopped" value="">
                             </div>
                         </div>
                         <div class="col">
                             <div class="row">
-                                <label>Reds</label>
+                                <label for="show-reds">Reds</label>
                                 <input checked type="checkbox" id="show-reds" name="show-reds" value="">
                             </div>
                            <div class="row">
-                                <label>Deleted</label>
+                                <label for="show-deleted">Deleted</label>
                                 <input type="checkbox" id="show-deleted" name="show-deleted" value="">
                             </div>
                         </div>

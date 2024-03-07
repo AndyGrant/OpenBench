@@ -149,11 +149,20 @@
             <div class="form">
                 <div class="col-full">
 
-                    <div class="row"><label>Priority</label><input value="{{workload.priority}}" name="priority"></div>
-                    <div class="row"><label>Throughput</label><input value="{{workload.throughput}}" name="throughput"></div>
+                    <div class="row">
+                        <label for="priority">Priority</label>
+                        <input value="{{workload.priority}}" id="priority" name="priority">
+                    </div>
+                    <div class="row">
+                        <label for="throughput">Throughput</label>
+                        <input value="{{workload.throughput}}" id="throughput" name="throughput">
+                    </div>
 
                     {% if type == "TEST" %}
-                        <div class="row"><label>Workload Size</label><input value="{{workload.workload_size}}" name="workload_size"></div>
+                        <div class="row">
+                            <label for="workload_size">Workload Size</label>
+                            <input value="{{workload.workload_size}}" id="workload_size" name="workload_size">
+                        </div>
                     {% endif %}
 
                     <!-- Edit Button: For Approvers or Test Authors -->
