@@ -56,10 +56,7 @@ function create_preset_buttons(engine, workload_type) {
         // Create a new button for the test mode
         var btn       = document.createElement('button')
         btn.innerHTML = mode;
-        btn.onclick   = function() {
-            apply_preset('default', workload_type);
-            apply_preset(mode, workload_type);
-        };
+        btn.onclick   = function() { apply_preset(mode, workload_type); };
 
         // Apply all of our CSS bootstrapping
         btn.classList.add('anchorbutton');
@@ -192,7 +189,10 @@ function retain_specific_options(engine, preset, workload_type) {
 
 function apply_preset(preset, workload_type) {
 
-    const settings = get_presets(get_dev_engine(), preset, workload_type)
+    if (preset != 'default')
+        apply_preset('default', workload_type);
+
+    const settings = get_presets(get_dev_engine(), preset, workload_type);
 
     for (const option in settings) {
 
@@ -229,7 +229,6 @@ function change_engine(engine, target, workload_type) {
     if (target == 'dev' && workload_type == 'TEST')
         set_engine(engine, 'base');
 
-    apply_preset('default', workload_type);
     apply_preset('STC', workload_type);
 }
 
