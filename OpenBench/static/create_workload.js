@@ -189,7 +189,10 @@ function retain_specific_options(engine, preset, workload_type) {
 
 function apply_preset(preset, workload_type) {
 
-    const settings = get_presets(get_dev_engine(), preset, workload_type)
+    if (preset != 'default')
+        apply_preset('default', workload_type);
+
+    const settings = get_presets(get_dev_engine(), preset, workload_type);
 
     for (const option in settings) {
 
@@ -226,7 +229,6 @@ function change_engine(engine, target, workload_type) {
     if (target == 'dev' && workload_type == 'TEST')
         set_engine(engine, 'base');
 
-    apply_preset('default', workload_type);
     apply_preset('STC', workload_type);
 }
 
