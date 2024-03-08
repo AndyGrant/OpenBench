@@ -436,7 +436,8 @@ td pre {
     }
 
     #content-header h2 {
-        font-size: 1.4rem;
+        /* Adjust the font size to the screen width, ensuring that the title doesn't overflow */
+        font-size: clamp(1.0rem, 4.8vw, 1.4rem);
         margin: 8px 0;
     }
 
