@@ -200,6 +200,11 @@ def download_opening_book(book_sha, book_source, book_name):
 
     book_path = os.path.join('Books', book_name)
 
+    # Datagen workloads might not include a book
+    if book_name.upper() == 'NONE':
+        print ('No Opening Book Needed\n')
+        return
+
     # Book might already have been downloaded
     if not os.path.exists(book_path):
 
@@ -360,3 +365,20 @@ def download_private_engine(engine, branch, source, out_path, cpu_name, cpu_flag
 
     # Someone should catch this, and possibly report it to the OpenBench server
     raise OpenBenchMissingArtifactException(best['name'], artifacts)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

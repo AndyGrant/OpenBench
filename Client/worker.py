@@ -50,6 +50,7 @@ from client import try_forever
 
 from utils import *
 from pgn_util import compress_list_of_pgns
+from genfens import create_genfens_opening_book
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
@@ -379,8 +380,12 @@ class Cutechess:
         is_frc    = 'FRC' in book_name or '960' in book_name or 'FISCHER' in book_name
         variant   = ['standard', 'fischerandom'][is_frc]
 
-        # Always include -repeat and -recover
-        return '-repeat -recover -variant %s' % (variant)
+        # Only include -repeat if not skipping the reverses in DATAGEN
+        is_datagen = config.workload['test']['type'] == 'DATAGEN'
+        no_reverse = is_datagen and not config.workload['test']['play_reverses']
+
+        # Always include -recover and -variant
+        return ['-repeat', ''][no_reverse] + ' -recover -variant %s' % (variant)
 
     @staticmethod
     def concurrency_settings(config):
@@ -416,6 +421,15 @@ class Cutechess:
 
     @staticmethod
     def book_settings(config, cutechess_idx):
+
+        # DATAGEN creates their own book
+        if config.workload['test']['type'] == 'DATAGEN':
+
+            # -repeat might not be applied, so handle the book offsets
+            no_reverse = not config.workload['test']['play_reverses']
+            pairs      = config.workload['distribution']['games-per-cutechess'] // 2
+            start      = 1 + (cutechess_idx * pairs * (1 + no_reverse))
+            return '-openings file=Books/openbench.genfens.epd format=epd order=sequential start=%d' % (start)
 
         # Can handle EPD and PGN Books, which must be specified
         book_name   = config.workload['test']['book']['name']
@@ -947,6 +961,10 @@ def complete_workload(config):
     dev_name  = download_engine(config, 'dev' , dev_network )
     base_name = download_engine(config, 'base', base_network)
 
+    # Datagen creates a book on-the-fly
+    if config.workload['test']['type'] == 'DATAGEN':
+        create_genfens_opening_book(config, dev_name, dev_network)
+
     # Run the benchmarks and compute the scaling NPS value
     dev_nps  = run_benchmarks(config, 'dev' , dev_name , dev_network )
     base_nps = run_benchmarks(config, 'base', base_name, base_network)
@@ -962,11 +980,6 @@ def complete_workload(config):
     print ('Scale Factor Base : %.4f' % (base_factor))
     print ('Scale Factor Avg  : %.4f' % (avg_factor ))
 
-    # Scale using the base factor only, in the event of a cross-engine test
-    dev_engine    = config.workload['test']['dev' ]['engine']
-    base_engine   = config.workload['test']['base']['engine']
-    scale_factor  = base_factor if dev_engine != base_engine else avg_factor
-
     # Server knows how many copies of Cutechess we should run
     cutechess_cnt   = config.workload['distribution']['cutechess-count']
     concurrency_per = config.workload['distribution']['concurrency-per']
@@ -975,7 +988,12 @@ def complete_workload(config):
     print () # Record this information
     print ('%d cutechess copies' % (cutechess_cnt))
     print ('%d concurrent games per copy' % (concurrency_per))
-    print ('%d total games per cutechess copy' % (games_per))
+    print ('%d total games per cutechess copy\n' % (games_per))
+
+    # Scale using the base factor only, in the event of a cross-engine test
+    dev_engine    = config.workload['test']['dev' ]['engine']
+    base_engine   = config.workload['test']['base']['engine']
+    scale_factor  = base_factor if dev_engine != base_engine else avg_factor
 
     # Launch and manage all of the Cutechess workers
     with ThreadPoolExecutor(max_workers=cutechess_cnt) as executor:

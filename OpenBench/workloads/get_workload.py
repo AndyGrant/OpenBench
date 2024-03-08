@@ -190,12 +190,14 @@ def workload_to_dictionary(test, result, machine):
         'draw_adj'      : test.draw_adj,
         'workload_size' : test.workload_size,
         'upload_pgns'   : test.upload_pgns,
+        'genfens_args'  : test.genfens_args,
+        'play_reverses' : test.play_reverses,
     }
 
     workload['test']['book'] = {
         'name'   : test.book_name,
-        'sha'    : OPENBENCH_CONFIG['books'][test.book_name]['sha'],
-        'source' : OPENBENCH_CONFIG['books'][test.book_name]['source'],
+        'sha'    : OPENBENCH_CONFIG['books'].get(test.book_name, { 'sha'    : None })['sha'   ],
+        'source' : OPENBENCH_CONFIG['books'].get(test.book_name, { 'source' : None })['source'],
     }
 
     workload['test']['dev'] = {
@@ -243,7 +245,11 @@ def workload_to_dictionary(test, result, machine):
         cutechess_cnt = workload['distribution']['cutechess-count']
         pairs_per_cnt = workload['distribution']['games-per-cutechess'] // 2
 
-        test.book_index += cutechess_cnt * pairs_per_cnt
+        if test.test_mode == 'DATAGEN' and not test.play_reverses:
+            test.book_index += cutechess_cnt * pairs_per_cnt * 2
+        else:
+            test.book_index += cutechess_cnt * pairs_per_cnt
+
         test.save()
 
     return workload
