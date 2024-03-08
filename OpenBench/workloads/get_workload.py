@@ -35,7 +35,6 @@ from OpenBench.models import Result, Test
 
 from django.db import transaction
 
-
 def get_workload(machine):
 
     # Select a workload from the possible ones, if we can
@@ -351,28 +350,3 @@ def game_distribution(test, machine):
         'concurrency-per'     : 2 if is_multiple_spsa else max_concurrency,
         'games-per-cutechess' : 2 * test.workload_size * (1 if is_multiple_spsa else max_concurrency),
     }
-
-def effective_allocation(tests, distribution):
-
-    # We track the "ratio" of threads relative to the effective-throughput (ETP) of a test.
-    # This is used to determine which tests have more or less resources, relative to each
-    # other, when taking into account the ETP.
-    #
-    # The ETP is just the throughput of a test by default. The 'balance_engine_throughputs'
-    # option in the main configuration file will scale the throughput of each test in relation
-    # to the number of tests that exist for the same engine.
-    #
-    # For example: Suppose there are four tests, each with Throughput=1000. Three of the tests
-    # are for Ethereal, and one is for Laser. When computing resources, the Throughput of the
-    # Ethereal tests will be scaled down by a factor of 3.
-
-    # Count of total tests, and total throughput, for each engine
-    engines    = set([x.dev_engine for x in tests])
-    test_count = { engine : sum(x.dev_engine == engine for x in tests) for engine in engines }
-
-    # Ignore the test_count entirely when not doing engine balancing
-    if not OPENBENCH_CONFIG['balance_engine_throughputs']:
-        test_count = { engine : 1 for engine in engines }
-
-    # Threads working on the test, per unit of effective-throughput
-    return [distribution[x.id]['threads'] / (x.throughput / test_count[x.dev_engine]) for x in tests]

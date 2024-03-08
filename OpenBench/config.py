@@ -25,7 +25,7 @@ import traceback
 
 from OpenSite.settings import PROJECT_PATH
 
-OPENBENCH_STATIC_VERSION = 'v1'
+OPENBENCH_STATIC_VERSION = 'v2'
 
 OPENBENCH_CONFIG = None # Initialized by OpenBench/apps.py
 
@@ -67,12 +67,16 @@ def load_engine_config(engine_name):
 
         assert 'default' in conf['test_presets'].keys()
         assert 'default' in conf['tune_presets'].keys()
+        # assert 'default' in conf['datagen_presets'].keys()
 
         for key, test_preset in conf['test_presets'].items():
             verify_engine_test_preset(test_preset)
 
         for key, tune_preset in conf['tune_presets'].items():
             verify_engine_tune_preset(tune_preset)
+
+        # for key, datagen_preset in conf['datagen_presets'].items():
+        #   verify_engine_datagen_preset(datagen_preset)
 
     except Exception as error:
         traceback.print_exc()

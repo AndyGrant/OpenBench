@@ -126,17 +126,19 @@ class Test(Model):
     win_adj     = CharField(max_length=64, default='movecount=3 score=400')
     draw_adj    = CharField(max_length=64, default='movenumber=40 movecount=8 score=10')
 
-    # Test Mode specific values, either SPRT or GAMES
-    test_mode   = CharField(max_length=16, default='SPRT')
-    elolower    = FloatField(default=0.0) # SPRT
-    eloupper    = FloatField(default=0.0) # SPRT
-    alpha       = FloatField(default=0.0) # SPRT
-    beta        = FloatField(default=0.0) # SPRT
-    lowerllr    = FloatField(default=0.0) # SPRT
-    currentllr  = FloatField(default=0.0) # SPRT
-    upperllr    = FloatField(default=0.0) # SPRT
-    max_games   = IntegerField(default=0) # GAMES
-    spsa        = JSONField(default=dict, blank=True, null=True) # SPSA
+    # Test Mode specific values, either SPRT, GAMES, SPSA, or DATAGEN
+    test_mode     = CharField(max_length=16, default='SPRT')
+    elolower      = FloatField(default=0.0) # SPRT
+    eloupper      = FloatField(default=0.0) # SPRT
+    alpha         = FloatField(default=0.0) # SPRT
+    beta          = FloatField(default=0.0) # SPRT
+    lowerllr      = FloatField(default=0.0) # SPRT
+    currentllr    = FloatField(default=0.0) # SPRT
+    upperllr      = FloatField(default=0.0) # SPRT
+    max_games     = IntegerField(default=0) # GAMES or DATAGEN
+    spsa          = JSONField(default=dict, blank=True, null=True) # SPSA
+    genfens_args  = CharField(max_length=256, default='') # DATAGEN
+    play_reverses = BooleanField(default=False) # DATAGEN
 
     # Collection of all individual Result() objects
     games  = IntegerField(default=0) # Overall

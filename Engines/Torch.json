@@ -129,5 +129,19 @@
             "dev_options"      : "Threads=1 Hash=128 Minimal=true",
             "dev_time_control" : "180.0+1.80"
         }
+    },
+
+    "datagen_presets" : {
+
+        "default" : {
+            "win_adj"         : "movecount=5 score=300",
+            "draw_adj"        : "movenumber=32 movecount=6 score=8"
+        },
+
+        "40k Nodes" : {
+            "both_options"      : "Threads=1 Hash=16 Minimal=true",
+            "both_time_control" : "N=40000",
+            "workload_size"     : 128
+        }
     }
 }

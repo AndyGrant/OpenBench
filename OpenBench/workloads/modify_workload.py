@@ -62,7 +62,6 @@ def modify_workload(request, id, action=None):
     # Send back to the index, notifying them of the success
     return OpenBench.views.redirect(request, '/index/', status=message)
 
-
 def approve_workload(request, profile, workload):
     workload.approved = True;
     return 'Workload was Approved!'

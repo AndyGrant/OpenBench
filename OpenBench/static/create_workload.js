@@ -43,8 +43,9 @@ function create_preset_buttons(engine, workload_type) {
     while (button_div.hasChildNodes())
         button_div.removeChild(button_div.lastChild);
 
-    const presets = workload_type == 'TEST' ? config.engines[engine].test_presets
-                  : workload_type == 'TUNE' ? config.engines[engine].tune_presets : {};
+    const presets = workload_type == 'TEST'    ? config.engines[engine].test_presets
+                  : workload_type == 'TUNE'    ? config.engines[engine].tune_presets
+                  : workload_type == 'DATAGEN' ? config.engines[engine].datagen_presets : {};
 
     var index = 0;
     for (let mode in presets) {
@@ -94,8 +95,9 @@ function get_base_engine() {
 }
 
 function get_presets(engine, preset, workload_type) {
-    return workload_type == 'TEST' ? config.engines[engine].test_presets[preset]
-         : workload_type == 'TUNE' ? config.engines[engine].tune_presets[preset] : {};
+    return workload_type == 'TEST'    ? config.engines[engine].test_presets[preset]
+         : workload_type == 'TUNE'    ? config.engines[engine].tune_presets[preset]
+         : workload_type == 'DATAGEN' ? config.engines[engine].datagen_presets[preset] : {};
 }
 
 
@@ -205,14 +207,14 @@ function apply_preset(preset, workload_type) {
         else {
             set_option(option.replace('both_', 'dev_'), settings[option]);
 
-            if (workload_type != 'TUNE')
+            if (workload_type == 'TEST' || workload_type == "DATAGEN")
                 set_option(option.replace('both_', 'base_'), settings[option]);
         }
     }
 
     // For cross-engine tests, keep the original Hash/Threads, but
     // add any other settings that might be specific to the engine
-    if (workload_type != 'TUNE') {
+    if (workload_type == 'TEST' || workload_type == "DATAGEN") {
         try {
             retain_specific_options(get_base_engine(), preset, workload_type);
         } catch (error) {}
@@ -226,7 +228,7 @@ function change_engine(engine, target, workload_type) {
     if (target == 'dev')
         create_preset_buttons(engine, workload_type);
 
-    if (target == 'dev' && workload_type == 'TEST')
+    if (target == 'dev' && (workload_type == 'TEST' || workload_type == 'DATAGEN'))
         set_engine(engine, 'base');
 
     apply_preset('STC', workload_type);
