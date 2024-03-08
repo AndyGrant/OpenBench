@@ -5,8 +5,8 @@
     {% load static %}
 
     <head>
-        <link rel="stylesheet" href="{% static 'ethereal.css' %}">
-        <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
+        <link rel="stylesheet" href="{% static 'ethereal.css' %}?{{ static_version }}">
+        <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}?{{ static_version }}">
 
         <link rel="preconnect" href="https://fonts.gstatic.com">
         <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital@0;1&display=swap" rel="stylesheet">

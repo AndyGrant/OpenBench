@@ -33,7 +33,7 @@ from OpenBench.workloads.modify_workload import modify_workload
 from OpenBench.workloads.verify_workload import verify_workload
 from OpenBench.workloads.view_workload import view_workload
 
-from OpenBench.config import OPENBENCH_CONFIG
+from OpenBench.config import OPENBENCH_CONFIG, OPENBENCH_STATIC_VERSION
 from OpenSite.settings import PROJECT_PATH
 
 from OpenBench.models import *
@@ -68,6 +68,7 @@ def render(request, template, content={}, always_allow=False, error=None, warnin
 
     data = content.copy()
     data.update({ 'config' : OPENBENCH_CONFIG })
+    data.update({ 'static_version' : OPENBENCH_STATIC_VERSION })
 
     if OPENBENCH_CONFIG['require_login_to_view']:
         if not request.user.is_authenticated and not always_allow:

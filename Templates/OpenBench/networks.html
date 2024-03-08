@@ -6,7 +6,7 @@
 
     {{ networks|json_script:"json-networks" }}
 
-    <script src="{% static 'networks.js' %}"></script>
+    <script src="{% static 'networks.js' %}?{{ static_version }}"></script>
 
     <script>
         document.addEventListener(

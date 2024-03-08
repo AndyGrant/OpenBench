@@ -8,8 +8,8 @@
     {{ networks|json_script:"json-networks" }}
     {{ profile.repos|json_script:"json-repos" }}
 
-    <script src="{% static 'create_workload.js' %}"></script>
-    <script src="{% static 'default_text.js' %}"></script>
+    <script src="{% static 'create_workload.js' %}?{{ static_version }}"></script>
+    <script src="{% static 'default_text.js' %}?{{ static_version }}"></script>
 
     <script>
         document.addEventListener(
