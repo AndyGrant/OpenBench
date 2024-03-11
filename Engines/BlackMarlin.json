@@ -49,7 +49,8 @@
             "both_branch"       : "board-768",
             "both_options"      : "Threads=1 Hash=8",
             "both_time_control" : "N=25000",
-            "workload_size"     : 32
+            "workload_size"     : 32,
+            "test_max_games"    : 40000
         }
     },
 
