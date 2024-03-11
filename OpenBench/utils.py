@@ -65,13 +65,13 @@ class TimeControl(object):
         }
 
         # Searching for "nodes=", "depth=", and "movetime=" time controls
-        pattern = '(?P<mode>((N)|(D)|(MT)|(nodes)|(depth)|(movetime)))=(?P<value>(\d+))'
+        pattern = r'(?P<mode>((N)|(D)|(MT)|(nodes)|(depth)|(movetime)))=(?P<value>(\d+))'
         if results := re.search(pattern, time_str.upper()):
             mode, value = results.group('mode', 'value')
             return '%s=%s' % (conversion[mode], value)
 
         # Searching for "X/Y+Z" time controls, where "X/" is optional
-        pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
+        pattern = r'(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
         if results := re.search(pattern, time_str):
             moves, base, inc = results.group('moves', 'base', 'inc')
 
@@ -135,13 +135,13 @@ def path_join(*args):
 
 def extract_option(options, option):
 
-    match = re.search('(?<={0}=")[^"]*'.format(option), options)
+    match = re.search(r'(?<={0}=")[^"]*'.format(option), options)
     if match: return match.group()
 
-    match = re.search('(?<={0}=\')[^\']*'.format(option), options)
+    match = re.search(r'(?<={0}=\')[^\']*'.format(option), options)
     if match: return match.group()
 
-    match = re.search('(?<={0}=)[^ ]*'.format(option), options)
+    match = re.search(r'(?<={0}=)[^ ]*'.format(option), options)
     if match: return match.group()
 
 

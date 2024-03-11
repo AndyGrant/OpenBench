@@ -229,6 +229,14 @@ def profile_config(request):
         profile.repos.pop(engine, False)
         changes += 'Deleted Engine: %s\n' % (engine)
 
+    for (engine, current_repo) in profile.repos.items():
+        repo_name = request.POST.get('engine-repo-%s' % (engine), '').removesuffix('/')
+        repo = 'https://github.com/%s' % (repo_name)
+
+        if repo != current_repo and repo_name:
+            changes += 'Updated Engine: %s to use %s\n' % (engine, repo)
+            profile.repos[engine] = repo
+
     if changes:
         profile.save()
 
