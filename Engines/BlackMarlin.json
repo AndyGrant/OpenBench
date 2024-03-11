@@ -43,6 +43,13 @@
             "both_options"      : "Threads=8 Hash=256",
             "both_time_control" : "20.0+0.2",
             "workload_size"     : 16
+        },
+
+        "NNTests" : {
+            "both_branch"       : "board-768",
+            "both_options"      : "Threads=1 Hash=8",
+            "both_time_control" : "N=25000",
+            "workload_size"     : 32
         }
     },
 
