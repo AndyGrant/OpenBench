@@ -779,7 +779,7 @@ def scale_time_control(workload, scale_factor, branch):
     time_control  = workload['test'][branch]['time_control']
 
     # Searching for Nodes or Depth time controls ("N=", "D=")
-    pattern = '(?P<mode>((N))|(D))=(?P<value>(\d+))'
+    pattern = r'(?P<mode>((N))|(D))=(?P<value>(\d+))'
     results = re.search(pattern, time_control.upper())
 
     # No scaling is needed for fixed nodes or fixed depth games
@@ -788,7 +788,7 @@ def scale_time_control(workload, scale_factor, branch):
         return 'tc=inf %s=%s' % ({'N' : 'nodes', 'D' : 'depth'}[mode], value)
 
     # Searching for MoveTime or Fixed Time Controls ("MT=")
-    pattern = '(?P<mode>(MT))=(?P<value>(\d+))'
+    pattern = r'(?P<mode>(MT))=(?P<value>(\d+))'
     results = re.search(pattern, time_control.upper())
 
     # Scale the time based on this machine's NPS. Add a time Margin to avoid time losses.
@@ -797,7 +797,7 @@ def scale_time_control(workload, scale_factor, branch):
         return 'st=%.2f timemargin=250' % ((float(value) * scale_factor / 1000))
 
     # Searching for "X/Y+Z" time controls
-    pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
+    pattern = r'(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
     results = re.search(pattern, time_control)
     moves, base, inc = results.group('moves', 'base', 'inc')
 
