@@ -28,6 +28,9 @@ import subprocess
 import tempfile
 import zipfile
 
+IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
+IS_LINUX   = platform.system() != 'Windows' # Don't touch this
+
 class OpenBenchBuildFailedException(Exception):
     def __init__(self, message, logs):
         self.message = message
@@ -64,6 +67,20 @@ class OpenBenchBadServerResponseException(Exception):
     def __init__(self):
         self.message = ''
         super().__init__(self.message)
+
+class OpenBenchFailedGenfensException(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
+
+def kill_process_by_name(process_name):
+
+    if IS_LINUX:
+        subprocess.run(['pkill', '-f', process_name])
+
+    if IS_WINDOWS:
+        subprocess.run(['taskkill', '/f', '/im', process_name])
 
 
 def url_join(*args, trailing_slash=True):

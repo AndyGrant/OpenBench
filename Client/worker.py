@@ -278,7 +278,7 @@ class ServerReporter:
         return ServerReporter.report(config, 'clientSubmitError', payload)
 
     @staticmethod
-    def report_engine_error(config, error, pgn):
+    def report_engine_error(config, error, pgn=None):
 
         payload = {
             'test_id'    : config.workload['test']['id'],
@@ -536,14 +536,13 @@ class Cutechess:
     def kill_everything(dev_process, base_process):
 
         if IS_LINUX:
-            subprocess.run(['pkill', '-f', 'cutechess-ob'])
-            subprocess.run(['pkill', '-f', dev_process])
-            subprocess.run(['pkill', '-f', base_process])
+            kill_process_by_name('cutechess-ob')
 
         if IS_WINDOWS:
-            subprocess.run(['taskkill', '/f', '/im', 'cutechess-ob.exe'])
-            subprocess.run(['taskkill', '/f', '/im', dev_process])
-            subprocess.run(['taskkill', '/f', '/im', base_process])
+            kill_process_by_name('cutechess-ob.exe')
+
+        kill_process_by_name(dev_process)
+        kill_process_by_name(base_process)
 
     @staticmethod
     def pgn_name(config, timestamp, cutechess_idx):
@@ -954,20 +953,20 @@ def complete_workload(config):
     )
 
     # Download each NNUE file, throws an exception on corruption
-    dev_network  = download_network_weights(config, 'dev' )
-    base_network = download_network_weights(config, 'base')
+    dev_network  = safe_download_network_weights(config, 'dev' )
+    base_network = safe_download_network_weights(config, 'base')
 
     # Build or download each engine, or exit if an error occured
-    dev_name  = download_engine(config, 'dev' , dev_network )
-    base_name = download_engine(config, 'base', base_network)
+    dev_name  = safe_download_engine(config, 'dev' , dev_network )
+    base_name = safe_download_engine(config, 'base', base_network)
 
     # Datagen creates a book on-the-fly
     if config.workload['test']['type'] == 'DATAGEN':
-        create_genfens_opening_book(config, dev_name, dev_network)
+        safe_create_genfens_opening_book(config, dev_name, dev_network)
 
     # Run the benchmarks and compute the scaling NPS value
-    dev_nps  = run_benchmarks(config, 'dev' , dev_name , dev_network )
-    base_nps = run_benchmarks(config, 'base', base_name, base_network)
+    dev_nps  = safe_run_benchmarks(config, 'dev' , dev_name , dev_network )
+    base_nps = safe_run_benchmarks(config, 'base', base_name, base_network)
     ServerReporter.report_nps(config, dev_nps, base_nps)
 
     # Scale the engines together, using their NPS relative to expected
@@ -1027,7 +1026,7 @@ def complete_workload(config):
             pgn_files  = [Cutechess.pgn_name(config, timestamp, x) for x in range(cutechess_cnt)]
             ServerReporter.report_pgn(config, compress_list_of_pgns(pgn_files, scale_factor, compact))
 
-def download_network_weights(config, branch):
+def safe_download_network_weights(config, branch):
 
     # Wraps utils.py:download_network()
     # May raise OpenBenchCorruptedNetworkException
@@ -1046,7 +1045,7 @@ def download_network_weights(config, branch):
 
     return net_path
 
-def download_engine(config, branch, net_path):
+def safe_download_engine(config, branch, net_path):
 
     # Wraps utils.py:download_public_engine() and utils.py:download_private_engine()
 
@@ -1088,8 +1087,15 @@ def download_engine(config, branch, net_path):
             ServerReporter.report_build_fail(config, branch, error.logs)
             raise
 
+def safe_create_genfens_opening_book(config, dev_name, dev_network):
 
-def run_benchmarks(config, branch, engine, network):
+    try: create_genfens_opening_book(config, dev_name, dev_network)
+
+    except OpenBenchFailedGenfensException as error:
+        ServerReporter.report_engine_error(config, error.message)
+        raise
+
+def safe_run_benchmarks(config, branch, engine, network):
 
     name     = config.workload['test'][branch]['name']
     private  = config.workload['test'][branch]['private']
@@ -1108,6 +1114,7 @@ def run_benchmarks(config, branch, engine, network):
     print('Bench for %s is %d' % (name, nodes))
     print('Speed for %s is %d' % (name, speed))
     return speed
+
 
 def build_cutechess_command(config, dev_cmd, base_cmd, scale_factor, timestamp, cutechess_idx):
 
