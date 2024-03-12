@@ -3,6 +3,14 @@
 {% load static %}
 {% load mytags %}
 
+{% block scripts %}
+<script src="{% static 'default_text.js' %}?{{ static_version }}"></script>
+
+<script>
+    enforce_default_text('new-engine-repo', 'https://github.com/');
+</script>
+{% endblock %}
+
 {% block content %}
 
     <form method="POST" action="/profile/">
@@ -10,17 +18,21 @@
         <div class="form">
             <div class="col">
                 <div class="row">
-                    <label>Username</label><input readonly value="{{ profile.user.username }}">
+                    <label for="username">Username</label>
+                    <input id="username" readonly value="{{ profile.user.username }}">
                 </div>
                 <div class="row">
-                    <label>Email</label><input value="{{ profile.user.email }}" name="email">
+                    <label for="email">Email</label>
+                    <input id="email" value="{{ profile.user.email }}" name="email">
                 </div>
 
                 <div class="row">
-                    <label>New Password</label><input type="password" name="password1">
+                    <label for="password1">New Password</label>
+                    <input id="password1" type="password" name="password1">
                 </div>
                 <div class="row">
-                    <label>New Password</label><input type="password" name="password2">
+                    <label for="password2">New Password</label>
+                    <input id="password2" type="password" name="password2">
                 </div>
                 <input class="anchorbutton btn-blue w-100" type="submit" value="Update Profile">
             </div>
@@ -37,8 +49,8 @@
                 <!-- Display engines which have repos already defined -->
                 {% for engine, repo in profile.repos.items %}
                 <div class="row" id="engine-row-{{ engine }}">
-                    <label>{{ engine }}</label>
-                    <input type="text" name="engine-repo-{{engine}}" value="{{ repo|removePrefix:'https://github.com/' }}">
+                    <label for="engine-repo-{{engine}}">{{ engine }}</label>
+                    <input id="engine-repo-{{engine}}" type="text" name="engine-repo-{{engine}}" value="{{ repo|removePrefix:'https://github.com/' }}">
 
                     <span>
                         <input id="radio-{{engine}}" type="radio" name="default-status" value="{{engine}}"
@@ -62,27 +74,7 @@
                             {% endfor %}
                         </select>
                     </label>
-                    <input id="new-engine-repo" name="new-engine-repo" placeholder="https://github.com/">
-                    <script>
-                        window.addEventListener('DOMContentLoaded', function(){
-                            var textField = document.getElementById("new-engine-repo");
-                            var defaultText = "https://github.com/";
-
-                            textField.value = defaultText;
-
-                            textField.addEventListener('input', function(){
-                                if (!textField.value.startsWith(defaultText)){
-                                    if (textField.value !== defaultText){
-                                        if (textField.value.endsWith('/')) {
-                                            textField.value = defaultText + textField.value.substr(defaultText.length).replace(/\/+$/, '');
-                                        } else {
-                                            textField.value = defaultText + textField.value.substr(defaultText.length);
-                                        }
-                                    }
-                                }
-                            });
-                        });
-                    </script>
+                    <input id="new-engine-repo" name="new-engine-repo" value="https://github.com/">
                 </div>
 
                 <input type="hidden" name="deleted-repos" id="deleted-repos" value="[]">
