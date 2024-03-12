@@ -134,14 +134,14 @@
     "datagen_presets" : {
 
         "default" : {
-            "win_adj"         : "movecount=5 score=300",
-            "draw_adj"        : "movenumber=32 movecount=6 score=8"
+            "win_adj"       : "None",
+            "draw_adj"      : "None",
+            "workload_size" : 128
         },
 
         "40k Nodes" : {
-            "both_options"      : "Threads=1 Hash=16 Minimal=true",
-            "both_time_control" : "N=40000",
-            "workload_size"     : 128
+            "both_options"      : "Threads=1 Hash=16",
+            "both_time_control" : "N=40000"
         }
     }
 }
