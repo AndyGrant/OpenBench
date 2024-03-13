@@ -473,8 +473,12 @@ def test(request, id, action=None):
         return redirect(request, '/index/', error='No such Test exists')
 
     # Verify that it is indeed a Test and not a Tune
-    if test.test_mode != 'SPRT' and test.test_mode != 'GAMES':
+    if test.test_mode == 'TUNE':
         return redirect(request, '/tune/%d' % (id))
+
+    # Verify that it is indeed a Test and not Datagen
+    if test.test_mode == 'DATAGEN':
+        return redirect(request, '/datagen/%d' % (id))
 
     return view_workload(request, test, 'TEST')
 
@@ -492,13 +496,40 @@ def tune(request, id, action=None):
     if tune.test_mode == 'SPRT' or tune.test_mode == 'GAMES':
         return redirect(request, '/test/%d' % (id))
 
+    # Verify that it is indeed a Tune and not Datagen
+    if tune.test_mode == 'DATAGEN':
+        return redirect(request, '/datagen/%d' % (id))
+
     return view_workload(request, tune, 'TUNE')
+
+def datagen(request, id, action=None):
+
+    # Request is to modify or interact with the Datagen
+    if action != None:
+        return modify_workload(request, id, action)
+
+    # Verify that the Datagen id exists
+    if not (datagen := Test.objects.filter(id=id).first()):
+        return redirect(request, '/index/', error='No such Datagen exists')
+
+    # Verify that it is indeed a Datagen and not a Tune
+    if datagen.test_mode == 'TUNE':
+        return redirect(request, '/tune/%d' % (id))
+
+    # Verify that it is indeed a Datagen and not a Test
+    if datagen.test_mode == 'SPRT' or datagen.test_mode == 'GAMES':
+        return redirect(request, '/test/%d' % (id))
+
+    return view_workload(request, datagen, 'DATAGEN')
 
 def create_test(request):
     return create_workload(request, 'TEST')
 
 def create_tune(request):
     return create_workload(request, 'TUNE')
+
+def create_datagen(request):
+    return create_workload(request, 'DATAGEN')
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                          NETWORK MANAGEMENT VIEWS                           #

@@ -18,7 +18,6 @@
             <tr><td class="td-label">Creation</td><td class="timestamp">{{workload.creation|date:'U'}}</td></tr>
 
             <!-- All of the Dev Engine ( or Sole Engine ) information -->
-            <tr><td class="td-label">{{dev_text}} Engine</td><td>{{workload.dev_engine}}</td></tr>
             <tr><td class="td-label">{{dev_text}} Source</td><td><a href="{{workload.dev_repo}}">{{workload.dev_repo}}</a></td></tr>
             <tr><td class="td-label">{{dev_text}} Sha</td><td>{{workload.dev.sha}}</td></tr>
             <tr><td class="td-label">{{dev_text}} Branch</td><td class="branch_name">{{workload.dev.name|prettyName}}</td></tr>
@@ -28,8 +27,7 @@
             <tr><td class="td-label">{{dev_text}} Time</td><td>{{workload.dev_time_control}}</td></tr>
 
             <!-- All of the Base Engine information, which only exists for TESTs -->
-            {% if type == "TEST" %}
-                <tr><td class="td-label">Base Engine</td><td>{{workload.base_engine}}</td></tr>
+            {% if type == "TEST" or type == "DATAGEN" %}
                 <tr><td class="td-label">Base Source</td><td><a href="{{workload.base_repo}}">{{workload.base_repo}}</a></td></tr>
                 <tr><td class="td-label">Base Sha</td><td>{{workload.base.sha}}</td></tr>
                 <tr><td class="td-label">Base Branch</td><td class="branch_name">{{workload.base.name|prettyName}}</td></tr>
@@ -39,7 +37,12 @@
                 <tr><td class="td-label">Base Time</td><td>{{workload.base_time_control}}</td></tr>
             {% endif %}
 
-            <tr><td class="td-label">Opening Book</td><td><a href="{{workload|book_download_link}}">{{workload.book_name}}</a></td></tr>
+            {% if workload|book_download_link %}
+                <tr><td class="td-label">Opening Book</td><td><a href="{{workload|book_download_link}}">{{workload.book_name}}</a></td></tr>
+            {% else %}
+                <tr><td class="td-label">Opening Book</td><td><a>{{workload.book_name}}</a></td></tr>
+            {% endif %}
+
             <tr><td class="td-label">Upload PGNs</td><td>{{workload.upload_pgns}}</td></tr>
             <tr><td class="td-label">Syzygy WDL</td><td>{{workload.syzygy_wdl}}</td></tr>
             <tr><td class="td-label">Syzygy ADJ.</td><td>{{workload.syzygy_adj}}</td></tr>
@@ -53,6 +56,9 @@
                 <tr><td class="td-label">Reporting</td><td>{{workload.spsa.reporting_type}}</td></tr>
                 <tr><td class="td-label">Distribution</td><td>{{workload.spsa.distribution_type}}</td></tr>
                 <tr><td class="td-label">Pairs Per Point</td><td>{{workload.workload_size}}</td></tr>
+            {% elif type == "DATAGEN" %}
+                <tr><td class="td-label">Genfens Args</td><td>{{workload.genfens_args}}</td></tr>
+                <tr><td class="td-label">Play Reverses</td><td>{{workload.play_reverses}}</td></tr>
             {% endif %}
 
         </table>
@@ -109,7 +115,7 @@
         </div>
 
         <!-- Copy Button: Copy the current results statblock -->
-        {% if type == "TEST" %}
+        {% if type == "TEST" or type == "DATAGEN" %}
             <div class="anchor-container">
                 <a class="mt-1 anchorbutton btn-blue" onclick="copy_text('long-statblock', true)">Copy Stat Block</a>
             </div>
@@ -143,6 +149,8 @@
             <pre class="long-statblock" id="long-statblock">{{workload|longStatBlock|linebreaksbr}}</pre>
         {% elif type == "TUNE" %}
             <pre class="long-statblock" id="long-statblock">{{workload|shortStatBlock|linebreaksbr}}</pre>
+        {% elif type == "DATAGEN" %}
+            <pre class="long-statblock" id="long-statblock">{{workload|longStatBlock|linebreaksbr}}</pre>
         {% endif %}
 
         <!-- Forum to modify the Priority, Throughput, or (Tests only) Workload Size -->
@@ -155,12 +163,13 @@
                         <label for="priority">Priority</label>
                         <input value="{{workload.priority}}" id="priority" name="priority">
                     </div>
+
                     <div class="row">
                         <label for="throughput">Throughput</label>
                         <input value="{{workload.throughput}}" id="throughput" name="throughput">
                     </div>
 
-                    {% if type == "TEST" %}
+                    {% if type == "TEST" or type == "DATAGEN" %}
                         <div class="row">
                             <label for="workload_size">Workload Size</label>
                             <input value="{{workload.workload_size}}" id="workload_size" name="workload_size">

@@ -469,6 +469,11 @@ def update_test(request, machine):
 
             test.finished = test.games >= 2 * test.spsa['pairs_per'] * test.spsa['iterations']
 
+        elif test.test_mode == 'DATAGEN':
+
+            # Finished, and always passing, for a completed DATAGEN Workload
+            test.passed = test.finished = test.games >= test.max_games
+
         test.save()
 
     # Update Result object; No risk from concurrent access

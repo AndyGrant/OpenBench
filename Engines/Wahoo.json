@@ -71,5 +71,19 @@
             "win_adj"   : "None",
             "draw_adj"  : "None"
         }
+    },
+
+    "datagen_presets" : {
+
+        "default" : {
+            "win_adj"       : "None",
+            "draw_adj"      : "None",
+            "workload_size" : 128
+        },
+
+        "40k Nodes" : {
+            "both_options"      : "Threads=1 Hash=16",
+            "both_time_control" : "N=40000"
+        }
     }
 }

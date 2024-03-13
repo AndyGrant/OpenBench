@@ -58,6 +58,11 @@ urlpatterns = [
     django.urls.path(r'tune/<int:id>/<str:action>', OpenBench.views.tune),
     django.urls.path(r'newTune/', OpenBench.views.create_tune),
 
+    # Links for viewing and managing datagen
+    django.urls.path(r'datagen/<int:id>/', OpenBench.views.datagen),
+    django.urls.path(r'datagen/<int:id>/<str:action>', OpenBench.views.datagen),
+    django.urls.path(r'newDatagen/', OpenBench.views.create_datagen),
+
     # Links for viewing and managing Networks
     django.urls.path(r'networks/', OpenBench.views.networks),
     django.urls.path(r'networks/<str:engine>/', OpenBench.views.networks),

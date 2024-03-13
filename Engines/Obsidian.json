@@ -53,5 +53,19 @@
             "dev_options"      : "Threads=1 Hash=64",
             "dev_time_control" : "30.0+0.30"
         }
+    },
+
+    "datagen_presets" : {
+
+        "default" : {
+            "win_adj"       : "None",
+            "draw_adj"      : "None",
+            "workload_size" : 128
+        },
+
+        "40k Nodes" : {
+            "both_options"      : "Threads=1 Hash=16",
+            "both_time_control" : "N=40000"
+        }
     }
 }

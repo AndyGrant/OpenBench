@@ -45,7 +45,7 @@
                     <label for="dev_repo"> {{dev_text}} Source </label> <input id="dev_repo" name="dev_repo">
                 </div>
 
-                {% if workload == "TEST" %}
+                {% if workload == "TEST" or workload == "DATAGEN" %}
                     <div class="row">
                         <label for="base_engine"> Base Engine </label>
                         <select id="base_engine" name="base_engine" onchange="change_engine(value, 'base', '{{workload}}');">
@@ -78,7 +78,7 @@
                     <label for="dev_time_control"> {{dev_text}} Time </label> <input id="dev_time_control" name="dev_time_control">
                 </div>
 
-                {% if workload == "TEST" %}
+                {% if workload == "TEST" or workload == "DATAGEN" %}
 
                     <h3> Base Settings </h3>
 
@@ -174,12 +174,33 @@
                         <label for="spsa_pairs_per"> Pairs-Per </label> <input value="8" id="spsa_pairs_per" name="spsa_pairs_per">
                     </div>
 
+                {% elif workload == "DATAGEN" %}
+
+                    <h3> Datagen Settings </h3>
+
+                    <div class="row">
+                        <label for="datagen_max_games"> Max Games </label> <input id="datagen_max_games" name="datagen_max_games">
+                    </div>
+
+                    <div class="row">
+                        <label for="datagen_custom_genfens"> Genfens Args </label> <input id="datagen_custom_genfens" name="datagen_custom_genfens">
+                    </div>
+
+                    <div class="row">
+                        <label for="test_mode"> Play Reverses </label>
+                        <select id="datagen_play_reverses" name="datagen_play_reverses">
+                            <option value="YES"> Yes </option>
+                            <option selected value="NO"> No </option>
+                        </select>
+                    </div>
+
                 {% endif %}
 
                 <h3> General Settings </h3>
 
                 <div class="row">
                     <label for="book_name"> Opening Book </label> <select id="book_name" name="book_name">
+                    <option selected value="NONE"> None </option>
                     {% for name, data in config.books.items %}
                         <option value="{{ name }}">{{ name }}</option>
                     {% endfor %}
@@ -189,9 +210,14 @@
                 <div class="row">
                     <label for="upload_pgns"> Upload PGNs </label>
                     <select id="upload_pgns" name="upload_pgns">
-                        <option selected value="FALSE"> False </option>
-                        <option value="COMPACT"> Compact </option>
-                        <option value="VERBOSE"> Verbose </option>
+                        {% if workload == "DATAGEN" %}
+                            <option selected value="COMPACT"> Compact </option>
+                            <option value="VERBOSE"> Verbose </option>
+                        {% else %}
+                            <option selected value="FALSE"> False </option>
+                            <option value="COMPACT"> Compact </option>
+                            <option value="VERBOSE"> Verbose </option>
+                        {% endif %}
                     </select>
                 </div>
 
@@ -203,7 +229,7 @@
                     <label for="throughput"> Throughput </label> <input value="1000" id="throughput" , name="throughput">
                 </div>
 
-                {% if workload == "TEST" %}
+                {% if workload == "TEST" or workload == "DATAGEN" %}
                     <div class="row">
                         <label for="workload_size"> Workload Size </label> <input id="workload_size" name="workload_size">
                     </div>

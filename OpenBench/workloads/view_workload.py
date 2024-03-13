@@ -21,8 +21,9 @@
 # Module serves a singular purpose, to invoke:
 # >>> view_workload(request, workload, type)
 #
-# A Workload can be a "TEST", which is an SPRT, or FIXED type.
+# A Workload can be a "TEST", which is an SPRT, or FIXED type
 # A Workload can be a "TUNE", which is an SPSA tuning session
+# A Workload can be a "DATAGEN", which is a Data Generation session
 
 import datetime
 import OpenBench.views
@@ -32,7 +33,7 @@ from OpenBench.models import *
 
 def view_workload(request, workload, workload_type):
 
-    assert workload_type in [ 'TEST', 'TUNE' ]
+    assert workload_type in [ 'TEST', 'TUNE', 'DATAGEN' ]
 
     data = {
         'workload' : workload,
@@ -40,17 +41,19 @@ def view_workload(request, workload, workload_type):
     }
 
     for result in Result.objects.filter(test=workload):
-        data['results'].append({ 'data'   : result, 'active' : is_active(result) })
+        data['results'].append({ 'data' : result, 'active' : is_active(result) })
 
     if workload_type == 'TEST':
         data['type']            = workload_type
         data['dev_text']        = 'Dev'
-        data['submit_endpoint'] = '/newTest/'
 
     if workload_type == 'TUNE':
         data['type']            = workload_type
         data['dev_text']        = ''
-        data['submit_endpoint'] = '/newTune/'
+
+    if workload_type == 'DATAGEN':
+        data['type']            = workload_type
+        data['dev_text']        = 'Dev'
 
     return OpenBench.views.render(request, 'workload.html', data)
 
