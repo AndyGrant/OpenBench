@@ -112,7 +112,7 @@
 
         "STC" : {
             "dev_options"      : "Threads=1 Hash=16 Minimal=true",
-            "dev_time_control" : "15.0+0.15",
+            "dev_time_control" : "15.0+0.15"
         },
 
         "MTC" : {
