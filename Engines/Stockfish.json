@@ -22,47 +22,47 @@
         },
 
         "STC" : {
-            "both_options"      : "Threads=1 Hash=16 MoveOverhead=100",
+            "both_options"      : "Threads=1 Hash=16",
             "both_time_control" : "10.0+0.10",
             "workload_size"     : 32
         },
 
         "LTC" : {
-            "both_options"      : "Threads=1 Hash=64 MoveOverhead=100",
+            "both_options"      : "Threads=1 Hash=64",
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
             "test_bounds"       : "[0.50, 2.50]"
         },
 
         "SMP STC" : {
-            "both_options"      : "Threads=7 Hash=64 MoveOverhead=100",
+            "both_options"      : "Threads=7 Hash=64",
             "both_time_control" : "10.0+0.1",
             "workload_size"     : 64
         },
 
         "SMP LTC" : {
-            "both_options"      : "Threads=14 Hash=256 MoveOverhead=100",
+            "both_options"      : "Threads=14 Hash=256",
             "both_time_control" : "30.0+0.3",
             "workload_size"     : 16,
             "test_bounds"       : "[0.50, 2.50]"
         },
 
         "STC Simplification" : {
-            "both_options"      : "Threads=1 Hash=16 MoveOverhead=100",
+            "both_options"      : "Threads=1 Hash=16",
             "both_time_control" : "10.0+0.10",
             "workload_size"     : 32,
             "test_bounds"       : "[-1.75, 0.25]"
         },
 
         "LTC Simplification" : {
-            "both_options"      : "Threads=1 Hash=64 MoveOverhead=100",
+            "both_options"      : "Threads=1 Hash=64",
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
             "test_bounds"       : "[-1.75, 0.25]"
         },
 
         "STC Regression" : {
-            "both_options"      : "Threads=1 Hash=16 MoveOverhead=100",
+            "both_options"      : "Threads=1 Hash=16",
             "both_time_control" : "10.0+0.10",
             "workload_size"     : 32,
             "book_name"         : "8moves_v3.epd",
@@ -70,7 +70,7 @@
         },
 
         "LTC Regression" : {
-            "both_options"      : "Threads=1 Hash=64 MoveOverhead=100",
+            "both_options"      : "Threads=1 Hash=64",
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
             "book_name"         : "8moves_v3.epd",
@@ -78,14 +78,14 @@
         },
 
         "STC Fixed Games" : {
-            "both_options"      : "Threads=1 Hash=16 MoveOverhead=100",
+            "both_options"      : "Threads=1 Hash=16",
             "both_time_control" : "10.0+0.10",
             "workload_size"     : 32,
             "test_max_games"    : 40000
         },
 
         "LTC Fixed Games" : {
-            "both_options"      : "Threads=1 Hash=64 MoveOverhead=100",
+            "both_options"      : "Threads=1 Hash=64",
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
             "test_max_games"    : 40000
