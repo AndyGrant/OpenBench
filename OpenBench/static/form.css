@@ -71,7 +71,7 @@
      padding: 2px 2px;
 }
 
-#content .row input:focus, #content .row select:focus, #content .row textarea {
+#content .row input:focus, #content .row select:focus, #content .row textarea:focus {
     outline: none;
     border-color: var(--color3);
     box-shadow: 0 0 0 2px rgba(77, 144, 254, 0.75);
