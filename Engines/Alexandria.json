@@ -63,7 +63,7 @@
             "workload_size"     : 8,
             "book_name"         : "8moves_v3.epd",
             "test_max_games"    : 3000
-        }
+        },
 
         "60+0.6 progtest" : {
             "both_options"      : "Threads=1 Hash=64",
@@ -72,7 +72,7 @@
             "workload_size"     : 8,
             "book_name"         : "8moves_v3.epd",
             "test_max_games"    : 3000
-        }
+        },
 
         "SMP STC" : {
             "both_options"      : "Threads=8 Hash=64",
