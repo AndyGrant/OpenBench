@@ -15,8 +15,8 @@
         "default" : {
             "base_branch"     : "main",
             "book_name"       : "Pohl.epd",
-            "test_bounds"     : "[0.00, 5.00]",
-            "test_confidence" : "[0.05, 0.05]",
+            "test_bounds"     : "[0.00, 3.00]",
+            "test_confidence" : "[0.10, 0.05]",
             "win_adj"         : "movecount=3 score=400",
             "draw_adj"        : "movenumber=40 movecount=8 score=10"
         },
@@ -24,8 +24,7 @@
         "STC" : {
             "both_options"      : "Threads=1 Hash=32",
             "both_time_control" : "8.0+0.08",
-            "workload_size"     : 32,
-            "test_bounds"       : "[0.00, 3.00]"
+            "workload_size"     : 32
         },
 
         "LTC" : {
@@ -34,18 +33,18 @@
             "workload_size"     : 8
         },
 
+        "Fixed Nodes" : {
+            "both_options"      : "Threads=1 Hash=32",
+            "both_time_control" : "N=25000",
+            "workload_size"     : 128,
+            "test_bounds"       : "[0.00, 3.00]"
+        },
+
         "STC regression" : {
             "both_options"      : "Threads=1 Hash=32",
             "both_time_control" : "8.0+0.08",
             "workload_size"     : 32,
-            "test_bounds"       : "[-5.00, 0.00]"
-        },
-
-        "LTC regression" : {
-            "both_options"      : "Threads=1 Hash=128",
-            "both_time_control" : "40.0+0.4",
-            "workload_size"     : 8,
-            "test_bounds"       : "[-5.00, 0.00]"
+            "test_bounds"       : "[-4.00, 1.00]"
         },
 
         "STC progtest" : {
@@ -53,7 +52,7 @@
             "both_time_control" : "8.0+0.08",
             "workload_size"     : 32,
             "book_name"         : "8moves_v3.epd",
-            "test_max_games"    : 4000
+            "test_max_games"    : 2000
         },
 
         "LTC progtest" : {
@@ -61,7 +60,7 @@
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
             "book_name"         : "8moves_v3.epd",
-            "test_max_games"    : 2000
+            "test_max_games"    : 1000
         }
     },
 
