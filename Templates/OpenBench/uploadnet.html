@@ -34,13 +34,15 @@
         <div class="form">
              <div class="col">
                 <div class="row">
-                    <label>Name</label><input id="network-name" name="name">
+                    <label for="network-name">Name</label>
+                    <input id="network-name" name="name">
                 </div>
                 <div class="row">
-                    <label>Weights</label><input name="netfile" type="file">
+                    <label for="netfile">Weights</label>
+                    <input id="netfile" name="netfile" type="file">
                 </div>
                 <div class="row">
-                    <label>Engine</label>
+                    <label for="network-engine">Engine</label>
                     <select id="network-engine" name="engine">
                     {% for engine in config.engines %}
                         {% if engine == profile.engine %}
