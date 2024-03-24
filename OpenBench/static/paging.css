@@ -9,6 +9,10 @@
     justify-content: center;
 }
 
+.pages {
+    display: flex;
+}
+
 .page, .ellipsis {
     display: inline-block;
     padding: 6px 1rem;
@@ -34,6 +38,10 @@
 .previous {
     border-top-left-radius: 7px;
     border-bottom-left-radius: 7px;
+}
+
+.current {
+    background-color: var(--color3);
 }
 
 .next {
