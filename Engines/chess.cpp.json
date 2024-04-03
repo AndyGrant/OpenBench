@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 2000000,
+    "nps"     : 1351466,
     "source"  : "https://github.com/GediminasMasaitis/chess-dot-cpp",
 
     "build" : {
