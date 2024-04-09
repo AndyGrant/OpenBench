@@ -54,6 +54,8 @@ def process_content(content, data):
         black = headers['Black'].split('-')[-1]
         white_stm = 'FEN' not in headers or headers['FEN'].split()[1] == 'w'
 
+        data['games'] = data['games'] + 1
+
         for engine in (white, black):
             if engine not in data:
                 data[engine] = { 'nodes' : 0, 'time' : 0 }
@@ -72,7 +74,7 @@ if __name__ == '__main__':
     parser.add_argument('filename', help='Path to the OpenBench pgn archive')
     args = parser.parse_args()
 
-    data = {}
+    data = { 'games' : 0 }
     with tarfile.open(args.filename, 'r') as tar:
         for member in filter(lambda x: x.isfile(), tar.getmembers()):
             if file := tar.extractfile(member):
@@ -81,6 +83,7 @@ if __name__ == '__main__':
     dev_nps  = 1000 * data['dev' ]['nodes'] / data['dev' ]['time']
     base_nps = 1000 * data['base']['nodes'] / data['base']['time']
 
-    print ('Dev  : %d nps' % (int(dev_nps)))
-    print ('Base : %d nps' % (int(base_nps)))
-    print ('Gain : %.3f%%' % (100.0 * dev_nps / base_nps - 100.0))
+    print ('Dev  %d nps' % (int(dev_nps)))
+    print ('Base %d nps' % (int(base_nps)))
+    print ('Gain %.3f%%' % (100.0 * dev_nps / base_nps - 100.0))
+    print ('%d games' % (data['games']))

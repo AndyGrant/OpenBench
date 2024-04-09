@@ -834,8 +834,9 @@ def api_authenticate(request, require_enabled=False):
             return Profile.objects.get(user=request.user).enabled
 
         # Request might be made from the command line. Check the headers
-        return django.contrib.auth.authenticate(
-            username=request.POST['username'], password=request.POST['password']).enabled
+        user = django.contrib.auth.authenticate(
+            username=request.POST['username'], password=request.POST['password'])
+        return Profile.objects.get(user=user).enabled
 
     except Exception:
         import traceback
