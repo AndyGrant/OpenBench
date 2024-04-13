@@ -87,20 +87,12 @@ def ELO(results):
     stdev = math.sqrt(w*(1-mu)**2 + l*(0-mu)**2 + d*(0.5-mu)**2) / math.sqrt(N)
 
     # 95% confidence interval for mu
-    mu_min = mu + phi_inv(0.025) * stdev
-    mu_max = mu + phi_inv(0.975) * stdev
+    mu_min = mu + scipy.stats.norm.ppf(0.025) * stdev
+    mu_max = mu + scipy.stats.norm.ppf(0.975) * stdev
 
     return (logistic_elo(mu_min), logistic_elo(mu), logistic_elo(mu_max))
 
 
-def erf_inv(x):
-    a = 8 * (math.pi-3) / (3 * math.pi * (4-math.pi))
-    y = math.log(1-x*x)
-    z = 2 / (math.pi*a) + y / 2
-    return math.copysign(math.sqrt(math.sqrt(z*z - y/a) - z), x)
-
-def phi_inv(p):
-    return math.sqrt(2) * erf_inv(2*p-1)
 
 def bayeselo_to_proba(elo, draw_elo):
     pwin  = 1.0 / (1.0 + math.pow(10.0, (-elo + draw_elo) / 400.0))
