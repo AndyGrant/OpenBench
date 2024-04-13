@@ -822,18 +822,21 @@ def api_authenticate(request, require_enabled=False):
 
     try:
 
+        # Force requiring an enabled user when require_login_to_view is set
+        require_enabled = require_enabled or OPENBENCH_CONFIG['require_login_to_view']
+
         # Don't require a login for Public frameworks
-        if not require_enabled and not OPENBENCH_CONFIG['require_login_to_view']:
+        if not require_enabled:
             return True
 
         # Request is made from a browser, and is already logged in
         if request.user.is_authenticated:
-            return not require_enabled or bool(Profile.objects.get(user=request.user).enabled)
+            return Profile.objects.get(user=request.user).enabled
 
         # Request might be made from the command line. Check the headers
         user = django.contrib.auth.authenticate(
             username=request.POST['username'], password=request.POST['password'])
-        return not require_enabled or Profile.objects.get(user=user).enabled
+        return Profile.objects.get(user=user).enabled
 
     except Exception:
         import traceback

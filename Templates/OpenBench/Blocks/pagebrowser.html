@@ -5,7 +5,15 @@
                 <i class="fa-solid fa-arrow-left"></i>
             </a>
             <div class="pages">
-                {% for page in paging.pages %}{% if page != "..." %}<a class="page" href="/{{ paging.url }}/{{ page }}">{{ page }}</a>{% else %}<span class="page ellipsis"><i class="fa-solid fa-fw fa-1x fa-ellipsis"></i></span>{% endif %}{% endfor %}
+                {% for page in paging.pages %}
+                    {% if page == "..." %}
+                        <span class="page ellipsis"><i class="fa-solid fa-fw fa-1x fa-ellipsis"></i></span>
+                    {% elif page == paging.page %}
+                        <a class="page current" href="/{{ paging.url }}/{{ page }}">{{ page }}</a>
+                    {% else %}
+                        <a class="page" href="/{{ paging.url }}/{{ page }}">{{ page }}</a>
+                    {% endif %}
+                {% endfor %}
             </div>
             <a class="page next" href="/{{ paging.url }}/{{ paging.next }}">
                 <i class="fa-solid fa-arrow-right"></i>
