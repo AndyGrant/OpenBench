@@ -654,17 +654,16 @@ class ResultsReporter(object):
         if self.last_report + report_interval > time.time():
             return False
 
-        # Most recent time we attempted to sent a report is now
-        self.last_report = time.time()
-
         try:
 
             # Heartbeat when no results, or still awaiting bulk results
             if not self.pending or (self.bulk and not final_report):
                 response = ServerReporter.report_heartbeat(self.config).json()
+                self.last_report = time.time()
 
             else: # Send all of the queued Results at once
                 response = ServerReporter.report_results(self.config, self.pending).json()
+                self.last_report = time.time()
                 self.pending = []
 
             # If the test ended, kill all tasks
@@ -681,6 +680,7 @@ class ResultsReporter(object):
         except Exception:
             traceback.print_exc()
             print ('[Note] Failed to upload results to server...')
+            self.last_report = time.time()
 
     def send_errors(self, timestamp, cutechess_cnt):
 
