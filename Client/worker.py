@@ -88,6 +88,7 @@ class Configuration:
         self.machine_id     = 'None'
         self.secret_token   = 'None'
         self.syzygy_max     = 2
+        self.blacklist      = []
 
         self.process_args(args) # Rest of the command line settings
         self.init_client()      # Create folder structure and verify Syzygy
@@ -915,7 +916,7 @@ def server_request_workload(config):
 
     print('\nRequesting Workload from Server...')
 
-    payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token }
+    payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token, 'blacklist' : config.blacklist }
     target   = url_join(config.server, 'clientGetWorkload')
     response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
@@ -1084,6 +1085,7 @@ def safe_download_engine(config, branch, net_path):
                 print ('> %s' % (line))
             print ()
 
+            config.blacklist.append(config.workload['test']['id'])
             ServerReporter.report_build_fail(config, branch, error.logs)
             raise
 

@@ -717,7 +717,7 @@ def client_get_network(request, engine, name):
 @csrf_exempt
 @verify_worker
 def client_get_workload(request, machine):
-    return JsonResponse(get_workload(machine))
+    return JsonResponse(get_workload(request, machine))
 
 @csrf_exempt
 @verify_worker
