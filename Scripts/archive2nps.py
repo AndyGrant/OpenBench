@@ -44,14 +44,16 @@ def pgn_iterator(content):
 
         yield (headers, move_text)
 
-def process_content(content, data):
+def process_content(content, data, use_scale):
 
     comment_regex = r'{(book|[+-]?M?\d+(?:\.\d+)? \d+/\d+ \d+ \d+)[^}]*}'
 
     for (headers, move_text) in pgn_iterator(content):
 
-        white = headers['White'].split('-')[-1]
-        black = headers['Black'].split('-')[-1]
+        factor = float(headers['ScaleFactor']) if use_scale else 1.00
+
+        white  = headers['White'].split('-')[-1]
+        black  = headers['Black'].split('-')[-1]
         white_stm = 'FEN' not in headers or headers['FEN'].split()[1] == 'w'
 
         data['games'] = data['games'] + 1
@@ -63,7 +65,7 @@ def process_content(content, data):
         for x in re.compile(comment_regex).findall(move_text):
 
             if len(tokens := x.split()) == 4:
-                data[white if white_stm else black]['time']  += int(tokens[2])
+                data[white if white_stm else black]['time']  += int(tokens[2]) / factor
                 data[white if white_stm else black]['nodes'] += int(tokens[3])
 
             white_stm = not white_stm
@@ -72,13 +74,14 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('filename', help='Path to the OpenBench pgn archive')
+    parser.add_argument('--scale',  help='Adjust based on ScaleFactor', action='store_true')
     args = parser.parse_args()
 
     data = { 'games' : 0 }
     with tarfile.open(args.filename, 'r') as tar:
         for member in filter(lambda x: x.isfile(), tar.getmembers()):
             if file := tar.extractfile(member):
-                process_content(bz2.decompress(file.read()), data)
+                process_content(bz2.decompress(file.read()), data, args.scale)
 
     dev_nps  = 1000 * data['dev' ]['nodes'] / data['dev' ]['time']
     base_nps = 1000 * data['base']['nodes'] / data['base']['time']
