@@ -35,10 +35,10 @@ from OpenBench.models import Result, Test
 
 from django.db import transaction
 
-def get_workload(machine):
+def get_workload(request, machine):
 
     # Select a workload from the possible ones, if we can
-    if not (test := select_workload(machine)):
+    if not (test := select_workload(request, machine)):
         return {}
 
     # Avoid creating duplicate Result objects
@@ -51,10 +51,10 @@ def get_workload(machine):
 
     return { 'workload' : workload_to_dictionary(test, result, machine) }
 
-def select_workload(machine):
+def select_workload(request, machine):
 
     # Step 1: Refine active workloads to the candidate assignments
-    candidates, has_focus = filter_valid_workloads(machine)
+    candidates, has_focus = filter_valid_workloads(request, machine)
     if not candidates:
         return None
 
@@ -87,7 +87,7 @@ def select_workload(machine):
     weights = [data['throughput'] for id, data in worker_dist.items() if data['ratio'] == min_ratio]
     return Test.objects.get(id=random.choices(choices, weights=weights)[0])
 
-def filter_valid_workloads(machine):
+def filter_valid_workloads(request, machine):
 
     workloads = OpenBench.utils.get_active_tests()
 
@@ -96,6 +96,10 @@ def filter_valid_workloads(machine):
         if engine not in machine.info['supported']:
             workloads = workloads.exclude(dev_engine=engine)
             workloads = workloads.exclude(base_engine=engine)
+
+    # Skip workloads that are blacklisted on the machine
+    if blacklisted := request.POST.getlist('blacklist'):
+        workloads = workloads.exclude(id__in=blacklisted)
 
     # Skip workloads with unmet Syzygy requirements
     for K in range(machine.info['syzygy_max'] + 1, 10):

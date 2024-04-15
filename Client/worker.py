@@ -88,6 +88,7 @@ class Configuration:
         self.machine_id     = 'None'
         self.secret_token   = 'None'
         self.syzygy_max     = 2
+        self.blacklist      = []
 
         self.process_args(args) # Rest of the command line settings
         self.init_client()      # Create folder structure and verify Syzygy
@@ -653,17 +654,16 @@ class ResultsReporter(object):
         if self.last_report + report_interval > time.time():
             return False
 
-        # Most recent time we attempted to sent a report is now
-        self.last_report = time.time()
-
         try:
 
             # Heartbeat when no results, or still awaiting bulk results
             if not self.pending or (self.bulk and not final_report):
                 response = ServerReporter.report_heartbeat(self.config).json()
+                self.last_report = time.time()
 
             else: # Send all of the queued Results at once
                 response = ServerReporter.report_results(self.config, self.pending).json()
+                self.last_report = time.time()
                 self.pending = []
 
             # If the test ended, kill all tasks
@@ -680,6 +680,7 @@ class ResultsReporter(object):
         except Exception:
             traceback.print_exc()
             print ('[Note] Failed to upload results to server...')
+            self.last_report = time.time()
 
     def send_errors(self, timestamp, cutechess_cnt):
 
@@ -915,7 +916,7 @@ def server_request_workload(config):
 
     print('\nRequesting Workload from Server...')
 
-    payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token }
+    payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token, 'blacklist' : config.blacklist }
     target   = url_join(config.server, 'clientGetWorkload')
     response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
@@ -1084,6 +1085,7 @@ def safe_download_engine(config, branch, net_path):
                 print ('> %s' % (line))
             print ()
 
+            config.blacklist.append(config.workload['test']['id'])
             ServerReporter.report_build_fail(config, branch, error.logs)
             raise
 
