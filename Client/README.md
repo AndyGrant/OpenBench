@@ -8,29 +8,21 @@ Prerequisites
 
 Installation
 
-    Clone the repository:
+1. Clone the repository:
 
-    bash
+        git clone https://github.com/AndyGrant/OpenBench
 
-git clone https://github.com/AndyGrant/OpenBench
+2. Change directory to the client folder:
 
-Change directory to the client folder:
+        cd OpenBench/Client
 
-bash
+3. Install dependencies using pip:
 
-cd OpenBench/Client
-
-Install dependencies using pip:
-
-bash
-
-    pip install -r requirements.txt
+        pip install -r requirements.txt
 
 Usage
 
 Once the installation is complete, you can run the client using the following command:
-
-bash
 
     python3 client.py --server <server url> --username <OBUsername> --password <OBPass> --threads 'Number of threads' --nsockets 'cutechess instances' --fleet
 
