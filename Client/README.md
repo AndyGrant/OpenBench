@@ -26,7 +26,7 @@ Once the installation is complete, you can run the client using the following co
 
     python3 client.py --server <server url> --username <OBUsername> --password <OBPass> --threads 'Number of threads' --nsockets 'cutechess instances' --fleet
 
-Make sure to replace 'server url', 'OBUsername', 'OBPass', 'num_threads', and 'num_cutechess_instances' with appropriate values. Additionally, the --fleet flag should be set if you need to run in fleet mode. Refer to the OpenBench Wiki for more context on fleet mode.
+Make sure to replace 'server url', 'OBUsername', 'OBPass', 'num_threads', and 'num_cutechess_instances' with appropriate values. Additionally, the --fleet flag should be set if you need to run in fleet mode. Refer to the [OpenBench Wiki](https://github.com/AndyGrant/OpenBench/wiki) for more context on fleet mode.
 
 Example
 
