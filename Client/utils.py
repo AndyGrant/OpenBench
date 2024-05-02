@@ -143,12 +143,20 @@ def engine_binary_name(engine, commit_sha, net_path, private):
 
 def check_for_engine_binary(out_path):
 
+    # The point of this is to deal with a lacking .exe
+    assert not out_path.endswith('.exe')
+
     # Check for already having the binary ( Linux )
-    if os.path.isfile(out_path):
+    if IS_LINUX and os.path.isfile(out_path):
         return out_path
 
     # Check for already having the binary ( Windows )
-    if os.path.isfile('%s.exe' % (out_path)):
+    if IS_WINDOWS and os.path.isfile('%s.exe' % (out_path)):
+        return '%s.exe' % (out_path)
+
+    # Sanity check to force Windows to have .exe extensions
+    if IS_WINDOWS and os.path.isfile(out_path):
+        os.rename(out_path, '%s.exe' % (out_path))
         return '%s.exe' % (out_path)
 
 def makefile_command(net_path, make_path, out_path, compiler):
