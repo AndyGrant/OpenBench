@@ -20,9 +20,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # SECURITY WARNING: keep the secret key used in production secret!
 # SECURITY WARNING: don't run with debug turned on in production!
 SECRET_KEY = '@!zw2l8til1(0eb_nk+1w!(n78gqm&u)s)_v7#k6iseia@g9q0'
-DEBUG = True
+DEBUG = False
 
-ALLOWED_HOSTS = ['*']
+USE_X_FORWARDED_HOST = True
+ALLOWED_HOSTS = ['chess.swehosting.se']
+CSRF_TRUSTED_ORIGINS = ['https://chess.swehosting.se']
 
 HTML_MINIFY   = True
 APPEND_SLASH  = True
