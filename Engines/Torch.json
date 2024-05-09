@@ -99,6 +99,14 @@
             "both_time_control" : "N=57500",
             "workload_size"     : 128,
             "test_max_games"    : 40000
+        },
+
+        "Speed Test" : {
+            "both_options"      : "Threads=1 Hash=16 Minimal=true",
+            "both_time_control" : "N=100000",
+            "workload_size"     : 128,
+            "test_max_games"    : 80000,
+            "upload_pgns"       : "VERBOSE"
         }
     },
 
