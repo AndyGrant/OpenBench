@@ -21,11 +21,10 @@
 # The implementation for PentanomialSPRT is taken directly from Fishtest.
 # The implementation for TrinomialSPRT was derived directory from Fishtest.
 #
-#
 # Only three functions should be used externally from this Module.
 # 1. llr = TrinomialSPRT([losses, draws, wins], elo0, elo1)
 # 2. llr = PentanomialSPRT([ll, ld, dd, dw, ww], elo0, elo1)
-# 3. elo = ELO([losses, draws, wins])
+# 3. lower, elo, upper = Elo((L, D, W) or (LL, LD, DD/WL, DW, WW))
 
 import math
 import scipy
@@ -71,27 +70,20 @@ def PentanomialSPRT(results, elo0, elo1):
 
     return N * stats(mle_pdf)[0]
 
-def ELO(results):
+def Elo(results):
 
-    # Need at least one result to do the computation
-    if all(not x for x in results):
+    # Cannot compute elo without any games
+    if not (N := sum(results)):
         return (0.00, 0.00, 0.00)
 
-    N = sum(results)
-    l, d, w = [x / N for x in results]
+    div = len(results) - 1 # Converts index to the points outcome
+    mu  = sum((f / div) * results[f] for f in range(len(results))) / N
+    var = sum(((f / div) - mu)**2 * results[f] for f in range(len(results))) / N
 
-    # mu is the empirical mean of the variables (Xi), assumed i.i.d.
-    mu = w + d / 2
+    mu_min = mu + scipy.stats.norm.ppf(0.025) * math.sqrt(var) / math.sqrt(N)
+    mu_max = mu + scipy.stats.norm.ppf(0.975) * math.sqrt(var) / math.sqrt(N)
 
-    # stdev is the empirical standard deviation of the random variable (X1+...+X_N)/N
-    stdev = math.sqrt(w*(1-mu)**2 + l*(0-mu)**2 + d*(0.5-mu)**2) / math.sqrt(N)
-
-    # 95% confidence interval for mu
-    mu_min = mu + scipy.stats.norm.ppf(0.025) * stdev
-    mu_max = mu + scipy.stats.norm.ppf(0.975) * stdev
-
-    return (logistic_elo(mu_min), logistic_elo(mu), logistic_elo(mu_max))
-
+    return logistic_elo(mu_min), logistic_elo(mu), logistic_elo(mu_max)
 
 
 def bayeselo_to_proba(elo, draw_elo):
@@ -164,10 +156,9 @@ def MLE_tvalue(pdfhat, ref, s):
     return pdf_MLE
 
 
-def logistic_elo(mu):
-    if mu <= 0 or mu >= 1:
-        return 0.0
-    return -400 * math.log10(1 / mu - 1)
+def logistic_elo(x):
+    x = min(max(x, 1e-3), 1-1e-3)
+    return -400 * math.log10(1 / x - 1)
 
 
 if __name__ == '__main__':

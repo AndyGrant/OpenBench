@@ -171,6 +171,18 @@ class Test(Model):
     def __str__(self):
         return '{0} vs {1} @ {2}'.format(self.dev.name, self.base.name, self.dev_time_control)
 
+    def results(self):
+        return self.as_tri() if self.use_tri else self.as_penta()
+
+    def as_tri(self):
+        return (self.losses, self.draws, self.wins)
+
+    def as_penta(self):
+        return (self.LL, self.LD, self.DD, self.DW, self.WW)
+
+    def as_nwld(self):
+        return (self.games, self.wins, self.losses, self.draws)
+
 class LogEvent(Model):
 
     author     = CharField(max_length=128) # Username for the OpenBench Profile
