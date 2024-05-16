@@ -644,6 +644,20 @@ def client_version_ref(request):
     })
 
 @csrf_exempt
+def client_fastchess_version_ref(request):
+
+    # Verify the User's credentials
+    try: user = authenticate(request, True)
+    except UnableToAuthenticate:
+        return JsonResponse({ 'error' : 'Bad Credentials' })
+
+    # Enough information to build the right Fastchess version
+    return JsonResponse({
+        'fastchess_repo_url' : OPENBENCH_CONFIG['fastchess_repo_url'],
+        'fastchess_repo_ref' : OPENBENCH_CONFIG['fastchess_repo_ref'],
+    })
+
+@csrf_exempt
 def client_get_build_info(request):
 
     ## Information pulled from the config about how to build each engine.

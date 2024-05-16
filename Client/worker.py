@@ -30,6 +30,7 @@ import re
 import requests
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import traceback
@@ -90,9 +91,10 @@ class Configuration:
         self.syzygy_max     = 2
         self.blacklist      = []
 
-        self.process_args(args) # Rest of the command line settings
-        self.init_client()      # Create folder structure and verify Syzygy
-        self.validate_setup()   # Check the threads and sockets values provided
+        self.process_args(args)   # Rest of the command line settings
+        self.check_requirements() # Checks for Make, and g++ or clang++
+        self.init_client()        # Create folder structure and verify Syzygy
+        self.validate_setup()     # Check the threads and sockets values provided
 
     def process_args(self, args):
 
@@ -107,10 +109,23 @@ class Configuration:
         self.fleet       = args.fleet    if args.fleet    else False
         self.focus       = args.focus    if args.focus    else []
 
-    def init_client(self):
+    def check_requirements(self):
 
         # Verify that we have make installed
         print('\nLooking for Make... [v%s]' % locate_utility('make'))
+
+        # Look for either g++ or clang++
+        gcc_ver       = locate_utility('g++', force_exit=False, report_error=False)
+        clang_ver     = locate_utility('clang++', force_exit=False, report_error=False)
+        self.cxx_comp = 'g++' if gcc_ver else 'clang++' if clang_ver else None
+        print('Looking for C++ Compiler... [%s v%s]' % (self.cxx_comp, locate_utility(self.cxx_comp)))
+
+        # Cannot build fastchess nor observe CPU flags
+        if not self.cxx_comp:
+            print ('[Error] Unable to locate C++ Compiler (g++ or clang++)')
+            sys.exit()
+
+    def init_client(self):
 
         # Use Client.py's path as the base pathway
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -849,6 +864,60 @@ def find_pgn_error(reason, command):
 ## Functions interacting with the OpenBench server that establish the initial
 ## connection and then make simple requests to retrieve Workloads as json objects
 
+def server_configure_fastchess(config):
+
+    # OpenBench Server holds the fast-chess repo and git-ref
+    print ('\nConfiguring fast-chess...\n> Requesting fast-chess repo and git-ref')
+    target  = url_join(config.server, 'clientFastchessVersionRef')
+    payload = { 'username' : config.username, 'password' : config.password }
+    data    = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
+
+    # Download a .zip archive of the git-ref from the specified repo
+    repo_url, repo_ref = data['fastchess_repo_url'], data['fastchess_repo_ref']
+    print ('> Downloading %s from %s' % (repo_ref, repo_url))
+    response = requests.get(url_join(repo_url, 'archive', '%s.zip' % repo_ref))
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+
+        # Move the .zip contents into a temporary .zip file
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+            tmp_file.write(response.content)
+            temp_zip_path = tmp_file.name
+
+        # Extract the .zip file into our local directory
+        with zipfile.ZipFile(temp_zip_path, 'r') as zip_ref:
+            zip_ref.extractall(temp_dir)
+
+        # Prepare to build, using the root folder of the extracted files as the cwd
+        print ('> Extracting and building fast-chess %s using %s' % (repo_ref, config.cxx_comp))
+        fastchess_dir = os.path.join(temp_dir, os.listdir(temp_dir)[0])
+        bin_path      = os.path.join(fastchess_dir, 'fast-chess')
+
+        # Execute the build, using our C++ compiler, and record any output
+        make_cmd    = ['make', '-j', 'CXX=%s' % config.cxx_comp]
+        process     = subprocess.Popen(make_cmd, cwd=fastchess_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        comp_output = process.communicate()[0].decode('utf-8')
+
+        # Make threw an error, and thus failed to build
+        if process.returncode:
+            print ('\nFailed to build fast-chess\n\nCompiler Output:' % (engine, branch_name))
+            for line in comp_output.split('\n'):
+                print ('> %s' % (line))
+            raise OpenBenchFastchessBuildFailedException()
+
+        # Somehow we built fast-chess but failed to find the binary
+        if not check_for_engine_binary(bin_path):
+            raise OpenBenchFastchessBuildFailedException()
+
+        # Append .exe if needed, and then report the fast-chess version that was built
+        binary  = check_for_engine_binary(bin_path)
+        process = Popen([binary, '--version'], stdout=PIPE, stderr=PIPE)
+        print ('> Finished building %s' % (process.communicate()[0].decode('utf-8')))
+
+        # Move the finished fast-chess binary to the Client's Root directory
+        out_path = os.path.join(os.getcwd(), '%s-ob' % (os.path.basename(binary)))
+        shutil.move(binary, out_path)
+
 def server_configure_worker(config):
 
     # Server tells us how to build or obtain binaries
@@ -878,6 +947,7 @@ def server_configure_worker(config):
         'sockets'        : config.sockets,        # Cutechess copies, usually equal to Socket count
         'syzygy_max'     : config.syzygy_max,     # Whether or not the machine has Syzygy support
         'focus'          : config.focus,          # List of engines we have a preference to help
+        'cxx_comp'       : config.cxx_comp,       # C++ Compiler used to build Fastchess binaries
         'client_ver'     : CLIENT_VERSION,        # Version of the Client, which the server may reject
     }
 
@@ -1215,9 +1285,11 @@ def run_openbench_worker(client_args):
     args   = parse_arguments(client_args) # Merge client.py and worker.py args
     config = Configuration(args)          # Holds System info, args, and Workload info
 
+    fastchess_error  = '[Note] Unable to locate and/or build desired Fastchess version!'
     setup_error      = '[Note] Unable to establish initial connection with the Server!'
     connection_error = '[Note] Unable to reach the server to request a workload!'
 
+    try_forever(server_configure_fastchess, [config], fastchess_error)
     try_forever(server_configure_worker, [config], setup_error)
 
     if IS_LINUX:
