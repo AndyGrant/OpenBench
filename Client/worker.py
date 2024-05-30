@@ -912,7 +912,8 @@ def server_configure_fastchess(config):
         # Append .exe if needed, and then report the fast-chess version that was built
         binary  = check_for_engine_binary(bin_path)
         process = Popen([binary, '--version'], stdout=PIPE, stderr=PIPE)
-        print ('> Finished building %s' % (process.communicate()[0].decode('utf-8')))
+        config.fastchess_ver = process.communicate()[0].decode('utf-8').split()[1]
+        print ('> Finished building %s' % config.fastchess_ver)
 
         # Move the finished fast-chess binary to the Client's Root directory
         out_path = os.path.join(os.getcwd(), '%s-ob' % (os.path.basename(binary)))
@@ -948,6 +949,7 @@ def server_configure_worker(config):
         'syzygy_max'     : config.syzygy_max,     # Whether or not the machine has Syzygy support
         'focus'          : config.focus,          # List of engines we have a preference to help
         'cxx_comp'       : config.cxx_comp,       # C++ Compiler used to build Fastchess binaries
+        'fastchess_ver'  : config.fastchess_ver,  # Fastchess Version, set during server_configure_fastchess()
         'client_ver'     : CLIENT_VERSION,        # Version of the Client, which the server may reject
     }
 
