@@ -1,7 +1,12 @@
 {
     "private" : false,
+<<<<<<< HEAD:Engines/Clarity.json
     "nps"     : 1709673,
     "source"  : "https://github.com/Vast342/Clarity",
+=======
+    "nps"     : 1025000,
+    "source"  : "https://github.com/PGG106/Alexandria",
+>>>>>>> 9f3fc1141fb19eb1869723f8940d0f24c19213f6:Engines/Alexandria.json
 
     "build" : {
         "path"      : "re",
@@ -65,6 +70,20 @@
             "book_name" : "Pohl.epd",
             "win_adj"   : "movecount=3 score=400",
             "draw_adj"  : "movenumber=40 movecount=8 score=10"
+        }
+    },
+
+    "datagen_presets" : {
+
+        "default" : {
+            "win_adj"       : "None",
+            "draw_adj"      : "None",
+            "workload_size" : 128
+        },
+
+        "40k Nodes" : {
+            "both_options"      : "Threads=1 Hash=16",
+            "both_time_control" : "N=40000"
         }
     }
 }

@@ -35,11 +35,10 @@ from OpenBench.models import Result, Test
 
 from django.db import transaction
 
-
-def get_workload(machine):
+def get_workload(request, machine):
 
     # Select a workload from the possible ones, if we can
-    if not (test := select_workload(machine)):
+    if not (test := select_workload(request, machine)):
         return {}
 
     # Avoid creating duplicate Result objects
@@ -52,10 +51,10 @@ def get_workload(machine):
 
     return { 'workload' : workload_to_dictionary(test, result, machine) }
 
-def select_workload(machine):
+def select_workload(request, machine):
 
     # Step 1: Refine active workloads to the candidate assignments
-    candidates, has_focus = filter_valid_workloads(machine)
+    candidates, has_focus = filter_valid_workloads(request, machine)
     if not candidates:
         return None
 
@@ -88,7 +87,7 @@ def select_workload(machine):
     weights = [data['throughput'] for id, data in worker_dist.items() if data['ratio'] == min_ratio]
     return Test.objects.get(id=random.choices(choices, weights=weights)[0])
 
-def filter_valid_workloads(machine):
+def filter_valid_workloads(request, machine):
 
     workloads = OpenBench.utils.get_active_tests()
 
@@ -97,6 +96,10 @@ def filter_valid_workloads(machine):
         if engine not in machine.info['supported']:
             workloads = workloads.exclude(dev_engine=engine)
             workloads = workloads.exclude(base_engine=engine)
+
+    # Skip workloads that are blacklisted on the machine
+    if blacklisted := request.POST.getlist('blacklist'):
+        workloads = workloads.exclude(id__in=blacklisted)
 
     # Skip workloads with unmet Syzygy requirements
     for K in range(machine.info['syzygy_max'] + 1, 10):
@@ -191,12 +194,14 @@ def workload_to_dictionary(test, result, machine):
         'draw_adj'      : test.draw_adj,
         'workload_size' : test.workload_size,
         'upload_pgns'   : test.upload_pgns,
+        'genfens_args'  : test.genfens_args,
+        'play_reverses' : test.play_reverses,
     }
 
     workload['test']['book'] = {
         'name'   : test.book_name,
-        'sha'    : OPENBENCH_CONFIG['books'][test.book_name]['sha'],
-        'source' : OPENBENCH_CONFIG['books'][test.book_name]['source'],
+        'sha'    : OPENBENCH_CONFIG['books'].get(test.book_name, { 'sha'    : None })['sha'   ],
+        'source' : OPENBENCH_CONFIG['books'].get(test.book_name, { 'source' : None })['source'],
     }
 
     workload['test']['dev'] = {
@@ -244,7 +249,11 @@ def workload_to_dictionary(test, result, machine):
         cutechess_cnt = workload['distribution']['cutechess-count']
         pairs_per_cnt = workload['distribution']['games-per-cutechess'] // 2
 
-        test.book_index += cutechess_cnt * pairs_per_cnt
+        if test.test_mode == 'DATAGEN' and not test.play_reverses:
+            test.book_index += cutechess_cnt * pairs_per_cnt * 2
+        else:
+            test.book_index += cutechess_cnt * pairs_per_cnt
+
         test.save()
 
     return workload
@@ -276,7 +285,7 @@ def spsa_to_dictionary(test, workload):
         }
 
         # C & R are constants for a particular assignment, for all Permutations
-        spsa[name]['c'] = param['c'] / c_compression
+        spsa[name]['c'] = max(param['c'] / c_compression, 0.00 if param['float'] else 0.50)
         spsa[name]['r'] = param['a'] / r_compression / spsa[name]['c'] ** 2
 
         for f in range(permutations):
@@ -351,28 +360,3 @@ def game_distribution(test, machine):
         'concurrency-per'     : 2 if is_multiple_spsa else max_concurrency,
         'games-per-cutechess' : 2 * test.workload_size * (1 if is_multiple_spsa else max_concurrency),
     }
-
-def effective_allocation(tests, distribution):
-
-    # We track the "ratio" of threads relative to the effective-throughput (ETP) of a test.
-    # This is used to determine which tests have more or less resources, relative to each
-    # other, when taking into account the ETP.
-    #
-    # The ETP is just the throughput of a test by default. The 'balance_engine_throughputs'
-    # option in the main configuration file will scale the throughput of each test in relation
-    # to the number of tests that exist for the same engine.
-    #
-    # For example: Suppose there are four tests, each with Throughput=1000. Three of the tests
-    # are for Ethereal, and one is for Laser. When computing resources, the Throughput of the
-    # Ethereal tests will be scaled down by a factor of 3.
-
-    # Count of total tests, and total throughput, for each engine
-    engines    = set([x.dev_engine for x in tests])
-    test_count = { engine : sum(x.dev_engine == engine for x in tests) for engine in engines }
-
-    # Ignore the test_count entirely when not doing engine balancing
-    if not OPENBENCH_CONFIG['balance_engine_throughputs']:
-        test_count = { engine : 1 for engine in engines }
-
-    # Threads working on the test, per unit of effective-throughput
-    return [distribution[x.id]['threads'] / (x.throughput / test_count[x.dev_engine]) for x in tests]

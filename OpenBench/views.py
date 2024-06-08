@@ -33,7 +33,7 @@ from OpenBench.workloads.modify_workload import modify_workload
 from OpenBench.workloads.verify_workload import verify_workload
 from OpenBench.workloads.view_workload import view_workload
 
-from OpenBench.config import OPENBENCH_CONFIG
+from OpenBench.config import OPENBENCH_CONFIG, OPENBENCH_STATIC_VERSION
 from OpenSite.settings import PROJECT_PATH
 
 from OpenBench.models import *
@@ -68,6 +68,7 @@ def render(request, template, content={}, always_allow=False, error=None, warnin
 
     data = content.copy()
     data.update({ 'config' : OPENBENCH_CONFIG })
+    data.update({ 'static_version' : OPENBENCH_STATIC_VERSION })
 
     if OPENBENCH_CONFIG['require_login_to_view']:
         if not request.user.is_authenticated and not always_allow:
@@ -227,6 +228,14 @@ def profile_config(request):
     for engine in json.loads(request.POST.get('deleted-repos', '[]')):
         profile.repos.pop(engine, False)
         changes += 'Deleted Engine: %s\n' % (engine)
+
+    for (engine, current_repo) in profile.repos.items():
+        repo_name = request.POST.get('engine-repo-%s' % (engine), '').removesuffix('/')
+        repo = 'https://github.com/%s' % (repo_name)
+
+        if repo != current_repo and repo_name:
+            changes += 'Updated Engine: %s to use %s\n' % (engine, repo)
+            profile.repos[engine] = repo
 
     if changes:
         profile.save()
@@ -464,8 +473,12 @@ def test(request, id, action=None):
         return redirect(request, '/index/', error='No such Test exists')
 
     # Verify that it is indeed a Test and not a Tune
-    if test.test_mode != 'SPRT' and test.test_mode != 'GAMES':
+    if test.test_mode == 'TUNE':
         return redirect(request, '/tune/%d' % (id))
+
+    # Verify that it is indeed a Test and not Datagen
+    if test.test_mode == 'DATAGEN':
+        return redirect(request, '/datagen/%d' % (id))
 
     return view_workload(request, test, 'TEST')
 
@@ -483,13 +496,40 @@ def tune(request, id, action=None):
     if tune.test_mode == 'SPRT' or tune.test_mode == 'GAMES':
         return redirect(request, '/test/%d' % (id))
 
+    # Verify that it is indeed a Tune and not Datagen
+    if tune.test_mode == 'DATAGEN':
+        return redirect(request, '/datagen/%d' % (id))
+
     return view_workload(request, tune, 'TUNE')
+
+def datagen(request, id, action=None):
+
+    # Request is to modify or interact with the Datagen
+    if action != None:
+        return modify_workload(request, id, action)
+
+    # Verify that the Datagen id exists
+    if not (datagen := Test.objects.filter(id=id).first()):
+        return redirect(request, '/index/', error='No such Datagen exists')
+
+    # Verify that it is indeed a Datagen and not a Tune
+    if datagen.test_mode == 'TUNE':
+        return redirect(request, '/tune/%d' % (id))
+
+    # Verify that it is indeed a Datagen and not a Test
+    if datagen.test_mode == 'SPRT' or datagen.test_mode == 'GAMES':
+        return redirect(request, '/test/%d' % (id))
+
+    return view_workload(request, datagen, 'DATAGEN')
 
 def create_test(request):
     return create_workload(request, 'TEST')
 
 def create_tune(request):
     return create_workload(request, 'TUNE')
+
+def create_datagen(request):
+    return create_workload(request, 'DATAGEN')
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                          NETWORK MANAGEMENT VIEWS                           #
@@ -677,7 +717,7 @@ def client_get_network(request, engine, name):
 @csrf_exempt
 @verify_worker
 def client_get_workload(request, machine):
-    return JsonResponse(get_workload(machine))
+    return JsonResponse(get_workload(request, machine))
 
 @csrf_exempt
 @verify_worker
@@ -782,18 +822,21 @@ def api_authenticate(request, require_enabled=False):
 
     try:
 
+        # Force requiring an enabled user when require_login_to_view is set
+        require_enabled = require_enabled or OPENBENCH_CONFIG['require_login_to_view']
+
         # Don't require a login for Public frameworks
-        if not require_enabled and not OPENBENCH_CONFIG['require_login_to_view']:
+        if not require_enabled:
             return True
 
         # Request is made from a browser, and is already logged in
         if request.user.is_authenticated:
-            return not require_enabled or bool(Profile.objects.get(user=request.user).enabled)
+            return Profile.objects.get(user=request.user).enabled
 
         # Request might be made from the command line. Check the headers
         user = django.contrib.auth.authenticate(
             username=request.POST['username'], password=request.POST['password'])
-        return not require_enabled or Profile.objects.get(user=user).enabled
+        return Profile.objects.get(user=user).enabled
 
     except Exception:
         import traceback

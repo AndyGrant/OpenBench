@@ -40,7 +40,7 @@ from OpenBench.workloads.verify_workload import verify_workload
 
 def create_workload(request, workload_type):
 
-    assert workload_type in [ 'TEST', 'TUNE' ]
+    assert workload_type in [ 'TEST', 'TUNE', 'DATAGEN' ]
 
     if not request.user.is_authenticated:
         return OpenBench.views.redirect(request, '/login/', error='Only enabled users can create tests')
@@ -66,17 +66,27 @@ def create_workload(request, workload_type):
             data['submit_text']     = 'Create SPSA Tune'
             data['submit_endpoint'] = '/newTune/'
 
+        if workload_type == 'DATAGEN':
+            data['workload']        = workload_type
+            data['dev_text']        = 'Dev'
+            data['dev_title_text']  = 'Dev'
+            data['submit_text']     = 'Create Datagen'
+            data['submit_endpoint'] = '/newDatagen/'
+
         return OpenBench.views.render(request, 'create_workload.html', data)
 
     if workload_type == 'TEST':
         workload, errors = create_new_test(request)
 
-    if workload_type == 'TUNE':
+    elif workload_type == 'TUNE':
         workload, errors = create_new_tune(request)
 
+    elif workload_type == 'DATAGEN':
+        workload, errors = create_new_datagen(request)
+
     if errors != [] and errors != None:
-        url = '/newTest/' if workload_type == 'TEST' else '/newTune/'
-        return OpenBench.views.redirect(request, url, error='\n'.join(errors))
+        paths = { 'TEST' : '/newTest/', 'TUNE' : '/newTune/', 'DATAGEN' : '/newDatagen/' }
+        return OpenBench.views.redirect(request, paths[workload_type], error='\n'.join(errors))
 
     if warning := OpenBench.utils.branch_is_out_of_date(workload):
         warning = 'Consider Rebasing: Dev (%s) appears behind Base (%s)' % (workload.dev.name, workload.base.name)
@@ -90,7 +100,6 @@ def create_workload(request, workload_type):
         workload.approved = True; workload.save()
 
     return OpenBench.views.redirect(request, '/index/', warning=warning)
-
 
 def create_new_test(request):
 
@@ -196,6 +205,68 @@ def create_new_tune(request):
     if test.dev_network:
         name = Network.objects.get(engine=test.dev_engine, sha256=test.dev_network).name
         test.dev_netname = test.base_netname = name
+
+    test.save()
+
+    profile = Profile.objects.get(user=request.user)
+    profile.tests += 1
+    profile.save()
+
+    return test, None
+
+def create_new_datagen(request):
+
+    # Collects erros, and collects all data from the Github API
+    errors, engine_info = verify_workload(request, 'DATAGEN')
+    dev_info, dev_has_all = engine_info[0]
+    base_ingo, base_has_all = engine_info[1]
+
+    if errors:
+        return None, errors
+
+    test                   = Test()
+    test.author            = request.user.username
+    test.book_name         = request.POST['book_name']
+    test.upload_pgns       = request.POST['upload_pgns']
+
+    test.dev               = get_engine(*dev_info)
+    test.dev_repo          = request.POST['dev_repo']
+    test.dev_engine        = request.POST['dev_engine']
+    test.dev_options       = request.POST['dev_options']
+    test.dev_network       = request.POST['dev_network']
+    test.dev_time_control  = OpenBench.utils.TimeControl.parse(request.POST['dev_time_control'])
+
+    test.base              = get_engine(*base_ingo)
+    test.base_repo         = request.POST['base_repo']
+    test.base_engine       = request.POST['base_engine']
+    test.base_options      = request.POST['base_options']
+    test.base_network      = request.POST['base_network']
+    test.base_time_control = OpenBench.utils.TimeControl.parse(request.POST['base_time_control'])
+
+    test.max_games         = int(request.POST['datagen_max_games'])
+    test.genfens_args      = request.POST['datagen_custom_genfens']
+    test.play_reverses     = request.POST['datagen_play_reverses'] == 'YES'
+
+    test.workload_size     = int(request.POST['workload_size'])
+    test.priority          = int(request.POST['priority'])
+    test.throughput        = int(request.POST['throughput'])
+
+    test.syzygy_wdl        = request.POST['syzygy_wdl']
+    test.syzygy_adj        = request.POST['syzygy_adj']
+    test.win_adj           = request.POST['win_adj']
+    test.draw_adj          = request.POST['draw_adj']
+
+    test.test_mode         = 'DATAGEN'
+    test.awaiting          = not (dev_has_all and base_has_all)
+
+    test.use_tri           = not test.play_reverses
+    test.use_penta         = test.play_reverses
+
+    if test.dev_network:
+        test.dev_netname = Network.objects.get(engine=test.dev_engine, sha256=test.dev_network).name
+
+    if test.base_network:
+        test.base_netname = Network.objects.get(engine=test.base_engine, sha256=test.base_network).name
 
     test.save()
 
