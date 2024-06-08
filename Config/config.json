@@ -1,11 +1,6 @@
 {
-<<<<<<< HEAD
     "client_version"  : 26,
     "client_repo_url" : "https://github.com/Vast342/OpenBench",
-=======
-    "client_version"  : 28,
-    "client_repo_url" : "https://github.com/AndyGrant/OpenBench",
->>>>>>> 9f3fc1141fb19eb1869723f8940d0f24c19213f6
     "client_repo_ref" : "master",
 
     "use_cross_approval"          : false,

@@ -10,32 +10,27 @@
             <div class="col">
 
                 <div class="row">
-                    <label for="hash"> Hash </label>
-                    <input id="hash" readonly value="{{network.sha256}}">
+                    <label> Hash </label><input readonly value="{{network.sha256}}">
                 </div>
 
                 <div class="row">
-                    <label for="engine"> Engine </label>
-                    <input id="engine" readonly value="{{network.engine}}">
+                    <label> Engine </label><input readonly value="{{network.engine}}">
                 </div>
 
                 <div class="row">
-                    <label for="author"> Author </label>
-                    <input id="author" readonly value="{{network.author}}">
+                    <label> Author </label><input readonly value="{{network.author}}">
                 </div>
 
                 <div class="row">
-                    <label for="created"> Created </label>
-                    <input id="created" readonly value="{{network.created}}">
+                    <label> Created </label><input readonly value="{{network.created}}">
                 </div>
 
                 <div class="row">
-                    <label for="name"> Name </label>
-                    <input id="name" name="name" value="{{network.name}}">
+                    <label> Name </label><input name='name' value="{{network.name}}">
                 </div>
 
                 <div class="row">
-                    <label for="default"> Default </label>
+                    <label> Default </label>
                     <select id="default" name="default">
                         {% if network.default %}
                             <option selected value="TRUE"> True </option>
@@ -48,7 +43,7 @@
                 </div>
 
                 <div class="row">
-                    <label for="was_default"> Was Default </label>
+                    <label> Was Default </label>
                     <select id="was_default" name="was_default">
                         {% if network.was_default %}
                             <option selected value="TRUE"> True </option>

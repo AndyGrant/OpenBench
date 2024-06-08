@@ -5,14 +5,11 @@
     {% load static %}
 
     <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-        <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}?{{ static_version }}">
-        <link rel="stylesheet" href="{% static 'style.css' %}?{{ static_version }}">
-        <link rel="stylesheet" href="{% static 'base.css' %}?{{ static_version }}">
-        <link rel="stylesheet" href="{% static 'form.css' %}?{{ static_version }}">
-        <link rel="stylesheet" href="{% static 'paging.css' %}?{{ static_version }}">
-
+        <link rel="icon" type="image/svg+xml" href="{% static 'logo.svg' %}">
+        <link rel="stylesheet" href="{% static 'style.css' %}">
+        <link rel="stylesheet" href="{% static 'base.css' %}">
+        <link rel="stylesheet" href="{% static 'form.css' %}">
+        <link rel="stylesheet" href="{% static 'paging.css' %}">
         <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css' rel='stylesheet'>
 
         <link rel="preconnect" href="https://fonts.gstatic.com">
@@ -57,10 +54,6 @@
                 }
 
             }, false);
-
-            function toggle_sidebar() {
-                document.body.classList.toggle('sidebar-open')
-            }
         </script>
     </head>
 
@@ -94,7 +87,6 @@
                 <li class="header">Actions</li>
                 <li><a href="/newTest"><i class="fa-solid fa-plus fa-fw"></i> Create Test</a></li>
                 <li><a href="/newTune"><i class="fa-solid fa-vial fa-fw"></i> Create Tune</a></li>
-                <li><a href="/newDatagen"><i class="fa-solid fa-database fa-fw"></i> Create Datagen</a></li>
                 <li><a href="/newNetwork"><i class="fa-solid fa-upload fa-fw"></i> Upload Net</a></li>
             </ul>
 
@@ -132,14 +124,9 @@
 
         <div id="content-parent">
             <div id="content" class="pb-5">
-                <div id="content-header">
-                    <button id="sidebar-toggle" onclick="toggle_sidebar()">
-                        <i class="fa-solid fa-bars fa-fw"></i>
-                    </button>
-                    <h2>
-                        <a class="site-title" href="/">OpenBench&nbsp;Testing&nbsp;Framework</a>
-                    </h2>
-                </div>
+                <h2>
+                    <a class="site-title" href="/">OpenBench Testing Framework</a>
+                </h2>
 
                 {% if request.session.error_message %}
                     <div class="error-message">

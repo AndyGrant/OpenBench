@@ -48,7 +48,7 @@ def get_public_engine(engine, config):
 
     make_path = config['build']['path']
     branch    = config['test_presets']['default']['base_branch']
-    out_path  = os.path.join('Engines', '%s-%s' % (engine, branch))
+    out_path  = os.path.join('Engines', engine)
     target    = url_join(config['source'], 'archive', '%s.zip' % (branch))
 
     net_sha   = config.get('network', {}).get('sha')
@@ -65,8 +65,8 @@ def get_public_engine(engine, config):
 
 def get_private_engine(engine, config):
 
+    out_path = os.path.join('Engines', engine)
     branch   = config['test_presets']['default']['base_branch']
-    out_path = os.path.join('Engines', '%s-%s' % (engine, branch))
 
     # Format an API request to get the most recent openbench.yml workflow on the primary branch
     api_repo = config['source'].replace('github.com', 'api.github.com/repos')
@@ -147,12 +147,8 @@ if __name__ == '__main__':
 
     for engine in engines:
 
-        # Files are saved in Engines/<Engine>-<Branch>
-        branch = configs[engine]['test_presets']['default']['base_branch']
-        binary = os.path.join('Engines', '%s-%s' % (engine, branch))
-
         # Builds may have failed in previous steps, which we can ignore
-        if not (bin_path := check_for_engine_binary(binary)):
+        if not (bin_path := check_for_engine_binary(os.path.join('Engines', engine))):
             print ('Unable to find binary for %s...' % (engine))
             continue
 

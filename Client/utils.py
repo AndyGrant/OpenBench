@@ -28,9 +28,6 @@ import subprocess
 import tempfile
 import zipfile
 
-IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
-IS_LINUX   = platform.system() != 'Windows' # Don't touch this
-
 class OpenBenchBuildFailedException(Exception):
     def __init__(self, message, logs):
         self.message = message
@@ -67,20 +64,6 @@ class OpenBenchBadServerResponseException(Exception):
     def __init__(self):
         self.message = ''
         super().__init__(self.message)
-
-class OpenBenchFailedGenfensException(Exception):
-    def __init__(self, message):
-        self.message = message
-        super().__init__(self.message)
-
-
-def kill_process_by_name(process_name):
-
-    if IS_LINUX:
-        subprocess.run(['pkill', '-f', process_name])
-
-    if IS_WINDOWS:
-        subprocess.run(['taskkill', '/f', '/im', process_name])
 
 
 def url_join(*args, trailing_slash=True):
@@ -143,20 +126,12 @@ def engine_binary_name(engine, commit_sha, net_path, private):
 
 def check_for_engine_binary(out_path):
 
-    # The point of this is to deal with a lacking .exe
-    assert not out_path.endswith('.exe')
-
     # Check for already having the binary ( Linux )
-    if IS_LINUX and os.path.isfile(out_path):
+    if os.path.isfile(out_path):
         return out_path
 
     # Check for already having the binary ( Windows )
-    if IS_WINDOWS and os.path.isfile('%s.exe' % (out_path)):
-        return '%s.exe' % (out_path)
-
-    # Sanity check to force Windows to have .exe extensions
-    if IS_WINDOWS and os.path.isfile(out_path):
-        os.rename(out_path, '%s.exe' % (out_path))
+    if os.path.isfile('%s.exe' % (out_path)):
         return '%s.exe' % (out_path)
 
 def makefile_command(net_path, make_path, out_path, compiler):
@@ -171,12 +146,8 @@ def makefile_command(net_path, make_path, out_path, compiler):
 
     # Build with EVALFILE= to embed NNUE files
     if net_path:
-<<<<<<< HEAD
         rel_net_path = os.path.abspath(net_path)
         command += ['EVALFILE=%s' % (rel_net_path.replace('\\', '/'))]
-=======
-        command += ['EVALFILE=%s' % (os.path.abspath(net_path).replace('\\', '/'))]
->>>>>>> 9f3fc1141fb19eb1869723f8940d0f24c19213f6
 
     return command
 
@@ -229,10 +200,6 @@ def select_best_artifact(options, cpu_name, cpu_flags):
 def download_opening_book(book_sha, book_source, book_name):
 
     book_path = os.path.join('Books', book_name)
-
-    # Datagen workloads might not include a book
-    if book_name.upper() == 'NONE':
-        return
 
     # Book might already have been downloaded
     if not os.path.exists(book_path):
@@ -312,7 +279,7 @@ def download_public_engine(engine, net_path, branch, source, make_path, out_path
         print('Building [%s-%s]' % (engine, branch))
 
         # Download the zip file from Github
-        zip_path = os.path.join(temp_dir, '%s-tmp' % (engine))
+        zip_path = os.path.join(temp_dir, '%s-%s' % (engine, branch))
         with open(zip_path, 'wb') as zip_file:
             zip_file.write(requests.get(source).content)
 
@@ -323,7 +290,7 @@ def download_public_engine(engine, net_path, branch, source, make_path, out_path
 
         # Rename the Root folder for ease of conventions
         unzip_root = os.path.join(unzip_path, os.listdir(unzip_path)[0])
-        src_path   = os.path.join(unzip_path, '%s-tmp' % (engine))
+        src_path   = os.path.join(unzip_path, '%s-%s' % (engine, branch))
         os.rename(unzip_root, src_path)
 
         # Prepare the MAKEFILE command
@@ -371,7 +338,7 @@ def download_private_engine(engine, branch, source, out_path, cpu_name, cpu_flag
         print('Fetching [%s-%s]' % (engine, branch))
 
         # Download the zip file from Github
-        zip_path = os.path.join(temp_dir, '%s-tmp' % (engine))
+        zip_path = os.path.join(temp_dir, '%s-%s' % (engine, branch))
         with open(zip_path, 'wb') as zip_file:
             zip_file.write(requests.get(best['archive_download_url'], headers=headers).content)
 

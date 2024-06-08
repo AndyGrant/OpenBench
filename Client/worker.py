@@ -50,11 +50,10 @@ from client import try_forever
 
 from utils import *
 from pgn_util import compress_list_of_pgns
-from genfens import create_genfens_opening_book
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 28 # Client version to send to the Server
+CLIENT_VERSION   = 26 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -88,7 +87,6 @@ class Configuration:
         self.machine_id     = 'None'
         self.secret_token   = 'None'
         self.syzygy_max     = 2
-        self.blacklist      = []
 
         self.process_args(args) # Rest of the command line settings
         self.init_client()      # Create folder structure and verify Syzygy
@@ -279,7 +277,7 @@ class ServerReporter:
         return ServerReporter.report(config, 'clientSubmitError', payload)
 
     @staticmethod
-    def report_engine_error(config, error, pgn=None):
+    def report_engine_error(config, error, pgn):
 
         payload = {
             'test_id'    : config.workload['test']['id'],
@@ -381,12 +379,8 @@ class Cutechess:
         is_frc    = 'FRC' in book_name or '960' in book_name or 'FISCHER' in book_name
         variant   = ['standard', 'fischerandom'][is_frc]
 
-        # Only include -repeat if not skipping the reverses in DATAGEN
-        is_datagen = config.workload['test']['type'] == 'DATAGEN'
-        no_reverse = is_datagen and not config.workload['test']['play_reverses']
-
-        # Always include -recover and -variant
-        return ['-repeat', ''][no_reverse] + ' -recover -variant %s' % (variant)
+        # Always include -repeat and -recover
+        return '-repeat -recover -variant %s' % (variant)
 
     @staticmethod
     def concurrency_settings(config):
@@ -422,15 +416,6 @@ class Cutechess:
 
     @staticmethod
     def book_settings(config, cutechess_idx):
-
-        # DATAGEN creates their own book
-        if config.workload['test']['type'] == 'DATAGEN':
-
-            # -repeat might not be applied, so handle the book offsets
-            no_reverse = not config.workload['test']['play_reverses']
-            pairs      = config.workload['distribution']['games-per-cutechess'] // 2
-            start      = 1 + (cutechess_idx * pairs * (1 + no_reverse))
-            return '-openings file=Books/openbench.genfens.epd format=epd order=sequential start=%d' % (start)
 
         # Can handle EPD and PGN Books, which must be specified
         book_name   = config.workload['test']['book']['name']
@@ -537,13 +522,14 @@ class Cutechess:
     def kill_everything(dev_process, base_process):
 
         if IS_LINUX:
-            kill_process_by_name('cutechess-ob')
+            subprocess.run(['pkill', '-f', 'cutechess-ob'])
+            subprocess.run(['pkill', '-f', dev_process])
+            subprocess.run(['pkill', '-f', base_process])
 
         if IS_WINDOWS:
-            kill_process_by_name('cutechess-ob.exe')
-
-        kill_process_by_name(dev_process)
-        kill_process_by_name(base_process)
+            subprocess.run(['taskkill', '/f', '/im', 'cutechess-ob.exe'])
+            subprocess.run(['taskkill', '/f', '/im', dev_process])
+            subprocess.run(['taskkill', '/f', '/im', base_process])
 
     @staticmethod
     def pgn_name(config, timestamp, cutechess_idx):
@@ -654,16 +640,17 @@ class ResultsReporter(object):
         if self.last_report + report_interval > time.time():
             return False
 
+        # Most recent time we attempted to sent a report is now
+        self.last_report = time.time()
+
         try:
 
             # Heartbeat when no results, or still awaiting bulk results
             if not self.pending or (self.bulk and not final_report):
                 response = ServerReporter.report_heartbeat(self.config).json()
-                self.last_report = time.time()
 
             else: # Send all of the queued Results at once
                 response = ServerReporter.report_results(self.config, self.pending).json()
-                self.last_report = time.time()
                 self.pending = []
 
             # If the test ended, kill all tasks
@@ -680,7 +667,6 @@ class ResultsReporter(object):
         except Exception:
             traceback.print_exc()
             print ('[Note] Failed to upload results to server...')
-            self.last_report = time.time()
 
     def send_errors(self, timestamp, cutechess_cnt):
 
@@ -793,7 +779,7 @@ def scale_time_control(workload, scale_factor, branch):
     time_control  = workload['test'][branch]['time_control']
 
     # Searching for Nodes or Depth time controls ("N=", "D=")
-    pattern = r'(?P<mode>((N))|(D))=(?P<value>(\d+))'
+    pattern = '(?P<mode>((N))|(D))=(?P<value>(\d+))'
     results = re.search(pattern, time_control.upper())
 
     # No scaling is needed for fixed nodes or fixed depth games
@@ -802,7 +788,7 @@ def scale_time_control(workload, scale_factor, branch):
         return 'tc=inf %s=%s' % ({'N' : 'nodes', 'D' : 'depth'}[mode], value)
 
     # Searching for MoveTime or Fixed Time Controls ("MT=")
-    pattern = r'(?P<mode>(MT))=(?P<value>(\d+))'
+    pattern = '(?P<mode>(MT))=(?P<value>(\d+))'
     results = re.search(pattern, time_control.upper())
 
     # Scale the time based on this machine's NPS. Add a time Margin to avoid time losses.
@@ -811,7 +797,7 @@ def scale_time_control(workload, scale_factor, branch):
         return 'st=%.2f timemargin=250' % ((float(value) * scale_factor / 1000))
 
     # Searching for "X/Y+Z" time controls
-    pattern = r'(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
+    pattern = '(?P<moves>(\d+/)?)(?P<base>\d*(\.\d+)?)(?P<inc>\+(\d+\.)?\d+)?'
     results = re.search(pattern, time_control)
     moves, base, inc = results.group('moves', 'base', 'inc')
 
@@ -916,7 +902,7 @@ def server_request_workload(config):
 
     print('\nRequesting Workload from Server...')
 
-    payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token, 'blacklist' : config.blacklist }
+    payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token }
     target   = url_join(config.server, 'clientGetWorkload')
     response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
@@ -954,20 +940,16 @@ def complete_workload(config):
     )
 
     # Download each NNUE file, throws an exception on corruption
-    dev_network  = safe_download_network_weights(config, 'dev' )
-    base_network = safe_download_network_weights(config, 'base')
+    dev_network  = download_network_weights(config, 'dev' )
+    base_network = download_network_weights(config, 'base')
 
     # Build or download each engine, or exit if an error occured
-    dev_name  = safe_download_engine(config, 'dev' , dev_network )
-    base_name = safe_download_engine(config, 'base', base_network)
-
-    # Datagen creates a book on-the-fly
-    if config.workload['test']['type'] == 'DATAGEN':
-        safe_create_genfens_opening_book(config, dev_name, dev_network)
+    dev_name  = download_engine(config, 'dev' , dev_network )
+    base_name = download_engine(config, 'base', base_network)
 
     # Run the benchmarks and compute the scaling NPS value
-    dev_nps  = safe_run_benchmarks(config, 'dev' , dev_name , dev_network )
-    base_nps = safe_run_benchmarks(config, 'base', base_name, base_network)
+    dev_nps  = run_benchmarks(config, 'dev' , dev_name , dev_network )
+    base_nps = run_benchmarks(config, 'base', base_name, base_network)
     ServerReporter.report_nps(config, dev_nps, base_nps)
 
     # Scale the engines together, using their NPS relative to expected
@@ -980,6 +962,11 @@ def complete_workload(config):
     print ('Scale Factor Base : %.4f' % (base_factor))
     print ('Scale Factor Avg  : %.4f' % (avg_factor ))
 
+    # Scale using the base factor only, in the event of a cross-engine test
+    dev_engine    = config.workload['test']['dev' ]['engine']
+    base_engine   = config.workload['test']['base']['engine']
+    scale_factor  = base_factor if dev_engine != base_engine else avg_factor
+
     # Server knows how many copies of Cutechess we should run
     cutechess_cnt   = config.workload['distribution']['cutechess-count']
     concurrency_per = config.workload['distribution']['concurrency-per']
@@ -988,12 +975,7 @@ def complete_workload(config):
     print () # Record this information
     print ('%d cutechess copies' % (cutechess_cnt))
     print ('%d concurrent games per copy' % (concurrency_per))
-    print ('%d total games per cutechess copy\n' % (games_per))
-
-    # Scale using the base factor only, in the event of a cross-engine test
-    dev_engine    = config.workload['test']['dev' ]['engine']
-    base_engine   = config.workload['test']['base']['engine']
-    scale_factor  = base_factor if dev_engine != base_engine else avg_factor
+    print ('%d total games per cutechess copy' % (games_per))
 
     # Launch and manage all of the Cutechess workers
     with ThreadPoolExecutor(max_workers=cutechess_cnt) as executor:
@@ -1027,7 +1009,7 @@ def complete_workload(config):
             pgn_files  = [Cutechess.pgn_name(config, timestamp, x) for x in range(cutechess_cnt)]
             ServerReporter.report_pgn(config, compress_list_of_pgns(pgn_files, scale_factor, compact))
 
-def safe_download_network_weights(config, branch):
+def download_network_weights(config, branch):
 
     # Wraps utils.py:download_network()
     # May raise OpenBenchCorruptedNetworkException
@@ -1046,7 +1028,7 @@ def safe_download_network_weights(config, branch):
 
     return net_path
 
-def safe_download_engine(config, branch, net_path):
+def download_engine(config, branch, net_path):
 
     # Wraps utils.py:download_public_engine() and utils.py:download_private_engine()
 
@@ -1085,19 +1067,11 @@ def safe_download_engine(config, branch, net_path):
                 print ('> %s' % (line))
             print ()
 
-            config.blacklist.append(config.workload['test']['id'])
             ServerReporter.report_build_fail(config, branch, error.logs)
             raise
 
-def safe_create_genfens_opening_book(config, dev_name, dev_network):
 
-    try: create_genfens_opening_book(config, dev_name, dev_network)
-
-    except OpenBenchFailedGenfensException as error:
-        ServerReporter.report_engine_error(config, error.message)
-        raise
-
-def safe_run_benchmarks(config, branch, engine, network):
+def run_benchmarks(config, branch, engine, network):
 
     name     = config.workload['test'][branch]['name']
     private  = config.workload['test'][branch]['private']
@@ -1116,7 +1090,6 @@ def safe_run_benchmarks(config, branch, engine, network):
     print('Bench for %s is %d' % (name, nodes))
     print('Speed for %s is %d' % (name, speed))
     return speed
-
 
 def build_cutechess_command(config, dev_cmd, base_cmd, scale_factor, timestamp, cutechess_idx):
 
