@@ -55,7 +55,7 @@ from wsgiref.util import FileWrapper
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 ERROR_MESSAGES = {
-    'disabled'            : 'Account has not been enabled. Contact an Administrator',
+    'disabled'            : 'Account has not yet been enabled. Contact Ciekce on Discord',
     'fakeuser'            : 'This is not a real OpenBench User. Create an OpenBench account',
     'requires_login'      : 'All pages require a user login to access',
     'manual_registration' : 'Registration can only be done via an Administrator',
