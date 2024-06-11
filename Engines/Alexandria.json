@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 1362896,
+    "nps"     : 1280332,
     "source"  : "https://github.com/PGG106/Alexandria",
 
     "build" : {
@@ -16,7 +16,7 @@
             "base_branch"     : "master",
             "book_name"       : "UHO_Lichess_4852_v1.epd",
             "test_bounds"     : "[0.00, 3.00]",
-            "test_confidence" : "[0.05, 0.05]",
+            "test_confidence" : "[0.10, 0.05]",
             "win_adj"         : "movecount=3 score=400",
             "draw_adj"        : "movenumber=40 movecount=8 score=10"
         },
@@ -49,7 +49,7 @@
 
         "STC progtest" : {
             "both_options"      : "Threads=1 Hash=16",
-            "base_branch"       : "0dda6ec",
+            "base_branch"       : "v7.0.0",
             "both_time_control" : "8.0+0.08",
             "workload_size"     : 32,
             "book_name"         : "8moves_v3.epd",
@@ -58,7 +58,7 @@
 
         "LTC progtest" : {
             "both_options"      : "Threads=1 Hash=64",
-            "base_branch"       : "0dda6ec",
+            "base_branch"       : "v7.0.0",
             "both_time_control" : "40.0+0.4",
             "workload_size"     : 8,
             "book_name"         : "8moves_v3.epd",
@@ -67,7 +67,7 @@
 
         "60+0.6 progtest" : {
             "both_options"      : "Threads=1 Hash=64",
-            "base_branch"       : "0dda6ec",
+            "base_branch"       : "v7.0.0",
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
             "book_name"         : "8moves_v3.epd",
