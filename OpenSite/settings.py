@@ -23,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 load_dotenv(find_dotenv())
 
 SECRET_KEY = os.environ['SECRET_KEY']
-DEBUG = False
+DEBUG = True
 
 USE_X_FORWARDED_HOST = True
 ALLOWED_HOSTS = ['chess.swehosting.se']
