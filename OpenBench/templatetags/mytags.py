@@ -61,7 +61,7 @@ def gitDiffLink(test):
 def shortStatBlock(test):
 
     tri_line   = 'Games: %d W: %d L: %d D: %d' % test.as_nwld()
-    penta_line = 'Pntml(0-2): %d, %d, %d, %d, %d' % test.as_penta()
+    penta_line = 'Ptnml(0-2): %d, %d, %d, %d, %d' % test.as_penta()
 
     if test.test_mode == 'SPSA':
         statlines = [

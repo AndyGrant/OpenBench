@@ -60,7 +60,7 @@ def PentanomialSPRT(results, elo0, elo1):
     nt0, nt1 = (x / nelo_divided_by_nt for x in (elo0, elo1))
     t0, t1 = nt0 * math.sqrt(2), nt1 * math.sqrt(2)
 
-    # Number of game-pairs, and the PDF of Pntml(0-2) expressed as (0-1)
+    # Number of game-pairs, and the PDF of Ptnml(0-2) expressed as (0-1)
     N = sum(results)
     pdf = [(i / 4, results[i] / N) for i in range(0, 5)]
 
