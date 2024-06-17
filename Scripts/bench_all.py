@@ -160,5 +160,9 @@ if __name__ == '__main__':
         private_net = configs[engine]['private'] and configs[engine].get('network')
         net_path    = os.path.join('Networks', configs[engine]['network']['sha']) if private_net else None
 
-        nps, nodes = run_benchmark(bin_path, net_path, private_net, args.threads, args.sets)
-        print (print_format % (engine, nps, nodes, nodes / max(1e-6, nps)))
+        try:
+            nps, nodes = run_benchmark(bin_path, net_path, private_net, args.threads, args.sets)
+            print (print_format % (engine, nps, nodes, nodes / max(1e-6, nps)))
+
+        except OpenBenchBadBenchException as error:
+            print ('%s: %s' % (engine, error))

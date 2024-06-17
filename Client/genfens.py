@@ -21,10 +21,10 @@
 # The sole purpose of this module is to invoke create_genfens_opening_book().
 #
 # This will execute engines with commands like the following:
-#   ./engine "genfens N seed S book <None|Books/book.epd> <?exta>" "quit"
+#   ./engine "genfens N seed S book <None|Books/book.epd> <?extra>" "quit"
 #
 # This work is split over many engines. If a workload requires 1024 openings,
-# and there are 16 threads, then each thread will generate 128 openings. The
+# and there are 16 threads, then each thread will generate 64 openings. The
 # openings are saved to Books/openbench.genfens.epd
 #
 # create_genfens_opening_book() may raise utils.OpenBenchFailedGenfensException.
