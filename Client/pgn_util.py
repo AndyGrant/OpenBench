@@ -22,6 +22,12 @@ import bz2
 import re
 import sys
 
+# For use externally
+REGEX_COMMENT_VERBOSE  = r'(book|[+-]?M?\d+(?:\.\d+)? \d+/\d+ \d+ \d+)'
+REGEX_COMMENT_COMPACT  = r'(book|[+-]?M?\d+(?:\.\d+)?) \d+/\d+ \d+ \d+'
+REGEX_MOVE_AND_COMMENT = r'\s*(?:\d+\. )?([a-zA-Z0-9+=#-]+) (?:\s*\{\s*([^}]*)\s*\})?'
+REGEX_GAME_RESULT      = r'\s*(1-0|0-1|1/2-1/2|\*)'
+
 def pgn_iterator(fname):
     with open(fname) as pgn:
         while True:
@@ -60,24 +66,22 @@ def pgn_strip_headers(headers, compact):
 
 def pgn_strip_movelist(move_text, compact):
 
-    if not compact: # Captures Score Depth/SelDepth Time Nodes
-        comment_regex = r'(book|[+-]?M?\d+(?:\.\d+)? \d+/\d+ \d+ \d+)[^}]*'
+    # May parse book, otherwise Score for Compact, Score Depth/SelDepth Time Nodes for Verbose
+    comment_regex = re.compile(REGEX_COMMENT_COMPACT if compact else REGEX_COMMENT_VERBOSE)
 
-    else: # Captures Score and nothing else
-        comment_regex = r'(book|[+-]?M?\d+(?:\.\d+)?) \d+/\d+ \d+ \d+[^}]*'
-
-    # Captures the Move and Comment, discarding extra commentary and move numbers
-    one_ply_regex = re.compile(r'\s*(?:\d+\. )?([a-zA-Z0-9+=#-]+) (?:{%s})?' % (comment_regex))
+    # Parses the move number, the SAN, and an optional comment
+    one_ply_regex = re.compile(r'\s*(?:\d+\. )?([a-zA-Z0-9+=#-]+) (?:\s*\{\s*([^}]*)\s*\})?')
 
     # Captures the trailing game result
     result_regex  = re.compile(r'\s*(1-0|0-1|1/2-1/2|\*)')
 
     stripped = '' # Add each: <Move> {<Comment>}
-    for move, comment in one_ply_regex.findall(move_text):
-        stripped += '%s {%s} ' % (move, comment if comment else 'unknown')
+    for move, comment in re.compile(REGEX_MOVE_AND_COMMENT).findall(move_text):
+        match = re.search(comment_regex, comment)
+        stripped += '%s {%s} ' % (move, match.group() if match else 'unknown')
 
     # PGNs expect trailing game result text
-    return stripped + result_regex.search(move_text).group(1)
+    return stripped + re.compile(REGEX_GAME_RESULT).search(move_text).group(1)
 
 def strip_entire_pgn(file_name, scale_factor, compact):
 

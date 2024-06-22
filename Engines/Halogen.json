@@ -5,8 +5,8 @@
 
     "build" : {
         "path"      : "src",
-        "compilers" : ["g++"],
-        "cpuflags"  : ["POPCNT"],
+        "compilers" : ["g++>=9.0.0", "clang++>=10.0.0"],
+        "cpuflags"  : ["AVX2", "FMA", "POPCNT"],
         "systems"   : ["Windows", "Linux"]
     },
 
@@ -14,7 +14,7 @@
 
         "default" : {
             "base_branch"     : "master",
-            "book_name"       : "Pohl.epd",
+            "book_name"       : "UHO_4060_v2.epd",
             "test_bounds"     : "[0.00, 5.00]",
             "test_confidence" : "[0.05, 0.05]",
             "win_adj"         : "movecount=3 score=400",
@@ -22,25 +22,25 @@
         },
 
         "STC" : {
-            "both_options"      : "Threads=1 Hash=8",
+            "both_options"      : "Threads=1 Hash=8 OutputLevel=Minimal",
             "both_time_control" : "8.0+0.08",
             "workload_size"     : 32
         },
 
         "LTC" : {
-            "both_options"      : "Threads=1 Hash=64",
+            "both_options"      : "Threads=1 Hash=64 OutputLevel=Minimal",
             "both_time_control" : "40.0+0.4",
             "workload_size"     : 8
         },
 
         "SMP STC" : {
-            "both_options"      : "Threads=8 Hash=64",
+            "both_options"      : "Threads=8 Hash=64 OutputLevel=Minimal",
             "both_time_control" : "5.0+0.05",
             "workload_size"     : 64
         },
 
         "SMP LTC" : {
-            "both_options"      : "Threads=8 Hash=256",
+            "both_options"      : "Threads=8 Hash=256 OutputLevel=Minimal",
             "both_time_control" : "20.0+0.2",
             "workload_size"     : 16
         }
@@ -49,7 +49,7 @@
     "tune_presets" : {
 
         "default" : {
-            "book_name" : "Pohl.epd",
+            "book_name" : "UHO_4060_v2.epd",
             "win_adj"   : "movecount=3 score=400",
             "draw_adj"  : "movenumber=40 movecount=8 score=10"
         }

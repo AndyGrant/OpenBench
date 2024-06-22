@@ -21,10 +21,10 @@
 # The sole purpose of this module is to invoke create_genfens_opening_book().
 #
 # This will execute engines with commands like the following:
-#   ./engine "genfens N seed S book <None|Books/book.epd> <?exta>" "quit"
+#   ./engine "genfens N seed S book <None|Books/book.epd> <?extra>" "quit"
 #
 # This work is split over many engines. If a workload requires 1024 openings,
-# and there are 16 threads, then each thread will generate 128 openings. The
+# and there are 16 threads, then each thread will generate 64 openings. The
 # openings are saved to Books/openbench.genfens.epd
 #
 # create_genfens_opening_book() may raise utils.OpenBenchFailedGenfensException.
@@ -40,37 +40,6 @@ import multiprocessing
 
 from utils import kill_process_by_name
 from utils import OpenBenchFailedGenfensException
-
-def create_genfens_opening_book(config, binary_name, network):
-
-    # Format: ./engine "genfens N seed S book <None|book.epd>" "quit"
-    N     = genfens_required_openings_each(config)
-    seed  = config.workload['test']['book_index']
-    args  = genfens_command_args(config, binary_name, network)
-
-    print ('\nGenerating %d Openings using %d Threads...' % (N * config.threads, config.threads))
-    start_time = time.time()
-
-    # Execute all the helpers, who will dump results into the Queue
-    output = multiprocessing.Queue()
-    for f in range(config.threads):
-        command = genfens_command_builder(*args, seed)
-        multiprocessing.Process(target=genfens_single_threaded, args=(command, output)).start()
-        seed += N # Step the seed ahead to vary it over the Threads
-
-    # Parse the Queue and save the content into Books/openbench.genfens.epd
-    with open(os.path.join('Books', 'openbench.genfens.epd'), 'w') as fout:
-
-        try:
-            for iteration in range(N * config.threads):
-                fout.write(output.get(timeout=15) + '\n')
-                genfens_progress_bar(iteration+1, N * config.threads)
-
-        except queue.Empty:
-            kill_process_by_name(binary_name)
-            raise OpenBenchFailedGenfensException('[%s] Stalled during genfens' % (binary_name))
-
-    print('\nFinished Building Opening Book in %.3f seconds' % (time.time() - start_time))
 
 def genfens_required_openings_each(config):
 
@@ -131,3 +100,44 @@ def genfens_progress_bar(curr, total):
     if curr_progress != prev_progress:
         bar_text = '=' * curr_progress + ' ' * (50 - curr_progress)
         print ('\r[%s] %d/%d' % (bar_text, curr, total), end='', flush=True)
+
+def create_genfens_opening_book(config, binary_name, network):
+
+    # Format: ./engine "genfens N seed S book <None|book.epd>" "quit"
+    N     = genfens_required_openings_each(config)
+    seed  = config.workload['test']['book_index']
+    args  = genfens_command_args(config, binary_name, network)
+
+    start_time = time.time()
+    output     = multiprocessing.Queue()
+    print ('\nGenerating %d Openings using %d Threads...' % (N * config.threads, config.threads))
+
+    # Split the work over many threads. Ensure the seed varies by the thread,
+    # number in accordance with how many openings each thread will generate
+    processes = [
+        multiprocessing.Process(
+            target=genfens_single_threaded,
+            args=(genfens_command_builder(*args, seed + ii * N), output))
+        for ii in range(config.threads)
+    ]
+
+    for process in processes:
+        process.start()
+
+    # Parse the Queue and save the content into Books/openbench.genfens.epd
+    with open(os.path.join('Books', 'openbench.genfens.epd'), 'w') as fout:
+
+        try: # Each process will deposit exactly N results into the Queue
+            for iteration in range(N * config.threads):
+                fout.write(output.get(timeout=15) + '\n')
+                genfens_progress_bar(iteration+1, N * config.threads)
+
+        except queue.Empty: # Force kill the engine, thus causing the processes to finish
+            kill_process_by_name(binary_name)
+            raise OpenBenchFailedGenfensException('[%s] Stalled during genfens' % (binary_name))
+
+        finally: # Join everything to avoid zombie processes
+            for process in processes:
+                process.join()
+
+    print('\nFinished Building Opening Book in %.3f seconds' % (time.time() - start_time))

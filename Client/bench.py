@@ -32,11 +32,15 @@
 
 import multiprocessing
 import os
+import queue
 import re
 import subprocess
 import sys
 
+from utils import kill_process_by_name
 from utils import OpenBenchBadBenchException
+
+MAX_BENCH_TIME_SECONDS = 60
 
 def parse_stream_output(stream):
 
@@ -88,13 +92,23 @@ def multi_core_bench(binary, network, private, threads):
 
     processes = [
         multiprocessing.Process(
-            target=single_core_bench,
-            args=(binary, network, private, outqueue)
-        ) for ii in range(threads)
+            target=single_core_bench, args=(binary, network, private, outqueue))
+        for ii in range(threads)
     ]
 
-    for process in processes: process.start()
-    return [outqueue.get() for ii in range(threads)]
+    for process in processes:
+        process.start()
+
+    try: # Every process deposits exactly one result into the Queue
+        return [outqueue.get(timeout=MAX_BENCH_TIME_SECONDS) for ii in range(threads)]
+
+    except queue.Empty: # Force kill the engine, thus causing the processes to finish
+        kill_process_by_name(binary)
+        raise OpenBenchBadBenchException('[%s] Bench Exceeded Max Duration' % (binary))
+
+    finally: # Join everything to avoid zombie processes
+        for process in processes:
+            process.join()
 
 def run_benchmark(binary, network, private, threads, sets, expected=None):
 

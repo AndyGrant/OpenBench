@@ -3,13 +3,13 @@
 <td>{{test.dev_engine}}</td>
 <td>
     <a href="{{test|workload_url}}">{{test|prettyDevName}}</a>
-    {% if test.error %} <span style="color: red">*</span> {% endif %}
-    {% if test|test_is_fischer %} <span style="color: green">*</span> {% endif %}
+    {% if test.error %} <span style="color: red; cursor: pointer" title="Crash or illegal move">*</span> {% endif %}
+    {% if test|test_is_fischer %} <span style="color: green; cursor: pointer" title="Fischer random chess">*</span> {% endif %}
 </td>
 <td class="textcenter"><a href="{{test|gitDiffLink}}">diff</a></td>
 <td>
     {{test.dev_time_control}}
-    {% if test|test_is_time_odds %} <span style="color: yellow">*</span> {% endif %}
-    {% if test|test_is_smp_odds %} <span style="color: orange">*</span> {% endif %}
+    {% if test|test_is_time_odds %} <span style="color: yellow; cursor: pointer" title="Time odds">*</span> {% endif %}
+    {% if test|test_is_smp_odds %} <span style="color: orange; cursor: pointer" title="Thread odds">*</span> {% endif %}
 </td>
 <td class='statblock statblock-{{test|testResultColour}}'><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
