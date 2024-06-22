@@ -59,10 +59,10 @@ def gitDiffLink(test):
         '{0}..{1}'.format( test.base.sha[:8], test.dev.sha[:8]))
 
 def shortStatBlock(test):
-    
+
     win_percentage = round(((test.wins + (float(test.draws) / 2)) / float(max(1, test.games))) * 100, 3)
 
-    tri_line   = 'Games: %d W: %d L: %d D: %d' % test.as_nwld()
+    tri_line = 'Games: %d W: %d L: %d D: %d' % test.as_nwld() + f' [{win_percentage}%]'
     penta_line = 'Ptnml(0-2): %d, %d, %d, %d, %d' % test.as_penta()
 
     if test.test_mode == 'SPSA':
