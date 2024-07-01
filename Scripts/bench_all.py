@@ -41,10 +41,10 @@ def delete_engine_binaries(engines, configs):
 
     for engine in engines:
 
-        name = engine_binary_name(engine, configs)
-        path = check_for_engine_binary(os.path.join('Engines', name))
+        name   = engine_binary_name(engine, configs)
+        binary = check_for_engine_binary(os.path.join('Engines', name))
 
-        if (binary := check_for_engine_binary(path)):
+        if binary:
             os.remove(binary)
 
 def get_default_network(args, network):
