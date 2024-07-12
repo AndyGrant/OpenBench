@@ -34,6 +34,19 @@ sys.path.append(os.path.abspath(os.path.join(PARENT, 'Client')))
 from utils import *
 from bench import run_benchmark
 
+def engine_binary_name(engine, configs):
+    return '%s-%s' % (engine, configs[engine]['test_presets']['default']['base_branch'])
+
+def delete_engine_binaries(engines, configs):
+
+    for engine in engines:
+
+        name   = engine_binary_name(engine, configs)
+        binary = check_for_engine_binary(os.path.join('Engines', name))
+
+        if binary:
+            os.remove(binary)
+
 def get_default_network(args, network):
 
     # Download the default Network
@@ -122,9 +135,7 @@ if __name__ == '__main__':
 
     # Delete any existing engines that are to be rebuilt
     if args.rebuild:
-        for engine in engines:
-            if (bin_path := check_for_engine_binary(os.path.join('Engines', engine))):
-                os.remove(bin_path)
+        delete_engine_binaries(engines, configs)
 
     # Get all the default Network files for the engines
     for engine in engines:
@@ -148,11 +159,10 @@ if __name__ == '__main__':
     for engine in engines:
 
         # Files are saved in Engines/<Engine>-<Branch>
-        branch = configs[engine]['test_presets']['default']['base_branch']
-        binary = os.path.join('Engines', '%s-%s' % (engine, branch))
+        path = os.path.join('Engines', engine_binary_name(engine, configs))
 
         # Builds may have failed in previous steps, which we can ignore
-        if not (bin_path := check_for_engine_binary(binary)):
+        if not (binary := check_for_engine_binary(path)):
             print ('Unable to find binary for %s...' % (engine))
             continue
 
@@ -161,7 +171,7 @@ if __name__ == '__main__':
         net_path    = os.path.join('Networks', configs[engine]['network']['sha']) if private_net else None
 
         try:
-            nps, nodes = run_benchmark(bin_path, net_path, private_net, args.threads, args.sets)
+            nps, nodes = run_benchmark(binary, net_path, private_net, args.threads, args.sets)
             print (print_format % (engine, nps, nodes, nodes / max(1e-6, nps)))
 
         except OpenBenchBadBenchException as error:
