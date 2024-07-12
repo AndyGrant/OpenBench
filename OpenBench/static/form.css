@@ -43,17 +43,18 @@
 #content .form .row {
     display: flex;
     align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
 }
 
 #content .row label {
-    font-size: 14px;
+    font-size: 13px;
     width: 25%;
     min-width: 128px;
     margin-right: 1rem;
     text-align: right;
     color: var(--color-font2)
 }
+
 
 #content .row input, #content .row select, #content .row textarea {
     flex-grow: 1;
@@ -70,10 +71,10 @@
      padding: 2px 2px;
 }
 
-#content .row input:focus, #content .row select:focus, #content .row textarea {
+#content .row input:focus, #content .row select:focus, #content .row textarea:focus {
     outline: none;
     border-color: var(--color3);
-    box-shadow: 0 0 0 3px rgba(77, 144, 254, 0.25);
+    box-shadow: 0 0 0 2px rgba(77, 144, 254, 0.75);
     background-color: var(--color2);
     color: var(--color-font2);
 }
@@ -96,6 +97,10 @@
 #content .row input[type="file"]::file-selector-button:hover {
     background-color: rgba(77, 144, 254, 0.8);
     border-color: var(--color2);
+}
+
+#content .row input[readonly] {
+    color: var(--color-font1);
 }
 
 #content .form .flex {

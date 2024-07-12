@@ -90,7 +90,8 @@ class Result(Model):
 class Test(Model):
 
     # Misc information
-    author    = CharField(max_length=64)
+    author      = CharField(max_length=64)
+    upload_pgns = CharField(max_length=16, default='FALSE')
 
     # Opening book settings
     book_name  = CharField(max_length=32)
@@ -115,8 +116,6 @@ class Test(Model):
     base_time_control = CharField(max_length=32)
 
     # Changable Test Parameters
-    worker_limit  = IntegerField(default=0)
-    thread_limit  = IntegerField(default=0)
     workload_size = IntegerField(default=32)
     priority      = IntegerField(default=0)
     throughput    = IntegerField(default=0)
@@ -127,17 +126,19 @@ class Test(Model):
     win_adj     = CharField(max_length=64, default='movecount=3 score=400')
     draw_adj    = CharField(max_length=64, default='movenumber=40 movecount=8 score=10')
 
-    # Test Mode specific values, either SPRT or GAMES
-    test_mode   = CharField(max_length=16, default='SPRT')
-    elolower    = FloatField(default=0.0) # SPRT
-    eloupper    = FloatField(default=0.0) # SPRT
-    alpha       = FloatField(default=0.0) # SPRT
-    beta        = FloatField(default=0.0) # SPRT
-    lowerllr    = FloatField(default=0.0) # SPRT
-    currentllr  = FloatField(default=0.0) # SPRT
-    upperllr    = FloatField(default=0.0) # SPRT
-    max_games   = IntegerField(default=0) # GAMES
-    spsa        = JSONField(default=dict, blank=True, null=True) # SPSA
+    # Test Mode specific values, either SPRT, GAMES, SPSA, or DATAGEN
+    test_mode     = CharField(max_length=16, default='SPRT')
+    elolower      = FloatField(default=0.0) # SPRT
+    eloupper      = FloatField(default=0.0) # SPRT
+    alpha         = FloatField(default=0.0) # SPRT
+    beta          = FloatField(default=0.0) # SPRT
+    lowerllr      = FloatField(default=0.0) # SPRT
+    currentllr    = FloatField(default=0.0) # SPRT
+    upperllr      = FloatField(default=0.0) # SPRT
+    max_games     = IntegerField(default=0) # GAMES or DATAGEN
+    spsa          = JSONField(default=dict, blank=True, null=True) # SPSA
+    genfens_args  = CharField(max_length=256, default='') # DATAGEN
+    play_reverses = BooleanField(default=False) # DATAGEN
 
     # Collection of all individual Result() objects
     games  = IntegerField(default=0) # Overall
@@ -170,6 +171,18 @@ class Test(Model):
     def __str__(self):
         return '{0} vs {1} @ {2}'.format(self.dev.name, self.base.name, self.dev_time_control)
 
+    def results(self):
+        return self.as_tri() if self.use_tri else self.as_penta()
+
+    def as_tri(self):
+        return (self.losses, self.draws, self.wins)
+
+    def as_penta(self):
+        return (self.LL, self.LD, self.DD, self.DW, self.WW)
+
+    def as_nwld(self):
+        return (self.games, self.wins, self.losses, self.draws)
+
 class LogEvent(Model):
 
     author     = CharField(max_length=128) # Username for the OpenBench Profile
@@ -186,12 +199,26 @@ class LogEvent(Model):
 
 class Network(Model):
 
-    default   = BooleanField(default=False)
-    sha256    = CharField(max_length=8)
-    name      = CharField(max_length=64)
-    engine    = CharField(max_length=64)
-    author    = CharField(max_length=64)
-    created   = DateTimeField(auto_now_add=True)
+    default     = BooleanField(default=False)
+    was_default = BooleanField(default=False)
+    sha256      = CharField(max_length=8)
+    name        = CharField(max_length=64)
+    engine      = CharField(max_length=64)
+    author      = CharField(max_length=64)
+    created     = DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return '[{}] {} ({})'.format(self.engine, self.name, self.sha256)
+
+class PGN(Model):
+
+    test_id    = IntegerField(default=0)
+    result_id  = IntegerField(default=0)
+    book_index = IntegerField(default=0)
+    processed  = BooleanField(default=False)
+
+    def __str__(self):
+        return self.filename()
+
+    def filename(self):
+        return '%s.%s.%s.pgn.bz2' % (self.test_id, self.result_id, self.book_index)

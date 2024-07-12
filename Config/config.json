@@ -1,0 +1,47 @@
+{
+    "client_version"  : 29,
+    "client_repo_url" : "https://github.com/AndyGrant/OpenBench",
+    "client_repo_ref" : "master",
+
+    "use_cross_approval"          : false,
+    "require_login_to_view"       : false,
+    "require_manual_registration" : false,
+    "balance_engine_throughputs"  : false,
+
+    "books" : [
+        "2moves_v1.epd",
+        "3moves_FRC.epd",
+        "4moves_noob.epd",
+        "8moves_v3.epd",
+        "DFRC.epd",
+        "Endgames.epd",
+        "Pohl.epd",
+        "Pohl.pgn",
+        "UHO_4060_v2.epd",
+        "UHO_4060_vB.epd",
+        "UHO_4060_vT.epd"
+    ],
+
+    "engines" : [
+        "4ku",
+        "Berserk",
+        "Bit-Genie",
+        "BlackMarlin",
+        "Demolito",
+        "Drofa",
+        "Equisetum",
+        "Ethereal",
+        "FabChess",
+        "Halogen",
+        "Igel",
+        "Koivisto",
+        "Laser",
+        "RubiChess",
+        "Seer",
+        "Stash",
+        "Stockfish",
+        "Weiss",
+        "Winter",
+        "Zahak"
+    ]
+}

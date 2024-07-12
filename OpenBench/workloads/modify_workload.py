@@ -62,7 +62,6 @@ def modify_workload(request, id, action=None):
     # Send back to the index, notifying them of the success
     return OpenBench.views.redirect(request, '/index/', status=message)
 
-
 def approve_workload(request, profile, workload):
     workload.approved = True;
     return 'Workload was Approved!'
@@ -91,16 +90,6 @@ def tweak_workload(request, profile, workload):
 
     try: # Throughput must be at least 1
         workload.throughput = max(1, int(request.POST['throughput']))
-    except: pass
-
-    try: # Must be at least 0. Convert "None" to 0
-        x = request.POST['worker_limit']
-        workload.worker_limit = 0 if x == 'None' else max(0, int(x))
-    except: pass
-
-    try: # Must be at least 0. Convert "None" to 0
-        x = request.POST['thread_limit']
-        workload.thread_limit = 0 if x == 'None' else max(0, int(x))
     except: pass
 
     try: # Must be at least one. Cannot be changed for Tuning workloads

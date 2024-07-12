@@ -21,9 +21,9 @@
 # Module serves a singular purpose, to invoke:
 # >>> verify_workload(request, type)
 #
-# Given a request, and a workload_type [TEST, TUNE], verify all of the form
-# inputs, collect all of the information from Github, verify all of the data
-# from Github, and return a tuple of (errors, engines)
+# Given a request, and a workload_type [TEST, TUNE, DATAGEN], verify all of
+# the form inputs, collect all of the information from Github, verify all of
+# the data from Github, and return a tuple of (errors, engines)
 #
 # For Verifying and Collection information on a Test:
 #   >>> errors, engine_info = verify_workload(request, 'TEST')
@@ -31,6 +31,10 @@
 #
 # For Verifying and Collection information on a Tune:
 #   >>> errors, engine_info = verify_workload(request, 'TUNE')
+#
+# For Verifying and Collection information on Datagen:
+#   >>> errors, engine_info = verify_workload(request, 'DATAGEN')
+#   >>> dev_info, base_info = engine_info
 
 import os
 import re
@@ -44,7 +48,7 @@ from OpenBench.models import *
 
 def verify_workload(request, workload_type):
 
-    assert workload_type in [ 'TEST', 'TUNE' ]
+    assert workload_type in [ 'TEST', 'TUNE', 'DATAGEN' ]
 
     errors = []
 
@@ -59,6 +63,11 @@ def verify_workload(request, workload_type):
         engine = collect_github_info(errors, request, 'dev')
         return errors, engine
 
+    if workload_type == 'DATAGEN':
+        verify_datagen_creation(errors, request)
+        dev  = collect_github_info(errors, request, 'dev')
+        base = collect_github_info(errors, request, 'base')
+        return errors, (dev, base)
 
 def verify_test_creation(errors, request):
 
@@ -82,6 +91,7 @@ def verify_test_creation(errors, request):
 
         # Verify everything about the Test Settings
         (verify_configuration  , 'book_name', 'Book', 'books'),
+        (verify_upload_pgns    , 'upload_pgns', 'Upload PGNs'),
         (verify_test_mode      , 'test_mode'),
         (verify_sprt_bounds    , 'test_bounds'),
         (verify_sprt_conf      , 'test_confidence'),
@@ -93,8 +103,6 @@ def verify_test_creation(errors, request):
         (verify_syzygy_field   , 'syzygy_wdl', 'Syzygy WDL'),
 
         # Verify everything about the Workload Settings
-        (verify_integer_or_none, 'worker_limit', 'Worker Limit'),
-        (verify_integer_or_none, 'thread_limit', 'Thread Limit'),
         (verify_integer        , 'workload_size', 'Workload Size'),
         (verify_greater_than   , 'workload_size', 'Workload Size', 0),
 
@@ -126,15 +134,12 @@ def verify_tune_creation(errors, request):
 
         # Verify everything about the Test Settings
         (verify_configuration         , 'book_name', 'Book', 'books'),
+        (verify_upload_pgns           , 'upload_pgns', 'Upload PGNs'),
 
         # Verify everything about the General Settings
         (verify_integer               , 'priority', 'Priority'),
         (verify_greater_than          , 'throughput', 'Throughput', 0),
         (verify_syzygy_field          , 'syzygy_wdl', 'Syzygy WDL'),
-
-        # Verify everything about the Workload Settings
-        (verify_integer_or_none       , 'worker_limit', 'Worker Limit'),
-        (verify_integer_or_none       , 'thread_limit', 'Thread Limit'),
 
         # Verify everything about the Adjudicaton Settings
         (verify_syzygy_field          , 'syzygy_adj', 'Syzygy Adjudication'),
@@ -157,14 +162,55 @@ def verify_tune_creation(errors, request):
     for verification in verifications:
         verification[0](errors, request, *verification[1:])
 
+def verify_datagen_creation(errors, request):
+
+    verifications = [
+
+        # Verify everything about the Dev Engine
+        (verify_configuration  , 'dev_engine', 'Dev Engine', 'engines'),
+        (verify_github_repo    , 'dev_repo'),
+        (verify_network        , 'dev_network', 'Dev Network', 'dev_engine'),
+        (verify_options        , 'dev_options', 'Threads', 'Dev Options'),
+        (verify_options        , 'dev_options', 'Hash', 'Dev Options'),
+        (verify_time_control   , 'dev_time_control', 'Dev Time Control'),
+
+        # Verify everything about the Base Engine
+        (verify_configuration  , 'base_engine', 'Base Engine', 'engines'),
+        (verify_github_repo    , 'base_repo'),
+        (verify_network        , 'base_network', 'Base Network', 'base_engine'),
+        (verify_options        , 'base_options', 'Threads', 'Base Options'),
+        (verify_options        , 'base_options', 'Hash', 'Base Options'),
+        (verify_time_control   , 'base_time_control', 'Base Time Control'),
+
+        # Verify everything about the Datagen Settings
+        (verify_datagen_games  , 'datagen_max_games'),
+        (verify_datagen_genfens, 'datagen_custom_genfens'),
+        (verify_datagen_reverse, 'datagen_play_reverses'),
+        (verify_datagen_book   , 'book_name', 'Book', 'books'),
+        (verify_upload_pgns    , 'upload_pgns', 'Upload PGNs'),
+
+        # Verify everything about the General Settings
+        (verify_integer        , 'priority', 'Priority'),
+        (verify_greater_than   , 'throughput', 'Throughput', 0),
+        (verify_syzygy_field   , 'syzygy_wdl', 'Syzygy WDL'),
+
+        # Verify everything about the Workload Settings
+        (verify_integer        , 'workload_size', 'Workload Size'),
+        (verify_greater_than   , 'workload_size', 'Workload Size', 0),
+
+        # Verify everything about the Adjudicaton Settings
+        (verify_syzygy_field   , 'syzygy_adj', 'Syzygy Adjudication'),
+        (verify_win_adj        , 'win_adj'),
+        (verify_draw_adj       , 'draw_adj'),
+    ]
+
+    for verification in verifications:
+        verification[0](errors, request, *verification[1:])
+
 
 def verify_integer(errors, request, field, field_name):
     try: int(request.POST[field])
     except: errors.append('"{0}" is not an Integer'.format(field_name))
-
-def verify_integer_or_none(errors, request, field, field_name):
-    try: True if request.POST[field] == 'None' else int(request.POST[field])
-    except: errors.append('"{0}" is neither an Integer nor "None"'.format(field_name))
 
 def verify_float(errors, request, field, field_name):
     try: float(request.POST[field])
@@ -260,11 +306,11 @@ def verify_spsa_inputs(errors, request, field):
             if not (float(minimum) <= float(value) <= float(maximum)):
                 errors.append('Value must be within [Min, Max], for %s' % (name))
 
-            if float(c) <= 0.00:
-                errors.append('C must be > 0.00, for %s' % (name))
+            if data_type.strip() == 'float' and float(c) <= 0.00:
+                errors.append('C for floats must be > 0.00, for %s' % (name))
 
             if float(r) <= 0.00:
-                errors.append('C must be > 0.00, for %s' % (name))
+                errors.append('R must be > 0.00, for %s' % (name))
 
     except:
         traceback.print_exc()
@@ -279,6 +325,28 @@ def verify_spsa_distribution_type(errors, request, field, field_name):
     candidates = ['SINGLE', 'MULTIPLE']
     try: assert request.POST[field] in candidates
     except: errors.append('%s must be in %s' % (field_name, ', '.join(candidates)))
+
+def verify_upload_pgns(errors, request, field, field_name):
+    try: request.POST[field] in ['FALSE', 'COMPACT', 'VERBOSE']
+    except: errors.append('"%s" must be FALSE, COMPACT, or VERBOSE' % (field_name))
+
+def verify_datagen_games(errors, request, field):
+    try: assert int(request.POST[field]) > 0
+    except: errors.append('Data Generation must last for at least one game')
+
+def verify_datagen_genfens(errors, request, field):
+    try: assert '"' not in request.POST[field]
+    except: errors.append('Quotes are not allowed in genfens args')
+
+def verify_datagen_reverse(errors, request, field):
+    try: assert request.POST[field] in ['YES', 'NO']
+    except: errors.append('Play Reverses must either be YES or NO')
+
+def verify_datagen_book(errors, request, field, field_name, parent):
+    try:
+        valid = ['NONE'] + list(OpenBench.config.OPENBENCH_CONFIG[parent].keys())
+        assert request.POST[field] in valid
+    except: errors.append('{0} was neither NONE nor found in the configuration'.format(field_name))
 
 
 def collect_github_info(errors, request, field):

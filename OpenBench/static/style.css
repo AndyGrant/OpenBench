@@ -33,6 +33,10 @@ body, html, main{
     flex-basis: calc(min(300px, max(200px, 10%)));
 }
 
+#sidebar-toggle {
+    display: none;
+}
+
 #content-parent{
     flex-grow: 1;
     justify-content: left;
@@ -49,26 +53,6 @@ body, html, main{
     white-space: nowrap;
     display: inline-block;
 }
-
-
-/* Styles for screen widths less than 600px */
-@media (max-width: 599px) {
-    #sidebar {
-        flex-basis: 100%;
-        padding: 16px;
-    }
-
-    #content-parent {
-        height: auto;
-        flex-grow: 0;
-        flex-basis: 100%;
-    }
-
-    body {
-        flex-direction: column;
-    }
-}
-
 
 #sidebar ul {
     list-style-type: none;
@@ -161,11 +145,23 @@ body, html, main{
     background-color: #171717;
 }
 
+#content .table-small-header th {
+    color: var(--color-font3);
+    font-size: small;
+    background-color: #171717;
+}
+
 /* Table Spacer for chaining Tables as a hack */
 
 #content .table-spacer th, #content .table-spacer tr {
     background-color: var(--color1);
     height: 1rem;
+}
+
+#content .table-spacer-small th, #content .table-spacer-small tr {
+    background-color: #171717;
+    height: 0.4rem;
+    padding: 0px;
 }
 
 /* Generic Table CSS for all Tables */
@@ -362,11 +358,17 @@ td pre {
 
 #content .default-network {
     color: var(--color-font3);
+    transform: scale(1.10);
+}
+
+#content .was-default-network {
+    color: #EFF891;
+    transform: scale(0.90);
 }
 
 #content .non-default-network {
     color: var(--color-font1);
-    transform: scale(0.75);
+    transform: scale(0.70);
 }
 
 
@@ -376,4 +378,111 @@ td pre {
 
 #content .branch_name {
     font-style: italic;
+}
+
+#content .active-highlight {
+    border-left: 4px solid var(--color-font3);
+}
+
+/* Styles for screen widths less than 768px */
+@media (max-width: 767px) {
+    #sidebar {
+        flex-basis: 100%;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+        background-color: var(--color1);
+        overflow-y: auto;
+        transition: transform cubic-bezier(0.82, 0.08, 0.1, 0.93) 0.3s;
+        transform: translateX(-100%);
+    }
+
+    body.sidebar-open #sidebar {
+        transform: none;
+    }
+
+    #sidebar-toggle {
+        display: flex;
+        padding: 10px;
+        color: var(--color-font1);
+        background-color: transparent;
+        border: none;
+        position: relative;
+        z-index: 10;
+        font-size: 2.2rem;
+    }
+
+    #content-parent {
+        height: auto;
+        flex-grow: 0;
+        flex-basis: 100%;
+        padding: 0 8px;
+    }
+
+    #content {
+        overflow-x: hidden;
+        margin-top: 70px;
+    }
+
+    #content-header {
+        display: flex;
+        align-items: center;
+        background-color: var(--color1);
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 10;
+    }
+
+    #content-header h2 {
+        /* Adjust the font size to the screen width, ensuring that the title doesn't overflow */
+        font-size: clamp(1.0rem, 4.8vw, 1.4rem);
+        margin: 8px 0;
+    }
+
+    #content-header .site-title {
+        white-space: break-spaces;
+    }
+
+    body {
+        flex-direction: column;
+    }
+
+    /* Disable vertical body scrolling when the sidebar is open */
+    body.sidebar-open {
+        position: fixed;
+        overflow-y: hidden;
+    }
+
+    /* Horizontally scrollable table */
+    table {
+        display: block;
+        overflow-x: auto;
+    }
+
+    /* Tables cannot break words to avoid issues such as single-letter lines */
+    /* The only exception is the test config table */
+    #content .wrappable:not(.workload-container .test-config) td {
+        word-break: normal;
+    }
+
+    /* Test Views */  
+    .workload-container {
+        display: flex;
+        flex-direction: column;
+    }
+
+    #content #actions {
+        order: -1;
+        margin: 0 0 1rem 0;
+    }
+
+    #content #config {
+        float: none;
+    }
+
+    #content .long-statblock {
+        overflow-x: auto;
+    }
 }

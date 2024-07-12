@@ -60,30 +60,32 @@ def gitDiffLink(test):
 
 def shortStatBlock(test):
 
+    tri_line   = 'Games: %d W: %d L: %d D: %d' % test.as_nwld()
+    penta_line = 'Ptnml(0-2): %d, %d, %d, %d, %d' % test.as_penta()
+
     if test.test_mode == 'SPSA':
-        return '\n'.join([
+        statlines = [
             'Tuning %d Parameters' % (len(test.spsa['parameters'].keys())),
             '%d/%d Iterations' % (test.games / (2 * test.spsa['pairs_per']), test.spsa['iterations']),
-            '%d/%d Games Played' % (test.games, 2 * test.spsa['iterations'] * test.spsa['pairs_per'])])
+            '%d/%d Games Played' % (test.games, 2 * test.spsa['iterations'] * test.spsa['pairs_per'])]
 
-    if test.test_mode == 'SPRT':
-        top_line = 'LLR: %0.2f (%0.2f, %0.2f) [%0.2f, %0.2f]' % (
+    elif test.test_mode == 'SPRT':
+        llr_line = 'LLR: %0.2f (%0.2f, %0.2f) [%0.2f, %0.2f]' % (
             test.currentllr, test.lowerllr, test.upperllr, test.elolower, test.eloupper)
+        statlines = [llr_line, tri_line, penta_line] if test.use_penta else [llr_line, tri_line]
 
-    if test.test_mode == 'GAMES':
-        lower, elo, upper = OpenBench.stats.ELO([test.losses, test.draws, test.wins])
-        top_line = 'Elo: %0.2f +- %0.2f (95%%) [N=%d]' % (elo, max(upper - elo, elo - lower), test.max_games)
+    elif test.test_mode == 'GAMES':
+        lower, elo, upper = OpenBench.stats.Elo(test.results())
+        elo_line = 'Elo: %0.2f +- %0.2f (95%%) [N=%d]' % (elo, max(upper - elo, elo - lower), test.max_games)
+        statlines = [elo_line, tri_line, penta_line] if test.use_penta else [elo_line, tri_line]
 
-    tri_line   = 'Games: %d W: %d L: %d D: %d' % (test.games, test.wins, test.losses, test.draws)
-    penta_line = 'Pntml(0-2): %d, %d, %d, %d, %d' % (test.LL, test.LD, test.DD, test.DW, test.WW)
+    elif test.test_mode == 'DATAGEN':
+        status_line = 'Generated %d/%d Games' % (test.games, test.max_games)
+        lower, elo, upper = OpenBench.stats.Elo(test.results())
+        elo_line = 'Elo: %0.2f +- %0.2f (95%%) [N=%d]' % (elo, max(upper - elo, elo - lower), test.max_games)
+        statlines = [status_line, elo_line, penta_line] if test.use_penta else [status_line, elo_line, tri_line]
 
-    if test.use_penta:
-        return '\n'.join([top_line, tri_line, penta_line])
-
-    if test.use_tri:
-        return '\n'.join([top_line, tri_line])
-
-    return 'Test uses neither Trinomoal nor Pentanomial'
+    return '\n'.join(statlines)
 
 def longStatBlock(test):
 
@@ -92,27 +94,25 @@ def longStatBlock(test):
     threads     = int(OpenBench.utils.extract_option(test.dev_options, 'Threads'))
     hashmb      = int(OpenBench.utils.extract_option(test.dev_options, 'Hash'))
     timecontrol = test.dev_time_control + ['s', '']['=' in test.dev_time_control]
-    test_type   = 'SPRT' if test.test_mode == 'SPRT' else 'Conf'
+    type_text   = 'SPRT' if test.test_mode == 'SPRT' else 'Conf'
 
-    lower, elo, upper = OpenBench.stats.ELO([test.losses, test.draws, test.wins])
+    lower, elo, upper = OpenBench.stats.Elo(test.results())
 
     lines = [
         'Elo   | %0.2f +- %0.2f (95%%)' % (elo, max(upper - elo, elo - lower)),
-        '%-5s | %s Threads=%d Hash=%dMB' % (test_type, timecontrol, threads, hashmb),
+        '%-5s | %s Threads=%d Hash=%dMB' % (type_text, timecontrol, threads, hashmb),
     ]
 
     if test.test_mode == 'SPRT':
         lines.append('LLR   | %0.2f (%0.2f, %0.2f) [%0.2f, %0.2f]' % (
             test.currentllr, test.lowerllr, test.upperllr, test.elolower, test.eloupper))
 
-    lines.append('Games | N: %d W: %d L: %d D: %d' % (test.games, test.wins, test.losses, test.draws))
+    lines.append('Games | N: %d W: %d L: %d D: %d' % test.as_nwld())
 
     if test.use_penta:
-        lines.append('Penta | [%d, %d, %d, %d, %d]' % (test.LL, test.LD, test.DD, test.DW, test.WW))
+        lines.append('Penta | [%d, %d, %d, %d, %d]' % test.as_penta())
 
     return '\n'.join(lines)
-
-    return 'Test uses neither Trinomoal nor Pentanomial'
 
 def testResultColour(test):
 
@@ -154,9 +154,6 @@ def prettyDevName(test):
         except: return test.dev_netname # File has since been deleted ?
 
     return prettyName(test.dev.name)
-
-def testIsFRC(test):
-    return "FRC" in test.book_name.upper() or "960" in test.book_name.upper()
 
 def testIdToPrettyName(test_id):
     return prettyName(OpenBench.models.Test.objects.get(id=test_id).dev.name)
@@ -215,7 +212,6 @@ register.filter('sumAttributes', sumAttributes)
 register.filter('insertCommas', insertCommas)
 register.filter('prettyName', prettyName)
 register.filter('prettyDevName', prettyDevName)
-register.filter('testIsFRC', testIsFRC)
 register.filter('testIdToPrettyName', testIdToPrettyName)
 register.filter('testIdToTimeControl', testIdToTimeControl)
 register.filter('cpuflagsBlock', cpuflagsBlock)
@@ -230,7 +226,7 @@ def spsa_param_digest(workload):
     digest = []
 
     # C and R are compressed as we progress iterations
-    iteration     = 10000 + (workload.games / (workload.spsa['pairs_per'] * 2))
+    iteration     = 1 + (workload.games / (workload.spsa['pairs_per'] * 2))
     c_compression = iteration ** workload.spsa['Gamma']
     r_compression = (workload.spsa['A'] + iteration) ** workload.spsa['Alpha']
 
@@ -245,7 +241,7 @@ def spsa_param_digest(workload):
         param = workload.spsa['parameters'][name]
 
         # C and R if we got a workload right now
-        c = param['c'] / c_compression
+        c = max(param['c'] / c_compression, 0.00 if param['float'] else 0.50)
         r = param['a'] / r_compression / c ** 2
 
         fstr = '%.4f' if param['float'] else '%d'
@@ -263,6 +259,9 @@ def spsa_param_digest(workload):
         ])
 
     return digest
+
+def spsa_param_digest_headers(workload):
+    return ['Name', 'Curr', 'Start', 'Min', 'Max', 'C', 'C_end', 'R', 'R_end']
 
 def spsa_original_input(workload):
 
@@ -356,7 +355,21 @@ def git_diff_text(workload, N=24):
 
     return '%s vs %s' % (dev_name, base_name)
 
+
+def test_is_smp_odds(test):
+    dev_threads  = int(OpenBench.utils.extract_option(test.dev_options , 'Threads'))
+    base_threads = int(OpenBench.utils.extract_option(test.base_options, 'Threads'))
+    return dev_threads != base_threads
+
+def test_is_time_odds(test):
+    return test.dev_time_control != test.base_time_control
+
+def test_is_fischer(test):
+    return 'FRC' in test.book_name.upper() or '960' in test.book_name.upper()
+
+
 register.filter('spsa_param_digest', spsa_param_digest)
+register.filter('spsa_param_digest_headers', spsa_param_digest_headers)
 register.filter('spsa_original_input', spsa_original_input)
 register.filter('spsa_optimal_values', spsa_optimal_values)
 
@@ -367,3 +380,18 @@ register.filter('workload_url', workload_url)
 register.filter('workload_pretty_name', workload_pretty_name)
 
 register.filter('git_diff_text', git_diff_text)
+
+register.filter('test_is_smp_odds'  , test_is_smp_odds  )
+register.filter('test_is_time_odds' , test_is_time_odds )
+register.filter('test_is_fischer'   , test_is_fischer   )
+
+
+@register.filter
+def next(iterable, index):
+    try: return iterable[int(index) + 1]
+    except: return None
+
+@register.filter
+def previous(iterable, index):
+    try: return iterable[int(index) - 1]
+    except: return None

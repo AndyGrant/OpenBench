@@ -1,4 +1,4 @@
-*.pyc
+.pyc
 Client/*
 OpenBench/migrations/*
 
@@ -6,8 +6,15 @@ credentials
 credentials.*
 db.sqlite3
 
-Scripts/Binaries/*
+Scripts/Engines/*
 Scripts/Networks/*
-Scripts/Repositories/*
 
 Media/*
+
+!Client/*.py
+!Client/cutechess-ob
+!Client/cutechess-ob.exe
+
+Media/PGNs/*
+Media/Networks/*
+Media/Events/*

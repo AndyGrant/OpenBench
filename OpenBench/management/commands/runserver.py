@@ -19,6 +19,8 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 from OpenBench.watcher import ArtifactWatcher
+from OpenBench.pgn_watcher import PGNWatcher
+
 from django.core.management.commands.runserver import Command as BaseRunserverCommand
 
 class Command(BaseRunserverCommand):
@@ -30,6 +32,8 @@ class Command(BaseRunserverCommand):
 
     def pre_start(self):
         self.watcher = ArtifactWatcher().start()
+        self.pgn_watcher = PGNWatcher().start()
 
     def pre_quit(self):
         self.watcher.kill()
+        self.pgn_watcher.kill()
