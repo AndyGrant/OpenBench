@@ -392,9 +392,9 @@ class Cutechess:
     def concurrency_settings(config):
 
         # Already computed for us by the Server
-        return '-concurrency %d -games %d' % (
+        return '-concurrency %d -rounds %d -games 2' % (
             config.workload['distribution']['concurrency-per'],
-            config.workload['distribution']['games-per-cutechess'],
+            config.workload['distribution']['games-per-cutechess'] // 2,
         )
 
     @staticmethod
