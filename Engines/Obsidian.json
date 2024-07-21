@@ -1,13 +1,13 @@
 {
     "private"  : false,
-    "nps"      : 1000000,
+    "nps"      : 1600000,
     "base"     : "main",
-    "source"   : "https://github.com/gab8192/Obsidian",
+    "source"   : "https://github.com/Ciekce/Obsidian",
 
     "build" : {
         "path"      : ".",
         "compilers" : ["gcc"],
-        "cpuflags"  : ["AVX2", "FMA", "POPCNT"],
+        "cpuflags"  : ["AVX2", "POPCNT"],
         "systems"   : ["Windows", "Linux"]
     },
 
@@ -16,7 +16,7 @@
 		"default" : {
             "base_branch"     : "main",
             "book_name"       : "UHO_4060_v2.epd",
-            "test_bounds"     : "[0.00, 3.00]",
+            "test_bounds"     : "[0.00, 2.00]",
             "test_confidence" : "[0.1, 0.05]",
             "win_adj"         : "movecount=3 score=400",
             "draw_adj"        : "movenumber=40 movecount=8 score=10"
