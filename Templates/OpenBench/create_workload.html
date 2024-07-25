@@ -14,7 +14,7 @@
     <script>
         document.addEventListener(
             'DOMContentLoaded', function () {
-                // change_engine('{{ profile.engine }}', 'dev', '{{workload}}');
+                change_engine('{{ profile.engine }}', 'dev', '{{workload}}');
                 enforce_default_text('dev_repo', 'https://github.com/');
                 enforce_default_text('base_repo', 'https://github.com/');
             }, false
