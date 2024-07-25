@@ -29,6 +29,7 @@
 import math
 import scipy
 from scipy import optimize
+from scipy import stats
 
 def TrinomialSPRT(results, elo0, elo1):
 
