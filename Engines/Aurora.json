@@ -1,7 +1,7 @@
 {
     "private" : false,
-    "nps"     : 850000,
-    "source"  : "https://github.com/Adam-Kulju/Willow",
+    "nps"     : 220000,
+    "source"  : "https://github.com/kjljixx/Aurora-Chess-Engine",
 
     "build" : {
         "path"      : "",
