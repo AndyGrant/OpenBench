@@ -13,7 +13,7 @@
     "test_presets" : {
 
         "default" : {
-            "base_branch"     : "master",
+            "base_branch"     : "main",
             "book_name"       : "UHO_4060_v2.epd",
             "test_bounds"     : "[0.00, 10.00]",
             "test_confidence" : "[0.05, 0.05]",
