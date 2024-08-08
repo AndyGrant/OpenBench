@@ -1235,7 +1235,7 @@ def run_openbench_worker(client_args):
             if config.workload: complete_workload(config)
 
             # Otherwise --fleet workers will exit when there is no work
-            elif config.fleet: time.sleep(TIMEOUT_ERROR); break
+            elif config.fleet: time.sleep(TIMEOUT_ERROR); sys.exit()
 
             # In either case, wait before requesting again
             else: time.sleep(TIMEOUT_WORKLOAD)
