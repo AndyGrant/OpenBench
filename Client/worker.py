@@ -214,7 +214,8 @@ class Configuration:
 
         if os.path.isfile('machine.txt'):
             with open('machine.txt') as fin:
-                self.machine_id = fin.readlines()[0]
+                for line in fin.readlines():
+                    machine_id = line.rstrip(); break
 
 class ServerReporter:
 
