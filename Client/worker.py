@@ -54,7 +54,7 @@ from genfens import create_genfens_opening_book
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 29 # Client version to send to the Server
+CLIENT_VERSION   = 30 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -214,7 +214,8 @@ class Configuration:
 
         if os.path.isfile('machine.txt'):
             with open('machine.txt') as fin:
-                self.machine_id = fin.readlines()[0]
+                for line in fin.readlines():
+                    self.machine_id = line.rstrip(); break
 
 class ServerReporter:
 
@@ -1235,7 +1236,7 @@ def run_openbench_worker(client_args):
             if config.workload: complete_workload(config)
 
             # Otherwise --fleet workers will exit when there is no work
-            elif config.fleet: time.sleep(TIMEOUT_ERROR); break
+            elif config.fleet: time.sleep(TIMEOUT_ERROR); sys.exit()
 
             # In either case, wait before requesting again
             else: time.sleep(TIMEOUT_WORKLOAD)
