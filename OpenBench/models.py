@@ -102,8 +102,8 @@ class Test(Model):
     dev_repo         = CharField(max_length=1024)
     dev_engine       = CharField(max_length=64)
     dev_options      = CharField(max_length=256)
-    dev_network      = CharField(max_length=256)
-    dev_netname      = CharField(max_length=256)
+    dev_network      = CharField(max_length=256, blank=True)
+    dev_netname      = CharField(max_length=256, blank=True)
     dev_time_control = CharField(max_length=32)
 
     # Base Engine, and all of its settings
@@ -111,8 +111,8 @@ class Test(Model):
     base_repo         = CharField(max_length=1024)
     base_engine       = CharField(max_length=64)
     base_options      = CharField(max_length=256)
-    base_network      = CharField(max_length=256)
-    base_netname      = CharField(max_length=256)
+    base_network      = CharField(max_length=256, blank=True)
+    base_netname      = CharField(max_length=256, blank=True)
     base_time_control = CharField(max_length=32)
 
     # Changable Test Parameters
@@ -137,7 +137,7 @@ class Test(Model):
     upperllr      = FloatField(default=0.0) # SPRT
     max_games     = IntegerField(default=0) # GAMES or DATAGEN
     spsa          = JSONField(default=dict, blank=True, null=True) # SPSA
-    genfens_args  = CharField(max_length=256, default='') # DATAGEN
+    genfens_args  = CharField(max_length=256, default='', blank=True) # DATAGEN
     play_reverses = BooleanField(default=False) # DATAGEN
 
     # Collection of all individual Result() objects
