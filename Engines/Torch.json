@@ -147,9 +147,9 @@
             "workload_size" : 64
         },
 
-        "57.5k Nodes" : {
+        "36k (Soft) Nodes" : {
             "both_options"      : "Threads=1 Hash=16 Minimal=true Normalize=false UseSoftNodes=true",
-            "both_time_control" : "N=57500"
+            "both_time_control" : "N=36000"
         }
     }
 }
