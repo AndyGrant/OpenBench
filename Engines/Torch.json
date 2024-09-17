@@ -148,7 +148,7 @@
         },
 
         "57.5k Nodes" : {
-            "both_options"      : "Threads=1 Hash=16 Minimal=true Normalize=false",
+            "both_options"      : "Threads=1 Hash=16 Minimal=true Normalize=false UseSoftNodes=true",
             "both_time_control" : "N=57500"
         }
     }
