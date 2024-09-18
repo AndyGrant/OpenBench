@@ -653,8 +653,9 @@ def client_fastchess_version_ref(request):
 
     # Enough information to build the right Fastchess version
     return JsonResponse({
-        'fastchess_repo_url' : OPENBENCH_CONFIG['fastchess_repo_url'],
-        'fastchess_repo_ref' : OPENBENCH_CONFIG['fastchess_repo_ref'],
+        'fastchess_min_version' : OPENBENCH_CONFIG['fastchess_min_version'],
+        'fastchess_repo_url'    : OPENBENCH_CONFIG['fastchess_repo_url'],
+        'fastchess_repo_ref'    : OPENBENCH_CONFIG['fastchess_repo_ref'],
     })
 
 @csrf_exempt

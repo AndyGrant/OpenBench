@@ -55,7 +55,7 @@ from genfens import create_genfens_opening_book
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 30 # Client version to send to the Server
+CLIENT_VERSION   = 31 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -728,6 +728,20 @@ def get_version(program):
         stdout  = process.communicate()[0].decode('utf-8')
         return re.search(r'\d+\.\d+(\.\d+)?', stdout).group()
 
+def compare_versions(program_path, min_version_str):
+
+    if not program_path:
+        return None
+
+    version_str = get_version(program_path)
+
+    if not version_str:
+        return None
+
+    program_ver = tuple(map(int, version_str.split('.')))
+    minimum_ver = tuple(map(int, min_version_str.split('.')))
+    return version_str if program_ver >= minimum_ver else None
+
 def locate_utility(util, force_exit=True, report_error=True):
 
     try: return get_version(util)
@@ -868,10 +882,21 @@ def find_pgn_error(reason, command):
 def server_configure_fastchess(config):
 
     # OpenBench Server holds the fast-chess repo and git-ref
-    print ('\nConfiguring fast-chess...\n> Requesting fast-chess repo and git-ref')
+    print ('\nConfiguring fast-chess...\n> Requesting fast-chess configuration from openbench')
     target  = url_join(config.server, 'clientFastchessVersionRef')
     payload = { 'username' : config.username, 'password' : config.password }
     data    = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
+
+    # Might already have a sufficiently new Fastchess binary
+    print ('> Checking for existing fastchess-ob binary')
+    fastchess_path = os.path.join(os.getcwd(), 'fastchess-ob')
+    fastchess_path = check_for_engine_binary(fastchess_path)
+    acceptable_ver = compare_versions(fastchess_path, data['fastchess_min_version'])
+
+    if acceptable_ver:
+        print ('> Found fastchess-ob v%s' % (acceptable_ver))
+        config.fastchess_ver = acceptable_ver
+        return
 
     # Download a .zip archive of the git-ref from the specified repo
     repo_url, repo_ref = data['fastchess_repo_url'], data['fastchess_repo_ref']
@@ -892,7 +917,7 @@ def server_configure_fastchess(config):
         # Prepare to build, using the root folder of the extracted files as the cwd
         print ('> Extracting and building fast-chess %s using %s' % (repo_ref, config.cxx_comp))
         fastchess_dir = os.path.join(temp_dir, os.listdir(temp_dir)[0])
-        bin_path      = os.path.join(fastchess_dir, 'fast-chess')
+        bin_path      = os.path.join(fastchess_dir, 'fastchess')
 
         # Execute the build, using our C++ compiler, and record any output
         make_cmd    = ['make', '-j', 'CXX=%s' % config.cxx_comp]
@@ -911,13 +936,12 @@ def server_configure_fastchess(config):
             raise OpenBenchFastchessBuildFailedException()
 
         # Append .exe if needed, and then report the fast-chess version that was built
-        binary  = check_for_engine_binary(bin_path)
-        process = Popen([binary, '--version'], stdout=PIPE, stderr=PIPE)
-        config.fastchess_ver = process.communicate()[0].decode('utf-8').split()[1]
-        print ('> Finished building %s' % config.fastchess_ver)
+        binary = check_for_engine_binary(bin_path)
+        config.fastchess_ver = get_version(binary)
+        print ('> Finished building v%s' % config.fastchess_ver)
 
         # Move the finished fast-chess binary to the Client's Root directory
-        out_path = os.path.join(os.getcwd(), '%s-ob' % (os.path.basename(binary)))
+        out_path = os.path.join(os.getcwd(), os.path.basename(binary).replace('fastchess', 'fastchess-ob'))
         shutil.move(binary, out_path)
 
 def server_configure_worker(config):
