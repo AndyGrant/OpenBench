@@ -62,6 +62,11 @@ MIDDLEWARE = [
     'htmlmin.middleware.MarkRequestMiddleware',
 ]
 
+# CSRF Trusted Origins
+CSRF_TRUSTED_ORIGINS = [
+        'https://chess.aronpetkovski.com'
+]
+
 ROOT_URLCONF = 'OpenSite.urls'
 
 TEMPLATES = [

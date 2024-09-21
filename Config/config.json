@@ -6,7 +6,7 @@
     "use_cross_approval"          : false,
     "require_login_to_view"       : false,
     "require_manual_registration" : false,
-    "balance_engine_throughputs"  : false,
+    "balance_engine_throughputs"  : true,
 
     "books" : [
         "2moves_v1.epd",
@@ -19,29 +19,26 @@
         "Pohl.pgn",
         "UHO_4060_v2.epd",
         "UHO_4060_vB.epd",
-        "UHO_4060_vT.epd"
+        "UHO_4060_vT.epd",
+        "UHO_Lichess_4852_v1.epd",
+        "fortresses_1.1-1.6.epd",
+        "fortresses_1.3-2.0.epd",
+	"fortresses_150_250.epd"
     ],
 
     "engines" : [
-        "4ku",
+        "Integral",
+        "PlentyChess",
+        "Obsidian",
+        "Elixir",
+        "Serendipity",
+        "Spaghet",
         "Berserk",
-        "Bit-Genie",
-        "BlackMarlin",
-        "Demolito",
-        "Drofa",
-        "Equisetum",
-        "Ethereal",
-        "FabChess",
-        "Halogen",
-        "Igel",
-        "Koivisto",
-        "Laser",
-        "RubiChess",
-        "Seer",
-        "Stash",
+        "Quanticade",
         "Stockfish",
-        "Weiss",
-        "Winter",
-        "Zahak"
+        "Clarity",
+        "Anura",
+        "Clover"
     ]
 }
+

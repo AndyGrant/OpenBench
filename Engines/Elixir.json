@@ -1,75 +1,50 @@
 {
     "private" : false,
-    "nps"     : 865000,
-    "source"  : "https://github.com/cosmobobak/viridithas",
+    "nps"     : 1150000,
+    "source"  : "https://github.com/ArjunBasandrai/elixir-chess-engine",
 
     "build" : {
         "path"      : "",
-        "compilers" : ["cargo>=1.70.0"],
+        "compilers" : ["g++"],
         "cpuflags"  : [],
-        "systems"   : ["Linux", "Windows", "Darwin"]
+        "systems"   : ["Windows", "Linux"]
     },
 
     "test_presets" : {
 
         "default" : {
-            "base_branch"     : "master",
-            "book_name"       : "Pohl.epd",
+            "base_branch"     : "main",
+            "book_name"       : "UHO_Lichess_4852_v1.epd",
             "test_bounds"     : "[0.00, 3.00]",
-            "test_confidence" : "[0.05, 0.05]",
-            "win_adj"         : "movecount=3 score=400",
-            "draw_adj"        : "movenumber=40 movecount=8 score=10"
+            "test_confidence" : "[0.1, 0.05]",
+            "win_adj"         : "None",
+            "draw_adj"        : "None",
+            "both_options"     : "Threads=1 Hash=8"
         },
-
+        
         "STC" : {
-            "both_options"      : "Threads=1 Hash=16",
+            "both_options"      : "Threads=1 Hash=8",
             "both_time_control" : "8.0+0.08",
             "workload_size"     : 32
         },
-
+        
         "LTC" : {
-            "both_options"      : "Threads=1 Hash=128",
+            "both_options"      : "Threads=1 Hash=64",
             "both_time_control" : "40.0+0.4",
             "workload_size"     : 8
         },
-
-        "STC regression" : {
-            "both_options"      : "Threads=1 Hash=16",
+        
+        "NONREG STC" : {
+            "both_options"      : "Threads=1 Hash=8",
             "both_time_control" : "8.0+0.08",
-            "workload_size"     : 32,
-            "test_bounds"       : "[-5.00, 0.00]"
-        },
-
-        "LTC regression" : {
-            "both_options"      : "Threads=1 Hash=128",
-            "both_time_control" : "40.0+0.4",
-            "workload_size"     : 8,
-            "test_bounds"       : "[-5.00, 0.00]"
-        },
-
-        "STC progtest" : {
-            "both_options"      : "Threads=1 Hash=16",
-            "both_time_control" : "8.0+0.08",
-            "workload_size"     : 32,
-            "test_max_games"    : 3000
-        },
-
-        "LTC progtest" : {
-            "both_options"      : "Threads=1 Hash=128",
-            "both_time_control" : "60.0+0.6",
-            "workload_size"     : 8,
-            "test_max_games"    : 1000
-        },
-
-        "SMP STC" : {
-            "both_options"      : "Threads=4 Hash=16",
-            "both_time_control" : "8.0+0.08",
+            "test_bounds"       : "[-5.00, 0.00]",
             "workload_size"     : 32
         },
-
-        "SMP LTC" : {
-            "both_options"      : "Threads=4 Hash=128",
+        
+        "NONREG LTC" : {
+            "both_options"      : "Threads=1 Hash=64",
             "both_time_control" : "40.0+0.4",
+            "test_bounds"       : "[-5.00, 0.00]",
             "workload_size"     : 8
         }
     },
@@ -104,7 +79,6 @@
     },
 
     "datagen_presets" : {
-
         "default" : {
             "win_adj"       : "None",
             "draw_adj"      : "None",

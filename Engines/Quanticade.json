@@ -1,13 +1,13 @@
 {
     "private" : false,
-    "nps"     : 760000,
-    "source"  : "https://github.com/Matthies/RubiChess",
+    "nps"     : 1025000,
+    "source"  : "https://github.com/Quanticade/Quanticade",
 
     "build" : {
-        "path"      : "src",
-        "compilers" : ["g++"],
-        "cpuflags"  : ["POPCNT"],
-        "systems"   : ["Windows", "Linux"]
+        "path"      : "",
+        "compilers" : ["clang"],
+        "cpuflags"  : [],
+        "systems"   : ["Linux"]
     },
 
     "test_presets" : {
@@ -22,26 +22,40 @@
         },
 
         "STC" : {
-            "both_options"      : "Threads=1 Hash=8",
-            "both_time_control" : "10.0+0.1",
+            "both_options"      : "Threads=1 Hash=16",
+            "both_time_control" : "8.0+0.08",
             "workload_size"     : 32
         },
 
         "LTC" : {
             "both_options"      : "Threads=1 Hash=64",
-            "both_time_control" : "60.0+0.6",
+            "both_time_control" : "40.0+0.4",
             "workload_size"     : 8
+        },
+
+        "STC regression" : {
+            "both_options"      : "Threads=1 Hash=32",
+            "both_time_control" : "8.0+0.08",
+            "workload_size"     : 32,
+            "test_bounds"       : "[-5.00, 0.00]"
+        },
+
+        "LTC regression" : {
+            "both_options"      : "Threads=1 Hash=128",
+            "both_time_control" : "40.0+0.4",
+            "workload_size"     : 8,
+            "test_bounds"       : "[-5.00, 0.00]"
         },
 
         "SMP STC" : {
             "both_options"      : "Threads=8 Hash=64",
-            "both_time_control" : "5.0+0.05",
+            "both_time_control" : "4.0+0.04",
             "workload_size"     : 64
         },
 
         "SMP LTC" : {
             "both_options"      : "Threads=8 Hash=256",
-            "both_time_control" : "20.0+0.2",
+            "both_time_control" : "16.0+0.16",
             "workload_size"     : 16
         }
     },
