@@ -112,19 +112,20 @@ def create_genfens_opening_book(config, binary_name, network):
 
     # Format: ./engine "genfens N seed S book <None|book.epd>" "quit"
     N     = genfens_required_openings_each(config)
-    seed  = config.workload['test']['book_index']
+    seeds = config.workload['test']['genfens_seeds']
     args  = genfens_command_args(config, binary_name, network)
 
     start_time = time.time()
     output     = multiprocessing.Queue()
     print ('\nGenerating %d Openings using %d Threads...' % (N * config.threads, config.threads))
 
+
     # Split the work over many threads. Ensure the seed varies by the thread,
     # number in accordance with how many openings each thread will generate
     processes = [
         multiprocessing.Process(
             target=genfens_single_threaded,
-            args=(genfens_command_builder(*args, genfens_seed(config, N, ii)), output))
+            args=(genfens_command_builder(*args, seeds[ii]), output))
         for ii in range(config.threads)
     ]
 
