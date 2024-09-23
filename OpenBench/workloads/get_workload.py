@@ -248,12 +248,13 @@ def workload_to_dictionary(test, result, machine):
 
         cutechess_cnt = workload['distribution']['cutechess-count']
         pairs_per_cnt = workload['distribution']['games-per-cutechess'] // 2
+        per_opening   = 2 if (test.test_mode == 'DATAGEN' and not test.play_reverses) else 1
 
-        if test.test_mode != 'DATAGEN':
-            test.book_index += cutechess_cnt * pairs_per_cnt
-        else:
+        test.book_index += cutechess_cnt * pairs_per_cnt * per_opening
+
+        if test.test_mode == 'DATAGEN':
             workload['test']['genfens_seeds'] = [
-                random.randint(0, 2**32 - 1) for x in range(machine.info['concurrency'])]
+                random.randint(0, 2**31 - 1) for x in range(machine.info['concurrency'])]
 
         test.save()
 
