@@ -1,19 +1,19 @@
 {
     "private" : false,
-    "nps"     : 800000,
+    "nps"     : 700000,
     "source"  : "https://github.com/Vast342/Clarity",
 
     "build" : {
         "path"      : "",
         "compilers" : ["clang++"],
-        "cpuflags"  : ["BMI2", "AVX2", "POPCNT"],
+        "cpuflags"  : ["BMI2", "AVX2"],
         "systems"   : ["Windows", "Linux"]
     },
 
     "test_presets" : {
         "default" : {
             "base_branch"     : "main",
-            "book_name"       : "Pohl.epd",
+            "book_name"       : "UHO_Lichess_4852_v1.epd",
             "test_bounds"     : "[0.00, 3.00]",
             "test_confidence" : "[0.05, 0.05]",
             "win_adj"         : "movecount=3 score=400",
@@ -51,7 +51,7 @@
     "tune_presets" : {
 
         "default" : {
-            "book_name" : "Pohl.pgn",
+            "book_name" : "UHO_Lichess_4852_v1.epd",
             "win_adj"   : "movecount=3 score=400",
             "draw_adj"  : "movenumber=40 movecount=8 score=10"
         }

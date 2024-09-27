@@ -1,6 +1,6 @@
 {
   "private" : false,
-  "nps": 1408447,
+  "nps": 955520,
   "source"  : "https://github.com/aronpetko/Integral",
 
   "build" : {
@@ -14,7 +14,7 @@
     "default": {
       "base_branch": "main",
       "book_name": "UHO_Lichess_4852_v1.epd",
-      "test_bounds": "[0.00, 5.00]",
+      "test_bounds": "[0.00, 3.00]",
       "test_confidence": "[0.1, 0.05]",
       "win_adj": "movecount=3 score=400",
       "draw_adj": "movenumber=40 movecount=8 score=10"
