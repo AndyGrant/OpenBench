@@ -288,28 +288,49 @@ def verify_syzygy_field(errors, request, field, field_name):
     except: errors.append('%s must be in %s' % (field_name, ', '.join(candidates)))
 
 def verify_spsa_inputs(errors, request, field):
+    def check_numeric(field_name, parameter_name, field):
+        try:
+            return float(field)
+        except:
+            errors.append('%s must be numeric, for %s' % (field_name, parameter_name))
+            return None
 
     try:
 
         if not (lines := request.POST[field].split('\n')):
             errors.append('No Parameters Provided')
 
-        for line in lines:
-            name, data_type, value, minimum, maximum, c, r = line.split(',')
+        for num, line in enumerate(lines):
+            fields = line.split(',')
+            if len(fields) != 7:
+                location = fields[0].strip()
+                if not location:
+                    location = 'line %d' % (num + 1)
+                errors.append('Parameters must have 7 fields, for %s' % (location))
+                continue
+
+            name, data_type, value, minimum, maximum, c, r = fields
+
+            value = check_numeric("Value", name, value)
+            minimum = check_numeric("minimum", name, minimum)
+            maximum = check_numeric("Maximum", name, maximum)
+            c = check_numeric("C", name, c)
+            r = check_numeric("R", name, r)
 
             if data_type.strip() not in [ 'int', 'float' ]:
                 errors.append('Datatype must be int for float, for %s' % (name))
 
-            if float(minimum) > float(maximum):
-                errors.append('Max does not exceed Min, for %s' % (name))
+            if minimum is not None and maximum is not None:
+                if minimum > maximum:
+                    errors.append('Max does not exceed Min, for %s' % (name))
 
-            if not (float(minimum) <= float(value) <= float(maximum)):
-                errors.append('Value must be within [Min, Max], for %s' % (name))
+                if value is not None and not (minimum <= value <= maximum):
+                    errors.append('Value must be within [Min, Max], for %s' % (name))
 
-            if data_type.strip() == 'float' and float(c) <= 0.00:
+            if c is not None and data_type.strip() == 'float' and c <= 0.00:
                 errors.append('C for floats must be > 0.00, for %s' % (name))
 
-            if float(r) <= 0.00:
+            if r is not None and r <= 0.00:
                 errors.append('R must be > 0.00, for %s' % (name))
 
     except:
