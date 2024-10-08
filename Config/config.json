@@ -1,14 +1,14 @@
 {
-    "client_version"  : 32,
-    "client_repo_url" : "https://github.com/AndyGrant/OpenBench",
-    "client_repo_ref" : "master",
+    "client_version": 32,
+    "client_repo_url": "https://github.com/dannyhammer/openbench",
+    "client_repo_ref": "master",
 
-    "use_cross_approval"          : false,
-    "require_login_to_view"       : false,
-    "require_manual_registration" : false,
-    "balance_engine_throughputs"  : false,
+    "use_cross_approval": false,
+    "require_login_to_view": false,
+    "require_manual_registration": false,
+    "balance_engine_throughputs": false,
 
-    "books" : [
+    "books": [
         "2moves_v1.epd",
         "3moves_FRC.epd",
         "4moves_noob.epd",
@@ -22,26 +22,5 @@
         "UHO_4060_vT.epd"
     ],
 
-    "engines" : [
-        "4ku",
-        "Berserk",
-        "Bit-Genie",
-        "BlackMarlin",
-        "Demolito",
-        "Drofa",
-        "Equisetum",
-        "Ethereal",
-        "FabChess",
-        "Halogen",
-        "Igel",
-        "Koivisto",
-        "Laser",
-        "RubiChess",
-        "Seer",
-        "Stash",
-        "Stockfish",
-        "Weiss",
-        "Winter",
-        "Zahak"
-    ]
+    "engines": ["BlackMarlin", "Ethereal", "Stockfish", "Toad"]
 }
