@@ -73,15 +73,16 @@ def PentanomialSPRT(results, elo0, elo1):
 def Elo(results):
 
     # Cannot compute elo without any games
-    if not (N := sum(results)):
+    if not (N := sum(results)) or N == 1:
         return (0.00, 0.00, 0.00)
 
     div = len(results) - 1 # Converts index to the points outcome
     mu  = sum((f / div) * results[f] for f in range(len(results))) / N
     var = sum(((f / div) - mu)**2 * results[f] for f in range(len(results))) / N
+    df  = N - 1 # Degrees of freedom
 
-    mu_min = mu + scipy.stats.norm.ppf(0.025) * math.sqrt(var) / math.sqrt(N)
-    mu_max = mu + scipy.stats.norm.ppf(0.975) * math.sqrt(var) / math.sqrt(N)
+    mu_min = mu + scipy.stats.t.ppf(0.025, df) * math.sqrt(var) / math.sqrt(N)
+    mu_max = mu + scipy.stats.t.ppf(0.975, df) * math.sqrt(var) / math.sqrt(N)
 
     return logistic_elo(mu_min), logistic_elo(mu), logistic_elo(mu_max)
 
