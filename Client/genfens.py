@@ -101,8 +101,8 @@ def genfens_single_threaded(command, queue):
 
 def genfens_progress_bar(curr, total):
 
-    prev_progress = int(50 * (curr - 1) / total)
-    curr_progress = int(50 * (curr - 0) / total)
+    prev_progress = 50 * (curr - 1) // total
+    curr_progress = 50 * (curr - 0) // total
 
     if curr_progress != prev_progress:
         bar_text = '=' * curr_progress + ' ' * (50 - curr_progress)

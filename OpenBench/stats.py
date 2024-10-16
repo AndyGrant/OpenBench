@@ -122,8 +122,8 @@ def secular(pdf):
 
 def stats(pdf):
     epsilon = 1e-6
-    for i in range(0, len(pdf)):
-        assert -epsilon <= pdf[i][1] <= 1 + epsilon
+    for i in pdf:
+        assert -epsilon <= i[1] <= 1 + epsilon
     n = sum([prob for value, prob in pdf])
     assert abs(n - 1) < epsilon
     s = sum([prob * value for value, prob in pdf])
