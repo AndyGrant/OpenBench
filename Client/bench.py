@@ -128,4 +128,4 @@ def run_benchmark(binary, network, private, threads, sets, expected=None):
     if expected and expected != benches[0]:
         raise OpenBenchBadBenchException('[%s] Wrong Bench: %d' % (engine, benches[0]))
 
-    return int(sum(speeds) / len(speeds)), benches[0]
+    return sum(speeds) // len(speeds), benches[0]
