@@ -1,11 +1,12 @@
 
 function copy_text(element_id, keep_url) {
 
-    var text = document.getElementById(element_id).innerHTML;
+    var text = "```" + document.getElementById(element_id).innerHTML;
     text = text.replace(/<br>/g, "\n");
+    text += "```";
 
     if (keep_url)
-        text += "\n" + window.location.href;
+        text += "\n<" + window.location.href + ">";
 
     var area = document.createElement("textarea");
     area.value = text;
