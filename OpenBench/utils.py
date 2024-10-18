@@ -18,6 +18,8 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+import sys
+
 import datetime
 import hashlib
 import json
@@ -420,6 +422,11 @@ def update_test(request, machine):
 
         test = Test.objects.select_for_update().get(id=test_id)
 
+        # Send update to webhook, if it exists
+        if test.finished and os.path.exists('webhook'):
+            print("---------------------------------------------------------Notifying webhook!", file=sys.stderr)
+            notify_webhook(request, test, test_id)
+
         if test.finished or test.deleted:
             return { 'stop' : True }
 
@@ -502,5 +509,76 @@ def update_test(request, machine):
     Machine.objects.filter(id=machine_id).update(
         updated=timezone.now()
     )
-
+    
     return [{}, { 'stop' : True }][test.finished]
+
+def notify_webhook(request, test, test_id):
+
+    with open('webhook') as webhook_file:
+        webhook = webhook_file.readlines()[0]
+
+        lower, elo, upper = OpenBench.stats.ELO(test.wins, test.losses, test.draws)
+        error = max(upper - elo, elo - lower)
+        elo   = OpenBench.templatetags.mytags.twoDigitPrecision(elo)
+        error = OpenBench.templatetags.mytags.twoDigitPrecision(error)
+        h0 = OpenBench.templatetags.mytags.twoDigitPrecision(test.elolower)
+        h1 = OpenBench.templatetags.mytags.twoDigitPrecision(test.eloupper)
+        tokens = test.devoptions.split(' ')
+        threads = tokens[0].split('=')[1]
+        hash = tokens[1].split('=')[1]
+        outcome = 'passed' if test.passed else 'failed'
+        if test.test_mode == 'GAMES':
+            mode_string = f'{test.max_games} games'
+        else:
+            mode_string = f'SPRT [{h0}, {h1}]'
+        if test.passed:
+            color = 0x37F769
+        elif test.wins < test.losses:
+            color = 0xFA4E4E
+        else:
+            color = 0xFEFF58
+
+        
+        msg = {
+            'username': test.engine,
+            'embeds': [{
+                'title': f'Test `{test.dev.name}` vs `{test.base.name}` {outcome}',
+                'url': request.build_absolute_uri(f'/test/{test_id}'),
+                'color': color,
+                'author': { "name": test.author },
+                'fields': [
+                    {
+                        'name': 'Configuration',
+                        'value': f'{test.timecontrol}s Threads={threads} Hash={hash}MB',
+                    },
+                    {
+                        'name': 'Mode',
+                        'value': mode_string,
+                    },
+                    {
+                        'name': 'Wins',
+                        'value': f'{test.wins}',
+                        'inline': True,
+                    },
+                    {
+                        'name': 'Losses',
+                        'value': f'{test.losses}',
+                        'inline': True,
+                    },
+                    {
+                        'name': 'Draws',
+                        'value': f'{test.draws}',
+                        'inline': True,
+                    },
+                    {
+                        'name': 'Elo',
+                        'value': f'{elo} ± {error} (95%)',
+                    },
+                ]
+            }]
+        }
+        print("--------------------------------------------------------------------------------------------------------------------------------", file=sys.stderr)
+        print(msg, file=sys.stderr)
+        print("--------------------------------------------------------------------------------------------------------------------------------", file=sys.stderr)
+        print(f"-----------------------------------------------Sending msg to {webhook}", file=sys.stderr)
+        requests.post(webhook, json=msg)
