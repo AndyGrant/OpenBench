@@ -18,14 +18,10 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import sys
-
 import datetime
 import hashlib
-import json
 import math
 import os
-import random
 import re
 import requests
 
@@ -399,6 +395,34 @@ def network_edit(request, engine, network):
 
     return OpenBench.views.redirect(request, '/networks/%s' % (network.engine), status='Applied changes')
 
+def notify_webhook(request, test_id):
+    webhook = open('webhook').read().strip() # Remove trailing whitespace/newline, if present
+    test = Test.objects.get(id=test_id)
+
+    # Compute stats
+    lower, elo, upper = OpenBench.stats.Elo(test.results())
+    error = max(upper - elo, elo - lower)
+    elo   = OpenBench.templatetags.mytags.twoDigitPrecision(elo)
+    error = OpenBench.templatetags.mytags.twoDigitPrecision(error)
+    outcome = 'passed' if test.passed else 'failed'
+
+    # Green if passing, red if failing.
+    color = 0xFEFF58
+    if test.passed:
+        color = 0x37F769
+    elif test.wins < test.losses:
+        color = 0xFA4E4E
+
+    return requests.post(webhook, json={
+        'username': test.dev_engine,
+        'embeds': [{
+            'author': { 'name': test.author },
+            'title': f'Test `{test.dev.name}` vs `{test.base.name}` {outcome}',
+            'url': request.build_absolute_uri(f'/test/{test_id}'),
+            'color': color,
+            'description': f'```\n{longStatBlock(test)}\n```',
+        }]
+    })
 
 def update_test(request, machine):
 
@@ -508,51 +532,6 @@ def update_test(request, machine):
     
     # Send update to webhook, if it exists
     if test.finished and os.path.exists('webhook'):
-        response = notify_webhook(request, test, test_id)
-
-        # print(f'Text: {response.text}')
-        # print(f'JSON: {response.json()}')
-        # print(f'Status Code: {response.status_code}')
-        # print(f'Reason: {response.reason}')
-        # print(f'Url: {response.url}')
+        notify_webhook(request, test_id)
 
     return [{}, { 'stop' : True }][test.finished]
-
-def notify_webhook(request, test, test_id):
-
-    with open('webhook') as webhook_file:
-        webhook = webhook_file.readlines()[0]
-
-        lower, elo, upper = OpenBench.stats.Elo(test.results())
-        error = max(upper - elo, elo - lower)
-        elo   = OpenBench.templatetags.mytags.twoDigitPrecision(elo)
-        error = OpenBench.templatetags.mytags.twoDigitPrecision(error)
-        outcome = 'passed' if test.passed else 'failed'
-
-        color = 0xFEFF58
-        if test.passed:
-            color = 0x37F769
-        elif test.wins < test.losses:
-            color = 0xFA4E4E
-
-        return requests.post(webhook, json={
-            'username': test.dev_engine,
-            'embeds': [{
-                'author': { 'name': test.author },
-                'title': f'Test `{test.dev.name}` vs `{test.base.name}` {outcome}',
-                'url': request.build_absolute_uri(f'/test/{test_id}'),
-                'color': color,
-                'description': f'```\n{longStatBlock(test)}\n```',
-                'fields': [
-                    {
-                        'name': 'Stats',
-                        'value': f'```\n{longStatBlock(test)}\n```',
-                    },
-                    {
-                        'name': 'User',
-                        'value': test.author,
-                        'inline': True,
-                    }
-                ]
-            }]
-        })
