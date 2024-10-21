@@ -12,8 +12,8 @@
 
     "test_presets": {
         "default": {
-            "base_branch": "main",
-            "dev_branch": "dev",
+            "base_branch": "random-move",
+            "dev_branch": "main",
             "book_name": "Pohl.epd",
             "test_bounds": "[0.00, 10.00]",
             "test_confidence": "[0.05, 0.05]",
