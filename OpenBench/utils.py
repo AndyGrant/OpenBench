@@ -395,7 +395,8 @@ def network_edit(request, engine, network):
 
     return OpenBench.views.redirect(request, '/networks/%s' % (network.engine), status='Applied changes')
 
-def notify_webhook(request, webhook, test_id):
+def notify_webhook(request, test_id):
+    webhook = open('webhook').read().strip() # Removing trailing whitespace/newline, if present
     test = Test.objects.get(id=test_id)
 
     # Compute stats
@@ -422,16 +423,6 @@ def notify_webhook(request, webhook, test_id):
             'description': f'```\n{longStatBlock(test)}\n```',
         }]
     })
-
-def get_webhook():
-    # Fetch the webhook from the environment variable, if it exists
-    webhook = os.getenv('WEBHOOK_URL')
-
-    # If the env var doesn't exist, but the `webhook` file does, read from that
-    if not webhook and os.path.exists('webhook'):
-        webhook = open('webhook').read().strip() # Removing trailing whitespace/newline, if present
-
-    return webhook
 
 def update_test(request, machine):
 
@@ -540,8 +531,7 @@ def update_test(request, machine):
     )
     
     # Send update to webhook, if it exists
-    webhook = get_webhook()
-    if test.finished and webhook:
-        notify_webhook(request, webhook, test_id)
+    if test.finished and os.path.exists('webhook'):
+        notify_webhook(request, test_id)
 
     return [{}, { 'stop' : True }][test.finished]
