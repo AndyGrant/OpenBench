@@ -462,74 +462,22 @@ def machines(request, machineid=None):
 #                            TEST MANAGEMENT VIEWS                            #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def test(request, id, action=None):
+def workload(request, workload_type, pk, action=None):
 
-    # Request is to modify or interact with the Test
     if action != None:
-        return modify_workload(request, id, action)
+        return modify_workload(request, pk, action)
 
-    # Verify that the Test id exists
-    if not (test := Test.objects.filter(id=id).first()):
-        return redirect(request, '/index/', error='No such Test exists')
+    if not (workload := Test.objects.filter(id=pk).first()):
+        return redirect(request, '/index/', error='No such Workload exists')
 
-    # Verify that it is indeed a Test and not a Tune
-    if test.test_mode == 'TUNE':
-        return redirect(request, '/tune/%d' % (id))
+    return view_workload(request, workload, workload_type.upper())
 
-    # Verify that it is indeed a Test and not Datagen
-    if test.test_mode == 'DATAGEN':
-        return redirect(request, '/datagen/%d' % (id))
+def new_workload(request, workload_type):
 
-    return view_workload(request, test, 'TEST')
+    if workload_type.upper() not in [ 'TEST', 'TUNE', 'DATAGEN' ]:
+        return redirect(request, '/index/', error='Unknown Workload type')
 
-def tune(request, id, action=None):
-
-    # Request is to modify or interact with the Tune
-    if action != None:
-        return modify_workload(request, id, action)
-
-    # Verify that the Tune id exists
-    if not (tune := Test.objects.filter(id=id).first()):
-        return redirect(request, '/index/', error='No such Tune exists')
-
-    # Verify that it is indeed a Tune and not a Test
-    if tune.test_mode == 'SPRT' or tune.test_mode == 'GAMES':
-        return redirect(request, '/test/%d' % (id))
-
-    # Verify that it is indeed a Tune and not Datagen
-    if tune.test_mode == 'DATAGEN':
-        return redirect(request, '/datagen/%d' % (id))
-
-    return view_workload(request, tune, 'TUNE')
-
-def datagen(request, id, action=None):
-
-    # Request is to modify or interact with the Datagen
-    if action != None:
-        return modify_workload(request, id, action)
-
-    # Verify that the Datagen id exists
-    if not (datagen := Test.objects.filter(id=id).first()):
-        return redirect(request, '/index/', error='No such Datagen exists')
-
-    # Verify that it is indeed a Datagen and not a Tune
-    if datagen.test_mode == 'TUNE':
-        return redirect(request, '/tune/%d' % (id))
-
-    # Verify that it is indeed a Datagen and not a Test
-    if datagen.test_mode == 'SPRT' or datagen.test_mode == 'GAMES':
-        return redirect(request, '/test/%d' % (id))
-
-    return view_workload(request, datagen, 'DATAGEN')
-
-def create_test(request):
-    return create_workload(request, 'TEST')
-
-def create_tune(request):
-    return create_workload(request, 'TUNE')
-
-def create_datagen(request):
-    return create_workload(request, 'DATAGEN')
+    return create_workload(request, workload_type.upper())
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                          NETWORK MANAGEMENT VIEWS                           #

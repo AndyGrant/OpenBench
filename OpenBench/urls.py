@@ -48,20 +48,9 @@ urlpatterns = [
     django.urls.path(r'machines/', OpenBench.views.machines),
     django.urls.path(r'machines/<int:machineid>/', OpenBench.views.machines),
 
-    # Links for viewing and managing tests
-    django.urls.path(r'test/<int:id>/', OpenBench.views.test),
-    django.urls.path(r'test/<int:id>/<str:action>', OpenBench.views.test),
-    django.urls.path(r'newTest/', OpenBench.views.create_test),
-
-    # Links for viewing and managing tunes
-    django.urls.path(r'tune/<int:id>/', OpenBench.views.tune),
-    django.urls.path(r'tune/<int:id>/<str:action>', OpenBench.views.tune),
-    django.urls.path(r'newTune/', OpenBench.views.create_tune),
-
-    # Links for viewing and managing datagen
-    django.urls.path(r'datagen/<int:id>/', OpenBench.views.datagen),
-    django.urls.path(r'datagen/<int:id>/<str:action>', OpenBench.views.datagen),
-    django.urls.path(r'newDatagen/', OpenBench.views.create_datagen),
+    # Links to create, view or manage Workloads (Tests, Tunes, Datagen)
+    django.urls.re_path(r'^(?P<workload_type>tune|test|datagen)/new/$', OpenBench.views.new_workload),
+    django.urls.re_path(r'^(?P<workload_type>tune|test|datagen)/(?P<pk>\d+)(?:/(?P<action>\w+))?/$', OpenBench.views.workload),
 
     # Links for viewing and managing Networks
     django.urls.path(r'networks/', OpenBench.views.networks),
