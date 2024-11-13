@@ -27,7 +27,7 @@
 # 3. lower, elo, upper = Elo((L, D, W) or (LL, LD, DD/WL, DW, WW))
 
 import math
-import scipy
+import scipy.stats
 from scipy import optimize
 
 def TrinomialSPRT(results, elo0, elo1):
