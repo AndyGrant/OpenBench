@@ -268,7 +268,7 @@ def index(request, page=1):
     completed = OpenBench.utils.get_completed_tests()
     awaiting  = OpenBench.utils.get_awaiting_tests()
 
-    start, end, paging = OpenBench.utils.getPaging(completed, page, 'index')
+    start, end, paging = OpenBench.utils.getPaging(completed, int(page), 'index')
 
     data = {
         'pending'   : pending,
@@ -288,7 +288,7 @@ def user(request, username, page=1):
     completed = OpenBench.utils.get_completed_tests().filter(author=username)
     awaiting  = OpenBench.utils.get_awaiting_tests().filter(author=username)
 
-    start, end, paging = OpenBench.utils.getPaging(completed, page, 'user/%s' % (username))
+    start, end, paging = OpenBench.utils.getPaging(completed, int(page), 'user/%s' % (username))
 
     data = {
         'pending'   : pending,
@@ -304,7 +304,7 @@ def user(request, username, page=1):
 def greens(request, page=1):
 
     completed = OpenBench.utils.get_completed_tests().filter(passed=True)
-    start, end, paging = OpenBench.utils.getPaging(completed, page, 'greens')
+    start, end, paging = OpenBench.utils.getPaging(completed, int(page), 'greens')
 
     data = { 'completed' : completed[start:end], 'paging' : paging }
     return render(request, 'index.html', data)
@@ -431,7 +431,7 @@ def event(request, id):
 def events_actions(request, page=1):
 
     events = LogEvent.objects.all().filter(machine_id=0).order_by('-id')
-    start, end, paging = OpenBench.utils.getPaging(events, page, 'events')
+    start, end, paging = OpenBench.utils.getPaging(events, int(page), 'events')
 
     data = { 'events' : events[start:end], 'paging' : paging };
     return render(request, 'events.html', data)
@@ -439,19 +439,19 @@ def events_actions(request, page=1):
 def events_errors(request, page=1):
 
     events = LogEvent.objects.all().exclude(machine_id=0).order_by('-id')
-    start, end, paging = OpenBench.utils.getPaging(events, page, 'errors')
+    start, end, paging = OpenBench.utils.getPaging(events, int(page), 'errors')
 
     data = { 'events' : events[start:end], 'paging' : paging };
     return render(request, 'errors.html', data)
 
-def machines(request, machineid=None):
+def machines(request, pk=None):
 
-    if machineid == None:
+    if pk == None:
         data = { 'machines' : OpenBench.utils.getRecentMachines() }
         return render(request, 'machines.html', data)
 
     try:
-        data = { 'machine' : OpenBench.models.Machine.objects.get(id=machineid) }
+        data = { 'machine' : OpenBench.models.Machine.objects.get(id=int(pk)) }
         return render(request, 'machine.html', data)
 
     except:
