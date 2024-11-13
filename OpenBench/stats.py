@@ -28,6 +28,7 @@
 
 import math
 import scipy
+from scipy import optimize
 
 def TrinomialSPRT(results, elo0, elo1):
 
@@ -115,7 +116,7 @@ def secular(pdf):
     def f(x):
         return sum([pi * ai / (1 + x * ai) for ai, pi in pdf])
 
-    x, res = scipy.optimize.brentq(
+    x, res = optimize.brentq(
         f, l + epsilon, u - epsilon, full_output=True, disp=False
     )
     assert res.converged
