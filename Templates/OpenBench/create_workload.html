@@ -8,7 +8,8 @@
     {{ networks|json_script:"json-networks" }}
     {{ profile.repos|json_script:"json-repos" }}
 
-    <script src="{% static 'create_workload.js' %}?{{ static_version }}"></script>
+    <!-- <script src="{% static 'create_workload.js' %}?{{ static_version }}"></script> -->
+    <script src="{% static 'create_workload.js' %}?"></script>
     <script src="{% static 'default_text.js' %}?{{ static_version }}"></script>
 
     <script>
@@ -77,6 +78,9 @@
                 <div class="row">
                     <label for="dev_time_control"> {{dev_text}} Time </label> <input id="dev_time_control" name="dev_time_control">
                 </div>
+                <div class="row">
+                    <label for="dev_protocol"> {{dev_text}} Protocol </label> <select id="dev_protocol" name="dev_protocol"></select>
+                </div>
 
                 {% if workload == "TEST" or workload == "DATAGEN" %}
 
@@ -96,6 +100,9 @@
                     </div>
                     <div class="row">
                         <label for="base_time_control" > Base Time </label> <input id="base_time_control" name="base_time_control">
+                    </div>
+                    <div class="row">
+                        <label for="base_protocol" > Base Protocol </label> <select id="base_protocol" name="base_protocol"></select>
                     </div>
 
                 {% elif workload == "TUNE" %}

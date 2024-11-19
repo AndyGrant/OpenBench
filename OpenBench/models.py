@@ -29,6 +29,7 @@ class Engine(Model):
     source   = CharField(max_length=1024)
     sha      = CharField(max_length=64)
     bench    = IntegerField(default=0)
+    protocols= JSONField(default=list)
 
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.bench)
@@ -105,6 +106,7 @@ class Test(Model):
     dev_network      = CharField(max_length=256, blank=True)
     dev_netname      = CharField(max_length=256, blank=True)
     dev_time_control = CharField(max_length=32)
+    dev_protocol     = CharField(max_length=32, default='uci')
 
     # Base Engine, and all of its settings
     base              = ForeignKey('Engine', PROTECT, related_name='base')
@@ -114,6 +116,7 @@ class Test(Model):
     base_network      = CharField(max_length=256, blank=True)
     base_netname      = CharField(max_length=256, blank=True)
     base_time_control = CharField(max_length=32)
+    base_protocol     = CharField(max_length=32, default='uci')
 
     # Changable Test Parameters
     workload_size = IntegerField(default=32)

@@ -62,6 +62,10 @@ def load_engine_config(engine_name):
         with open(os.path.join(PROJECT_PATH, 'Engines', '%s.json' % (engine_name))) as fin:
             conf = json.load(fin)
 
+        # Legacy- default to UCI protocol if none provided.
+        if 'protocols' not in conf:
+            conf['protocols'] = ['uci']
+
         verify_engine_basics(conf)
         verify_engine_build(engine_name, conf)
 
@@ -107,6 +111,7 @@ def verify_engine_basics(conf):
     assert type(conf.get('nps')) == int and conf['nps'] > 0
     assert type(conf.get('source')) == str
     assert type(conf.get('build')) == dict
+    assert type(conf.get('protocols')) == list
 
 def verify_engine_build(engine_name, conf):
 
@@ -140,12 +145,14 @@ def verify_engine_test_preset(test_preset):
         'dev_network',
         'dev_options',
         'dev_time_control',
+        'dev_protocol',
 
         'base_branch',
         'base_bench',
         'base_network',
         'base_options',
         'base_time_control',
+        'base_protocol',
 
         'test_bounds',
         'test_confidence',
@@ -176,6 +183,7 @@ def verify_engine_tune_preset(tune_preset):
         'dev_network',
         'dev_options',
         'dev_time_control',
+        'dev_protocol',
 
         'spsa_reporting_type',
         'spsa_distribution_type',
@@ -215,12 +223,15 @@ def verify_engine_datagen_preset(datagen_preset):
         'dev_network',
         'dev_options',
         'dev_time_control',
+        'dev_protocol',
 
         'base_branch',
         'base_bench',
         'base_network',
         'base_options',
         'base_time_control',
+        'base_protocol',
+
 
         'book_name',
         'upload_pgns',

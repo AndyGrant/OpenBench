@@ -36,6 +36,27 @@ function create_network_options(field_id, engine) {
     }
 }
 
+function create_protocol_options(field_id, engine) {
+
+    var has_default      = false;
+    var protocol_options = document.getElementById(field_id);
+
+    // Delete all existing Protocols
+    while (protocol_options.length)
+        protocol_options.remove(0);
+
+    // Add each Protocol that matches the given engine
+    for (const protocol of config.engines[engine].protocols) {
+
+        var opt      = document.createElement('option');
+        opt.text     = protocol;
+        opt.selected = false;
+        protocol_options.add(opt)
+
+        has_default = has_default || protocol.default;
+    }
+}
+
 function create_preset_buttons(engine, workload_type) {
 
     // Clear out all of the existing buttons
@@ -123,6 +144,7 @@ function set_engine(engine, target) {
     document.getElementById(target + '_repo'  ).value = repos[engine] || config.engines[engine].source
 
     create_network_options(target + '_network', engine);
+    create_protocol_options(target + '_protocol', engine);
 }
 
 function set_option(option_name, option_value) {

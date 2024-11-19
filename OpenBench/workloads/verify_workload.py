@@ -80,6 +80,7 @@ def verify_test_creation(errors, request):
         (verify_options        , 'dev_options', 'Threads', 'Dev Options'),
         (verify_options        , 'dev_options', 'Hash', 'Dev Options'),
         (verify_time_control   , 'dev_time_control', 'Dev Time Control'),
+        (verify_protocol       , 'dev_protocol', 'Dev Protocol'),
 
         # Verify everything about the Base Engine
         (verify_configuration  , 'base_engine', 'Base Engine', 'engines'),
@@ -88,6 +89,7 @@ def verify_test_creation(errors, request):
         (verify_options        , 'base_options', 'Threads', 'Base Options'),
         (verify_options        , 'base_options', 'Hash', 'Base Options'),
         (verify_time_control   , 'base_time_control', 'Base Time Control'),
+        (verify_protocol       , 'base_protocol', 'Base Protocol'),
 
         # Verify everything about the Test Settings
         (verify_configuration  , 'book_name', 'Book', 'books'),
@@ -231,6 +233,10 @@ def verify_configuration(errors, request, field, field_name, parent):
 def verify_time_control(errors, request, field, field_name):
     try: OpenBench.utils.TimeControl.parse(request.POST[field])
     except: errors.append('{0} is not parsable'.format(field_name))
+
+def verify_protocol(errors, request, field, field_name):
+    try: assert request.POST[field].lower() == 'uci' or request.POST[field].lower() == 'xboard'
+    except: errors.append('{0} is not a valid protocol'.format(field_name))
 
 def verify_win_adj(errors, request, field):
     try:

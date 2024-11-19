@@ -122,6 +122,7 @@ def create_new_test(request):
     test.dev_options       = request.POST['dev_options']
     test.dev_network       = request.POST['dev_network']
     test.dev_time_control  = OpenBench.utils.TimeControl.parse(request.POST['dev_time_control'])
+    test.dev_protocol     = request.POST['dev_protocol']
 
     test.base              = get_engine(*base_ingo)
     test.base_repo         = request.POST['base_repo']
@@ -129,6 +130,7 @@ def create_new_test(request):
     test.base_options      = request.POST['base_options']
     test.base_network      = request.POST['base_network']
     test.base_time_control = OpenBench.utils.TimeControl.parse(request.POST['base_time_control'])
+    test.base_protocol     = request.POST['base_protocol']
 
     test.workload_size     = int(request.POST['workload_size'])
     test.priority          = int(request.POST['priority'])
@@ -187,6 +189,7 @@ def create_new_tune(request):
     test.dev_options      = test.base_options      = request.POST['dev_options']
     test.dev_network      = test.base_network      = request.POST['dev_network']
     test.dev_time_control = test.base_time_control = OpenBench.utils.TimeControl.parse(request.POST['dev_time_control'])
+    test.dev_protocol     = test.base_network      = request.POST['dev_protocol']
 
     test.workload_size    = int(request.POST['spsa_pairs_per'])
     test.priority         = int(request.POST['priority'])
@@ -235,6 +238,7 @@ def create_new_datagen(request):
     test.dev_options       = request.POST['dev_options']
     test.dev_network       = request.POST['dev_network']
     test.dev_time_control  = OpenBench.utils.TimeControl.parse(request.POST['dev_time_control'])
+    test.dev_protocol      = request.POST['dev_protocol']
 
     test.base              = get_engine(*base_ingo)
     test.base_repo         = request.POST['base_repo']
@@ -242,6 +246,7 @@ def create_new_datagen(request):
     test.base_options      = request.POST['base_options']
     test.base_network      = request.POST['base_network']
     test.base_time_control = OpenBench.utils.TimeControl.parse(request.POST['base_time_control'])
+    test.base_protocol     = request.POST['base_protocol']
 
     test.max_games         = int(request.POST['datagen_max_games'])
     test.genfens_args      = request.POST['datagen_custom_genfens']
