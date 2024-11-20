@@ -398,33 +398,40 @@ def network_edit(request, engine, network):
     return OpenBench.views.redirect(request, '/networks/%s' % (network.engine), status='Applied changes')
 
 def notify_webhook(request, test_id):
-    webhook = open('webhook').read().strip() # Removing trailing whitespace/newline, if present
     test = Test.objects.get(id=test_id)
+    with open('webhooks.json') as webhooks:
+        webhooks = json.load(webhooks)
+        # If the test author does not have a webhook, exit now
+        if test.author.lower() not in webhooks:
+            return
 
-    # Compute stats
-    lower, elo, upper = OpenBench.stats.Elo(test.results())
-    error = max(upper - elo, elo - lower)
-    elo   = OpenBench.templatetags.mytags.twoDigitPrecision(elo)
-    error = OpenBench.templatetags.mytags.twoDigitPrecision(error)
-    outcome = 'passed' if test.passed else 'failed'
+        # Fetch the specific webhook for this test author
+        webhook = webhooks[test.author.lower()]
 
-    # Green if passing, red if failing.
-    color = 0xFEFF58
-    if test.passed:
-        color = 0x37F769
-    elif test.wins < test.losses:
-        color = 0xFA4E4E
+        # Compute stats
+        lower, elo, upper = OpenBench.stats.Elo(test.results())
+        error = max(upper - elo, elo - lower)
+        elo   = OpenBench.templatetags.mytags.twoDigitPrecision(elo)
+        error = OpenBench.templatetags.mytags.twoDigitPrecision(error)
+        outcome = 'passed' if test.passed else 'failed'
 
-    return requests.post(webhook, json={
-        'username': test.dev_engine,
-        'embeds': [{
-            'author': { 'name': test.author },
-            'title': f'Test `{test.dev.name}` vs `{test.base.name}` {outcome}',
-            'url': request.build_absolute_uri(f'/test/{test_id}'),
-            'color': color,
-            'description': f'```\n{longStatBlock(test)}\n```',
-        }]
-    })
+        # Green if passing, red if failing.
+        color = 0xFEFF58
+        if test.passed:
+            color = 0x37F769
+        elif test.wins < test.losses:
+            color = 0xFA4E4E
+
+        return requests.post(webhook, json={
+            'username': test.dev_engine,
+            'embeds': [{
+                'author': { 'name': test.author },
+                'title': f'Test `{test.dev.name}` vs `{test.base.name}` {outcome}',
+                'url': request.build_absolute_uri(f'/test/{test_id}'),
+                'color': color,
+                'description': f'```\n{longStatBlock(test)}\n```',
+            }]
+        })
 
 def update_test(request, machine):
 
@@ -533,7 +540,7 @@ def update_test(request, machine):
     )
 
     # Send update to webhook, if it exists
-    if test.finished and os.path.exists('webhook'):
+    if test.finished and os.path.exists('webhooks.json'):
         notify_webhook(request, test_id)
 
     return [{}, { 'stop' : True }][test.finished]
