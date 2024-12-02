@@ -100,7 +100,7 @@ class Configuration:
         self.username    = args.username
         self.password    = args.password
         self.server      = args.server
-        self.threads     = int(args.threads)
+        self.threads     = int(args.threads) if args.threads != 'auto' else self.physical_cores
         self.sockets     = int(args.nsockets)
         self.identity    = args.identity if args.identity else 'None'
         self.syzygy_path = args.syzygy   if args.syzygy   else None

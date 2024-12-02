@@ -38,10 +38,10 @@ urlpatterns = [
 
     # Links for viewing general information tables
     django.urls.path(r'users/', OpenBench.views.users),
-    django.urls.path(r'event/<int:id>/', OpenBench.views.event),
+    django.urls.path(r'event/<int:pk>/', OpenBench.views.event),
     django.urls.re_path(r'^events(?:/(?P<page>\d+))?/$', OpenBench.views.events_actions),
     django.urls.re_path(r'^errors(?:/(?P<page>\d+))?/$', OpenBench.views.events_errors),
-    django.urls.re_path(r'^machines(?:/(?P<id>\d+))?/$', OpenBench.views.machines),
+    django.urls.re_path(r'^machines(?:/(?P<pk>\d+))?/$', OpenBench.views.machines),
 
     # Links to create, view or manage Workloads (Tests, Tunes, Datagen)
     django.urls.re_path(r'^(?P<workload_type>tune|test|datagen)/new/$', OpenBench.views.new_workload),

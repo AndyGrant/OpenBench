@@ -420,10 +420,10 @@ def users(request):
     data = { 'profiles' : Profile.objects.order_by('-games', '-tests') }
     return render(request, 'users.html', data)
 
-def event(request, id):
+def event(request, pk):
 
     try:
-        with open(os.path.join(MEDIA_ROOT, LogEvent.objects.get(id=id).log_file)) as fin:
+        with open(os.path.join(MEDIA_ROOT, LogEvent.objects.get(id=pk).log_file)) as fin:
             return render(request, 'event.html', { 'content' : fin.read() })
     except:
         return redirect(request, '/index/', error='No logs for event exist')
