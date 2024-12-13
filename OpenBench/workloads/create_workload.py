@@ -57,21 +57,21 @@ def create_workload(request, workload_type):
             data['dev_text']        = 'Dev'
             data['dev_title_text']  = 'Dev'
             data['submit_text']     = 'Create Engine Test'
-            data['submit_endpoint'] = '/newTest/'
+            data['submit_endpoint'] = '/test/new/'
 
         if workload_type == 'TUNE':
             data['workload']        = workload_type
             data['dev_text']        = ''
             data['dev_title_text']  = 'Engine'
             data['submit_text']     = 'Create SPSA Tune'
-            data['submit_endpoint'] = '/newTune/'
+            data['submit_endpoint'] = '/tune/new/'
 
         if workload_type == 'DATAGEN':
             data['workload']        = workload_type
             data['dev_text']        = 'Dev'
             data['dev_title_text']  = 'Dev'
             data['submit_text']     = 'Create Datagen'
-            data['submit_endpoint'] = '/newDatagen/'
+            data['submit_endpoint'] = '/datagen/new/'
 
         return OpenBench.views.render(request, 'create_workload.html', data)
 
