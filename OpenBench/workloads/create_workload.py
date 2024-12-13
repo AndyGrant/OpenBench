@@ -85,7 +85,7 @@ def create_workload(request, workload_type):
         workload, errors = create_new_datagen(request)
 
     if errors != [] and errors != None:
-        paths = { 'TEST' : '/newTest/', 'TUNE' : '/newTune/', 'DATAGEN' : '/newDatagen/' }
+        paths = { 'TEST' : '/test/new/', 'TUNE' : '/tune/new/', 'DATAGEN' : '/datagen/new/' }
         return OpenBench.views.redirect(request, paths[workload_type], error='\n'.join(errors))
 
     if warning := OpenBench.utils.branch_is_out_of_date(workload):
