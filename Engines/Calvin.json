@@ -1,12 +1,12 @@
 {
     "private" : false,
-    "nps"     : 760000,
-    "source"  : "https://github.com/Matthies/RubiChess",
+    "nps"     : 884000,
+    "source"  : "https://github.com/kelseyde/calvin-chess-engine",
 
     "build" : {
-        "path"      : "src",
-        "compilers" : ["g++"],
-        "cpuflags"  : ["POPCNT"],
+        "path"      : "",
+        "compilers" : ["clang", "gcc", "g++"],
+        "cpuflags"  : [],
         "systems"   : ["Windows", "Linux"]
     },
 
@@ -14,22 +14,22 @@
 
         "default" : {
             "base_branch"     : "master",
-            "book_name"       : "Pohl.epd",
+            "book_name"       : "Pohl.pgn",
             "test_bounds"     : "[0.00, 5.00]",
-            "test_confidence" : "[0.05, 0.05]",
-            "win_adj"         : "movecount=3 score=400",
-            "draw_adj"        : "movenumber=40 movecount=8 score=10"
+            "test_confidence" : "[0.05, 0.10]",
+            "win_adj"         : "movecount=6 score=400",
+            "draw_adj"        : "movenumber=50 movecount=8 score=25"
         },
 
         "STC" : {
             "both_options"      : "Threads=1 Hash=8",
-            "both_time_control" : "10.0+0.1",
-            "workload_size"     : 32
+            "both_time_control" : "8.0+0.08",
+            "workload_size"     : 24
         },
 
         "LTC" : {
             "both_options"      : "Threads=1 Hash=64",
-            "both_time_control" : "60.0+0.6",
+            "both_time_control" : "40.0+0.4",
             "workload_size"     : 8
         },
 
@@ -49,7 +49,7 @@
     "tune_presets" : {
 
         "default" : {
-            "book_name" : "Pohl.epd",
+            "book_name" : "Pohl.pgn",
             "win_adj"   : "movecount=3 score=400",
             "draw_adj"  : "movenumber=40 movecount=8 score=10"
         }
