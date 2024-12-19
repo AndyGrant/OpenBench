@@ -926,8 +926,6 @@ def server_request_workload(config):
     except json.decoder.JSONDecodeError:
         raise OpenBenchBadServerResponseException() from None
 
-    print(response)
-
     # Throw all the way back to the client.py
     if 'Bad Client Version' in response.get('error', ''):
         raise BadVersionException();

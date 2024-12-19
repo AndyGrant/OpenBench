@@ -7,7 +7,7 @@
         "path"      : "",
         "compilers" : ["java"],
         "cpuflags"  : [],
-        "systems"   : ["Windows", "Linux"]
+        "systems"   : ["Windows", "Linux", "Darwin"]
     },
 
     "test_presets" : {
