@@ -20,7 +20,7 @@
 
 from django.db.models import CharField, IntegerField, BooleanField, FloatField
 from django.db.models import JSONField, ForeignKey, DateTimeField, OneToOneField
-from django.db.models import CASCADE, PROTECT, Model
+from django.db.models import CASCADE, PROTECT, Model, TextChoices
 from django.contrib.auth.models import User
 
 class Engine(Model):
@@ -89,6 +89,11 @@ class Result(Model):
 
 class Test(Model):
 
+    class ScaleMethod(TextChoices):
+        DEV  = 'DEV' , 'DEV'
+        BASE = 'BASE', 'BASE'
+        BOTH = 'BOTH', 'BOTH'
+
     # Misc information
     author      = CharField(max_length=64)
     upload_pgns = CharField(max_length=16, default='FALSE')
@@ -119,6 +124,10 @@ class Test(Model):
     workload_size = IntegerField(default=32)
     priority      = IntegerField(default=0)
     throughput    = IntegerField(default=0)
+
+    # Scaling Mechanisms
+    scale_method  = CharField(max_length=16, choices=ScaleMethod.choices, default=ScaleMethod.BASE)
+    scale_nps     = IntegerField(default=0)
 
     # Tablebases and Cutechess adjudicatoins
     syzygy_wdl  = CharField(max_length=16, default='OPTIONAL')

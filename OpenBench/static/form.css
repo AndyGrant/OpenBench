@@ -68,7 +68,7 @@
 }
 
 #content .row input[type="file"]{
-     padding: 2px 2px;
+    padding: 2px 2px;
 }
 
 #content .row input:focus, #content .row select:focus, #content .row textarea:focus {
