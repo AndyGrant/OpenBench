@@ -179,6 +179,11 @@ def compute_resource_distribution(workloads, machine, has_focus):
 
 def workload_to_dictionary(test, result, machine):
 
+    # HACK: Remove this after a while, to avoid a complex DB migration
+    if test.scale_nps == 0:
+        test.scale_nps = OPENBENCH_CONFIG['engines'][test.base_engine]['nps']
+        test.save()
+
     workload = {}
 
     workload['result'] = {
