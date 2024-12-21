@@ -63,15 +63,9 @@ class ArtifactWatcher(threading.Thread):
             test.save()
 
     def run(self):
-
-        print ('Running Artifact Watcher...')
-
         while not self.stop_event.wait(timeout=15):
             for test in get_awaiting_tests():
                 try: self.update_test(test)
                 except:
                     traceback.print_exc()
                     sys.stdout.flush()
-            print ('Artifact Watcher found nothing...')
-
-        print ('Gracefully exited Artifacts!')

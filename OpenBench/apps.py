@@ -52,7 +52,6 @@ def acquire_watcher_lockfile():
 
     return lockfile
 
-
 class OpenBenchConfig(django.apps.AppConfig):
 
     name = 'OpenBench'
