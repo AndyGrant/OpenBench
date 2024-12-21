@@ -106,6 +106,11 @@ def verify_test_creation(errors, request):
         (verify_integer        , 'workload_size', 'Workload Size'),
         (verify_greater_than   , 'workload_size', 'Workload Size', 0),
 
+        # Verify the Scaling Mechanisms
+        (verify_scale_method   , 'scale_method'),
+        (verify_integer        , 'scale_nps', 'Scale NPS'),
+        (verify_greater_than   , 'scale_nps', 'Scale NPS', 0),
+
         # Verify everything about the Adjudicaton Settings
         (verify_syzygy_field   , 'syzygy_adj', 'Syzygy Adjudication'),
         (verify_win_adj        , 'win_adj'),
@@ -140,6 +145,11 @@ def verify_tune_creation(errors, request):
         (verify_integer               , 'priority', 'Priority'),
         (verify_greater_than          , 'throughput', 'Throughput', 0),
         (verify_syzygy_field          , 'syzygy_wdl', 'Syzygy WDL'),
+
+        # Verify the Scaling Mechanisms
+        (verify_scale_method   , 'scale_method'),
+        (verify_integer        , 'scale_nps', 'Scale NPS'),
+        (verify_greater_than   , 'scale_nps', 'Scale NPS', 0),
 
         # Verify everything about the Adjudicaton Settings
         (verify_syzygy_field          , 'syzygy_adj', 'Syzygy Adjudication'),
@@ -197,6 +207,11 @@ def verify_datagen_creation(errors, request):
         # Verify everything about the Workload Settings
         (verify_integer        , 'workload_size', 'Workload Size'),
         (verify_greater_than   , 'workload_size', 'Workload Size', 0),
+
+        # Verify the Scaling Mechanisms
+        (verify_scale_method   , 'scale_method'),
+        (verify_integer        , 'scale_nps', 'Scale NPS'),
+        (verify_greater_than   , 'scale_nps', 'Scale NPS', 0),
 
         # Verify everything about the Adjudicaton Settings
         (verify_syzygy_field   , 'syzygy_adj', 'Syzygy Adjudication'),
@@ -347,6 +362,12 @@ def verify_datagen_book(errors, request, field, field_name, parent):
         valid = ['NONE'] + list(OpenBench.config.OPENBENCH_CONFIG[parent].keys())
         assert request.POST[field] in valid
     except: errors.append('{0} was neither NONE nor found in the configuration'.format(field_name))
+
+def verify_scale_method(errors, request, field):
+    try: assert(request.POST[field] in Test.ScaleMethod)
+    except:
+        choices = [f[0] for f in Test.ScaleMethod.choices]
+        errors.append('Unknown Scale Method. Expected one of {%s}.' % (', '.join(choices)))
 
 
 def collect_github_info(errors, request, field):
