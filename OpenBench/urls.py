@@ -31,7 +31,7 @@ urlpatterns = [
 
     # Links for viewing test tables
     django.urls.re_path(r'^index(?:/(?P<page>\d+))?/$', OpenBench.views.index),
-    django.urls.re_path(r'^user(?:/(?P<page>\d+))?/$', OpenBench.views.user),
+    django.urls.re_path(r'^user/(?P<username>[^/]+)(?:/(?P<page>\d+))?/$', OpenBench.views.user),
     django.urls.re_path(r'^greens(?:/(?P<page>\d+))?/$', OpenBench.views.greens),
 
     django.urls.path(r'search/', OpenBench.views.search),
