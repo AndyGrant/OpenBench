@@ -25,7 +25,10 @@ import platform
 
 import django.apps
 
+# No imports of OpenBench.* are allowed here
+
 LOCKFILE_PATH = 'openbench_watchers.lock'
+CONFIG_LOCK   = threading.Lock()
 IS_WINDOWS    = platform.system() == 'Windows'
 
 def acquire_watcher_lockfile():
@@ -58,17 +61,24 @@ class OpenBenchConfig(django.apps.AppConfig):
 
     def ready(self):
 
+        # Load all of the .json config files, only once per PROCESS.
+        # This must be done before ANY other OpenBench includes are used.
+
         from OpenBench import config
+
+        with CONFIG_LOCK:
+            if config.OPENBENCH_CONFIG is None:
+                config.OPENBENCH_CONFIG = config.create_openbench_config()
+
+        # Attempt to spawn the Artifact and PGN Watchers, globally once
+
         from OpenBench.watcher import ArtifactWatcher
         from OpenBench.pgn_watcher import PGNWatcher
 
+        # Result of fopen(LOCKFILE_PATH) after obtaining the lock, otherwise None
         self.lockfile = acquire_watcher_lockfile()
 
         if self.lockfile:
-
-            # Load all of the .json config files
-            if config.OPENBENCH_CONFIG is None:
-                config.OPENBENCH_CONFIG = config.create_openbench_config()
 
             # Signals to stop the watchers
             self.stop_artifact_watcher = threading.Event()

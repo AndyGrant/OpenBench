@@ -35,7 +35,6 @@ def create_openbench_config():
         config_dict = json.load(fin)
         verify_general_config(config_dict)
 
-
     config_dict['books'] = {
         book : load_book_config(book) for book in config_dict['books']
     }
