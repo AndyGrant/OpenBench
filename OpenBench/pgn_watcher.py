@@ -60,17 +60,9 @@ class PGNWatcher(threading.Thread):
             pgn.save()
 
     def run(self):
-
-        print ('Running PGN Watcher...')
-
         while not self.stop_event.wait(timeout=15):
-
             for pgn in PGN.objects.filter(processed=False):
-                try:
-                    self.process_pgn(pgn)
+                try: self.process_pgn(pgn)
                 except:
                     traceback.print_exc()
                     sys.stdout.flush()
-            print ('PGN Watcher found nothing...')
-
-        print ('Gracefully exited PGN!')
