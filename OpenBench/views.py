@@ -876,13 +876,30 @@ def api_build_info(request):
 @csrf_exempt
 def api_pgns(request, pgn_id):
 
+    # 0. Make sure the request has the correct permissions
     if not api_authenticate(request):
         return api_response({ 'error' : 'API requires authentication for this server' })
 
-    # Possible to request a PGN that does not exist
+    # 1. Make sure the workload actually exists for the requested PGN
+    try: workload = Test.objects.get(pk=pgn_id)
+    except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
+
+    # 2. Make sure there actually is a PGN attached to the Workload
     pgn_path = FileSystemStorage('Media/PGNs').path('%d.pgn.tar' % (pgn_id))
     if not os.path.exists(pgn_path):
         return api_response({ 'error' : 'Unable to find PGN for Workload #%d' % (pgn_id) })
+
+    # 3. Make sure the workload is not currently running
+    if not workload.finished:
+        return api_response({ 'error' : 'PGNs cannot be downloaded while the Workload is active' })
+
+    # 4. Make sure no active workers are still on this workload
+    if OpenBench.utils.getRecentMachines().filter(workload=pgn_id):
+        return api_response({ 'error' : 'Some machines are still on this Workload. Try again shortly' })
+
+    # 5. Make sure there are no pending .pgn.bz2 files to be processed
+    if PGN.objects.filter(test_id=pgn_id).filter(processed=False):
+        return api_response({ 'error' : 'Still processing individual PGNs into the archive. Try again shortly' })
 
     # Craft the download HTML response
     fwrapper = FileWrapper(open(pgn_path, 'rb'), 8192)
