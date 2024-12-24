@@ -1128,6 +1128,7 @@ def build_cutechess_command(config, dev_cmd, base_cmd, scale_factor, timestamp, 
     flags += ' ' + Cutechess.engine_settings(config, base_cmd, 'base', scale_factor, cutechess_idx)
     flags += ' ' + Cutechess.book_settings(config, cutechess_idx)
     flags += ' ' + Cutechess.pgnout_settings(config, timestamp, cutechess_idx)
+    flags += ' -debug'
 
     return ['cutechess-ob.exe', './cutechess-ob'][IS_LINUX] + flags
 
