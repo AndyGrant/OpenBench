@@ -972,8 +972,11 @@ def complete_workload(config):
     ServerReporter.report_nps(config, dev_nps, base_nps)
 
     # Scale the engines together, using their NPS relative to expected
-    dev_factor  = config.workload['test']['dev' ]['nps'] / dev_nps
-    base_factor = config.workload['test']['base']['nps'] / base_nps
+    expected_dev_nps  = config.workload['test']['dev' ]['nps']
+    expected_base_nps = config.workload['test']['base']['nps']
+    print(expected_dev_nps, expected_base_nps)
+    dev_factor  = expected_dev_nps / dev_nps
+    base_factor = expected_base_nps / base_nps
     avg_factor  = (dev_factor + base_factor) / 2
 
     print () # Record this information
