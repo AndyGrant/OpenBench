@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 200000,
+    "nps"     : 100000,
     "source"  : "https://github.com/kelseyde/calvin-chess-engine",
 
     "build" : {
