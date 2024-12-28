@@ -57,21 +57,21 @@ def create_workload(request, workload_type):
             data['dev_text']        = 'Dev'
             data['dev_title_text']  = 'Dev'
             data['submit_text']     = 'Create Engine Test'
-            data['submit_endpoint'] = '/newTest/'
+            data['submit_endpoint'] = '/test/new/'
 
         if workload_type == 'TUNE':
             data['workload']        = workload_type
             data['dev_text']        = ''
             data['dev_title_text']  = 'Engine'
             data['submit_text']     = 'Create SPSA Tune'
-            data['submit_endpoint'] = '/newTune/'
+            data['submit_endpoint'] = '/tune/new/'
 
         if workload_type == 'DATAGEN':
             data['workload']        = workload_type
             data['dev_text']        = 'Dev'
             data['dev_title_text']  = 'Dev'
             data['submit_text']     = 'Create Datagen'
-            data['submit_endpoint'] = '/newDatagen/'
+            data['submit_endpoint'] = '/datagen/new/'
 
         return OpenBench.views.render(request, 'create_workload.html', data)
 
@@ -85,7 +85,7 @@ def create_workload(request, workload_type):
         workload, errors = create_new_datagen(request)
 
     if errors != [] and errors != None:
-        paths = { 'TEST' : '/newTest/', 'TUNE' : '/newTune/', 'DATAGEN' : '/newDatagen/' }
+        paths = { 'TEST' : '/test/new/', 'TUNE' : '/tune/new/', 'DATAGEN' : '/datagen/new/' }
         return OpenBench.views.redirect(request, paths[workload_type], error='\n'.join(errors))
 
     if warning := OpenBench.utils.branch_is_out_of_date(workload):
@@ -138,6 +138,9 @@ def create_new_test(request):
     test.syzygy_adj        = request.POST['syzygy_adj']
     test.win_adj           = request.POST['win_adj']
     test.draw_adj          = request.POST['draw_adj']
+
+    test.scale_method      = request.POST['scale_method']
+    test.scale_nps         = int(request.POST['scale_nps'])
 
     test.test_mode         = request.POST['test_mode']
     test.awaiting          = not (dev_has_all and base_has_all)
@@ -197,6 +200,9 @@ def create_new_tune(request):
     test.win_adj          = request.POST['win_adj']
     test.draw_adj         = request.POST['draw_adj']
 
+    test.scale_method      = request.POST['scale_method']
+    test.scale_nps         = int(request.POST['scale_nps'])
+
     test.test_mode        = 'SPSA'
     test.spsa             = extract_spas_params(request)
 
@@ -255,6 +261,9 @@ def create_new_datagen(request):
     test.syzygy_adj        = request.POST['syzygy_adj']
     test.win_adj           = request.POST['win_adj']
     test.draw_adj          = request.POST['draw_adj']
+
+    test.scale_method      = request.POST['scale_method']
+    test.scale_nps         = int(request.POST['scale_nps'])
 
     test.test_mode         = 'DATAGEN'
     test.awaiting          = not (dev_has_all and base_has_all)

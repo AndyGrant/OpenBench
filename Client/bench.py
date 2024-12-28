@@ -20,8 +20,8 @@
 
 # The sole purpose of this module is to invoke run_benchmark().
 #
-#   - binary   : Path to, and including, the Binary File
-#   - network  : Path to Network File, or None
+#   - binary   : Relative path to, and including, the Binary File
+#   - network  : Relative path to a private engine's Network File, or None
 #   - private  : True or False; Private NNUE engines require special care
 #   - threads  : Number of concurrent benches to run
 #   - sets     : Number of times to repeat this experiment
@@ -128,4 +128,4 @@ def run_benchmark(binary, network, private, threads, sets, expected=None):
     if expected and expected != benches[0]:
         raise OpenBenchBadBenchException('[%s] Wrong Bench: %d' % (engine, benches[0]))
 
-    return int(sum(speeds) / len(speeds)), benches[0]
+    return sum(speeds) // len(speeds), benches[0]

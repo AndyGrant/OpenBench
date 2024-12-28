@@ -54,7 +54,7 @@ from genfens import create_genfens_opening_book
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 32 # Client version to send to the Server
+CLIENT_VERSION   = 33 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -100,7 +100,7 @@ class Configuration:
         self.username    = args.username
         self.password    = args.password
         self.server      = args.server
-        self.threads     = int(args.threads)
+        self.threads     = int(args.threads) if args.threads != 'auto' else self.physical_cores
         self.sockets     = int(args.nsockets)
         self.identity    = args.identity if args.identity else 'None'
         self.syzygy_path = args.syzygy   if args.syzygy   else None
@@ -790,7 +790,6 @@ def validate_syzygy_exists(config, K):
 def scale_time_control(workload, scale_factor, branch):
 
     # Extract everything from the workload dictionary
-    reference_nps = workload['test'][branch]['nps']
     time_control  = workload['test'][branch]['time_control']
 
     # Searching for Nodes or Depth time controls ("N=", "D=")
@@ -846,6 +845,36 @@ def find_pgn_error(reason, command):
         ii = ii - 1
     return data[ii] + pgn
 
+
+def determine_scale_factor(config, dev_name, dev_network, base_name, base_network):
+
+    # Run the benchmarks and compute the scaling NPS value
+    dev_nps  = safe_run_benchmarks(config, 'dev' , dev_name , dev_network )
+    base_nps = safe_run_benchmarks(config, 'base', base_name, base_network)
+    ServerReporter.report_nps(config, dev_nps, base_nps)
+
+    dev_factor = base_factor = None
+
+    # Scaling is only done relative to the Dev Engine
+    if config.workload['test']['scale_method'] == 'DEV':
+        factor = config.workload['test']['scale_nps'] / dev_nps
+        print ('\nScale Factor (Using Dev): %.4f' % (factor))
+
+    # Scaling is only done relative to the Base Engine
+    elif config.workload['test']['scale_method'] == 'BASE':
+        factor = config.workload['test']['scale_nps'] / base_nps
+        print ('\nScale Factor (Using Base): %.4f' % (factor))
+
+    # Scaling is done using an average of both Engines
+    else:
+        dev_factor  = config.workload['test']['scale_nps'] / dev_nps
+        base_factor = config.workload['test']['scale_nps'] / base_nps
+        factor      = (dev_factor + base_factor) / 2
+        print ('\nScale Factor (Using Dev ): %.4f' % (dev_factor))
+        print ('Scale Factor (Using Base): %.4f' % (base_factor))
+        print ('Scale Factor (Using Both): %.4f' % (factor))
+
+    return factor
 
 ## Functions interacting with the OpenBench server that establish the initial
 ## connection and then make simple requests to retrieve Workloads as json objects
@@ -966,20 +995,8 @@ def complete_workload(config):
     if config.workload['test']['type'] == 'DATAGEN':
         safe_create_genfens_opening_book(config, dev_name, dev_network)
 
-    # Run the benchmarks and compute the scaling NPS value
-    dev_nps  = safe_run_benchmarks(config, 'dev' , dev_name , dev_network )
-    base_nps = safe_run_benchmarks(config, 'base', base_name, base_network)
-    ServerReporter.report_nps(config, dev_nps, base_nps)
-
-    # Scale the engines together, using their NPS relative to expected
-    dev_factor  = config.workload['test']['dev' ]['nps'] / dev_nps
-    base_factor = config.workload['test']['base']['nps'] / base_nps
-    avg_factor  = (dev_factor + base_factor) / 2
-
-    print () # Record this information
-    print ('Scale Factor Dev  : %.4f' % (dev_factor ))
-    print ('Scale Factor Base : %.4f' % (base_factor))
-    print ('Scale Factor Avg  : %.4f' % (avg_factor ))
+    # Scale time control based on the Engine's local NPS
+    scale_factor = determine_scale_factor(config, dev_name, dev_network, base_name, base_network)
 
     # Server knows how many copies of Cutechess we should run
     cutechess_cnt   = config.workload['distribution']['cutechess-count']
@@ -990,11 +1007,6 @@ def complete_workload(config):
     print ('%d cutechess copies' % (cutechess_cnt))
     print ('%d concurrent games per copy' % (concurrency_per))
     print ('%d total games per cutechess copy\n' % (games_per))
-
-    # Scale using the base factor only, in the event of a cross-engine test
-    dev_engine    = config.workload['test']['dev' ]['engine']
-    base_engine   = config.workload['test']['base']['engine']
-    scale_factor  = base_factor if dev_engine != base_engine else avg_factor
 
     # Launch and manage all of the Cutechess workers
     with ThreadPoolExecutor(max_workers=cutechess_cnt) as executor:

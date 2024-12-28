@@ -33,6 +33,10 @@ from django.core.files.storage import FileSystemStorage
 
 class PGNWatcher(threading.Thread):
 
+    def __init__(self, stop_event, *args, **kwargs):
+        self.stop_event = stop_event
+        super().__init__(*args, **kwargs)
+
     def process_pgn(self, pgn):
 
         tar_path = FileSystemStorage('Media/PGNs').path('%d.pgn.tar' % (pgn.test_id))
@@ -56,11 +60,9 @@ class PGNWatcher(threading.Thread):
             pgn.save()
 
     def run(self):
-        while True:
+        while not self.stop_event.wait(timeout=15):
             for pgn in PGN.objects.filter(processed=False):
-                try:
-                    self.process_pgn(pgn)
+                try: self.process_pgn(pgn)
                 except:
                     traceback.print_exc()
                     sys.stdout.flush()
-            time.sleep(15)

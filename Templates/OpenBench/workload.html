@@ -48,6 +48,7 @@
             <tr><td class="td-label">Syzygy ADJ.</td><td>{{workload.syzygy_adj}}</td></tr>
             <tr><td class="td-label">Win ADJ.</td><td>{{workload.win_adj}}</td></tr>
             <tr><td class="td-label">Draw ADJ.</td><td>{{workload.draw_adj}}</td></tr>
+            <tr><td class="td-label">Scaling</td><td>{{workload.scale_method}} {{workload.scale_nps}} NPS</td></tr>
 
             {% if type == "TUNE" %}
                 <tr><td class="td-label">Alpha</td><td>{{workload.spsa.Alpha}}</td></tr>
@@ -154,7 +155,7 @@
         {% endif %}
 
         <!-- Forum to modify the Priority, Throughput, or (Tests only) Workload Size -->
-        <form method="POST" action="/{{type|lower}}/{{workload.id}}/MODIFY">
+        <form method="POST" action="/{{type|lower}}/{{workload.id}}/MODIFY/">
             {% csrf_token %}
             <div class="form">
                 <div class="col-full">

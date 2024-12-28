@@ -268,7 +268,7 @@ def index(request, page=1):
     completed = OpenBench.utils.get_completed_tests()
     awaiting  = OpenBench.utils.get_awaiting_tests()
 
-    start, end, paging = OpenBench.utils.getPaging(completed, page, 'index')
+    start, end, paging = OpenBench.utils.getPaging(completed, int(page), 'index')
 
     data = {
         'pending'   : pending,
@@ -288,7 +288,7 @@ def user(request, username, page=1):
     completed = OpenBench.utils.get_completed_tests().filter(author=username)
     awaiting  = OpenBench.utils.get_awaiting_tests().filter(author=username)
 
-    start, end, paging = OpenBench.utils.getPaging(completed, page, 'user/%s' % (username))
+    start, end, paging = OpenBench.utils.getPaging(completed, int(page), 'user/%s' % (username))
 
     data = {
         'pending'   : pending,
@@ -304,7 +304,7 @@ def user(request, username, page=1):
 def greens(request, page=1):
 
     completed = OpenBench.utils.get_completed_tests().filter(passed=True)
-    start, end, paging = OpenBench.utils.getPaging(completed, page, 'greens')
+    start, end, paging = OpenBench.utils.getPaging(completed, int(page), 'greens')
 
     data = { 'completed' : completed[start:end], 'paging' : paging }
     return render(request, 'index.html', data)
@@ -420,10 +420,10 @@ def users(request):
     data = { 'profiles' : Profile.objects.order_by('-games', '-tests') }
     return render(request, 'users.html', data)
 
-def event(request, id):
+def event(request, pk):
 
     try:
-        with open(os.path.join(MEDIA_ROOT, LogEvent.objects.get(id=id).log_file)) as fin:
+        with open(os.path.join(MEDIA_ROOT, LogEvent.objects.get(id=pk).log_file)) as fin:
             return render(request, 'event.html', { 'content' : fin.read() })
     except:
         return redirect(request, '/index/', error='No logs for event exist')
@@ -431,7 +431,7 @@ def event(request, id):
 def events_actions(request, page=1):
 
     events = LogEvent.objects.all().filter(machine_id=0).order_by('-id')
-    start, end, paging = OpenBench.utils.getPaging(events, page, 'events')
+    start, end, paging = OpenBench.utils.getPaging(events, int(page), 'events')
 
     data = { 'events' : events[start:end], 'paging' : paging };
     return render(request, 'events.html', data)
@@ -439,19 +439,19 @@ def events_actions(request, page=1):
 def events_errors(request, page=1):
 
     events = LogEvent.objects.all().exclude(machine_id=0).order_by('-id')
-    start, end, paging = OpenBench.utils.getPaging(events, page, 'errors')
+    start, end, paging = OpenBench.utils.getPaging(events, int(page), 'errors')
 
     data = { 'events' : events[start:end], 'paging' : paging };
     return render(request, 'errors.html', data)
 
-def machines(request, machineid=None):
+def machines(request, pk=None):
 
-    if machineid == None:
+    if pk == None:
         data = { 'machines' : OpenBench.utils.getRecentMachines() }
         return render(request, 'machines.html', data)
 
     try:
-        data = { 'machine' : OpenBench.models.Machine.objects.get(id=machineid) }
+        data = { 'machine' : OpenBench.models.Machine.objects.get(id=int(pk)) }
         return render(request, 'machine.html', data)
 
     except:
@@ -462,74 +462,22 @@ def machines(request, machineid=None):
 #                            TEST MANAGEMENT VIEWS                            #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def test(request, id, action=None):
+def workload(request, workload_type, pk, action=None):
 
-    # Request is to modify or interact with the Test
     if action != None:
-        return modify_workload(request, id, action)
+        return modify_workload(request, pk, action)
 
-    # Verify that the Test id exists
-    if not (test := Test.objects.filter(id=id).first()):
-        return redirect(request, '/index/', error='No such Test exists')
+    if not (workload := Test.objects.filter(id=pk).first()):
+        return redirect(request, '/index/', error='No such Workload exists')
 
-    # Verify that it is indeed a Test and not a Tune
-    if test.test_mode == 'TUNE':
-        return redirect(request, '/tune/%d' % (id))
+    return view_workload(request, workload, workload_type.upper())
 
-    # Verify that it is indeed a Test and not Datagen
-    if test.test_mode == 'DATAGEN':
-        return redirect(request, '/datagen/%d' % (id))
+def new_workload(request, workload_type):
 
-    return view_workload(request, test, 'TEST')
+    if workload_type.upper() not in [ 'TEST', 'TUNE', 'DATAGEN' ]:
+        return redirect(request, '/index/', error='Unknown Workload type')
 
-def tune(request, id, action=None):
-
-    # Request is to modify or interact with the Tune
-    if action != None:
-        return modify_workload(request, id, action)
-
-    # Verify that the Tune id exists
-    if not (tune := Test.objects.filter(id=id).first()):
-        return redirect(request, '/index/', error='No such Tune exists')
-
-    # Verify that it is indeed a Tune and not a Test
-    if tune.test_mode == 'SPRT' or tune.test_mode == 'GAMES':
-        return redirect(request, '/test/%d' % (id))
-
-    # Verify that it is indeed a Tune and not Datagen
-    if tune.test_mode == 'DATAGEN':
-        return redirect(request, '/datagen/%d' % (id))
-
-    return view_workload(request, tune, 'TUNE')
-
-def datagen(request, id, action=None):
-
-    # Request is to modify or interact with the Datagen
-    if action != None:
-        return modify_workload(request, id, action)
-
-    # Verify that the Datagen id exists
-    if not (datagen := Test.objects.filter(id=id).first()):
-        return redirect(request, '/index/', error='No such Datagen exists')
-
-    # Verify that it is indeed a Datagen and not a Tune
-    if datagen.test_mode == 'TUNE':
-        return redirect(request, '/tune/%d' % (id))
-
-    # Verify that it is indeed a Datagen and not a Test
-    if datagen.test_mode == 'SPRT' or datagen.test_mode == 'GAMES':
-        return redirect(request, '/test/%d' % (id))
-
-    return view_workload(request, datagen, 'DATAGEN')
-
-def create_test(request):
-    return create_workload(request, 'TEST')
-
-def create_tune(request):
-    return create_workload(request, 'TUNE')
-
-def create_datagen(request):
-    return create_workload(request, 'DATAGEN')
+    return create_workload(request, workload_type.upper())
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                          NETWORK MANAGEMENT VIEWS                           #
@@ -928,13 +876,30 @@ def api_build_info(request):
 @csrf_exempt
 def api_pgns(request, pgn_id):
 
+    # 0. Make sure the request has the correct permissions
     if not api_authenticate(request):
         return api_response({ 'error' : 'API requires authentication for this server' })
 
-    # Possible to request a PGN that does not exist
+    # 1. Make sure the workload actually exists for the requested PGN
+    try: workload = Test.objects.get(pk=pgn_id)
+    except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
+
+    # 2. Make sure there actually is a PGN attached to the Workload
     pgn_path = FileSystemStorage('Media/PGNs').path('%d.pgn.tar' % (pgn_id))
     if not os.path.exists(pgn_path):
         return api_response({ 'error' : 'Unable to find PGN for Workload #%d' % (pgn_id) })
+
+    # 3. Make sure the workload is not currently running
+    if not workload.finished:
+        return api_response({ 'error' : 'PGNs cannot be downloaded while the Workload is active' })
+
+    # 4. Make sure no active workers are still on this workload
+    if OpenBench.utils.getRecentMachines().filter(workload=pgn_id):
+        return api_response({ 'error' : 'Some machines are still on this Workload. Try again shortly' })
+
+    # 5. Make sure there are no pending .pgn.bz2 files to be processed
+    if PGN.objects.filter(test_id=pgn_id).filter(processed=False):
+        return api_response({ 'error' : 'Still processing individual PGNs into the archive. Try again shortly' })
 
     # Craft the download HTML response
     fwrapper = FileWrapper(open(pgn_path, 'rb'), 8192)

@@ -30,6 +30,10 @@ from OpenBench.workloads.verify_workload import fetch_artifact_url
 
 class ArtifactWatcher(threading.Thread):
 
+    def __init__(self, stop_event, *args, **kwargs):
+        self.stop_event = stop_event
+        super().__init__(*args, **kwargs)
+
     def update_test(self, test):
 
         # Public engines end their source with .zip. Private engines end
@@ -59,10 +63,9 @@ class ArtifactWatcher(threading.Thread):
             test.save()
 
     def run(self):
-        while True:
+        while not self.stop_event.wait(timeout=15):
             for test in get_awaiting_tests():
                 try: self.update_test(test)
                 except:
                     traceback.print_exc()
                     sys.stdout.flush()
-            time.sleep(15)
