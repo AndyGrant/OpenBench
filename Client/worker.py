@@ -561,6 +561,10 @@ class PGNHelper:
     @staticmethod
     def slice_pgn_file(file):
 
+        if not os.path.isfile(file):
+            reason = 'Unable to find %s. Cutechess exited with no finished games.' % (file)
+            raise OpenBenchMisssingPGNException(reason)
+
         with open(file) as pgn:
 
             while True:
@@ -1029,7 +1033,6 @@ def complete_workload(config):
 
         # Kill everything during an Exception, but print it
         except (Exception, KeyboardInterrupt):
-            traceback.print_exc()
             abort_flag.set()
             Cutechess.kill_everything(dev_name, base_name)
             raise
@@ -1268,4 +1271,5 @@ def run_openbench_worker(client_args):
 
         except Exception:
             traceback.print_exc()
+            print ('Sleeping for %d seconds' % (TIMEOUT_ERROR))
             time.sleep(TIMEOUT_ERROR)

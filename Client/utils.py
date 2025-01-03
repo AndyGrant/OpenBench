@@ -73,6 +73,11 @@ class OpenBenchFailedGenfensException(Exception):
         self.message = message
         super().__init__(self.message)
 
+class OpenBenchMisssingPGNException(Exception):
+    def __init__(self, message):
+        self.message = message
+        super().__init__(self.message)
+
 
 def kill_process_by_name(process_name):
 
