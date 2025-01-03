@@ -330,8 +330,9 @@ def workload_url(workload):
     if type(workload) == int:
         workload = OpenBench.models.Test.objects.get(id=workload)
 
-    # Differentiate between Tunes ( SPSA ) and Tests ( SPRT / Fixed )
-    return '/%s/%d/' % ('tune' if workload.test_mode == 'SPSA' else 'test', workload.id)
+    # Differentiate between Tunes, Datagen, and regular Tests
+    mapping = { 'SPSA' : 'tune', 'DATAGEN' : 'datagen' }
+    return '/%s/%d/' % (mapping.get(workload.test_mode, 'test'), workload.id)
 
 def workload_pretty_name(workload):
 
