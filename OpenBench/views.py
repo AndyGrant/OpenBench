@@ -33,7 +33,7 @@ from OpenBench.workloads.modify_workload import modify_workload
 from OpenBench.workloads.verify_workload import verify_workload
 from OpenBench.workloads.view_workload import view_workload
 
-from OpenBench.config import OPENBENCH_CONFIG, OPENBENCH_STATIC_VERSION
+from OpenBench.config import OPENBENCH_CONFIG, OPENBENCH_CONFIG_CHECKSUM, OPENBENCH_STATIC_VERSION
 from OpenSite.settings import PROJECT_PATH
 
 from OpenBench.models import *
@@ -575,6 +575,10 @@ def verify_worker(function):
         if machine.secret != args[0].POST['secret']:
             return JsonResponse({ 'error' : 'Invalid Secret Token' })
 
+        # Prompt the worker to soft-restart if its config is out of date
+        if machine.info.get('OPENBENCH_CONFIG_CHECKSUM') != OPENBENCH_CONFIG_CHECKSUM:
+            return JsonResponse({ 'error' : 'Server Configuration Changed' })
+
         # Otherwise, carry on, and pass along the machine
         return function(*args, machine)
 
@@ -619,13 +623,16 @@ def client_worker_info(request):
     info    = json.loads(request.POST['system_info'])
     machine = OpenBench.utils.get_machine(info['machine_id'], user, info)
 
-    # Indicate invalid request
+    # Provided an invalid machine_id, but just create a new machine
     if not machine:
-        return JsonResponse({ 'error' : 'Bad Machine Id' })
+        machine = OpenBench.utils.get_machine('None', user, info)
 
     # Save the machine's latest information and Secret Token for this session
     machine.info   = info
     machine.secret = secrets.token_hex(32)
+
+    # Note the Config checksum at the time of init, in case it changes
+    machine.info['OPENBENCH_CONFIG_CHECKSUM'] = OPENBENCH_CONFIG_CHECKSUM
 
     # Tag engines that the Machine can build and/or run with binaries
     machine.info['supported'] = []

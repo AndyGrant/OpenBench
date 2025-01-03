@@ -68,7 +68,7 @@ class OpenBenchConfig(django.apps.AppConfig):
 
         with CONFIG_LOCK:
             if config.OPENBENCH_CONFIG is None:
-                config.OPENBENCH_CONFIG = config.create_openbench_config()
+                config.OPENBENCH_CONFIG, config.OPENBENCH_CONFIG_CHECKSUM = config.create_openbench_config()
 
         # Attempt to spawn the Artifact and PGN Watchers, globally once
 

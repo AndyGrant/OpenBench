@@ -54,7 +54,7 @@ from genfens import create_genfens_opening_book
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 33 # Client version to send to the Server
+CLIENT_VERSION   = 34 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -70,10 +70,7 @@ class Configuration:
     ## information about the system, as well as holding any of the command line
     ## arguments provided. Lastly, a Configuration() object holds the Workload
 
-    def __init__(self, args, force_restart=False):
-
-        if force_restart and os.path.exists('machine.txt'):
-            os.remove('machine.txt')
+    def __init__(self, args):
 
         # Basic init of every piece of System specific information
         self.compilers      = {}
@@ -1274,7 +1271,7 @@ def run_openbench_worker(client_args):
         except OpenBenchFatalWorkerException:
             traceback.print_exc()
             time.sleep(TIMEOUT_ERROR)
-            config = Configuration(args, force_restart=True)
+            config = Configuration(args)
             try_forever(server_configure_worker, [config], setup_error)
 
         except Exception:

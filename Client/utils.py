@@ -34,7 +34,7 @@ IS_LINUX   = platform.system() != 'Windows' # Don't touch this
 
 class OpenBenchFatalWorkerException(Exception):
     def __init__(self, message):
-        self.message = 'Aborting Workload: ' + message
+        self.message = 'Restarting Worker: ' + message
         super().__init__(self.message)
 
 class OpenBenchBuildFailedException(Exception):
