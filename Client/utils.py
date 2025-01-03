@@ -31,6 +31,12 @@ import zipfile
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
 IS_LINUX   = platform.system() != 'Windows' # Don't touch this
 
+
+class OpenBenchFatalWorkerException(Exception):
+    def __init__(self, message):
+        self.message = 'Aborting Workload: ' + message
+        super().__init__(self.message)
+
 class OpenBenchBuildFailedException(Exception):
     def __init__(self, message, logs):
         self.message = message

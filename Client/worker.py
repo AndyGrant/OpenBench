@@ -70,7 +70,10 @@ class Configuration:
     ## information about the system, as well as holding any of the command line
     ## arguments provided. Lastly, a Configuration() object holds the Workload
 
-    def __init__(self, args):
+    def __init__(self, args, force_restart=False):
+
+        if force_restart and os.path.exists('machine.txt'):
+            os.remove('machine.txt')
 
         # Basic init of every piece of System specific information
         self.compilers      = {}
@@ -239,6 +242,10 @@ class ServerReporter:
         # Throw all the way back to the client.py
         if 'Bad Client Version' in as_json.get('error', ''):
             raise BadVersionException()
+
+        # Some fatal error, forcing us out of the Workload
+        if 'error' in as_json:
+            raise OpenBenchFatalWorkerException(as_json['error'])
 
         return response
 
@@ -678,9 +685,8 @@ class ResultsReporter(object):
             # Signal an exit if the test ended
             return 'stop' in response
 
-        except BadVersionException:
-            self.abort_flag.set()
-            return True
+        except (BadVersionException, OpenBenchFatalWorkerException):
+            raise
 
         except Exception:
             traceback.print_exc()
@@ -925,18 +931,13 @@ def server_configure_worker(config):
     target   = url_join(config.server, 'clientWorkerInfo')
     response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
 
-    # Delete the machine.txt if we have saved an invalid machine number
-    if response.get('error', '').lower() == "bad machine id":
-        config.machine_id = 'None'
-        os.remove('machine.txt')
-
     # Throw all the way back to the client.py
     if 'Bad Client Version' in response.get('error', ''):
         raise BadVersionException();
 
     # The 'error' header is included if there was an issue
     if 'error' in response:
-        raise Exception('[Error] %s' % (response['error']))
+        raise OpenBenchFatalWorkerException(response['error'])
 
     # Save the machine id, to avoid re-registering every time
     with open('machine.txt', 'w') as fout:
@@ -963,9 +964,9 @@ def server_request_workload(config):
     if 'Bad Client Version' in response.get('error', ''):
         raise BadVersionException();
 
-    # The 'error' header is included if there was an issue
+    # Something very bad happened. Re-initialize the Client
     if 'error' in response:
-        raise Exception('[Error] %s' % (response['error']))
+        raise OpenBenchFatalWorkerException(response['error'])
 
     # Log the start of a new Workload
     if 'workload' in response:
@@ -1228,12 +1229,11 @@ def parse_arguments(client_args):
 
 def run_openbench_worker(client_args):
 
-    args   = parse_arguments(client_args) # Merge client.py and worker.py args
-    config = Configuration(args)          # Holds System info, args, and Workload info
-
     setup_error      = '[Note] Unable to establish initial connection with the Server!'
     connection_error = '[Note] Unable to reach the server to request a workload!'
 
+    args   = parse_arguments(client_args) # Merge client.py and worker.py args
+    config = Configuration(args)          # Holds System info, args, and Workload info
     try_forever(server_configure_worker, [config], setup_error)
 
     if IS_LINUX:
@@ -1266,10 +1266,17 @@ def run_openbench_worker(client_args):
             # In either case, wait before requesting again
             else: time.sleep(TIMEOUT_WORKLOAD)
 
+        # Caught by client.py, prompting a Client Update
         except BadVersionException:
             raise BadVersionException()
 
+        # Fatal error, fully restart the Worker
+        except OpenBenchFatalWorkerException:
+            traceback.print_exc()
+            time.sleep(TIMEOUT_ERROR)
+            config = Configuration(args, force_restart=True)
+            try_forever(server_configure_worker, [config], setup_error)
+
         except Exception:
             traceback.print_exc()
-            print ('Sleeping for %d seconds' % (TIMEOUT_ERROR))
             time.sleep(TIMEOUT_ERROR)
