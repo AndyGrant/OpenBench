@@ -81,6 +81,8 @@ class OpenBenchMisssingPGNException(Exception):
 
 def kill_process_by_name(process_name):
 
+    process_name = os.path.basename(process_name)
+
     if IS_LINUX:
         subprocess.run(['pkill', '-f', process_name])
 
