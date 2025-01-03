@@ -1236,7 +1236,17 @@ def run_openbench_worker(client_args):
     if IS_LINUX:
         set_cutechess_permissions()
 
+    # Cleanup in case openbench.exit still exists
+    if os.path.isfile('openbench.exit'):
+        os.remove('openbench.exit')
+
     while True:
+
+        # Check for exit signal via openbench.exit
+        if os.path.isfile('openbench.exit'):
+            print('Exited via openbench.exit')
+            sys.exit()
+
         try:
             # Cleanup on each workload request
             cleanup_client()
@@ -1252,11 +1262,6 @@ def run_openbench_worker(client_args):
 
             # In either case, wait before requesting again
             else: time.sleep(TIMEOUT_WORKLOAD)
-
-            # Check for exit signal via openbench.exit
-            if os.path.isfile('openbench.exit'):
-                print('Exited via openbench.exit')
-                sys.exit()
 
         except BadVersionException:
             raise BadVersionException()
