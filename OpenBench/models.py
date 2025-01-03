@@ -192,6 +192,9 @@ class Test(Model):
     def as_nwld(self):
         return (self.games, self.wins, self.losses, self.draws)
 
+    def workload_type_str(self):
+        return {'SPSA' : 'tune', 'DATAGEN' : 'datagen'}.get(self.test_mode, 'test')
+
 class LogEvent(Model):
 
     author     = CharField(max_length=128) # Username for the OpenBench Profile

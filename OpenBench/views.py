@@ -467,8 +467,12 @@ def workload(request, workload_type, pk, action=None):
     if action != None:
         return modify_workload(request, pk, action)
 
-    if not (workload := Test.objects.filter(id=pk).first()):
+    if not (workload := Test.objects.filter(id=int(pk)).first()):
         return redirect(request, '/index/', error='No such Workload exists')
+
+    # Trying to view a Tune as a Test, for example
+    if workload.workload_type_str() != workload_type:
+        return django.http.HttpResponseRedirect('/%s/%d/' % (workload.workload_type_str(), int(pk)))
 
     return view_workload(request, workload, workload_type.upper())
 
