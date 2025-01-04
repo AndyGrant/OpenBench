@@ -166,12 +166,6 @@ if __name__ == '__main__':
 
     from client import BadVersionException
 
-    import worker
-    importlib.reload(worker)
-
-    x = input('Enter something...')
-    print ('Continueing')
-
     while True:
 
         try:
