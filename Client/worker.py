@@ -1046,7 +1046,7 @@ def complete_workload(config):
 
 def safe_download_network_weights(config, branch):
 
-    # Wraps utils.py:utils.download_network()
+    # Wraps utils.py:download_network()
     # May raise utils.OpenBenchCorruptedNetworkException
 
     engine   = config.workload['test'][branch]['engine' ]
@@ -1065,7 +1065,7 @@ def safe_download_network_weights(config, branch):
 
 def safe_download_engine(config, branch, net_path):
 
-    # Wraps utils.py:utils.download_public_engine() and utils.py:utils.download_private_engine()
+    # Wraps utils.py:download_public_engine() and utils.py:download_private_engine()
 
     engine      = config.workload['test'][branch]['engine']
     branch_name = config.workload['test'][branch]['name']
