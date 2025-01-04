@@ -22,6 +22,8 @@ import bz2
 import re
 import sys
 
+## Local imports must only use "import x", never "from x import ..."
+
 # For use externally
 REGEX_COMMENT_VERBOSE  = r'(book|[+-]?M?\d+(?:\.\d+)? \d+/\d+ \d+ \d+)'
 REGEX_COMMENT_COMPACT  = r'(book|[+-]?M?\d+(?:\.\d+)?) \d+/\d+ \d+ \d+'

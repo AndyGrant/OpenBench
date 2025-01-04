@@ -37,8 +37,9 @@ import re
 import subprocess
 import sys
 
-from utils import kill_process_by_name
-from utils import OpenBenchBadBenchException
+## Local imports must only use "import x", never "from x import ..."
+
+import utils
 
 MAX_BENCH_TIME_SECONDS = 60
 
@@ -103,8 +104,8 @@ def multi_core_bench(binary, network, private, threads):
         return [outqueue.get(timeout=MAX_BENCH_TIME_SECONDS) for ii in range(threads)]
 
     except queue.Empty: # Force kill the engine, thus causing the processes to finish
-        kill_process_by_name(binary)
-        raise OpenBenchBadBenchException('[%s] Bench Exceeded Max Duration' % (binary))
+        utils.kill_process_by_name(binary)
+        raise utils.OpenBenchBadBenchException('[%s] Bench Exceeded Max Duration' % (binary))
 
     finally: # Join everything to avoid zombie processes
         for process in processes:
@@ -120,12 +121,12 @@ def run_benchmark(binary, network, private, threads, sets, expected=None):
             benches.append(bench); speeds.append(speed)
 
     if len(set(benches)) != 1:
-        raise OpenBenchBadBenchException('[%s] Non-Deterministic Benches' % (engine))
+        raise utils.OpenBenchBadBenchException('[%s] Non-Deterministic Benches' % (engine))
 
     if None in benches or None in speeds:
-        raise OpenBenchBadBenchException('[%s] Failed to Execute Benchmark' % (engine))
+        raise utils.OpenBenchBadBenchException('[%s] Failed to Execute Benchmark' % (engine))
 
     if expected and expected != benches[0]:
-        raise OpenBenchBadBenchException('[%s] Wrong Bench: %d' % (engine, benches[0]))
+        raise utils.OpenBenchBadBenchException('[%s] Wrong Bench: %d' % (engine, benches[0]))
 
     return sum(speeds) // len(speeds), benches[0]

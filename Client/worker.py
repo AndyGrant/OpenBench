@@ -20,6 +20,7 @@
 
 import argparse
 import cpuinfo
+import importlib
 import json
 import multiprocessing
 import os
@@ -40,21 +41,23 @@ from subprocess import PIPE, Popen, call, STDOUT
 from itertools import combinations_with_replacement
 from concurrent.futures import ThreadPoolExecutor
 
-## Local imports
+## Local imports must only use "import x", never "from x import ..."
+## Local imports must also be done in reload_local_imports()
 
 import bench
+import genfens
+import pgn_util
+import utils
+
+## Local imports from client are an exception
 
 from client import BadVersionException
 from client import url_join
 from client import try_forever
 
-from utils import *
-from pgn_util import compress_list_of_pgns
-from genfens import create_genfens_opening_book
-
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 34 # Client version to send to the Server
+CLIENT_VERSION   = 35 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -229,7 +232,7 @@ class ServerReporter:
         payload['machine_id'] = config.machine_id
         payload['secret']     = config.secret_token
 
-        target   = url_join(config.server, endpoint)
+        target   = utils.url_join(config.server, endpoint)
         response = requests.post(target, data=payload, files=files, timeout=TIMEOUT_HTTP)
 
         # Check for a json repsone, to look for Client Version Errors
@@ -242,7 +245,7 @@ class ServerReporter:
 
         # Some fatal error, forcing us out of the Workload
         if 'error' in as_json:
-            raise OpenBenchFatalWorkerException(as_json['error'])
+            raise utils.OpenBenchFatalWorkerException(as_json['error'])
 
         return response
 
@@ -542,13 +545,13 @@ class Cutechess:
     def kill_everything(dev_process, base_process):
 
         if IS_LINUX:
-            kill_process_by_name('cutechess-ob')
+            utils.kill_process_by_name('cutechess-ob')
 
         if IS_WINDOWS:
-            kill_process_by_name('cutechess-ob.exe')
+            utils.kill_process_by_name('cutechess-ob.exe')
 
-        kill_process_by_name(dev_process)
-        kill_process_by_name(base_process)
+        utils.kill_process_by_name(dev_process)
+        utils.kill_process_by_name(base_process)
 
     @staticmethod
     def pgn_name(config, timestamp, cutechess_idx):
@@ -567,7 +570,7 @@ class PGNHelper:
 
         if not os.path.isfile(file):
             reason = 'Unable to find %s. Cutechess exited with no finished games.' % (file)
-            raise OpenBenchMisssingPGNException(reason)
+            raise utils.OpenBenchMisssingPGNException(reason)
 
         with open(file) as pgn:
 
@@ -682,7 +685,7 @@ class ResultsReporter(object):
             # Signal an exit if the test ended
             return 'stop' in response
 
-        except (BadVersionException, OpenBenchFatalWorkerException):
+        except (BadVersionException, utils.OpenBenchFatalWorkerException):
             raise
 
         except Exception:
@@ -889,7 +892,7 @@ def determine_scale_factor(config, dev_name, dev_network, base_name, base_networ
 def server_configure_worker(config):
 
     # Server tells us how to build or obtain binaries
-    target = url_join(config.server, 'clientGetBuildInfo')
+    target = utils.url_join(config.server, 'clientGetBuildInfo')
     data   = requests.get(target, timeout=TIMEOUT_HTTP).json()
 
     config.scan_for_compilers(data)      # Public engine build tools
@@ -925,7 +928,7 @@ def server_configure_worker(config):
     }
 
     # Send all of this to the server, and get a Machine Id + Secret Token
-    target   = url_join(config.server, 'clientWorkerInfo')
+    target   = utils.url_join(config.server, 'clientWorkerInfo')
     response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
 
     # Throw all the way back to the client.py
@@ -934,7 +937,7 @@ def server_configure_worker(config):
 
     # The 'error' header is included if there was an issue
     if 'error' in response:
-        raise OpenBenchFatalWorkerException(response['error'])
+        raise utils.OpenBenchFatalWorkerException(response['error'])
 
     # Save the machine id, to avoid re-registering every time
     with open('machine.txt', 'w') as fout:
@@ -949,13 +952,13 @@ def server_request_workload(config):
     print('\nRequesting Workload from Server...')
 
     payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token, 'blacklist' : config.blacklist }
-    target   = url_join(config.server, 'clientGetWorkload')
+    target   = utils.url_join(config.server, 'clientGetWorkload')
     response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
     # Server errors produce garbage back, which we should not alarm a user with
     try: response = response.json()
     except json.decoder.JSONDecodeError:
-        raise OpenBenchBadServerResponseException() from None
+        raise utils.OpenBenchBadServerResponseException() from None
 
     # Throw all the way back to the client.py
     if 'Bad Client Version' in response.get('error', ''):
@@ -963,7 +966,7 @@ def server_request_workload(config):
 
     # Something very bad happened. Re-initialize the Client
     if 'error' in response:
-        raise OpenBenchFatalWorkerException(response['error'])
+        raise utils.OpenBenchFatalWorkerException(response['error'])
 
     # Log the start of a new Workload
     if 'workload' in response:
@@ -979,7 +982,7 @@ def server_request_workload(config):
 def complete_workload(config):
 
     # Download the opening book, throws an exception on corruption
-    download_opening_book(
+    utils.download_opening_book(
         config.workload['test']['book']['sha'   ],
         config.workload['test']['book']['source'],
         config.workload['test']['book']['name'  ],
@@ -1039,12 +1042,12 @@ def complete_workload(config):
         if config.workload['test']['upload_pgns'] != 'FALSE':
             compact    = config.workload['test']['upload_pgns'] == 'COMPACT'
             pgn_files  = [Cutechess.pgn_name(config, timestamp, x) for x in range(cutechess_cnt)]
-            ServerReporter.report_pgn(config, compress_list_of_pgns(pgn_files, scale_factor, compact))
+            ServerReporter.report_pgn(config, pgn_util.compress_list_of_pgns(pgn_files, scale_factor, compact))
 
 def safe_download_network_weights(config, branch):
 
     # Wraps utils.py:download_network()
-    # May raise OpenBenchCorruptedNetworkException
+    # May raise utils.OpenBenchCorruptedNetworkException
 
     engine   = config.workload['test'][branch]['engine' ]
     net_name = config.workload['test'][branch]['netname']
@@ -1056,7 +1059,7 @@ def safe_download_network_weights(config, branch):
         return None
 
     credentials = (config.server, config.username, config.password)
-    download_network(*credentials, engine, net_name, net_sha, net_path)
+    utils.download_network(*credentials, engine, net_name, net_sha, net_path)
 
     return net_path
 
@@ -1070,16 +1073,16 @@ def safe_download_engine(config, branch, net_path):
     source      = config.workload['test'][branch]['source']
     private     = config.workload['test'][branch]['private']
 
-    bin_name = engine_binary_name(engine, commit_sha, net_path, private)
+    bin_name = utils.engine_binary_name(engine, commit_sha, net_path, private)
     out_path = os.path.join('Engines', bin_name)
 
     if private:
 
         try:
-            return download_private_engine(
+            return utils.download_private_engine(
                 engine, branch_name, source, out_path, config.cpu_name, config.cpu_flags)
 
-        except OpenBenchMissingArtifactException as error:
+        except utils.OpenBenchMissingArtifactException as error:
             ServerReporter.report_missing_artifact(config, branch, error.name, error.logs)
             raise
 
@@ -1089,10 +1092,10 @@ def safe_download_engine(config, branch, net_path):
         compiler  = config.compilers[engine][0]
 
         try:
-            return download_public_engine(
+            return utils.download_public_engine(
                 engine, net_path, branch_name, source, make_path, out_path, compiler)
 
-        except OpenBenchBuildFailedException as error:
+        except utils.OpenBenchBuildFailedException as error:
 
             print ('Failed to build %s-%s...\n\nCompiler Output:' % (engine, branch_name))
             for line in error.logs.split('\n'):
@@ -1105,9 +1108,9 @@ def safe_download_engine(config, branch, net_path):
 
 def safe_create_genfens_opening_book(config, dev_name, dev_network):
 
-    try: create_genfens_opening_book(config, dev_name, dev_network)
+    try: genfens.create_genfens_opening_book(config, dev_name, dev_network)
 
-    except OpenBenchFailedGenfensException as error:
+    except utils.OpenBenchFailedGenfensException as error:
         ServerReporter.report_engine_error(config, error.message)
         raise
 
@@ -1123,7 +1126,7 @@ def safe_run_benchmarks(config, branch, engine, network):
         speed, nodes = bench.run_benchmark(
             binary, network, private, config.threads, 1, expected)
 
-    except OpenBenchBadBenchException as error:
+    except utils.OpenBenchBadBenchException as error:
         ServerReporter.report_bad_bench(config, error.message)
         raise
 
@@ -1202,6 +1205,18 @@ def run_and_parse_cutechess(config, command, cutechess_idx, results_queue, abort
 #                                                                           #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+def reload_local_imports():
+
+    import bench
+    import genfens
+    import pgn_util
+    import utils
+
+    importlib.reload(bench)
+    importlib.reload(genfens)
+    importlib.reload(pgn_util)
+    importlib.reload(utils)
+
 def parse_arguments(client_args):
 
     # Pretty formatting
@@ -1225,6 +1240,9 @@ def parse_arguments(client_args):
     return argparse.Namespace(**{ **vars(client_args), **vars(worker_args) })
 
 def run_openbench_worker(client_args):
+
+    # If the client was updated, we must reload everything
+    reload_local_imports()
 
     setup_error      = '[Note] Unable to establish initial connection with the Server!'
     connection_error = '[Note] Unable to reach the server to request a workload!'
@@ -1268,7 +1286,7 @@ def run_openbench_worker(client_args):
             raise BadVersionException()
 
         # Fatal error, fully restart the Worker
-        except OpenBenchFatalWorkerException:
+        except utils.OpenBenchFatalWorkerException:
             traceback.print_exc()
             time.sleep(TIMEOUT_ERROR)
             config = Configuration(args)

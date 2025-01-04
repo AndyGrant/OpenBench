@@ -28,6 +28,8 @@ import subprocess
 import tempfile
 import zipfile
 
+## Local imports must only use "import x", never "from x import ..."
+
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
 IS_LINUX   = platform.system() != 'Windows' # Don't touch this
 
