@@ -36,7 +36,7 @@ from django.http import FileResponse
 from django.utils import timezone
 from wsgiref.util import FileWrapper
 
-from OpenSite.settings import MEDIA_ROOT
+from OpenSite.settings import MEDIA_ROOT, PROJECT_PATH
 
 from OpenBench.config import OPENBENCH_CONFIG
 from OpenBench.models import *
@@ -125,9 +125,10 @@ class TimeControl(object):
 
 
 def read_git_credentials(engine):
-    fname = 'Config/credentials.%s' % (engine.replace(' ', '').lower())
-    if os.path.exists(fname):
-        with open(fname) as fin:
+    fname = 'credentials.%s' % (engine.replace(' ', '').lower())
+    fpath = os.path.join(PROJECT_PATH, 'Config', fname)
+    if os.path.exists(fpath):
+        with open(fpath) as fin:
             return { 'Authorization' : 'token %s' % fin.readlines()[0].rstrip() }
 
 def path_join(*args):
