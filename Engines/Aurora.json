@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 80000,
+    "nps"     : 40000,
     "source"  : "https://github.com/kjljixx/Aurora-Chess-Engine",
 
     "build" : {
