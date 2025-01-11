@@ -22,13 +22,13 @@
         },
 
         "STC" : {
-            "both_options"      : "Hash=65536 Threads=1",
+            "both_options"      : "Hash=1 Threads=1",
             "both_time_control" : "6.0+0.06",
             "workload_size"     : 32
         },
 
         "LTC" : {
-            "both_options"      : "Hash=65536 Threads=1",
+            "both_options"      : "Hash=4 Threads=1",
             "both_time_control" : "20.0+0.2",
             "workload_size"     : 8
         }
