@@ -23,6 +23,7 @@
     ],
 
     "engines" : [
-        "Calvin"
+        "Calvin",
+        "Serendipity"
     ]
 }
