@@ -96,10 +96,11 @@ def parse_arguments():
     )
 
     # Create and parse all arguments into a raw format
-    p.add_argument('-U', '--username', help=help_user         , required=req_user  )
-    p.add_argument('-P', '--password', help=help_pass         , required=req_pass  )
-    p.add_argument('-S', '--server'  , help=help_server       , required=req_server)
-    p.add_argument(      '--clean'   , help='Force New Client', action='store_true')
+    p.add_argument('-U', '--username'           , help=help_user                , required=req_user  )
+    p.add_argument('-P', '--password'           , help=help_pass                , required=req_pass  )
+    p.add_argument('-S', '--server'             , help=help_server              , required=req_server)
+    p.add_argument(      '--clean'              , help='Force New Client'       , action='store_true')
+    p.add_argument(      '--no-client-downloads', help='NEVER download a client', action='store_true')
 
     # Override, to possibly print worker.py's help as well as client.py's
     p.print_help = lambda: custom_help(p.format_help())
@@ -160,6 +161,9 @@ if __name__ == '__main__':
 
     args = parse_arguments()
 
+    if args.no_client_downloads and not has_worker():
+        raise Exception('Client missing, and --no-client-downloads provided')
+
     if args.clean or not has_worker():
         print ('[NOTE] Downloading Client...')
         try_forever(download_client_files, [args], 'Failed to download Client files')
@@ -174,6 +178,10 @@ if __name__ == '__main__':
             worker.run_openbench_worker(args)
 
         except BadVersionException:
+
+            if args.no_client_downloads:
+                raise Exception('Client update requested, but --no-client-downloads provided')
+
             print ('[NOTE] Downloading newer version of Client...')
             try_forever(download_client_files, [args], 'Failed to download Client files')
 
