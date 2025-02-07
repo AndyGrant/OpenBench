@@ -106,6 +106,10 @@ def filter_valid_workloads(request, machine):
         workloads = workloads.exclude(syzygy_adj='%d-MAN' % (K))
         workloads = workloads.exclude(syzygy_wdl='%d-MAN' % (K))
 
+    # Skip any workload using, or measuring, Time, for --noisy workers
+    if machine.info.get('noisy'):
+        workloads = [x for x in workloads if not OpenBench.utils.workload_uses_time_based_tc(x)]
+
     # Skip workloads that we have insufficient threads to play
     options = [x for x in workloads if valid_hardware_assignment(x, machine)]
 

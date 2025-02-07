@@ -124,6 +124,16 @@ class TimeControl(object):
 
 
 
+def workload_uses_time_based_tc(workload):
+
+    dev_type  = TimeControl.control_type(workload.dev_time_control)
+    base_type = TimeControl.control_type(workload.base_time_control)
+
+    return  workload.upload_pgns == 'VERBOSE' \
+       or (dev_type  != TimeControl.FIXED_NODES and dev_type  != TimeControl.FIXED_DEPTH) \
+       or (base_type != TimeControl.FIXED_NODES and base_type != TimeControl.FIXED_DEPTH)
+
+
 def read_git_credentials(engine):
     fname = 'credentials.%s' % (engine.replace(' ', '').lower())
     fpath = os.path.join(PROJECT_PATH, 'Config', fname)

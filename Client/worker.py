@@ -57,7 +57,7 @@ from client import try_forever
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 35 # Client version to send to the Server
+CLIENT_VERSION   = 36 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -108,6 +108,7 @@ class Configuration:
         self.identity    = args.identity if args.identity else 'None'
         self.syzygy_path = args.syzygy   if args.syzygy   else None
         self.fleet       = args.fleet    if args.fleet    else False
+        self.noisy       = args.noisy    if args.noisy    else False
         self.focus       = args.focus    if args.focus    else []
 
     def init_client(self):
@@ -917,6 +918,7 @@ def server_configure_worker(config):
         'concurrency'    : config.threads,        # Threads to use to play games
         'sockets'        : config.sockets,        # Cutechess copies, usually equal to Socket count
         'syzygy_max'     : config.syzygy_max,     # Whether or not the machine has Syzygy support
+        'noisy'          : config.noisy,          # Whether our results are unstable for time-based workloads
         'focus'          : config.focus,          # List of engines we have a preference to help
         'client_ver'     : CLIENT_VERSION,        # Version of the Client, which the server may reject
     }
@@ -1226,12 +1228,13 @@ def parse_arguments(client_args):
     )
 
     # Arguments specific to worker.py
-    p.add_argument('-T', '--threads' , help='Total Threads'           , required=True      )
-    p.add_argument('-N', '--nsockets', help='Number of Sockets'       , required=True      )
-    p.add_argument('-I', '--identity', help='Machine pseudonym'       , required=False     )
-    p.add_argument(      '--syzygy'  , help='Syzygy WDL'              , required=False     )
-    p.add_argument(      '--fleet'   , help='Fleet Mode'              , action='store_true')
-    p.add_argument(      '--focus'   , help='Prefer certain engine(s)', nargs='+'          )
+    p.add_argument('-T', '--threads' , help='Total Threads'               , required=True      )
+    p.add_argument('-N', '--nsockets', help='Number of Sockets'           , required=True      )
+    p.add_argument('-I', '--identity', help='Machine pseudonym'           , required=False     )
+    p.add_argument(      '--syzygy'  , help='Syzygy WDL'                  , required=False     )
+    p.add_argument(      '--fleet'   , help='Fleet Mode'                  , action='store_true')
+    p.add_argument(      '--noisy'   , help='Reject time-based workloads' , action='store_true')
+    p.add_argument(      '--focus'   , help='Prefer certain engine(s)'    , nargs='+'          )
 
     # Ignore unknown arguments ( from client )
     worker_args, unknown = p.parse_known_args()
