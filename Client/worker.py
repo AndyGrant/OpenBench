@@ -1113,7 +1113,7 @@ def safe_create_genfens_opening_book(config, dev_name, dev_network):
     with open(os.path.join('Books', 'openbench.genfens.epd'), 'w') as fout:
 
         args = {
-            'N'       : genfens.genfens_required_openings_total(config),
+            'N'       : genfens.genfens_required_openings_each(config),
             'book'    : genfens.genfens_book_input_name(config),
             'seeds'   : config.workload['test']['genfens_seeds'],
             'extra'   : config.workload['test']['genfens_args'],

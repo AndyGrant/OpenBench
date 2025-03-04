@@ -93,6 +93,15 @@ def genfens_progress_bar(curr, total):
         bar_text = '=' * curr_progress + ' ' * (50 - curr_progress)
         print ('\r[%s] %d/%d' % (bar_text, curr, total), end='', flush=True)
 
+def convert_fen_to_epd(fen):
+
+    # Input  : rnbqkbnr/pppp2pp/4pp2/8/2P2P2/P7/1P1PP1PP/RNBQKBNR b KQkq - 0 3
+    # Output : rnbqkbnr/pppp2pp/4pp2/8/2P2P2/P7/1P1PP1PP/RNBQKBNR b KQkq - hmvc 0; fmvn 3;
+
+    halfmove, fullmove = fen.split()[4:]
+
+    return ' '.join(fen.split()[:4]) + ' hmvc %d; fmvn %d;' % (int(halfmove), int(fullmove))
+
 def create_genfens_opening_book(args):
 
     N          = args['N']
@@ -117,7 +126,7 @@ def create_genfens_opening_book(args):
 
     try: # Each process will deposit exactly N results into the Queue
         for iteration in range(N * threads):
-            args['output'].write(output.get(timeout=15) + '\n')
+            args['output'].write(convert_fen_to_epd(output.get(timeout=15)) + '\n')
             genfens_progress_bar(iteration+1, N * threads)
 
     except queue.Empty: # Force kill the engine, thus causing the processes to finish

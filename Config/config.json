@@ -24,6 +24,7 @@
     ],
 
     "engines" : [
+        "Torch",
         "4ku",
         "Berserk",
         "Bit-Genie",
