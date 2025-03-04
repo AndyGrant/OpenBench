@@ -21,18 +21,42 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import argparse
-import bz2
-import tarfile
+import os
+import sys
+import random
+
+# Needed to include from ../Client/*.py
+PARENT = os.path.join(os.path.dirname(__file__), os.path.pardir)
+sys.path.append(os.path.abspath(os.path.join(PARENT, 'Client')))
+
+import genfens
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('archive', help='Path to the OpenBench pgn archive')
-    args = parser.parse_args()
+    p = argparse.ArgumentParser()
+    p.add_argument('--engine'     , help='Binary'                         , required=True )
+    p.add_argument('--threads'    , help='Threads to generate with'       , required=True )
+    p.add_argument('--count-per'  , help='Openings to generate per thread', required=True )
+    p.add_argument('--book-path'  , help='Path to base Book, if any'      , default='None')
+    p.add_argument('--extra'      , help='Extra genfens arguments'        , default=''    )
+    p.add_argument('--network'    , help='Network, for Private Engines'   , default=None  )
+    args = p.parse_args()
 
-    data = {}
-    with tarfile.open(args.archive, 'r') as tar:
-        for member in filter(lambda x: x.isfile(), tar.getmembers()):
-            if file := tar.extractfile(member):
-                for line in bz2.decompress(file.read()).decode('utf-8').split('\n'):
-                    print (line)
+    # Same way that get_workload.py generates seeds
+    seeds = [random.randint(0, 2**31 - 1) for x in range(int(args.threads))]
+
+    with open('example_genfens.epd', 'w') as fout:
+
+        genfen_args = {
+            'N'       : int(args.count_per),
+            'book'    : args.book_path,
+            'seeds'   : seeds,
+            'extra'   : args.extra,
+            'private' : args.network != None,
+            'engine'  : args.engine,
+            'network' : args.network,
+            'threads' : int(args.threads),
+            'output'  : fout,
+        }
+
+        genfens.create_genfens_opening_book(genfen_args)

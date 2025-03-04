@@ -1110,11 +1110,25 @@ def safe_download_engine(config, branch, net_path):
 
 def safe_create_genfens_opening_book(config, dev_name, dev_network):
 
-    try: genfens.create_genfens_opening_book(config, dev_name, dev_network)
+    with open(os.path.join('Books', 'openbench.genfens.epd'), 'w') as fout:
 
-    except utils.OpenBenchFailedGenfensException as error:
-        ServerReporter.report_engine_error(config, error.message)
-        raise
+        args = {
+            'N'       : genfens.genfens_required_openings_total(config),
+            'book'    : genfens.genfens_book_input_name(config),
+            'seeds'   : config.workload['test']['genfens_seeds'],
+            'extra'   : config.workload['test']['genfens_args'],
+            'private' : config.workload['test']['dev']['private'],
+            'engine'  : os.path.join('Engines', dev_name),
+            'network' : dev_network,
+            'threads' : config.threads,
+            'output'  : fout,
+        }
+
+        try: genfens.create_genfens_opening_book(args)
+
+        except utils.OpenBenchFailedGenfensException as error:
+            ServerReporter.report_engine_error(config, error.message)
+            raise
 
 def safe_run_benchmarks(config, branch, engine, network):
 
