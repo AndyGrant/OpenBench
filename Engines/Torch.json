@@ -33,15 +33,15 @@
             "upload_pgns"       : "COMPACT"
         },
 
-        "SMP STC" : {
+        "STC 6-threads" : {
             "both_options"      : "Threads=6 Hash=128 Minimal=true",
             "both_time_control" : "10.0+0.1",
             "workload_size"     : 64,
             "upload_pgns"       : "COMPACT"
         },
 
-        "SMP LTC" : {
-            "both_options"      : "Threads=15 Hash=256 Minimal=true",
+        "LTC 15-threads" : {
+            "both_options"      : "Threads=15 Hash=512 Minimal=true",
             "both_time_control" : "30.0+0.3",
             "workload_size"     : 16,
             "test_bounds"       : "[0.50, 2.50]",
@@ -63,28 +63,12 @@
             "upload_pgns"       : "COMPACT"
         },
 
-        "STC Regression" : {
+        "Speed Test" : {
             "both_options"      : "Threads=1 Hash=16 Minimal=true",
-            "both_time_control" : "15.0+0.15",
-            "workload_size"     : 32,
-            "book_name"         : "Pohl.epd",
-            "test_max_games"    : 40000
-        },
-
-        "LTC Regression" : {
-            "both_options"      : "Threads=1 Hash=64 Minimal=true",
-            "both_time_control" : "60.0+0.6",
-            "workload_size"     : 8,
-            "book_name"         : "Pohl.epd",
-            "test_max_games"    : 40000,
-            "upload_pgns"       : "COMPACT"
-        },
-
-        "STC Fixed Games" : {
-            "both_options"      : "Threads=1 Hash=16 Minimal=true",
-            "both_time_control" : "15.0+0.15",
-            "workload_size"     : 32,
-            "test_max_games"    : 40000
+            "both_time_control" : "N=100000",
+            "workload_size"     : 128,
+            "test_max_games"    : 80000,
+            "upload_pgns"       : "VERBOSE"
         },
 
         "LTC Fixed Games" : {
@@ -92,40 +76,20 @@
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
             "test_max_games"    : 40000
-        },
-
-        "57.5k Fixed Nodes" : {
-            "both_options"      : "Threads=1 Hash=64 Minimal=true",
-            "both_time_control" : "N=57500",
-            "workload_size"     : 128,
-            "test_max_games"    : 40000
-        },
-
-        "Speed Test" : {
-            "both_options"      : "Threads=1 Hash=16 Minimal=true",
-            "both_time_control" : "N=100000",
-            "workload_size"     : 128,
-            "test_max_games"    : 80000,
-            "upload_pgns"       : "VERBOSE"
         }
     },
 
     "tune_presets" : {
 
         "default" : {
-            "book_name"       : "UHO_Lichess_4852_v1.epd",
-            "win_adj"         : "movecount=5 score=300",
-            "draw_adj"        : "movenumber=32 movecount=6 score=8"
+            "book_name" : "UHO_Lichess_4852_v1.epd",
+            "win_adj"   : "movecount=5 score=300",
+            "draw_adj"  : "movenumber=32 movecount=6 score=8"
         },
 
         "STC" : {
             "dev_options"      : "Threads=1 Hash=16 Minimal=true",
             "dev_time_control" : "15.0+0.15"
-        },
-
-        "MTC" : {
-            "dev_options"      : "Threads=1 Hash=32 Minimal=true",
-            "dev_time_control" : "30.0+0.30"
         },
 
         "LTC" : {
@@ -136,30 +100,32 @@
         "VLTC" : {
             "dev_options"      : "Threads=1 Hash=128 Minimal=true",
             "dev_time_control" : "180.0+1.80"
+        },
+
+        "LTC 6-threads" : {
+            "dev_options"      : "Threads=6 Hash=512 Minimal=true",
+            "dev_time_control" : "60.0+0.60"
         }
     },
 
     "datagen_presets" : {
 
         "default" : {
-            "win_adj"       : "None",
-            "draw_adj"      : "None",
-            "workload_size" : 64
-        },
-
-        "57.5k Hard Nodes" : {
-            "both_options"      : "Threads=1 Hash=16 Minimal=true Normalize=false UseSoftNodes=false",
-            "both_time_control" : "N=57500"
-        },
-
-        "36k Soft Nodes" : {
-            "both_options"      : "Threads=1 Hash=16 Minimal=true Normalize=false UseSoftNodes=true",
-            "both_time_control" : "N=36000"
-        },
-
-        "36k Soft Nodes w/ 4k Node Fudging" : {
             "both_options"      : "Threads=1 Hash=16 Minimal=true Normalize=false UseSoftNodes=true NodeFudging=4000",
-            "both_time_control" : "N=36000"
+            "both_time_control" : "N=32000",
+            "datagen_max_games" : 20000000,
+            "draw_adj"          : "None",
+            "upload_pgns"       : "COMPACT",
+            "win_adj"           : "None",
+            "workload_size"     : 64
+        },
+
+        "Default + UHOLichess" : {
+            "book_name" : "UHO_Lichess_4852_v1.epd"
+        },
+
+        "Default + No Book" : {
+            "book_name" : "None"
         }
     }
 }
