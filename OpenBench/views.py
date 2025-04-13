@@ -552,7 +552,7 @@ def scripts(request):
         return networks(request, engine, 'upload', name)
 
     if request.POST['action'] == 'CREATE_TEST':
-        return create_test(request)
+        return new_workload(request, "TEST")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              CLIENT HOOK VIEWS                              #
