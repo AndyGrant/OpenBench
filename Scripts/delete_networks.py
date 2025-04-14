@@ -37,18 +37,16 @@ def delete_network(args, network):
 
     dt  = datetime.datetime.fromisoformat(network['created'])
     now = datetime.datetime.now(datetime.timezone.utc)
-    age = (now - dt).days
-
-    if age < int(args.days):
+    if (now - dt).days < int(args.days):
         return
 
     if args.dry:
-        print ('Dry run... deleting %s', network['name'])
-        return
+        print ('Dry run... deleting %s' % (network['name']))
 
-    url  = url_join(args.server, 'api', 'networks', args.engine, network['name'], 'delete')
-    data = { 'username' : args.username, 'password' : args.password }
-    print (requests.post(url, data=data).json())
+    else:
+        url  = url_join(args.server, 'api', 'networks', args.engine, network['name'], 'delete')
+        data = { 'username' : args.username, 'password' : args.password }
+        print (requests.post(url, data=data).json())
 
 def delete_networks():
 
