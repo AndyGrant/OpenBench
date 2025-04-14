@@ -32,9 +32,19 @@ def url_join(*args):
 
 def delete_network(args, network):
 
-    if network['author'] != args.author or network['default'] or network['was_default']:
+    # Not from the requested author
+    if network['author'] != args.author:
         return
 
+    # Network name does not contain the critical text
+    if args.contains and args.contains not in network['name']:
+        return
+
+    # Server won't let us delete such networks
+    if network['default'] or network['was_default']:
+        return
+
+    # Network is more recent than we are willing to erase
     dt  = datetime.datetime.fromisoformat(network['created'])
     now = datetime.datetime.now(datetime.timezone.utc)
     if (now - dt).days < int(args.days):
@@ -66,6 +76,7 @@ def delete_networks():
     p.add_argument('-E', '--engine'  , help='Engine'                , required=True      )
     p.add_argument('-A', '--author'  , help='Network Author'        , required=True      )
     p.add_argument(      '--days'    , help='Delete iff N+ days old', required=True      )
+    p.add_argument(      '--contains', help='Delete iif in name'    , required=False     )
     p.add_argument(      '--dry'     , help='Mock run'              , action='store_true')
     args = p.parse_args()
 
