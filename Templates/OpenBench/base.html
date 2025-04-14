@@ -56,6 +56,31 @@
                     }
                 }
 
+                {
+                    const cells = document.querySelectorAll('.engine-options');
+
+                    cells.forEach(cell => {
+
+                        // Only have Threads= and Hash= settings
+                        if (cell.textContent.split(/\s+/).length <= 2)
+                            return;
+
+                        // Only display Threads=X Hash=X ...
+                        const re_threads = cell.textContent.match(/Threads=\d+/)[0];
+                        const re_hash    = cell.textContent.match(/Hash=\d+/)[0];
+                        const new_text   = re_threads + ' ' + re_hash + ' ...'
+
+                        // Add all options into the popup text
+                        const popup = document.createElement('div');
+                        popup.classList.add('engine-options-popup');
+                        popup.innerHTML = cell.textContent.trim().replace(/\s+/g, '<br>');
+
+                        // Prune text, and append popup
+                        cell.textContent = new_text;
+                        cell.appendChild(popup);
+                    });
+                }
+
             }, false);
 
             function toggle_sidebar() {

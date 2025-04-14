@@ -467,7 +467,7 @@ td pre {
         word-break: normal;
     }
 
-    /* Test Views */  
+    /* Test Views */
     .workload-container {
         display: flex;
         flex-direction: column;
@@ -486,3 +486,24 @@ td pre {
         overflow-x: auto;
     }
 }
+
+
+/* On-hover for long engine options in workloads */
+
+#content .engine-options {
+    position: relative;
+}
+
+#content .engine-options:hover .engine-options-popup {
+    display: block;
+}
+
+#content .engine-options-popup {
+    display: none;
+    position: absolute;
+    padding: 8px 12px;
+    background-color: #000;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+}
+
