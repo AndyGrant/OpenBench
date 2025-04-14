@@ -78,7 +78,6 @@ def delete_networks():
 
     url  = url_join(args.server, 'api', 'networks', args.engine)
     data = { 'username' : args.username, 'password' : args.password }
-    print (data)
     nets = requests.post(url, data=data).json()['networks']
 
     for network in nets:
