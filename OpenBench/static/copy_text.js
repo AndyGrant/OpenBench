@@ -1,10 +1,10 @@
 
-function copy_text(element_id, keep_url) {
+function copy_text(element_id, keep_url, code_blocks=false) {
 
     var text = document.getElementById(element_id).innerHTML;
     text = text.replace(/<br>/g, "\n");
 
-    if (element_id === 'long-statblock')
+    if (code_blocks)
         text = "```\n" + text + "\n```";
 
     if (keep_url)

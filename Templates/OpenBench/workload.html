@@ -5,6 +5,12 @@
 
 {% block scripts %}
     <script src="{% static 'copy_text.js' %}?{{ static_version }}"></script>
+
+    <script>
+        setTimeout(function() {
+            location.reload();
+        }, 60000); 
+    </script>
 {% endblock %}
 
 {% block content %}
@@ -119,6 +125,10 @@
         {% if type == "TEST" or type == "DATAGEN" %}
             <div class="anchor-container">
                 <a class="mt-1 anchorbutton btn-blue" onclick="copy_text('long-statblock', true)">Copy Stat Block</a>
+            </div>
+
+            <div class="anchor-container">
+                <a class="mt-1 anchorbutton btn-blue" onclick="copy_text('long-statblock', true, true)">Copy Stat Block (Code Blocked)</a>
             </div>
         {% endif %}
 
