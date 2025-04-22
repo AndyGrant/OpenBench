@@ -4,6 +4,9 @@ function copy_text(element_id, keep_url) {
     var text = document.getElementById(element_id).innerHTML;
     text = text.replace(/<br>/g, "\n");
 
+    if (element_id === 'long-statblock')
+        text = "```\n" + text + "\n```";
+
     if (keep_url)
         text += "\n" + window.location.href;
 
