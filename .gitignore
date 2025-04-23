@@ -20,3 +20,6 @@ Media/Networks/*
 Media/Events/*
 
 *.lock
+
+.idea/*
+*.iml
