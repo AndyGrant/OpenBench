@@ -9,9 +9,10 @@ body {
     --color2: #2D2D2D;
     --color3: #3B3B3B;
 
-    --color-font1: #DBDEE1;
+    --color-font1: #FF5757;
     --color-font2: #949BA4;
-    --color-font3: #008F11;
+    --color-font3: #FF5757;
+    --color-font4: #DBDEE1;
 
     background-color: var(--color1);
 
@@ -198,7 +199,7 @@ body, html, main{
     border-radius: 4px;
     padding: 8px 0px 6px;
     border-color: transparent;
-    color: var(--color-font1);
+    color: var(--color-font4);
     display: inline-block;
     text-align: center;
     transition: background-color 0.3s ease;
@@ -282,19 +283,19 @@ body, html, main{
 }
 
 #content .statblock-green {
-    background-color: #76D576;
+    background-color: #76D58E;
 }
 
 #content .statblock-blue {
-    background-color: #60F0FF;
+    background-color: #8CE3EC;
 }
 
 #content .statblock-yellow {
-    background-color: #EFF891;
+    background-color: #C6CE6F;
 }
 
 #content .statblock-red {
-    background-color: #FA9696;
+    background-color: #ff7a7a;
 }
 
 #content .redlink {
