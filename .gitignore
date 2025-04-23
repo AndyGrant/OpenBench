@@ -22,3 +22,4 @@ Media/Events/*
 *.lock
 
 .idea/*
+*.iml
