@@ -37,8 +37,8 @@
                     };
 
                     for (var i = 0; i < timestamps.length; i++) {
-                        var date = new Date(1000 * timestamps[i].innerHTML);
-                        timestamps[i].innerHTML = date.toLocaleString(undefined, options);
+                        var date = new Date(1000 * timestamps[i].textContent);
+                        timestamps[i].textContent = date.toLocaleString(undefined, options);
                     }
                 }
 
@@ -51,8 +51,8 @@
                     };
 
                     for (var i = 0; i < datestamps.length; i++) {
-                        var date = new Date(1000 * datestamps[i].innerHTML);
-                        datestamps[i].innerHTML = date.toLocaleString(undefined, options);
+                        var date = new Date(1000 * datestamps[i].textContent);
+                        datestamps[i].textContent = date.toLocaleString(undefined, options);
                     }
                 }
 
