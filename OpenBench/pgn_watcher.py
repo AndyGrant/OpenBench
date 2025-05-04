@@ -27,7 +27,7 @@ import traceback
 
 from OpenBench.models import PGN
 
-from django.db import transaction
+from django.db import transaction, OperationalError
 from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage
 
@@ -61,8 +61,17 @@ class PGNWatcher(threading.Thread):
 
     def run(self):
         while not self.stop_event.wait(timeout=15):
-            for pgn in PGN.objects.filter(processed=False):
-                try: self.process_pgn(pgn)
-                except:
+
+            try: # Never exit on errors, to keep the watcher alive
+                for pgn in PGN.objects.filter(processed=False):
+                    self.process_pgn(pgn)
+
+            # Expect the database to be locked sometimes
+            except OperationalError as error:
+                if 'database is locked' not in str(error).lower():
                     traceback.print_exc()
                     sys.stdout.flush()
+
+            except: # Totally unknown error
+                traceback.print_exc()
+                sys.stdout.flush()

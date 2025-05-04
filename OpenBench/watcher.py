@@ -28,6 +28,8 @@ from OpenBench.utils import get_awaiting_tests
 from OpenBench.utils import read_git_credentials
 from OpenBench.workloads.verify_workload import fetch_artifact_url
 
+from django.db import OperationalError
+
 class ArtifactWatcher(threading.Thread):
 
     def __init__(self, stop_event, *args, **kwargs):
@@ -63,9 +65,19 @@ class ArtifactWatcher(threading.Thread):
             test.save()
 
     def run(self):
+
         while not self.stop_event.wait(timeout=15):
-            for test in get_awaiting_tests():
-                try: self.update_test(test)
-                except:
+
+            try: # Never exit on errors, to keep the watcher alive
+                for test in get_awaiting_tests():
+                    self.update_test(test)
+
+            # Expect the database to be locked sometimes
+            except OperationalError as error:
+                if 'database is locked' not in str(error).lower():
                     traceback.print_exc()
                     sys.stdout.flush()
+
+            except: # Totally unknown error
+                traceback.print_exc()
+                sys.stdout.flush()

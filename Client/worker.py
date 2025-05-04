@@ -57,7 +57,7 @@ from client import try_forever
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 35 # Client version to send to the Server
+CLIENT_VERSION   = 37 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -108,6 +108,7 @@ class Configuration:
         self.identity    = args.identity if args.identity else 'None'
         self.syzygy_path = args.syzygy   if args.syzygy   else None
         self.fleet       = args.fleet    if args.fleet    else False
+        self.noisy       = args.noisy    if args.noisy    else False
         self.focus       = args.focus    if args.focus    else []
 
     def init_client(self):
@@ -917,6 +918,7 @@ def server_configure_worker(config):
         'concurrency'    : config.threads,        # Threads to use to play games
         'sockets'        : config.sockets,        # Cutechess copies, usually equal to Socket count
         'syzygy_max'     : config.syzygy_max,     # Whether or not the machine has Syzygy support
+        'noisy'          : config.noisy,          # Whether our results are unstable for time-based workloads
         'focus'          : config.focus,          # List of engines we have a preference to help
         'client_ver'     : CLIENT_VERSION,        # Version of the Client, which the server may reject
     }
@@ -1108,11 +1110,25 @@ def safe_download_engine(config, branch, net_path):
 
 def safe_create_genfens_opening_book(config, dev_name, dev_network):
 
-    try: genfens.create_genfens_opening_book(config, dev_name, dev_network)
+    with open(os.path.join('Books', 'openbench.genfens.epd'), 'w') as fout:
 
-    except utils.OpenBenchFailedGenfensException as error:
-        ServerReporter.report_engine_error(config, error.message)
-        raise
+        args = {
+            'N'       : genfens.genfens_required_openings_each(config),
+            'book'    : genfens.genfens_book_input_name(config),
+            'seeds'   : config.workload['test']['genfens_seeds'],
+            'extra'   : config.workload['test']['genfens_args'],
+            'private' : config.workload['test']['dev']['private'],
+            'engine'  : os.path.join('Engines', dev_name),
+            'network' : dev_network,
+            'threads' : config.threads,
+            'output'  : fout,
+        }
+
+        try: genfens.create_genfens_opening_book(args)
+
+        except utils.OpenBenchFailedGenfensException as error:
+            ServerReporter.report_engine_error(config, error.message)
+            raise
 
 def safe_run_benchmarks(config, branch, engine, network):
 
@@ -1226,12 +1242,13 @@ def parse_arguments(client_args):
     )
 
     # Arguments specific to worker.py
-    p.add_argument('-T', '--threads' , help='Total Threads'           , required=True      )
-    p.add_argument('-N', '--nsockets', help='Number of Sockets'       , required=True      )
-    p.add_argument('-I', '--identity', help='Machine pseudonym'       , required=False     )
-    p.add_argument(      '--syzygy'  , help='Syzygy WDL'              , required=False     )
-    p.add_argument(      '--fleet'   , help='Fleet Mode'              , action='store_true')
-    p.add_argument(      '--focus'   , help='Prefer certain engine(s)', nargs='+'          )
+    p.add_argument('-T', '--threads' , help='Total Threads'               , required=True      )
+    p.add_argument('-N', '--nsockets', help='Number of Sockets'           , required=True      )
+    p.add_argument('-I', '--identity', help='Machine pseudonym'           , required=False     )
+    p.add_argument(      '--syzygy'  , help='Syzygy WDL'                  , required=False     )
+    p.add_argument(      '--fleet'   , help='Fleet Mode'                  , action='store_true')
+    p.add_argument(      '--noisy'   , help='Reject time-based workloads' , action='store_true')
+    p.add_argument(      '--focus'   , help='Prefer certain engine(s)'    , nargs='+'          )
 
     # Ignore unknown arguments ( from client )
     worker_args, unknown = p.parse_known_args()

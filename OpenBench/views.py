@@ -26,6 +26,7 @@ import django.contrib.auth
 
 import OpenBench.config
 import OpenBench.utils
+import OpenBench.model_utils
 
 from OpenBench.workloads.create_workload import create_workload
 from OpenBench.workloads.get_workload import get_workload
@@ -552,7 +553,7 @@ def scripts(request):
         return networks(request, engine, 'upload', name)
 
     if request.POST['action'] == 'CREATE_TEST':
-        return create_test(request)
+        return new_workload(request, "TEST")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              CLIENT HOOK VIEWS                              #
@@ -826,17 +827,14 @@ def api_networks(request, engine):
 
     if engine in OPENBENCH_CONFIG['engines'].keys():
 
-        if not (network := Network.objects.filter(engine=engine, default=True).first()):
-            return api_response({ 'error' : 'Engine does not have a default Network' })
-
-        default = {
-            'sha'    : network.sha256, 'name'    : network.name,
-            'author' : network.author, 'created' : str(network.created) }
+        default = None
+        if (network := Network.objects.filter(engine=engine, default=True).first()):
+            default = OpenBench.model_utils.network_to_dict(network)
 
         networks = [
-          { 'sha'    : network.sha256, 'name'    : network.name,
-            'author' : network.author, 'created' : str(network.created) }
-            for network in Network.objects.filter(engine=engine) ]
+            OpenBench.model_utils.network_to_dict(network)
+            for network in Network.objects.filter(engine=engine)
+        ]
 
         return api_response({ 'default' : default, 'networks' : networks })
 
@@ -859,6 +857,21 @@ def api_network_download(request, engine, identifier):
         return OpenBench.utils.network_download(request, engine, network)
 
     return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
+
+@csrf_exempt
+def api_network_delete(request, engine, identifier):
+
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    if not api_authenticate(request, require_enabled=True):
+        return api_response({ 'error' : 'API requires authentication for this endpoint' })
+
+    if not (network := OpenBench.utils.network_disambiguate(engine, identifier)):
+        return api_response({ 'error' : 'Network %s for Engine %s not found' % (identifier, engine) })
+
+    message, success = OpenBench.model_utils.network_delete(network)
+    return api_response({ 'success' if success else 'error' : message })
 
 @csrf_exempt
 def api_build_info(request):

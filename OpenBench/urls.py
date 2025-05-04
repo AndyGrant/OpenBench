@@ -75,6 +75,7 @@ urlpatterns = [
     django.urls.path(r'api/config/<str:engine>/', OpenBench.views.api_configs),
     django.urls.path(r'api/networks/<str:engine>/', OpenBench.views.api_networks),
     django.urls.path(r'api/networks/<str:engine>/<str:identifier>/', OpenBench.views.api_network_download),
+    django.urls.path(r'api/networks/<str:engine>/<str:identifier>/delete/', OpenBench.views.api_network_delete),
     django.urls.path(r'api/buildinfo/', OpenBench.views.api_build_info),
     django.urls.path(r'api/pgns/<int:pgn_id>/', OpenBench.views.api_pgns),
 
