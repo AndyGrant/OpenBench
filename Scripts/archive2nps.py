@@ -44,49 +44,100 @@ def pgn_iterator(content):
 
         yield (headers, move_text)
 
-def process_content(content, data, use_scale):
+def process_content(content, data, result_id, use_scale):
 
     comment_regex = r'{(book|[+-]?M?\d+(?:\.\d+)? \d+/\d+ \d+ \d+)[^}]*}'
 
     for (headers, move_text) in pgn_iterator(content):
 
-        factor = float(headers['ScaleFactor']) if use_scale else 1.00
-
-        white  = headers['White'].split('-')[-1]
-        black  = headers['Black'].split('-')[-1]
+        factor    = float(headers['ScaleFactor']) if use_scale else 1.00
+        white     = headers['White'].split('-')[-1]
+        black     = headers['Black'].split('-')[-1]
         white_stm = 'FEN' not in headers or headers['FEN'].split()[1] == 'w'
 
-        data['games'] = data['games'] + 1
+        # Setup to track stats per result-id
+        if result_id not in data:
+            data[result_id] = {}
 
+        # Setup to track stats for this result-id
         for engine in (white, black):
-            if engine not in data:
-                data[engine] = { 'nodes' : 0, 'time' : 0 }
+            if engine not in data[result_id]:
+                data[result_id][engine] = { 'nodes' : 0, 'time' : 0, 'games' : 0, 'ply' : 0 }
+            data[result_id][engine]['games'] += 1
 
         for x in re.compile(comment_regex).findall(move_text):
-
             if len(tokens := x.split()) == 4:
-                data[white if white_stm else black]['time']  += int(tokens[2]) / factor
-                data[white if white_stm else black]['nodes'] += int(tokens[3])
-
+                data[result_id][white if white_stm else black]['time']  += int(tokens[2]) / factor
+                data[result_id][white if white_stm else black]['nodes'] += int(tokens[3])
+                data[result_id][white if white_stm else black]['ply']   += 1
             white_stm = not white_stm
+
+def report_verbose_stats(data):
+
+    header = 'Result ID    Games      Dev       Base   '
+    print (header)
+    print ('-' * len(header))
+
+    for result_id, stats in data.items():
+
+        games = stats['dev']['games']
+
+        dev_knps  = stats['dev']['nodes']  / stats['dev']['time']
+        base_knps = stats['base']['nodes'] / stats['base']['time']
+
+        print ('%5s %9d %7d knps %7d knps' % (result_id, games, dev_knps, base_knps))
+
+def report_general_stats(data):
+
+    games      = 0
+    dev_nodes  = dev_time  = dev_ply  = 0
+    base_nodes = base_time = base_ply = 0
+
+    for result_id, stats in data.items():
+
+        dev_nodes += stats['dev']['nodes']
+        dev_time  += stats['dev']['time']
+        dev_ply   += stats['dev']['ply']
+
+        base_nodes += stats['base']['nodes']
+        base_time  += stats['base']['time']
+        base_ply   += stats['base']['ply']
+
+        games += stats['dev']['games']
+        assert stats['dev']['games'] == stats['base']['games']
+
+    dev_nps  = dev_nodes  / dev_time
+    base_nps = base_nodes / base_time
+
+    dev_avg  = dev_nodes  // dev_ply
+    base_avg = base_nodes // base_ply
+
+    print ('\nStats for Dev')
+    print ('-- Average KNPS  | %.3f' % (dev_nps))
+    print ('-- Average Nodes | %d' % (dev_avg))
+
+    print ('\nStats for Base')
+    print ('-- Average KNPS  | %.3f' % (base_nps))
+    print ('-- Average Nodes | %d' % (base_avg))
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('filename', help='Path to the OpenBench pgn archive')
-    parser.add_argument('--scale',  help='Adjust based on ScaleFactor', action='store_true')
+    parser.add_argument('--scale' , help='Adjust based on ScaleFactor', action='store_true')
+    parser.add_argument('-v', '--verbose', help='Verbose reporting per machine', action='store_true')
     args = parser.parse_args()
 
-    data = { 'games' : 0 }
+    data = {}
     with tarfile.open(args.filename, 'r') as tar:
         for member in filter(lambda x: x.isfile(), tar.getmembers()):
             if file := tar.extractfile(member):
-                process_content(bz2.decompress(file.read()), data, args.scale)
+                test_id, result_id, seed, _, _ = member.name.split('.')
+                process_content(bz2.decompress(file.read()), data, result_id, args.scale)
 
-    dev_nps  = 1000 * data['dev' ]['nodes'] / data['dev' ]['time']
-    base_nps = 1000 * data['base']['nodes'] / data['base']['time']
+    if args.verbose:
+        report_verbose_stats(data)
 
-    print ('Dev  %d nps' % (int(dev_nps)))
-    print ('Base %d nps' % (int(base_nps)))
-    print ('Gain %.3f%%' % (100.0 * dev_nps / base_nps - 100.0))
-    print ('%d games' % (data['games']))
+    report_general_stats(data)
+
+
