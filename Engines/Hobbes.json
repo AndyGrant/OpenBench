@@ -1,7 +1,7 @@
 {
     "private" : false,
     "nps"     : 11662000,
-    "source"  : "https://github.com/kelseyde/calvin-chess-engine",
+    "source"  : "https://github.com/kelseyde/hobbes-chess-engine",
 
     "build" : {
         "path"      : "",
