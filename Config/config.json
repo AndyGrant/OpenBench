@@ -24,6 +24,7 @@
 
     "engines" : [
         "Calvin",
-        "Serendipity"
+        "Serendipity",
+        "Hobbes"
     ]
 }
