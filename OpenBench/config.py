@@ -179,6 +179,12 @@ def verify_engine_tune_preset(tune_preset):
 
     valid_keys = [
 
+        'both_branch',
+        'both_bench',
+        'both_network',
+        'both_options',
+        'both_time_control',
+
         'dev_branch',
         'dev_bench',
         'dev_network',
