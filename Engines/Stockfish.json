@@ -13,7 +13,7 @@
     "test_presets" : {
 
         "default" : {
-            "base_branch"     : "ob_17",
+            "base_branch"     : "ob_17.1",
             "book_name"       : "UHO_Lichess_4852_v1.epd",
             "test_bounds"     : "[0.00, 2.00]",
             "test_confidence" : "[0.05, 0.05]",
