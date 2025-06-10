@@ -1,6 +1,5 @@
 *.pyc
 Client/*
-OpenBench/migrations/*
 
 credentials
 credentials.*
