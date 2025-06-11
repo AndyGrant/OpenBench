@@ -78,6 +78,7 @@ urlpatterns = [
     django.urls.path(r'api/networks/<str:engine>/<str:identifier>/delete/', OpenBench.views.api_network_delete),
     django.urls.path(r'api/buildinfo/', OpenBench.views.api_build_info),
     django.urls.path(r'api/pgns/<int:pgn_id>/', OpenBench.views.api_pgns),
+    django.urls.path(r'api/spsa/<int:workload_id>/', OpenBench.views.api_spsa),
 
     # Redirect anything else to the Index
     django.urls.path(r'', OpenBench.views.index),
