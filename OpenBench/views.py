@@ -468,7 +468,7 @@ def workload(request, workload_type, pk, action=None):
     if action != None:
         return modify_workload(request, pk, action)
 
-    if not (workload := Test.objects.filter(id=int(pk)).first()):
+    if not (workload := Test.objects.select_related('spsa_run').filter(id=int(pk)).first()):
         return redirect(request, '/index/', error='No such Workload exists')
 
     # Trying to view a Tune as a Test, for example

@@ -51,11 +51,11 @@
             <tr><td class="td-label">Scaling</td><td>{{workload.scale_method}} {{workload.scale_nps}} NPS</td></tr>
 
             {% if type == "TUNE" %}
-                <tr><td class="td-label">Alpha</td><td>{{workload.spsa.Alpha}}</td></tr>
-                <tr><td class="td-label">Gamma</td><td>{{workload.spsa.Gamma}}</td></tr>
-                <tr><td class="td-label">A-Ratio</td><td>{{workload.spsa.A_ratio}}</td></tr>
-                <tr><td class="td-label">Reporting</td><td>{{workload.spsa.reporting_type}}</td></tr>
-                <tr><td class="td-label">Distribution</td><td>{{workload.spsa.distribution_type}}</td></tr>
+                <tr><td class="td-label">Alpha</td><td>{{workload.spsa_run.alpha}}</td></tr>
+                <tr><td class="td-label">Gamma</td><td>{{workload.spsa_run.gamma}}</td></tr>
+                <tr><td class="td-label">A-Ratio</td><td>{{workload.spsa_run.a_ratio}}</td></tr>
+                <tr><td class="td-label">Reporting</td><td>{{workload.spsa_run.reporting_type}}</td></tr>
+                <tr><td class="td-label">Distribution</td><td>{{workload.spsa_run.distribution_type}}</td></tr>
                 <tr><td class="td-label">Pairs Per Point</td><td>{{workload.workload_size}}</td></tr>
             {% elif type == "DATAGEN" %}
                 <tr><td class="td-label">Genfens Args</td><td>{{workload.genfens_args}}</td></tr>

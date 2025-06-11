@@ -31,6 +31,8 @@
 
 import math
 
+from django.db import transaction
+
 import OpenBench.utils
 import OpenBench.views
 
@@ -204,7 +206,6 @@ def create_new_tune(request):
     test.scale_nps         = int(request.POST['scale_nps'])
 
     test.test_mode        = 'SPSA'
-    test.spsa             = extract_spas_params(request)
 
     test.awaiting         = not dev_has_all
 
@@ -212,7 +213,9 @@ def create_new_tune(request):
         name = Network.objects.get(engine=test.dev_engine, sha256=test.dev_network).name
         test.dev_netname = test.base_netname = name
 
-    test.save()
+    with transaction.atomic():
+        test.save()
+        create_spsa_run(test, request).save()
 
     profile = Profile.objects.get(user=request.user)
     profile.tests += 1
@@ -285,50 +288,54 @@ def create_new_datagen(request):
 
     return test, None
 
-def extract_spas_params(request):
 
-    spsa = {} # SPSA Hyperparams
-    spsa['Alpha'  ] = float(request.POST['spsa_alpha'])
-    spsa['Gamma'  ] = float(request.POST['spsa_gamma'])
-    spsa['A_ratio'] = float(request.POST['spsa_A_ratio'])
+def create_spsa_run(workload, request):
 
-    # Tuning durations
-    spsa['iterations'] = int(request.POST['spsa_iterations'])
-    spsa['pairs_per' ] = int(request.POST['spsa_pairs_per'])
-    spsa['A'         ] = spsa['A_ratio'] * spsa['iterations']
+    alpha      = float(request.POST['spsa_alpha'])
+    gamma      = float(request.POST['spsa_gamma'])
+    a_ratio    = float(request.POST['spsa_A_ratio'])
+    iterations = int(request.POST['spsa_iterations'])
+    a_value    = a_ratio * iterations
 
-    # Tuning Methodologies
-    spsa['reporting_type'   ] = request.POST['spsa_reporting_type']
-    spsa['distribution_type'] = request.POST['spsa_distribution_type']
+    spsa_run = SPSARun.objects.create(
+        tune              = workload,
+        reporting_type    = request.POST['spsa_reporting_type'],
+        distribution_type = request.POST['spsa_distribution_type'],
+        alpha             = alpha,
+        gamma             = gamma,
+        iterations        = iterations,
+        pairs_per         = int(request.POST['spsa_pairs_per']),
+        a_ratio           = a_ratio,
+        a_value           = a_value,
+    )
 
-    # Each individual tuning parameter
-    spsa['parameters'] = {}
-    for index, line in enumerate(request.POST['spsa_inputs'].split('\n')):
+    params = []
+    for index, line in enumerate(request.POST['spsa_inputs'].splitlines()):
 
-        # Comma-seperated values, already verified in verify_workload()
-        name, data_type, value, minimum, maximum, c_end, r_end = line.split(',')
+        name, dtype, value, min_value, max_value, c_end, r_end = map(str.strip, line.split(','))
 
-        # Recall the original order of inputs
-        param          = {}
-        param['index'] = index
+        c_value   = float(c_end) * iterations ** gamma
+        a_end     = float(r_end) * float(c_end) ** 2
+        a_value   = float(a_end) * (a_value + iterations) ** alpha
 
-        # Raw extraction
-        param['float'] = data_type.strip() == 'float'
-        param['start'] = float(value)
-        param['value'] = float(value)
-        param['min'  ] = float(minimum)
-        param['max'  ] = float(maximum)
-        param['c_end'] = float(c_end)
-        param['r_end'] = float(r_end)
+        params.append(SPSAParameter(
+            spsa_run  = spsa_run,
+            name      = name,
+            index     = index,
+            value     = float(value),
+            is_float  = dtype == 'float',
+            start     = float(value),
+            min_value = float(min_value),
+            max_value = float(max_value),
+            c_end     = float(c_end),
+            r_end     = float(r_end),
+            c_value   = c_value,
+            a_end     = a_end,
+            a_value   = a_value,
+        ))
 
-        # Verbatim Fishtest logic for computing these
-        param['c']     = param['c_end'] * spsa['iterations'] ** spsa['Gamma']
-        param['a_end'] = param['r_end'] * param['c_end'] ** 2
-        param['a']     = param['a_end'] * (spsa['A'] + spsa['iterations']) ** spsa['Alpha']
-
-        spsa['parameters'][name] = param
-
-    return spsa
+    SPSAParameter.objects.bulk_create(params)
+    return spsa_run
 
 def get_engine(source, name, sha, bench):
 

@@ -18,8 +18,14 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import re, django
-import OpenBench.config, OpenBench.utils, OpenBench.stats, OpenBench.models
+import django
+import re
+
+import OpenBench.config
+import OpenBench.models
+import OpenBench.spsa_utils
+import OpenBench.stats
+import OpenBench.utils
 
 def oneDigitPrecision(value):
     try:
@@ -64,10 +70,11 @@ def shortStatBlock(test):
     penta_line = 'Ptnml(0-2): %d, %d, %d, %d, %d' % test.as_penta()
 
     if test.test_mode == 'SPSA':
+        spsa_run = test.spsa_run # Avoid extra database accesses
         statlines = [
-            'Tuning %d Parameters' % (len(test.spsa['parameters'].keys())),
-            '%d/%d Iterations' % (test.games / (2 * test.spsa['pairs_per']), test.spsa['iterations']),
-            '%d/%d Games Played' % (test.games, 2 * test.spsa['iterations'] * test.spsa['pairs_per'])]
+            'Tuning %d Parameters' % (spsa_run.parameters.count()),
+            '%d/%d Iterations' % (test.games / (2 * spsa_run.pairs_per), spsa_run.iterations),
+            '%d/%d Games Played' % (test.games, 2 * spsa_run.iterations * spsa_run.pairs_per)]
 
     elif test.test_mode == 'SPRT':
         llr_line = 'LLR: %0.2f (%0.2f, %0.2f) [%0.2f, %0.2f]' % (
@@ -219,94 +226,6 @@ register.filter('compilerBlock', compilerBlock)
 register.filter('removePrefix', removePrefix)
 register.filter('machine_name', machine_name)
 
-####
-
-def spsa_param_digest(workload):
-
-    digest = []
-
-    # C and R are compressed as we progress iterations
-    iteration     = 1 + (workload.games / (workload.spsa['pairs_per'] * 2))
-    c_compression = iteration ** workload.spsa['Gamma']
-    r_compression = (workload.spsa['A'] + iteration) ** workload.spsa['Alpha']
-
-    # Maintain the original order, if there was one
-    keys = sorted(
-        workload.spsa['parameters'].keys(),
-        key=lambda x: workload.spsa['parameters'][x].get('index', -1)
-    )
-
-    for name in keys:
-
-        param = workload.spsa['parameters'][name]
-
-        # C and R if we got a workload right now
-        c = max(param['c'] / c_compression, 0.00 if param['float'] else 0.50)
-        r = param['a'] / r_compression / c ** 2
-
-        fstr = '%.4f' if param['float'] else '%d'
-
-        digest.append([
-            name,
-            '%.4f' % (param['value']),
-            fstr   % (param['start']),
-            fstr   % (param['min'  ]),
-            fstr   % (param['max'  ]),
-            '%.4f' % (c),
-            '%.4f' % (param['c_end']),
-            '%.4f' % (r),
-            '%.4f' % (param['r_end']),
-        ])
-
-    return digest
-
-def spsa_param_digest_headers(workload):
-    return ['Name', 'Curr', 'Start', 'Min', 'Max', 'C', 'C_end', 'R', 'R_end']
-
-def spsa_original_input(workload):
-
-    # Maintain the original order, if there was one
-    keys = sorted(
-        workload.spsa['parameters'].keys(),
-        key=lambda x: workload.spsa['parameters'][x].get('index', -1)
-    )
-
-    lines = []
-    for name in keys:
-
-        param = workload.spsa['parameters'][name]
-        dtype = 'float' if param['float'] else 'int'
-
-        # Original 7 token Input
-        lines.append(', '.join([
-            name,
-            dtype,
-            str(param['start']),
-            str(param['min'  ]),
-            str(param['max'  ]),
-            str(param['c_end']),
-            str(param['r_end']),
-        ]))
-
-    return '\n'.join(lines)
-
-def spsa_optimal_values(workload):
-
-    # Maintain the original order, if there was one
-    keys = sorted(
-        workload.spsa['parameters'].keys(),
-        key=lambda x: workload.spsa['parameters'][x].get('index', -1)
-    )
-
-    lines = []
-    for name in keys:
-        param = workload.spsa['parameters'][name]
-        value = param['value'] if param['float'] else round(param['value'])
-        lines.append(', '.join([name, str(value)]))
-
-    return '\n'.join(lines)
-
-
 def book_download_link(workload):
     if workload.book_name in OpenBench.config.OPENBENCH_CONFIG['books']:
         return OpenBench.config.OPENBENCH_CONFIG['books'][workload.book_name]['source']
@@ -369,10 +288,10 @@ def test_is_fischer(test):
     return 'FRC' in test.book_name.upper() or '960' in test.book_name.upper()
 
 
-register.filter('spsa_param_digest', spsa_param_digest)
-register.filter('spsa_param_digest_headers', spsa_param_digest_headers)
-register.filter('spsa_original_input', spsa_original_input)
-register.filter('spsa_optimal_values', spsa_optimal_values)
+register.filter('spsa_param_digest', OpenBench.spsa_utils.spsa_param_digest)
+register.filter('spsa_param_digest_headers', OpenBench.spsa_utils.spsa_param_digest_headers)
+register.filter('spsa_original_input', OpenBench.spsa_utils.spsa_original_input)
+register.filter('spsa_optimal_values', OpenBench.spsa_utils.spsa_optimal_values)
 
 register.filter('book_download_link', book_download_link)
 register.filter('network_download_link', network_download_link)
