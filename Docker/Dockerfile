@@ -34,8 +34,7 @@ ENV CXX=clang++
 RUN add-apt-repository ppa:dotnet/backports
 
 RUN apt-get install -y \
-    dotnet-sdk-9.0 \
-    dotnet-runtime-9.0
+    dotnet-sdk-9.0
 
 # Install Rust (Latest stable version - should we be specific about the version?)
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
