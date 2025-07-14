@@ -130,8 +130,8 @@ def create_genfens_opening_book(args):
             genfens_progress_bar(iteration+1, N * threads)
 
     except queue.Empty: # Force kill the engine, thus causing the processes to finish
-        utils.kill_process_by_name(binary_name)
-        raise utils.OpenBenchFailedGenfensException('[%s] Stalled during genfens' % (binary_name))
+        utils.kill_process_by_name(args['engine'])
+        raise utils.OpenBenchFailedGenfensException('[%s] Stalled during genfens' % (args['engine']))
 
     finally: # Join everything to avoid zombie processes
         for process in processes:
