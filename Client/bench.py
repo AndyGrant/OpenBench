@@ -46,7 +46,7 @@ MAX_BENCH_TIME_SECONDS = 60
 def parse_stream_output(stream):
 
     nps = bench = None # Search through output Stream
-    for line in stream.decode('ascii').strip().split('\n')[::-1]:
+    for line in stream.decode('utf-8').strip().split('\n')[::-1]:
 
         # Convert non alpha-numerics to spaces
         line = re.sub(r'[^a-zA-Z0-9 ]+', ' ', line)
