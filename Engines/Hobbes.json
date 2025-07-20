@@ -16,7 +16,7 @@
             "base_branch"     : "main",
             "book_name"       : "Pohl.pgn",
             "test_bounds"     : "[0.00, 4.00]",
-            "test_confidence" : "[0.10, 0.075]",
+            "test_confidence" : "[0.10, 0.07]",
             "win_adj"         : "movecount=6 score=400",
             "draw_adj"        : "movenumber=50 movecount=8 score=25"
         },
