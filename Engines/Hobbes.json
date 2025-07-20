@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 1000000,
+    "nps"     : 1200000,
     "source"  : "https://github.com/kelseyde/hobbes-chess-engine",
 
     "build" : {
@@ -15,8 +15,8 @@
         "default" : {
             "base_branch"     : "main",
             "book_name"       : "Pohl.pgn",
-            "test_bounds"     : "[0.00, 5.00]",
-            "test_confidence" : "[0.10, 0.10]",
+            "test_bounds"     : "[0.00, 4.00]",
+            "test_confidence" : "[0.10, 0.075]",
             "win_adj"         : "movecount=6 score=400",
             "draw_adj"        : "movenumber=50 movecount=8 score=25"
         },
