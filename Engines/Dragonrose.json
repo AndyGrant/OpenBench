@@ -1,0 +1,69 @@
+{
+    "private" : false,
+    "nps"     : 550000,
+    "source"  : "https://github.com/TampliteSK/dragonrose_cpp",
+
+    "build" : {
+        "path"      : "",
+        "compilers" : ["g++", "clang++"],
+        "cpuflags"  : [],
+        "systems"   : ["Windows", "Linux"]
+    },
+
+    "test_presets" : {
+
+        "default" : {
+            "base_branch"     : "master",
+            "book_name"       : "UHO_Lichess_4852_v1.epd",
+            "test_bounds"     : "[0.00, 5.00]",
+            "test_confidence" : "[0.05, 0.05]",
+            "win_adj"         : "movecount=3 score=400",
+            "draw_adj"        : "movenumber=40 movecount=8 score=10"
+        },
+
+        "STC" : {
+            "both_options"      : "Threads=1 Hash=16",
+            "both_time_control" : "8.0+0.08",
+            "workload_size"     : 32
+        },
+
+        "LTC" : {
+            "both_options"      : "Threads=1 Hash=32",
+            "both_time_control" : "40.0+0.4",
+            "workload_size"     : 8
+        },
+
+        "STC regression" : {
+            "both_options"      : "Threads=1 Hash=16",
+            "both_time_control" : "8.0+0.08",
+            "workload_size"     : 32,
+            "test_bounds"       : "[-5.00, 0.00]"
+        },
+
+        "LTC regression" : {
+            "both_options"      : "Threads=1 Hash=32",
+            "both_time_control" : "40.0+0.4",
+            "workload_size"     : 8,
+            "test_bounds"       : "[-5.00, 0.00]"
+        }
+    },
+
+    "tune_presets" : {
+
+        "default" : {
+            "book_name" : "UHO_Lichess_4852_v1.epd",
+            "win_adj"   : "movecount=3 score=400",
+            "draw_adj"  : "movenumber=40 movecount=8 score=10"
+        },
+
+        "STC" : {
+            "dev_options"      : "Threads=1 Hash=16",
+            "dev_time_control" : "8.0+0.08"
+        },
+
+        "LTC" : {
+            "dev_options"      : "Threads=1 Hash=32",
+            "dev_time_control" : "40.0+0.4"
+        }
+    }
+}
