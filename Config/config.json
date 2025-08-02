@@ -25,6 +25,8 @@
     "engines" : [
         "Calvin",
         "Serendipity",
-        "Hobbes"
+        "Hobbes",
+        "Dragonrose",
+        "weak"
     ]
 }
