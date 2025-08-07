@@ -57,7 +57,7 @@
       "both_options"      : "Threads=8 Hash=512",
       "both_time_control" : "20.0+0.2",
       "workload_size"     : 16
-    }
+    },
 
     "STC progtest" : {
       "both_options"      : "Threads=1 Hash=32",
