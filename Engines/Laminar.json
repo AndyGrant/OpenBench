@@ -1,6 +1,6 @@
 {
   "private" : false,
-  "nps"     : 3000000,
+  "nps"     : 1100000,
   "source"  : "https://github.com/ksw0518/Laminar",
 
   "build" : {
