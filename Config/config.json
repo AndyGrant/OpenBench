@@ -6,7 +6,7 @@
     "use_cross_approval"          : false,
     "require_login_to_view"       : false,
     "require_manual_registration" : false,
-    "balance_engine_throughputs"  : false,
+    "balance_engine_throughputs"  : true,
 
     "books" : [
         "2moves_v1.epd",
