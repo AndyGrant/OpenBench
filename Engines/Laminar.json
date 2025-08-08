@@ -5,9 +5,9 @@
 
   "build" : {
     "path"      : "",
-    "compilers": [ "clang++" ,
-    "cpuflags"  : [],
-    "systems"   : ["Linux", "Windows", "Darwin"]
+    "compilers": [ "clang++"] ,
+    "cpuflags": [],
+    "systems": ["Linux", "Windows", "Darwin"]
   },
 
   "test_presets" : {
