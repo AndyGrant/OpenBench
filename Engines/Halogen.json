@@ -1,6 +1,6 @@
 {
     "private" : false,
-    "nps"     : 1893000,
+    "nps"     : 1000000,
     "source"  : "https://github.com/KierenP/Halogen",
 
     "build" : {
