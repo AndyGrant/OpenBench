@@ -918,26 +918,30 @@ def determine_scale_factor(config, dev_name, dev_network, base_name, base_networ
 ## connection and then make simple requests to retrieve Workloads as json objects
 
 def server_configure_fastchess(config):
+    server_configure_match_runner(config, 'fastchess', build_fastchess_in_dir)
 
-    # OpenBench Server holds the fast-chess repo and git-ref
-    print ('\nConfiguring fast-chess...\n> Requesting fast-chess configuration from openbench')
+def server_configure_match_runner(config, name, build_func):
+
+    # OpenBench Server holds the runner repo and git-ref
+    print ('\nConfiguring %s...' % name)
+    print ('> Requesting %s configuration from openbench' % name)
     target  = url_join(config.server, 'clientMatchRunnerVersionRef')
     payload = { 'username' : config.username, 'password' : config.password }
     data    = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
 
     # Might already have a sufficiently new Fastchess binary
-    print ('> Checking for existing fastchess-ob binary')
-    fastchess_path = os.path.join(os.getcwd(), 'fastchess-ob')
-    fastchess_path = utils.check_for_engine_binary(fastchess_path)
-    acceptable_ver = compare_versions(fastchess_path, data['fastchess_min_version'])
+    print ('> Checking for existing %s-ob binary' % name)
+    runner_path = os.path.join(os.getcwd(), '%s-ob' % name)
+    runner_path = utils.check_for_engine_binary(runner_path)
+    acceptable_ver = compare_versions(runner_path, data['%s_min_version' % name])
 
     if acceptable_ver:
-        print ('> Found fastchess-ob v%s' % (acceptable_ver))
-        config.fastchess_ver = acceptable_ver
+        print ('> Found %s-ob v%s' % (name, acceptable_ver))
+        setattr(config, '%s_ver' % name, acceptable_ver)
         return
 
     # Download a .zip archive of the git-ref from the specified repo
-    repo_url, repo_ref = data['fastchess_repo_url'], data['fastchess_repo_ref']
+    repo_url, repo_ref = data['%s_repo_url' % name], data['%s_repo_ref' % name]
     print ('> Downloading %s from %s' % (repo_ref, repo_url))
     response = requests.get(url_join(repo_url, 'archive', '%s.zip' % repo_ref))
 
@@ -953,34 +957,40 @@ def server_configure_fastchess(config):
             zip_ref.extractall(temp_dir)
 
         # Prepare to build, using the root folder of the extracted files as the cwd
-        print ('> Extracting and building fast-chess %s using %s' % (repo_ref, config.cxx_comp))
-        fastchess_dir = os.path.join(temp_dir, os.listdir(temp_dir)[0])
-        bin_path      = os.path.join(fastchess_dir, 'fastchess')
+        print ('> Extracting and building %s %s' % (name, repo_ref))
+        runner_dir = os.path.join(temp_dir, os.listdir(temp_dir)[0])
+        bin_path   = os.path.join(runner_dir, name)
 
-        # Execute the build, using our C++ compiler, and record any output
-        make_cmd    = ['make', '-j', 'CXX=%s' % config.cxx_comp]
-        process     = subprocess.Popen(make_cmd, cwd=fastchess_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        comp_output = process.communicate()[0].decode('utf-8')
+        build_func(config, runner_dir)
 
-        # Make threw an error, and thus failed to build
-        if process.returncode:
-            print ('\nFailed to build fast-chess\n\nCompiler Output:' % (engine, branch_name))
-            for line in comp_output.split('\n'):
-                print ('> %s' % (line))
-            raise OpenBenchMatchRunnerBuildFailedException()
-
-        # Somehow we built fast-chess but failed to find the binary
+        # Somehow we built runner but failed to find the binary
         if not utils.check_for_engine_binary(bin_path):
             raise OpenBenchMatchRunnerBuildFailedException()
 
-        # Append .exe if needed, and then report the fast-chess version that was built
-        binary = utils.check_for_engine_binary(bin_path)
-        config.fastchess_ver = get_version(binary)
-        print ('> Finished building v%s' % config.fastchess_ver)
+        # Append .exe if needed, and then report the match runner version that was built
+        binary  = utils.check_for_engine_binary(bin_path)
+        version = get_version(binary)
+        setattr(config, '%s_ver' % name, version)
+        print ('> Finished building v%s' % version)
 
-        # Move the finished fast-chess binary to the Client's Root directory
-        out_path = os.path.join(os.getcwd(), os.path.basename(binary).replace('fastchess', 'fastchess-ob'))
+        # Move the finished match runner binary to the Client's Root directory
+        out_path = os.path.join(os.getcwd(), os.path.basename(binary).replace(name, '%s-ob' % name))
         shutil.move(binary, out_path)
+
+def build_fastchess_in_dir(config, runner_dir):
+    print ('> Using C++ compiler %s...' % config.cxx_comp)
+
+    # Execute the build, using our C++ compiler, and record any output
+    make_cmd    = ['make', '-j', 'CXX=%s' % config.cxx_comp]
+    process     = subprocess.Popen(make_cmd, cwd=runner_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    comp_output = process.communicate()[0].decode('utf-8')
+
+    # Make threw an error, and thus failed to build
+    if process.returncode:
+        print ('\nFailed to build fastchess\n\nCompiler Output:')
+        for line in comp_output.split('\n'):
+            print ('> %s' % (line))
+        raise OpenBenchMatchRunnerBuildFailedException()
 
 def server_configure_worker(config):
 
@@ -1112,7 +1122,7 @@ def complete_workload(config):
         results    = multiprocessing.Queue()
         abort_flag = threading.Event()
 
-        tasks = [] # Create each of the MatchRunner workers
+        tasks = [] # Create each of the match runner workers
         for x in range(runner_cnt):
             cmd = build_runner_command(config, dev_name, base_name, scale_factor, timestamp, x)
             tasks.append(executor.submit(run_and_parse_runner, config, cmd, x, results, abort_flag))
