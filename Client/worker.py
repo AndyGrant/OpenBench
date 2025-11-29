@@ -29,6 +29,7 @@ import psutil
 import queue
 import re
 import requests
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -923,7 +924,7 @@ def server_configure_fastchess(config):
     # Might already have a sufficiently new Fastchess binary
     print ('> Checking for existing fastchess-ob binary')
     fastchess_path = os.path.join(os.getcwd(), 'fastchess-ob')
-    fastchess_path = check_for_engine_binary(fastchess_path)
+    fastchess_path = utils.check_for_engine_binary(fastchess_path)
     acceptable_ver = compare_versions(fastchess_path, data['fastchess_min_version'])
 
     if acceptable_ver:
@@ -965,11 +966,11 @@ def server_configure_fastchess(config):
             raise OpenBenchFastchessBuildFailedException()
 
         # Somehow we built fast-chess but failed to find the binary
-        if not check_for_engine_binary(bin_path):
+        if not utils.check_for_engine_binary(bin_path):
             raise OpenBenchFastchessBuildFailedException()
 
         # Append .exe if needed, and then report the fast-chess version that was built
-        binary = check_for_engine_binary(bin_path)
+        binary = utils.check_for_engine_binary(bin_path)
         config.fastchess_ver = get_version(binary)
         print ('> Finished building v%s' % config.fastchess_ver)
 
