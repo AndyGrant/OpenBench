@@ -392,6 +392,10 @@ class MatchRunner:
     ## and a small number of secondary arguments that are not housed in the Configuration
 
     @staticmethod
+    def executable(config):
+        return ['fastchess-ob.exe', './fastchess-ob'][IS_LINUX]
+
+    @staticmethod
     def basic_settings(config):
 
         # Assume Fischer if FRC, 960, or FISCHER appears in the Opening Book
@@ -403,8 +407,8 @@ class MatchRunner:
         is_datagen = config.workload['test']['type'] == 'DATAGEN'
         no_reverse = is_datagen and not config.workload['test']['play_reverses']
 
-        # Always include -recover and -variant
-        return ['-repeat', ''][no_reverse] + ' -recover -variant %s' % (variant)
+        # Always include -recover, -variant, and -testEnv
+        return ['-repeat', ''][no_reverse] + ' -recover -variant %s -testEnv' % (variant)
 
     @staticmethod
     def concurrency_settings(config):
@@ -499,7 +503,7 @@ class MatchRunner:
 
     @staticmethod
     def pgnout_settings(config, timestamp, runner_idx):
-        return '-pgnout %s' % (MatchRunner.pgn_name(config, timestamp, runner_idx))
+        return '-pgnout file=%s seldepth=true nodes=true' % (MatchRunner.pgn_name(config, timestamp, runner_idx))
 
     @staticmethod
     def update_results(results, line):
@@ -864,7 +868,7 @@ def scale_time_control(workload, scale_factor, branch):
 
 def find_pgn_error(reason, command):
 
-    pgn_file = command.split('-pgnout ')[1].split()[0]
+    pgn_file = command.split('-pgnout file=')[1].split()[0]
     with open(pgn_file, 'r') as fin:
         data = fin.readlines()
 
@@ -1247,7 +1251,7 @@ def build_runner_command(config, dev_cmd, base_cmd, scale_factor, timestamp, run
     flags += ' ' + MatchRunner.book_settings(config, runner_idx)
     flags += ' ' + MatchRunner.pgnout_settings(config, timestamp, runner_idx)
 
-    return ['fastchess-ob.exe', './fastchess-ob'][IS_LINUX] + flags
+    return MatchRunner.executable(config) + flags
 
 def run_and_parse_runner(config, command, runner_idx, results_queue, abort_flag):
 
