@@ -921,7 +921,7 @@ def server_configure_fastchess(config):
 
     # OpenBench Server holds the fast-chess repo and git-ref
     print ('\nConfiguring fast-chess...\n> Requesting fast-chess configuration from openbench')
-    target  = url_join(config.server, 'clientFastchessVersionRef')
+    target  = url_join(config.server, 'clientMatchRunnerVersionRef')
     payload = { 'username' : config.username, 'password' : config.password }
     data    = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
 
@@ -967,11 +967,11 @@ def server_configure_fastchess(config):
             print ('\nFailed to build fast-chess\n\nCompiler Output:' % (engine, branch_name))
             for line in comp_output.split('\n'):
                 print ('> %s' % (line))
-            raise OpenBenchFastchessBuildFailedException()
+            raise OpenBenchMatchRunnerBuildFailedException()
 
         # Somehow we built fast-chess but failed to find the binary
         if not utils.check_for_engine_binary(bin_path):
-            raise OpenBenchFastchessBuildFailedException()
+            raise OpenBenchMatchRunnerBuildFailedException()
 
         # Append .exe if needed, and then report the fast-chess version that was built
         binary = utils.check_for_engine_binary(bin_path)

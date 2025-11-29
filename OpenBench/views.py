@@ -601,7 +601,7 @@ def client_version_ref(request):
     })
 
 @csrf_exempt
-def client_fastchess_version_ref(request):
+def client_match_runner_version_ref(request):
 
     # Verify the User's credentials
     try: user = authenticate(request, True)

@@ -86,7 +86,7 @@ class OpenBenchMisssingPGNException(Exception):
         self.message = message
         super().__init__(self.message)
 
-class OpenBenchFastchessBuildFailedException(Exception):
+class OpenBenchMatchRunnerBuildFailedException(Exception):
     def __init__(self):
         self.message = ''
         super().__init__(self.message)
