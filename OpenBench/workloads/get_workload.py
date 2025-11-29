@@ -255,11 +255,11 @@ def workload_to_dictionary(test, result, machine):
         workload['test']['book_seed' ] = test.id
         workload['test']['book_index'] = test.book_index
 
-        cutechess_cnt = workload['distribution']['cutechess-count']
-        pairs_per_cnt = workload['distribution']['games-per-cutechess'] // 2
+        runner_cnt    = workload['distribution']['runner-count']
+        pairs_per_cnt = workload['distribution']['games-per-runner'] // 2
         per_opening   = 2 if (test.test_mode == 'DATAGEN' and not test.play_reverses) else 1
 
-        test.book_index += cutechess_cnt * pairs_per_cnt * per_opening
+        test.book_index += runner_cnt * pairs_per_cnt * per_opening
 
         if test.test_mode == 'DATAGEN':
             workload['test']['genfens_seeds'] = [
@@ -278,8 +278,8 @@ def spsa_to_dictionary(test, workload):
     # Duplicate the params, even though they are the same, across all
     # Sockets on the machine, in the event of a singular SPSA distribution
     is_single    = test.spsa['distribution_type'] == 'SINGLE'
-    permutations = 1 if is_single else workload['distribution']['cutechess-count']
-    duplicates   = 1 if not is_single else workload['distribution']['cutechess-count']
+    permutations = 1 if is_single else workload['distribution']['runner-count']
+    duplicates   = 1 if not is_single else workload['distribution']['runner-count']
 
     # C & R are scaled over the course of the iterations
     iteration     = 1 + (test.games / (test.spsa['pairs_per'] * 2))
@@ -353,11 +353,11 @@ def game_distribution(test, machine):
     if machine.info['physical_cores'] < worker_threads and dev_threads != base_threads:
         worker_threads = worker_threads // 2
 
-    # Ignore sockets for concurrent cutechess, when playing with more than one thread
+    # Ignore sockets for concurrent match runners, when playing with more than one thread
     if max(dev_threads, base_threads) > 1:
         worker_sockets = 1
 
-    # Max possible concurrent engine games, per copy of cutechess
+    # Max possible concurrent engine games, per copy of match runner
     max_concurrency = (worker_threads // worker_sockets) // max(dev_threads, base_threads)
 
     # Number of params being evaluated at a single time, if doing SPSA in SINGLE mode
@@ -367,7 +367,7 @@ def game_distribution(test, machine):
     is_multiple_spsa = test.test_mode == 'SPSA' and test.spsa['distribution_type'] == 'MULTIPLE'
 
     return {
-        'cutechess-count'     : spsa_count if is_multiple_spsa else worker_sockets,
-        'concurrency-per'     : 2 if is_multiple_spsa else max_concurrency,
-        'games-per-cutechess' : 2 * test.workload_size * (1 if is_multiple_spsa else max_concurrency),
+        'runner-count'     : spsa_count if is_multiple_spsa else worker_sockets,
+        'concurrency-per'  : 2 if is_multiple_spsa else max_concurrency,
+        'games-per-runner' : 2 * test.workload_size * (1 if is_multiple_spsa else max_concurrency),
     }
