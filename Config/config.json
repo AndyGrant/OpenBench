@@ -4,7 +4,7 @@
     "client_repo_ref"    : "master",
 
     "fastchess_min_version" : "0.9.0",
-    "fastchess_repo_url"    : "https://github.com/AndyGrant/fast-chess",
+    "fastchess_repo_url"    : "https://github.com/AndyGrant/fastchess",
     "fastchess_repo_ref"    : "master",
 
     "use_cross_approval"          : false,
