@@ -29,8 +29,10 @@ import psutil
 import queue
 import re
 import requests
+import shutil
 import subprocess
 import sys
+import tempfile
 import threading
 import time
 import traceback
@@ -57,7 +59,7 @@ from client import try_forever
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 38 # Client version to send to the Server
+CLIENT_VERSION   = 39 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -93,9 +95,10 @@ class Configuration:
         self.syzygy_max     = 2
         self.blacklist      = []
 
-        self.process_args(args) # Rest of the command line settings
-        self.init_client()      # Create folder structure and verify Syzygy
-        self.validate_setup()   # Check the threads and sockets values provided
+        self.process_args(args)   # Rest of the command line settings
+        self.check_requirements() # Checks for Make, and g++ or clang++
+        self.init_client()        # Create folder structure and verify Syzygy
+        self.validate_setup()     # Check the threads and sockets values provided
 
     def process_args(self, args):
 
@@ -111,10 +114,23 @@ class Configuration:
         self.noisy       = args.noisy    if args.noisy    else False
         self.focus       = args.focus    if args.focus    else []
 
-    def init_client(self):
+    def check_requirements(self):
 
         # Verify that we have make installed
         print('\nLooking for Make... [v%s]' % locate_utility('make'))
+
+        # Look for either g++ or clang++
+        gcc_ver       = locate_utility('g++', force_exit=False, report_error=False)
+        clang_ver     = locate_utility('clang++', force_exit=False, report_error=False)
+        self.cxx_comp = 'g++' if gcc_ver else 'clang++' if clang_ver else None
+        print('Looking for C++ Compiler... [%s v%s]' % (self.cxx_comp, locate_utility(self.cxx_comp)))
+
+        # Cannot build fastchess nor observe CPU flags
+        if not self.cxx_comp:
+            print ('[Error] Unable to locate C++ Compiler (g++ or clang++)')
+            sys.exit()
+
+    def init_client(self):
 
         # Use Client.py's path as the base pathway
         os.chdir(os.path.dirname(os.path.abspath(__file__)))
@@ -333,7 +349,7 @@ class ServerReporter:
 
                 # For each param compute the update step for the Server
                 for name, param in config.workload['spsa'].items():
-                    delta = param['r'] * param['c'] * result * param['flip'][batch['cutechess_idx']]
+                    delta = param['r'] * param['c'] * result * param['flip'][batch['runner_idx']]
                     payload['spsa_%s' % (name)] = payload.get('spsa_%s' % (name), 0.0) + delta
 
         # Collapse into a JSON friendly format for Django
@@ -369,11 +385,15 @@ class ServerReporter:
 
         return ServerReporter.report(config, 'clientSubmitPGN', payload, files)
 
-class Cutechess:
+class MatchRunner:
 
     ## Handles building the very long string of arguments that need to be passed
-    ## to cutechess in order to launch a set of games. Operates on the Configuration,
+    ## to match runner in order to launch a set of games. Operates on the Configuration,
     ## and a small number of secondary arguments that are not housed in the Configuration
+
+    @staticmethod
+    def executable(config):
+        return ['fastchess-ob.exe', './fastchess-ob'][IS_LINUX]
 
     @staticmethod
     def basic_settings(config):
@@ -387,8 +407,8 @@ class Cutechess:
         is_datagen = config.workload['test']['type'] == 'DATAGEN'
         no_reverse = is_datagen and not config.workload['test']['play_reverses']
 
-        # Always include -recover and -variant
-        return ['-repeat', ''][no_reverse] + ' -recover -variant %s' % (variant)
+        # Always include -recover, -variant, and -testEnv
+        return ['-repeat', ''][no_reverse] + ' -recover -variant %s -testEnv' % (variant)
 
     @staticmethod
     def concurrency_settings(config):
@@ -396,7 +416,7 @@ class Cutechess:
         # Already computed for us by the Server
         return '-concurrency %d -games %d' % (
             config.workload['distribution']['concurrency-per'],
-            config.workload['distribution']['games-per-cutechess'],
+            config.workload['distribution']['games-per-runner'],
         )
 
     @staticmethod
@@ -423,30 +443,30 @@ class Cutechess:
         return '%s %s %s' % (win_flags, draw_flags, syzygy_flags)
 
     @staticmethod
-    def book_settings(config, cutechess_idx):
+    def book_settings(config, runner_idx):
 
         # DATAGEN creates their own book
         if config.workload['test']['type'] == 'DATAGEN':
 
             # -repeat might not be applied, so handle the book offsets
             no_reverse = not config.workload['test']['play_reverses']
-            pairs      = config.workload['distribution']['games-per-cutechess'] // 2
-            start      = 1 + (cutechess_idx * pairs * (1 + no_reverse))
+            pairs      = config.workload['distribution']['games-per-runner'] // 2
+            start      = 1 + (runner_idx * pairs * (1 + no_reverse))
             return '-openings file=Books/openbench.genfens.epd format=epd order=sequential start=%d' % (start)
 
         # Can handle EPD and PGN Books, which must be specified
         book_name   = config.workload['test']['book']['name']
         book_suffix = book_name.split('.')[-1]
 
-        # Start position is determined partially by cutechess index
-        pairs = config.workload['distribution']['games-per-cutechess'] // 2
-        start = config.workload['test']['book_index'] + cutechess_idx * pairs
+        # Start position is determined partially by runner index
+        pairs = config.workload['distribution']['games-per-runner'] // 2
+        start = config.workload['test']['book_index'] + runner_idx * pairs
 
         return '-openings file=Books/%s format=%s order=random start=%d -srand %d' % (
             book_name, book_suffix, start, config.workload['test']['book_seed'])
 
     @staticmethod
-    def engine_settings(config, command, branch, scale_factor, cutechess_idx):
+    def engine_settings(config, command, branch, scale_factor, runner_idx):
 
         # Extract configuration from the Workload
         options = config.workload['test'][branch]['options']
@@ -475,15 +495,15 @@ class Cutechess:
         # Add any of the custom SPSA settings
         if config.workload['test']['type'] == 'SPSA':
             for param, data in config.workload['spsa'].items():
-                options += ' %s=%s' % (param, str(data[branch][cutechess_idx]))
+                options += ' %s=%s' % (param, str(data[branch][runner_idx]))
 
-        # Join options together in the Cutechess format
+        # Join options together in format expected by match runner
         options = ' option.'.join([''] + re.findall(r'"[^"]*"|\S+', options))
         return '-engine dir=Engines/ cmd=./%s proto=uci %s%s name=%s-%s' % (command, control, options, engine, branch)
 
     @staticmethod
-    def pgnout_settings(config, timestamp, cutechess_idx):
-        return '-pgnout %s' % (Cutechess.pgn_name(config, timestamp, cutechess_idx))
+    def pgnout_settings(config, timestamp, runner_idx):
+        return '-pgnout file=%s seldepth=true nodes=true' % (MatchRunner.pgn_name(config, timestamp, runner_idx))
 
     @staticmethod
     def update_results(results, line):
@@ -502,7 +522,7 @@ class Cutechess:
             lookup = { '0-1' : 0, '1/2-1/2' : 1, '1-0' : 2 }
             return lookup[r1], 2 - lookup[r2]
 
-        # Extract the game # and result str from a Cutechess line
+        # Extract the game # and result str from a match runner output line
         def parse_finished_game(line):
             tokens = line.split()
             return int(tokens[2]), tokens[6]
@@ -539,22 +559,22 @@ class Cutechess:
     def kill_everything(dev_process, base_process):
 
         if IS_LINUX:
-            utils.kill_process_by_name('cutechess-ob')
+            utils.kill_process_by_name('fastchess-ob')
 
         if IS_WINDOWS:
-            utils.kill_process_by_name('cutechess-ob.exe')
+            utils.kill_process_by_name('fastchess-ob.exe')
 
         utils.kill_process_by_name(dev_process)
         utils.kill_process_by_name(base_process)
 
     @staticmethod
-    def pgn_name(config, timestamp, cutechess_idx):
+    def pgn_name(config, timestamp, runner_idx):
 
         test_id   = int(config.workload['test']['id'])
         result_id = int(config.workload['result']['id'])
 
         # Format: <Test>-<Result>-<Time>-<Index>.pgn
-        return 'PGNs/%d.%d.%d.%d.pgn' % (test_id, result_id, timestamp, cutechess_idx)
+        return 'PGNs/%d.%d.%d.%d.pgn' % (test_id, result_id, timestamp, runner_idx)
 
 
 class PGNHelper:
@@ -563,7 +583,7 @@ class PGNHelper:
     def slice_pgn_file(file):
 
         if not os.path.isfile(file):
-            reason = 'Unable to find %s. Cutechess exited with no finished games.' % (file)
+            reason = 'Unable to find %s. Match runner exited with no finished games.' % (file)
             raise utils.OpenBenchMisssingPGNException(reason)
 
         with open(file) as pgn:
@@ -604,7 +624,7 @@ class PGNHelper:
 
 class ResultsReporter(object):
 
-    ## Handles idle looping while reading from the results Queue that the Cutechess
+    ## Handles idle looping while reading from the results Queue that the match runner
     ## workers place results into. Once finished, this class can be used to collect
     ## all of the errors in the PGN, and send htem back to the server.
 
@@ -687,12 +707,12 @@ class ResultsReporter(object):
             print ('[Note] Failed to upload results to server...')
             self.last_report = time.time()
 
-    def send_errors(self, timestamp, cutechess_cnt):
+    def send_errors(self, timestamp, runner_cnt):
 
-        for x in range(cutechess_cnt):
+        for x in range(runner_cnt):
 
-            # Reuse logic that was given to Cutechess to decide the PGN name
-            fname = Cutechess.pgn_name(self.config, timestamp, x)
+            # Reuse logic that was given to match runner to decide the PGN name
+            fname = MatchRunner.pgn_name(self.config, timestamp, x)
 
             # For any game with weird Termination, report it
             for header, moves in PGNHelper.slice_pgn_file(fname):
@@ -704,18 +724,28 @@ class ResultsReporter(object):
 
 def get_version(program):
 
-    # Try to execute the program from the command line
-    # First with `--version`, and again with just `version`
+    for opt in [ '--version', 'version', '-v', '-version' ]:
+        try:
+            process = Popen([program, opt], stdout=PIPE, stderr=PIPE)
+            stdout  = process.communicate()[0].decode('utf-8')
+            return re.search(r'\d+\.\d+(\.\d+)?', stdout).group()
+        except: pass
 
-    try:
-        process = Popen([program, '--version'], stdout=PIPE, stderr=PIPE)
-        stdout  = process.communicate()[0].decode('utf-8')
-        return re.search(r'\d+\.\d+(\.\d+)?', stdout).group()
+    raise Exception('All attempts to get the version of %s failed' % (program))
 
-    except:
-        process = Popen([program, 'version'], stdout=PIPE, stderr=PIPE)
-        stdout  = process.communicate()[0].decode('utf-8')
-        return re.search(r'\d+\.\d+(\.\d+)?', stdout).group()
+def compare_versions(program_path, min_version_str):
+
+    if not program_path:
+        return None
+
+    version_str = get_version(program_path)
+
+    if not version_str:
+        return None
+
+    program_ver = tuple(map(int, version_str.split('.')))
+    minimum_ver = tuple(map(int, min_version_str.split('.')))
+    return version_str if program_ver >= minimum_ver else None
 
 def locate_utility(util, force_exit=True, report_error=True):
 
@@ -725,15 +755,15 @@ def locate_utility(util, force_exit=True, report_error=True):
         if report_error: print('[Error] Unable to locate %s' % (util))
         if force_exit: sys.exit()
 
-def set_cutechess_permissions():
+def set_runner_permissions():
 
-    status = os.system('sudo -n chmod 777 cutechess-ob > /dev/null 2>&1')
-
-    if status != 0:
-        status = os.system('chmod 777 cutechess-ob > /dev/null 2>&1')
+    status = os.system('sudo -n chmod 777 fastchess-ob > /dev/null 2>&1')
 
     if status != 0:
-        print ('[ERROR] Unable to set execute permissions on cutechess-ob')
+        status = os.system('chmod 777 fastchess-ob > /dev/null 2>&1')
+
+    if status != 0:
+        print ('[ERROR] Unable to set execute permissions on fastchess-ob')
 
 
 def cleanup_client():
@@ -827,14 +857,14 @@ def scale_time_control(workload, scale_factor, branch):
     base = float(base) * scale_factor
     inc  = float(inc ) * scale_factor
 
-    # Format the time control for cutechess
+    # Format the time control for match runner
     if moves is None:
         return 'tc=%.2f+%.2f timemargin=250' % (base, inc)
     return 'tc=%d/%.2f+%.2f timemargin=250' % (int(moves), base, inc)
 
 def find_pgn_error(reason, command):
 
-    pgn_file = command.split('-pgnout ')[1].split()[0]
+    pgn_file = command.split('-pgnout file=')[1].split()[0]
     with open(pgn_file, 'r') as fin:
         data = fin.readlines()
 
@@ -883,6 +913,81 @@ def determine_scale_factor(config, dev_name, dev_network, base_name, base_networ
 ## Functions interacting with the OpenBench server that establish the initial
 ## connection and then make simple requests to retrieve Workloads as json objects
 
+def server_configure_fastchess(config):
+    server_configure_match_runner(config, 'fastchess', build_fastchess_in_dir)
+
+def server_configure_match_runner(config, name, build_func):
+
+    # OpenBench Server holds the runner repo and git-ref
+    print ('\nConfiguring %s...' % name)
+    print ('> Requesting %s configuration from openbench' % name)
+    target  = url_join(config.server, 'clientMatchRunnerVersionRef')
+    payload = { 'username' : config.username, 'password' : config.password }
+    data    = requests.post(target, data=payload, timeout=TIMEOUT_HTTP).json()
+
+    # Might already have a sufficiently new Fastchess binary
+    print ('> Checking for existing %s-ob binary' % name)
+    runner_path = os.path.join(os.getcwd(), '%s-ob' % name)
+    runner_path = utils.check_for_engine_binary(runner_path)
+    acceptable_ver = compare_versions(runner_path, data['%s_min_version' % name])
+
+    if acceptable_ver:
+        print ('> Found %s-ob v%s' % (name, acceptable_ver))
+        setattr(config, '%s_ver' % name, acceptable_ver)
+        return
+
+    # Download a .zip archive of the git-ref from the specified repo
+    repo_url, repo_ref = data['%s_repo_url' % name], data['%s_repo_ref' % name]
+    print ('> Downloading %s from %s' % (repo_ref, repo_url))
+    response = requests.get(url_join(repo_url, 'archive', '%s.zip' % repo_ref))
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+
+        # Move the .zip contents into a temporary .zip file
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+            tmp_file.write(response.content)
+            temp_zip_path = tmp_file.name
+
+        # Extract the .zip file into our local directory
+        with zipfile.ZipFile(temp_zip_path, 'r') as zip_ref:
+            zip_ref.extractall(temp_dir)
+
+        # Prepare to build, using the root folder of the extracted files as the cwd
+        print ('> Extracting and building %s %s' % (name, repo_ref))
+        runner_dir = os.path.join(temp_dir, os.listdir(temp_dir)[0])
+        bin_path   = os.path.join(runner_dir, name)
+
+        build_func(config, runner_dir)
+
+        # Somehow we built runner but failed to find the binary
+        if not utils.check_for_engine_binary(bin_path):
+            raise OpenBenchMatchRunnerBuildFailedException()
+
+        # Append .exe if needed, and then report the match runner version that was built
+        binary  = utils.check_for_engine_binary(bin_path)
+        version = get_version(binary)
+        setattr(config, '%s_ver' % name, version)
+        print ('> Finished building v%s' % version)
+
+        # Move the finished match runner binary to the Client's Root directory
+        out_path = os.path.join(os.getcwd(), os.path.basename(binary).replace(name, '%s-ob' % name))
+        shutil.move(binary, out_path)
+
+def build_fastchess_in_dir(config, runner_dir):
+    print ('> Using C++ compiler %s...' % config.cxx_comp)
+
+    # Execute the build, using our C++ compiler, and record any output
+    make_cmd    = ['make', '-j', 'CXX=%s' % config.cxx_comp]
+    process     = subprocess.Popen(make_cmd, cwd=runner_dir, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    comp_output = process.communicate()[0].decode('utf-8')
+
+    # Make threw an error, and thus failed to build
+    if process.returncode:
+        print ('\nFailed to build fastchess\n\nCompiler Output:')
+        for line in comp_output.split('\n'):
+            print ('> %s' % (line))
+        raise OpenBenchMatchRunnerBuildFailedException()
+
 def server_configure_worker(config):
 
     # Server tells us how to build or obtain binaries
@@ -909,10 +1014,12 @@ def server_configure_worker(config):
         'machine_id'     : config.machine_id,     # Assigned value, or None. Will be replaced if wrong
         'machine_name'   : config.identity,       # Optional pseudonym for the machine, otherwise None
         'concurrency'    : config.threads,        # Threads to use to play games
-        'sockets'        : config.sockets,        # Cutechess copies, usually equal to Socket count
+        'sockets'        : config.sockets,        # Match runner copies, usually equal to Socket count
         'syzygy_max'     : config.syzygy_max,     # Whether or not the machine has Syzygy support
         'noisy'          : config.noisy,          # Whether our results are unstable for time-based workloads
         'focus'          : config.focus,          # List of engines we have a preference to help
+        'cxx_comp'       : config.cxx_comp,       # C++ Compiler used to build Fastchess binaries
+        'fastchess_ver'  : config.fastchess_ver,  # Fastchess Version, set during server_configure_fastchess()
         'client_ver'     : CLIENT_VERSION,        # Version of the Client, which the server may reject
     }
 
@@ -994,45 +1101,45 @@ def complete_workload(config):
     # Scale time control based on the Engine's local NPS
     scale_factor = determine_scale_factor(config, dev_name, dev_network, base_name, base_network)
 
-    # Server knows how many copies of Cutechess we should run
-    cutechess_cnt   = config.workload['distribution']['cutechess-count']
+    # Server knows how many copies of the match runner we should run
+    runner_cnt      = config.workload['distribution']['runner-count']
     concurrency_per = config.workload['distribution']['concurrency-per']
-    games_per       = config.workload['distribution']['games-per-cutechess']
+    games_per       = config.workload['distribution']['games-per-runner']
 
     print () # Record this information
-    print ('%d cutechess copies' % (cutechess_cnt))
+    print ('%d match runner copies' % (runner_cnt))
     print ('%d concurrent games per copy' % (concurrency_per))
-    print ('%d total games per cutechess copy\n' % (games_per))
+    print ('%d total games per match runner copy\n' % (games_per))
 
-    # Launch and manage all of the Cutechess workers
-    with ThreadPoolExecutor(max_workers=cutechess_cnt) as executor:
+    # Launch and manage all of the match runner workers
+    with ThreadPoolExecutor(max_workers=runner_cnt) as executor:
 
         timestamp  = time.time()
         results    = multiprocessing.Queue()
         abort_flag = threading.Event()
 
-        tasks = [] # Create each of the Cutechess workers
-        for x in range(cutechess_cnt):
-            cmd = build_cutechess_command(config, dev_name, base_name, scale_factor, timestamp, x)
-            tasks.append(executor.submit(run_and_parse_cutechess, config, cmd, x, results, abort_flag))
+        tasks = [] # Create each of the match runner workers
+        for x in range(runner_cnt):
+            cmd = build_runner_command(config, dev_name, base_name, scale_factor, timestamp, x)
+            tasks.append(executor.submit(run_and_parse_runner, config, cmd, x, results, abort_flag))
 
         # Process the Queue until we exit, finish, or are told to stop by the server
         try:
             rr = ResultsReporter(config, tasks, results, abort_flag)
             rr.process_until_finished()
-            rr.send_errors(timestamp, cutechess_cnt)
-            Cutechess.kill_everything(dev_name, base_name)
+            rr.send_errors(timestamp, runner_cnt)
+            MatchRunner.kill_everything(dev_name, base_name)
 
         # Kill everything during an Exception, but print it
         except (Exception, KeyboardInterrupt):
             abort_flag.set()
-            Cutechess.kill_everything(dev_name, base_name)
+            MatchRunner.kill_everything(dev_name, base_name)
             raise
 
         # Upload the PGN if requested
         if config.workload['test']['upload_pgns'] != 'FALSE':
             compact    = config.workload['test']['upload_pgns'] == 'COMPACT'
-            pgn_files  = [Cutechess.pgn_name(config, timestamp, x) for x in range(cutechess_cnt)]
+            pgn_files  = [MatchRunner.pgn_name(config, timestamp, x) for x in range(runner_cnt)]
             ServerReporter.report_pgn(config, pgn_util.compress_list_of_pgns(pgn_files, scale_factor, compact))
 
 def safe_download_network_weights(config, branch):
@@ -1140,22 +1247,22 @@ def safe_run_benchmarks(config, branch, engine, network):
     return speed
 
 
-def build_cutechess_command(config, dev_cmd, base_cmd, scale_factor, timestamp, cutechess_idx):
+def build_runner_command(config, dev_cmd, base_cmd, scale_factor, timestamp, runner_idx):
 
-    flags  = ' ' + Cutechess.basic_settings(config)
-    flags += ' ' + Cutechess.concurrency_settings(config)
-    flags += ' ' + Cutechess.adjudication_settings(config)
-    flags += ' ' + Cutechess.engine_settings(config, dev_cmd, 'dev', scale_factor, cutechess_idx)
-    flags += ' ' + Cutechess.engine_settings(config, base_cmd, 'base', scale_factor, cutechess_idx)
-    flags += ' ' + Cutechess.book_settings(config, cutechess_idx)
-    flags += ' ' + Cutechess.pgnout_settings(config, timestamp, cutechess_idx)
+    flags  = ' ' + MatchRunner.basic_settings(config)
+    flags += ' ' + MatchRunner.concurrency_settings(config)
+    flags += ' ' + MatchRunner.adjudication_settings(config)
+    flags += ' ' + MatchRunner.engine_settings(config, dev_cmd, 'dev', scale_factor, runner_idx)
+    flags += ' ' + MatchRunner.engine_settings(config, base_cmd, 'base', scale_factor, runner_idx)
+    flags += ' ' + MatchRunner.book_settings(config, runner_idx)
+    flags += ' ' + MatchRunner.pgnout_settings(config, timestamp, runner_idx)
 
-    return ['cutechess-ob.exe', './cutechess-ob'][IS_LINUX] + flags
+    return MatchRunner.executable(config) + flags
 
-def run_and_parse_cutechess(config, command, cutechess_idx, results_queue, abort_flag):
+def run_and_parse_runner(config, command, runner_idx, results_queue, abort_flag):
 
-    print('\n[#%d] Launching Cutechess...\n%s\n' % (cutechess_idx, command))
-    cutechess = Popen(command.split(), stdout=PIPE)
+    print('\n[#%d] Launching match runner...\n%s\n' % (runner_idx, command))
+    runner = Popen(command.split(), stdout=PIPE)
 
     results = {
 
@@ -1171,7 +1278,7 @@ def run_and_parse_cutechess(config, command, cutechess_idx, results_queue, abort
     while True:
 
         # Read each line of output until the pipe closes and we get "" back
-        line = cutechess.stdout.readline().strip().decode('ascii')
+        line = runner.stdout.readline().strip().decode('ascii')
         if not line:
             break
 
@@ -1179,10 +1286,10 @@ def run_and_parse_cutechess(config, command, cutechess_idx, results_queue, abort
             break
 
         if 'Started game' not in line and 'Score of' not in line:
-            print('[#%d] %s' % (cutechess_idx, line))
+            print('[#%d] %s' % (runner_idx, line))
 
         if 'Finished game' in line:
-            Cutechess.update_results(results, line)
+            MatchRunner.update_results(results, line)
 
         # Add to the results queue every time we have a game-pair finished
         if any(results['pentanomial']):
@@ -1194,7 +1301,7 @@ def run_and_parse_cutechess(config, command, cutechess_idx, results_queue, abort
                 'crashes'       : results['crashes'],
                 'timelosses'    : results['timelosses'],
                 'illegals'      : results['illegals'],
-                'cutechess_idx' : cutechess_idx,
+                'runner_idx'    : runner_idx,
             })
 
             # Clear out all the results, so we can start collecting a new set
@@ -1250,15 +1357,17 @@ def run_openbench_worker(client_args):
     # If the client was updated, we must reload everything
     reload_local_imports()
 
+    fastchess_error  = '[Note] Unable to locate and/or build desired Fastchess version!'
     setup_error      = '[Note] Unable to establish initial connection with the Server!'
     connection_error = '[Note] Unable to reach the server to request a workload!'
 
     args   = parse_arguments(client_args) # Merge client.py and worker.py args
     config = Configuration(args)          # Holds System info, args, and Workload info
+    try_forever(server_configure_fastchess, [config], fastchess_error)
     try_forever(server_configure_worker, [config], setup_error)
 
     if IS_LINUX:
-        set_cutechess_permissions()
+        set_runner_permissions()
 
     # Cleanup in case openbench.exit still exists
     if os.path.isfile('openbench.exit'):

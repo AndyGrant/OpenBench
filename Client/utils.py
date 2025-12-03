@@ -86,6 +86,10 @@ class OpenBenchMisssingPGNException(Exception):
         self.message = message
         super().__init__(self.message)
 
+class OpenBenchMatchRunnerBuildFailedException(Exception):
+    def __init__(self):
+        self.message = ''
+        super().__init__(self.message)
 
 def kill_process_by_name(process_name):
 
@@ -96,7 +100,6 @@ def kill_process_by_name(process_name):
 
     if IS_WINDOWS:
         subprocess.run(['taskkill', '/f', '/im', process_name])
-
 
 def url_join(*args, trailing_slash=True):
 
