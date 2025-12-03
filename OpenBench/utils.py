@@ -80,7 +80,7 @@ class TimeControl(object):
             moves = None if moves == '' else moves.rstrip('/')
             inc   = 0.0  if inc   is None else inc.lstrip('+')
 
-            # Format the time control for cutechess cleanly
+            # Format the time control for match runner cleanly
             if moves is None: return '%.1f+%.2f' % (float(base), float(inc))
             return '%d/%.1f+%.2f' % (int(moves), float(base), float(inc))
 
