@@ -104,6 +104,7 @@ def verify_general_config(conf):
     assert type(conf.get('client_repo_url' ) == str)
     assert type(conf.get('client_repo_ref' ) == str)
 
+    assert type(conf.get('fastchess_min_version') == str)
     assert type(conf.get('fastchess_repo_url') == str)
     assert type(conf.get('fastchess_repo_ref') == str)
 
