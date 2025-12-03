@@ -724,18 +724,14 @@ class ResultsReporter(object):
 
 def get_version(program):
 
-    # Try to execute the program from the command line
-    # First with `--version`, and again with just `version`
+    for opt in [ '--version', 'version', '-v', '-version' ]:
+        try:
+            process = Popen([program, opt], stdout=PIPE, stderr=PIPE)
+            stdout  = process.communicate()[0].decode('utf-8')
+            return re.search(r'\d+\.\d+(\.\d+)?', stdout).group()
+        except: pass
 
-    try:
-        process = Popen([program, '--version'], stdout=PIPE, stderr=PIPE)
-        stdout  = process.communicate()[0].decode('utf-8')
-        return re.search(r'\d+\.\d+(\.\d+)?', stdout).group()
-
-    except:
-        process = Popen([program, 'version'], stdout=PIPE, stderr=PIPE)
-        stdout  = process.communicate()[0].decode('utf-8')
-        return re.search(r'\d+\.\d+(\.\d+)?', stdout).group()
+    raise Exception('All attempts to get the version of %s failed' % (program))
 
 def compare_versions(program_path, min_version_str):
 
