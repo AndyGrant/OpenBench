@@ -256,7 +256,7 @@ def workload_to_dictionary(test, result, machine):
         workload['test']['book_index'] = test.book_index
 
         runner_cnt    = workload['distribution']['runner-count']
-        pairs_per_cnt = workload['distribution']['games-per-runner'] // 2
+        pairs_per_cnt = workload['distribution']['rounds-per-runner'] // 2
         per_opening   = 2 if (test.test_mode == 'DATAGEN' and not test.play_reverses) else 1
 
         test.book_index += runner_cnt * pairs_per_cnt * per_opening
@@ -367,7 +367,7 @@ def game_distribution(test, machine):
     is_multiple_spsa = test.test_mode == 'SPSA' and test.spsa['distribution_type'] == 'MULTIPLE'
 
     return {
-        'runner-count'     : spsa_count if is_multiple_spsa else worker_sockets,
-        'concurrency-per'  : 2 if is_multiple_spsa else max_concurrency,
-        'games-per-runner' : 2 * test.workload_size * (1 if is_multiple_spsa else max_concurrency),
+        'runner-count'      : spsa_count if is_multiple_spsa else worker_sockets,
+        'concurrency-per'   : 2 if is_multiple_spsa else max_concurrency,
+        'rounds-per-runner' : 2 * test.workload_size * (1 if is_multiple_spsa else max_concurrency),
     }

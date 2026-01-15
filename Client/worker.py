@@ -59,7 +59,7 @@ from client import try_forever
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 41 # Client version to send to the Server
+CLIENT_VERSION   = 42 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -403,21 +403,20 @@ class MatchRunner:
         is_frc    = 'FRC' in book_name or '960' in book_name or 'FISCHER' in book_name
         variant   = ['standard', 'fischerandom'][is_frc]
 
-        # Only include -repeat if not skipping the reverses in DATAGEN
-        is_datagen = config.workload['test']['type'] == 'DATAGEN'
-        no_reverse = is_datagen and not config.workload['test']['play_reverses']
-        rounds     = 1 if no_reverse else 2
-
         # Always include -recover, -variant, and -testEnv
-        return '-rounds %d -recover -variant %s -testEnv' % (rounds, variant)
+        return '-recover -variant %s -testEnv' % variant
 
     @staticmethod
     def concurrency_settings(config):
 
-        # Already computed for us by the Server
-        return '-concurrency %d -games %d' % (
+        is_datagen      = config.workload['test']['type'] == 'DATAGEN'
+        no_reverse      = is_datagen and not config.workload['test']['play_reverses']
+        games_per_round = 1 if no_reverse else 2
+
+        return '-concurrency %d -rounds %d -games %d' % (
             config.workload['distribution']['concurrency-per'],
-            config.workload['distribution']['games-per-runner'],
+            config.workload['distribution']['rounds-per-runner'],
+            games_per_round,
         )
 
     @staticmethod
@@ -451,7 +450,7 @@ class MatchRunner:
 
             # -repeat might not be applied, so handle the book offsets
             no_reverse = not config.workload['test']['play_reverses']
-            pairs      = config.workload['distribution']['games-per-runner'] // 2
+            pairs      = config.workload['distribution']['rounds-per-runner'] // 2
             start      = 1 + (runner_idx * pairs * (1 + no_reverse))
             return '-openings file=Books/openbench.genfens.epd format=epd order=sequential start=%d' % (start)
 
@@ -460,7 +459,7 @@ class MatchRunner:
         book_suffix = book_name.split('.')[-1]
 
         # Start position is determined partially by runner index
-        pairs = config.workload['distribution']['games-per-runner'] // 2
+        pairs = config.workload['distribution']['rounds-per-runner'] // 2
         start = config.workload['test']['book_index'] + runner_idx * pairs
 
         return '-openings file=Books/%s format=%s order=random start=%d -srand %d' % (
@@ -1105,12 +1104,12 @@ def complete_workload(config):
     # Server knows how many copies of the match runner we should run
     runner_cnt      = config.workload['distribution']['runner-count']
     concurrency_per = config.workload['distribution']['concurrency-per']
-    games_per       = config.workload['distribution']['games-per-runner']
+    rounds_per      = config.workload['distribution']['rounds-per-runner']
 
     print () # Record this information
     print ('%d match runner copies' % (runner_cnt))
     print ('%d concurrent games per copy' % (concurrency_per))
-    print ('%d total games per match runner copy\n' % (games_per))
+    print ('%d total rounds per match runner copy\n' % (rounds_per))
 
     # Launch and manage all of the match runner workers
     with ThreadPoolExecutor(max_workers=runner_cnt) as executor:
