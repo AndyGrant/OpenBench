@@ -572,13 +572,13 @@ def verify_worker(function):
             expected_ver = OPENBENCH_CONFIG['client_version']
             return JsonResponse({ 'error' : 'Bad Client Version: Expected %d' % (expected_ver)})
 
+        # Prompt the worker to soft-restart if its config is out of date
+        if machine.info.get('OPENBENCH_CONFIG_CHECKSUM') != OPENBENCH_CONFIG_CHECKSUM:
+            return JsonResponse({ 'error' : 'Bad Client Version: Server Configuration Changed' })
+
         # Use the secret token as our soft verification
         if machine.secret != args[0].POST['secret']:
             return JsonResponse({ 'error' : 'Invalid Secret Token' })
-
-        # Prompt the worker to soft-restart if its config is out of date
-        if machine.info.get('OPENBENCH_CONFIG_CHECKSUM') != OPENBENCH_CONFIG_CHECKSUM:
-            return JsonResponse({ 'error' : 'Server Configuration Changed' })
 
         # Otherwise, carry on, and pass along the machine
         return function(*args, machine)
