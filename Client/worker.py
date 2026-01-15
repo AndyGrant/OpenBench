@@ -417,7 +417,7 @@ class MatchRunner:
         # Already computed for us by the Server
         return '-concurrency %d -rounds %d' % (
             config.workload['distribution']['concurrency-per'],
-            config.workload['distribution']['games-per-runner'],
+            config.workload['distribution']['rounds-per-runner'],
         )
 
     @staticmethod
@@ -451,7 +451,7 @@ class MatchRunner:
 
             # -repeat might not be applied, so handle the book offsets
             no_reverse = not config.workload['test']['play_reverses']
-            pairs      = config.workload['distribution']['games-per-runner'] // 2
+            pairs      = config.workload['distribution']['rounds-per-runner'] // 2
             start      = 1 + (runner_idx * pairs * (1 + no_reverse))
             return '-openings file=Books/openbench.genfens.epd format=epd order=sequential start=%d' % (start)
 
@@ -460,7 +460,7 @@ class MatchRunner:
         book_suffix = book_name.split('.')[-1]
 
         # Start position is determined partially by runner index
-        pairs = config.workload['distribution']['games-per-runner'] // 2
+        pairs = config.workload['distribution']['rounds-per-runner'] // 2
         start = config.workload['test']['book_index'] + runner_idx * pairs
 
         return '-openings file=Books/%s format=%s order=random start=%d -srand %d' % (
@@ -1105,12 +1105,12 @@ def complete_workload(config):
     # Server knows how many copies of the match runner we should run
     runner_cnt      = config.workload['distribution']['runner-count']
     concurrency_per = config.workload['distribution']['concurrency-per']
-    games_per       = config.workload['distribution']['games-per-runner']
+    rounds_per      = config.workload['distribution']['rounds-per-runner']
 
     print () # Record this information
     print ('%d match runner copies' % (runner_cnt))
     print ('%d concurrent games per copy' % (concurrency_per))
-    print ('%d total games per match runner copy\n' % (games_per))
+    print ('%d total rounds per match runner copy\n' % (rounds_per))
 
     # Launch and manage all of the match runner workers
     with ThreadPoolExecutor(max_workers=runner_cnt) as executor:

@@ -45,9 +45,9 @@ import utils
 def genfens_required_openings_each(config):
 
     runner_cnt  = config.workload['distribution']['runner-count']
-    games_per   = config.workload['distribution']['games-per-runner']
+    rounds_per  = config.workload['distribution']['rounds-per-runner']
     repeat      = config.workload['test']['play_reverses']
-    total_games = runner_cnt * games_per // (1 + repeat)
+    total_games = runner_cnt * rounds_per // (1 + repeat)
 
     return math.ceil(total_games / config.threads)
 
