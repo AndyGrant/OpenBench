@@ -406,9 +406,10 @@ class MatchRunner:
         # Only include -repeat if not skipping the reverses in DATAGEN
         is_datagen = config.workload['test']['type'] == 'DATAGEN'
         no_reverse = is_datagen and not config.workload['test']['play_reverses']
+        rounds     = 1 if no_reverse else 2
 
         # Always include -recover, -variant, and -testEnv
-        return ['-repeat', ''][no_reverse] + ' -recover -variant %s -testEnv' % (variant)
+        return '-rounds %d -recover -variant %s -testEnv' % (rounds, variant)
 
     @staticmethod
     def concurrency_settings(config):
