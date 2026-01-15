@@ -565,7 +565,7 @@ def verify_worker(function):
 
         # Get the machine, assuming it exists
         try: machine = Machine.objects.get(id=int(args[0].POST['machine_id']))
-        except: return JsonResponse({ 'error' : 'Bad Machine Id' })
+        except: return JsonResponse({ 'error' : 'Bad Client Version: Bad Machine Id' })
 
         # Ensure the Client is using the same version as the Server
         if machine.info['client_ver'] != OPENBENCH_CONFIG['client_version']:
@@ -578,7 +578,7 @@ def verify_worker(function):
 
         # Use the secret token as our soft verification
         if machine.secret != args[0].POST['secret']:
-            return JsonResponse({ 'error' : 'Invalid Secret Token' })
+            return JsonResponse({ 'error' : 'Bad Client Version: Invalid Secret Token' })
 
         # Otherwise, carry on, and pass along the machine
         return function(*args, machine)
