@@ -403,21 +403,20 @@ class MatchRunner:
         is_frc    = 'FRC' in book_name or '960' in book_name or 'FISCHER' in book_name
         variant   = ['standard', 'fischerandom'][is_frc]
 
-        # Only include -repeat if not skipping the reverses in DATAGEN
-        is_datagen      = config.workload['test']['type'] == 'DATAGEN'
-        no_reverse      = is_datagen and not config.workload['test']['play_reverses']
-        games_per_round = 1 if no_reverse else 2
-
         # Always include -recover, -variant, and -testEnv
-        return '-games %d -recover -variant %s -testEnv' % (games_per_round, variant)
+        return '-recover -variant %s -testEnv' % variant
 
     @staticmethod
     def concurrency_settings(config):
 
-        # Already computed for us by the Server
-        return '-concurrency %d -rounds %d' % (
+        is_datagen      = config.workload['test']['type'] == 'DATAGEN'
+        no_reverse      = is_datagen and not config.workload['test']['play_reverses']
+        games_per_round = 1 if no_reverse else 2
+
+        return '-concurrency %d -rounds %d -games %d' % (
             config.workload['distribution']['concurrency-per'],
-            config.workload['distribution']['rounds-per-runner'],
+            config.workload['distribution']['rounds-per-runner'] // games_per_round,
+            games_per_round,
         )
 
     @staticmethod
