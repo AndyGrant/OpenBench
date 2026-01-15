@@ -32,7 +32,7 @@ from OpenBench.workloads.create_workload import create_workload
 from OpenBench.workloads.get_workload import get_workload
 from OpenBench.workloads.modify_workload import modify_workload
 from OpenBench.workloads.verify_workload import verify_workload
-from OpenBench.workloads.view_workload import view_workload
+from OpenBench.workloads.view_workload import view_workload, fetch_results
 
 from OpenBench.config import OPENBENCH_CONFIG, OPENBENCH_CONFIG_CHECKSUM, OPENBENCH_STATIC_VERSION
 from OpenSite.settings import PROJECT_PATH
@@ -945,6 +945,18 @@ def api_pgns(request, pgn_id):
     response['Content-Length'] = os.path.getsize(pgn_path)
     response['Content-Disposition'] = 'attachment; filename=%d.pgn.tar' % (pgn_id)
     return response
+
+@csrf_exempt
+def api_workload_results(request, workload_id):
+
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    try: workload = Test.objects.get(pk=workload_id)
+    except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
+
+    truncated, results_json = fetch_results(workload_id, force=True)
+    return JsonResponse({'results' : results_json})
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                BUSINESS VIEWS                               #
