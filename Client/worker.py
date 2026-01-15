@@ -415,7 +415,7 @@ class MatchRunner:
 
         return '-concurrency %d -rounds %d -games %d' % (
             config.workload['distribution']['concurrency-per'],
-            config.workload['distribution']['rounds-per-runner'] // games_per_round,
+            config.workload['distribution']['rounds-per-runner'],
             games_per_round,
         )
 
