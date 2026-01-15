@@ -1,9 +1,9 @@
 {
-    "client_version"     : 40,
+    "client_version"     : 41,
     "client_repo_url"    : "https://github.com/AndyGrant/OpenBench",
     "client_repo_ref"    : "master",
 
-    "fastchess_min_version" : "0.9.0",
+    "fastchess_min_version" : "1.7.0",
     "fastchess_repo_url"    : "https://github.com/AndyGrant/fastchess",
     "fastchess_repo_ref"    : "master",
 
