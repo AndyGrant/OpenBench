@@ -288,7 +288,6 @@ def create_new_datagen(request):
 
     return test, None
 
-
 def create_spsa_run(workload, request):
 
     alpha      = float(request.POST['spsa_alpha'])

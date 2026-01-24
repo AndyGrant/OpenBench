@@ -21,6 +21,7 @@
 import numpy as np
 
 def spsa_param_digest_headers(workload):
+    # No real arguments are expected, but this is utilized as a template filter
     return ['Name', 'Curr', 'Start', 'Min', 'Max', 'C', 'C_end', 'R', 'R_end']
 
 def spsa_original_input(workload):
@@ -75,26 +76,68 @@ def spsa_param_digest(workload):
 
     return digest
 
-def spsa_workload_assignment_dict(workload, data):
+def spsa_workload_assignment_dict(workload, runner_count):
+
+    if workload.test_mode != 'SPSA':
+        return None
 
     params = list(workload.spsa_run.parameters.order_by('index'))
 
-    names  = [p.name for p in params]
-    values = np.array([p.value     for p in params])
-    mins   = np.array([p.min_value for p in params])
-    maxs   = np.array([p.max_value for p in params])
-    c_ends = np.array([p.c_end     for p in params])
-    r_ends = np.array([p.r_end     for p in params])
+    names    = [p.name for p in params]
+    values   = np.array([p.value     for p in params])
+    mins     = np.array([p.min_value for p in params])
+    maxs     = np.array([p.max_value for p in params])
+    a_values = np.array([p.a_value   for p in params])
+    c_ends   = np.array([p.c_end     for p in params])
+    r_ends   = np.array([p.r_end     for p in params])
+    is_float = np.array([p.is_float  for p in params])
 
     # Only use one set of parameters if distribution is SINGLE.
     # Duplicate the params, even though they are the same, across all
     # sockets on the machine, in the event of a singular SPSA distribution
 
-    is_single    = test.spsa['distribution_type'] == 'SINGLE'
-    permutations = 1 if is_single else workload['distribution']['cutechess-count']
-    duplicates   = 1 if not is_single else workload['distribution']['cutechess-count']
+    is_single    = workload.spsa_run.distribution_type == 'SINGLE'
+    permutations = 1 if is_single else runner_count
+    duplicates   = 1 if not is_single else runner_count
 
     # C & R are scaled over the course of the iterations
-    iteration     = 1 + (test.games / (test.spsa['pairs_per'] * 2))
-    c_compression = iteration ** test.spsa['Gamma']
-    r_compression = (test.spsa['A'] + iteration) ** test.spsa['Alpha']
+    iteration     = 1 + (workload.games / (workload.spsa_run.pairs_per * 2))
+    c_compression = iteration ** workload.spsa_run.gamma
+    r_compression = (workload.spsa_run.a_value + iteration) ** workload.spsa_run.alpha
+
+    # Applying scaling
+    c_values = np.maximum(c_ends / c_compression, np.where(is_float, 0.0, 0.5))
+    r_values = a_values / r_compression / c_values**2
+
+    # Apply flips for each parameter, for each permutation
+    flips = np.random.choice([-1, 1], size=(len(params), permutations))
+    devs  = values[:, None] + flips * c_values[:, None]
+    bases = values[:, None] - flips * c_values[:, None]
+
+    # Identify Integers, as they require rounding conversions
+    mask_int = ~is_float[:, None] # shape (num_params, 1)
+    mask_int = np.broadcast_to(mask_int, devs.shape) # shape (num_params, permutations)
+
+    # Probabilistic rounding for integer parameters
+    rand_mat = np.random.rand(len(params), permutations)
+    devs[mask_int]  = np.floor(devs[mask_int]  + rand_mat[mask_int])
+    bases[mask_int] = np.floor(bases[mask_int] + rand_mat[mask_int])
+
+    # Clip to the original min/max
+    devs  = np.clip(devs, mins[:, None], maxs[:, None])
+    bases = np.clip(bases, mins[:, None], maxs[:, None])
+
+    # Duplicate if the client will use multiple runners
+    devs  = np.repeat(devs , duplicates, axis=1)
+    bases = np.repeat(bases, duplicates, axis=1)
+    flips = np.repeat(flips, duplicates, axis=1)
+
+    return {
+        name : {
+            'dev'  : [float(x) if is_float[i] else int(x) for x in devs[i]],
+            'base' : [float(x) if is_float[i] else int(x) for x in bases[i]],
+            'flip' : flips[i].tolist(),
+            'c'    : float(c_values[i]),
+            'r'    : float(r_values[i]),
+        } for i, name in enumerate(names)
+    }
