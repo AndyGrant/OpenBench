@@ -39,7 +39,7 @@ class PGNWatcher(threading.Thread):
 
     def process_pgn(self, pgn):
 
-        tar_path = FileSystemStorage('Media/PGNs').path('%d.pgn.tar' % (pgn.test_id))
+        tar_path = FileSystemStorage().path('PGNs/%d.pgn.tar' % (pgn.test_id))
         pgn_path = FileSystemStorage().path(pgn.filename())
 
         with transaction.atomic():

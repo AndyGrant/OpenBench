@@ -5,6 +5,14 @@
 
 {% block scripts %}
     <script src="{% static 'copy_text.js' %}?{{ static_version }}"></script>
+    <script src="{% static 'workload_results.js' %}?{{ static_version }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            populate_results({{results|safe}});
+        });
+    </script>
+
 {% endblock %}
 
 {% block content %}
@@ -228,21 +236,15 @@
                 <th style="width: 45px">Crash</th>
             </tr>
 
-            {% for result in results %}
-
-                <tr {% if result.active %} class="active-highlight" {% endif %}>
-                    <td><a href="/machines/{{result.data.machine.id}}">{{result.data.machine.id}}</a></td>
-                    <td>{{result.data.machine.user.username|capfirst}}</td>
-                    <td class="timestamp">{{result.data.updated|date:'U'}}</td>
-                    <td class="numeric">{{result.data.games}}</td>
-                    <td class="numeric">{{result.data.wins}}</td>
-                    <td class="numeric">{{result.data.losses}}</td>
-                    <td class="numeric">{{result.data.draws}}</td>
-                    <td class="numeric">{{result.data.timeloss}}</td>
-                    <td class="numeric">{{result.data.crashes}}</td>
-                </tr>
-            {% endfor %}
+            <tbody id="results-container">
+                <!-- Dynamically created -->
+            </tbody>
         </table>
+
+        <!-- Results were not provided, but we can fetch them on demand -->
+        {% if results_truncated %}
+            <button class="w-100 mt-1 anchorbutton btn-blue" type="submit" onclick="fetch_results({{workload.id}})">Fetch Results</button>
+        {% endif %}
     </div>
 
     </div>

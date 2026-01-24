@@ -26,42 +26,75 @@
 # A Workload can be a "DATAGEN", which is a Data Generation session
 
 import datetime
-import OpenBench.views
+import json
 
+from django.db.models import BooleanField, ExpressionWrapper, F, Q
 from django.utils import timezone
+
+import OpenBench.views
 from OpenBench.models import *
 
 def view_workload(request, workload, workload_type):
 
     assert workload_type in [ 'TEST', 'TUNE', 'DATAGEN' ]
 
+    truncated, results = fetch_results(workload, force=False)
+
     data = {
-        'workload' : workload,
-        'results'  : [],
+        'workload'          : workload,
+        'results'           : json.dumps(results),
+        'results_truncated' : truncated
     }
 
-    for result in Result.objects.filter(test=workload):
-        data['results'].append({ 'data' : result, 'active' : is_active(result) })
-
     if workload_type == 'TEST':
-        data['type']            = workload_type
-        data['dev_text']        = 'Dev'
+        data['type']= workload_type
+        data['dev_text'] = 'Dev'
 
     if workload_type == 'TUNE':
-        data['type']            = workload_type
-        data['dev_text']        = ''
+        data['type'] = workload_type
+        data['dev_text'] = ''
 
     if workload_type == 'DATAGEN':
-        data['type']            = workload_type
-        data['dev_text']        = 'Dev'
+        data['type'] = workload_type
+        data['dev_text'] = 'Dev'
 
     return OpenBench.views.render(request, 'workload.html', data)
 
-def is_active(result):
+def fetch_results(workload, force):
+
+    # Bail out when there are a large number of results, unless `force`
+    qs = Result.objects.filter(test=workload)
+    if not force and qs.count() > 25:
+        return True, []
 
     # One minute prior to now
     target = datetime.datetime.utcnow()
     target = target.replace(tzinfo=timezone.utc)
     target = target - datetime.timedelta(minutes=1)
 
-    return result.test.id == result.machine.workload and result.machine.updated >= target
+    # Create `active` field for current machines
+    qs = qs.select_related('machine__user').annotate(
+        active=ExpressionWrapper(
+            Q(machine__updated__gte=target) &
+            Q(test_id=F('machine__workload')),
+            output_field=BooleanField()
+        )
+    )
+
+    # Only the fields consumed by the template OpenBench/workload.html
+    qs = qs.values(
+        'machine__id',
+        'machine__user__username',
+        'updated',
+        'games',
+        'wins',
+        'losses',
+        'draws',
+        'timeloss',
+        'crashes',
+        'active',
+    )
+
+    results = [{ **result, 'updated' : result['updated'].timestamp() } for result in qs]
+
+    return False, results

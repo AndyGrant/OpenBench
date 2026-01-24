@@ -59,6 +59,7 @@ urlpatterns = [
 
     # Links for the Client to work with the Server
     django.urls.path(r'clientVersionRef/', OpenBench.views.client_version_ref),
+    django.urls.path(r'clientMatchRunnerVersionRef/', OpenBench.views.client_match_runner_version_ref),
     django.urls.path(r'clientGetBuildInfo/', OpenBench.views.client_get_build_info),
     django.urls.path(r'clientWorkerInfo/', OpenBench.views.client_worker_info),
     django.urls.path(r'clientGetWorkload/', OpenBench.views.client_get_workload),
@@ -79,6 +80,7 @@ urlpatterns = [
     django.urls.path(r'api/buildinfo/', OpenBench.views.api_build_info),
     django.urls.path(r'api/pgns/<int:pgn_id>/', OpenBench.views.api_pgns),
     django.urls.path(r'api/spsa/<int:workload_id>/', OpenBench.views.api_spsa),
+    django.urls.path(r'api/workload/<int:workload_id>/results/', OpenBench.views.api_workload_results),
 
     # Redirect anything else to the Index
     django.urls.path(r'', OpenBench.views.index),
