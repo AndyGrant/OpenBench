@@ -20,6 +20,8 @@
 
 import numpy as np
 
+from OpenBench.models import SPSARun, SPSAParameter
+
 def spsa_param_digest_headers(workload):
     # No real arguments are expected, but this is utilized as a template filter
     return ['Name', 'Curr', 'Start', 'Min', 'Max', 'C', 'C_end', 'R', 'R_end']
@@ -46,13 +48,58 @@ def spsa_optimal_values(workload):
         for param in workload.spsa_run.parameters.order_by('index')
     ])
 
+def create_spsa_run(workload, request):
+
+    alpha      = float(request.POST['spsa_alpha'])
+    gamma      = float(request.POST['spsa_gamma'])
+    a_ratio    = float(request.POST['spsa_A_ratio'])
+    iterations = int(request.POST['spsa_iterations'])
+
+    spsa_run = SPSARun.objects.create(
+        tune              = workload,
+        reporting_type    = request.POST['spsa_reporting_type'],
+        distribution_type = request.POST['spsa_distribution_type'],
+        alpha             = alpha,
+        gamma             = gamma,
+        iterations        = iterations,
+        pairs_per         = int(request.POST['spsa_pairs_per']),
+        a_ratio           = a_ratio,
+    )
+
+    params = []
+    for index, line in enumerate(request.POST['spsa_inputs'].splitlines()):
+
+        name, dtype, value, min_value, max_value, c_end, r_end = map(str.strip, line.split(','))
+
+        c_value   = float(c_end) * iterations ** gamma
+        a_end     = float(r_end) * float(c_end) ** 2
+        a_value   = float(a_end) * (a_ratio * iterations + iterations) ** alpha
+
+        params.append(SPSAParameter(
+            spsa_run  = spsa_run,
+            name      = name,
+            index     = index,
+            value     = float(value),
+            is_float  = dtype == 'float',
+            start     = float(value),
+            min_value = float(min_value),
+            max_value = float(max_value),
+            c_end     = float(c_end),
+            r_end     = float(r_end),
+            c_value   = c_value,
+            a_value   = a_value,
+        ))
+
+    SPSAParameter.objects.bulk_create(params)
+    return spsa_run
+
 def spsa_param_digest(workload):
 
     # C & R, as if we were being assigned a workload right now
     spsa_run      = workload.spsa_run
     iteration     = 1 + (workload.games / (spsa_run.pairs_per * 2))
     c_compression = iteration ** spsa_run.gamma
-    r_compression = (spsa_run.a_value + iteration) ** spsa_run.alpha
+    r_compression = (spsa_run.a_ratio * spsa_run.iterations + iteration) ** spsa_run.alpha
 
     digest = []
     for param in spsa_run.parameters.order_by('index'):
@@ -88,8 +135,7 @@ def spsa_workload_assignment_dict(workload, runner_count):
     mins     = np.array([p.min_value for p in params])
     maxs     = np.array([p.max_value for p in params])
     a_values = np.array([p.a_value   for p in params])
-    c_ends   = np.array([p.c_end     for p in params])
-    r_ends   = np.array([p.r_end     for p in params])
+    c_values = np.array([p.c_value   for p in params]) # Scaled later
     is_float = np.array([p.is_float  for p in params])
 
     # Only use one set of parameters if distribution is SINGLE.
@@ -103,10 +149,10 @@ def spsa_workload_assignment_dict(workload, runner_count):
     # C & R are scaled over the course of the iterations
     iteration     = 1 + (workload.games / (workload.spsa_run.pairs_per * 2))
     c_compression = iteration ** workload.spsa_run.gamma
-    r_compression = (workload.spsa_run.a_value + iteration) ** workload.spsa_run.alpha
+    r_compression = (workload.spsa_run.a_ratio * workload.spsa_run.iterations + iteration) ** workload.spsa_run.alpha
 
     # Applying scaling
-    c_values = np.maximum(c_ends / c_compression, np.where(is_float, 0.0, 0.5))
+    c_values = np.maximum(c_values / c_compression, np.where(is_float, 0.0, 0.5))
     r_values = a_values / r_compression / c_values**2
 
     # Apply flips for each parameter, for each permutation

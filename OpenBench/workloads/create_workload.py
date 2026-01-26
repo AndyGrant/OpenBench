@@ -33,6 +33,7 @@ import math
 
 from django.db import transaction
 
+import OpenBench.spsa_utils
 import OpenBench.utils
 import OpenBench.views
 
@@ -202,8 +203,8 @@ def create_new_tune(request):
     test.win_adj          = request.POST['win_adj']
     test.draw_adj         = request.POST['draw_adj']
 
-    test.scale_method      = request.POST['scale_method']
-    test.scale_nps         = int(request.POST['scale_nps'])
+    test.scale_method     = request.POST['scale_method']
+    test.scale_nps        = int(request.POST['scale_nps'])
 
     test.test_mode        = 'SPSA'
 
@@ -215,7 +216,7 @@ def create_new_tune(request):
 
     with transaction.atomic():
         test.save()
-        create_spsa_run(test, request).save()
+        OpenBench.spsa_utils.create_spsa_run(test, request).save()
 
     profile = Profile.objects.get(user=request.user)
     profile.tests += 1
@@ -287,54 +288,6 @@ def create_new_datagen(request):
     profile.save()
 
     return test, None
-
-def create_spsa_run(workload, request):
-
-    alpha      = float(request.POST['spsa_alpha'])
-    gamma      = float(request.POST['spsa_gamma'])
-    a_ratio    = float(request.POST['spsa_A_ratio'])
-    iterations = int(request.POST['spsa_iterations'])
-    a_value    = a_ratio * iterations
-
-    spsa_run = SPSARun.objects.create(
-        tune              = workload,
-        reporting_type    = request.POST['spsa_reporting_type'],
-        distribution_type = request.POST['spsa_distribution_type'],
-        alpha             = alpha,
-        gamma             = gamma,
-        iterations        = iterations,
-        pairs_per         = int(request.POST['spsa_pairs_per']),
-        a_ratio           = a_ratio,
-        a_value           = a_value,
-    )
-
-    params = []
-    for index, line in enumerate(request.POST['spsa_inputs'].splitlines()):
-
-        name, dtype, value, min_value, max_value, c_end, r_end = map(str.strip, line.split(','))
-
-        c_value   = float(c_end) * iterations ** gamma
-        a_end     = float(r_end) * float(c_end) ** 2
-        a_value   = float(a_end) * (a_value + iterations) ** alpha
-
-        params.append(SPSAParameter(
-            spsa_run  = spsa_run,
-            name      = name,
-            index     = index,
-            value     = float(value),
-            is_float  = dtype == 'float',
-            start     = float(value),
-            min_value = float(min_value),
-            max_value = float(max_value),
-            c_end     = float(c_end),
-            r_end     = float(r_end),
-            c_value   = c_value,
-            a_end     = a_end,
-            a_value   = a_value,
-        ))
-
-    SPSAParameter.objects.bulk_create(params)
-    return spsa_run
 
 def get_engine(source, name, sha, bench):
 

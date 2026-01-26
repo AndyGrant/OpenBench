@@ -255,7 +255,6 @@ class SPSARun(Model):
     iterations = IntegerField()
     pairs_per  = IntegerField()
     a_ratio    = FloatField()
-    a_value    = FloatField()
 
 class SPSAParameter(Model):
 
@@ -271,6 +270,5 @@ class SPSAParameter(Model):
     c_end     = FloatField()
     r_end     = FloatField()
 
-    c_value   = FloatField() # Precomputed for Speed
-    a_end     = FloatField()
+    c_value   = FloatField() # Constants pre-computed for speed
     a_value   = FloatField()
