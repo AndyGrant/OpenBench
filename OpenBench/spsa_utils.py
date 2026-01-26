@@ -134,10 +134,11 @@ def spsa_workload_assignment_dict(workload, runner_count):
 
     return {
         name : {
-            'dev'  : [float(x) if is_float[i] else int(x) for x in devs[i]],
-            'base' : [float(x) if is_float[i] else int(x) for x in bases[i]],
-            'flip' : flips[i].tolist(),
-            'c'    : float(c_values[i]),
-            'r'    : float(r_values[i]),
+            'index' : i,
+            'dev'   : [float(x) if is_float[i] else int(x) for x in devs[i]],
+            'base'  : [float(x) if is_float[i] else int(x) for x in bases[i]],
+            'flip'  : flips[i].tolist(),
+            'c'     : float(c_values[i]),
+            'r'     : float(r_values[i]),
         } for i, name in enumerate(names)
     }
