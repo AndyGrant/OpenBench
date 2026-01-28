@@ -30,11 +30,11 @@ def forwards(apps, schema_editor):
             a_ratio             = test.spsa.get('A_ratio'),
         )
 
-        for name, param in test.spsa.get('parameters', {}).items():
+        for index, (name, param) in enumerate(test.spsa.get('parameters', {}).items()):
             SPSAParameter.objects.create(
                 spsa_run  = spsa_run,
                 name      = name,
-                index     = param.get('index'),
+                index     = param.get('index', index), # Very old tests might lack the index value
                 value     = param.get('value'),
                 is_float  = param.get('float'),
                 start     = param.get('start'),
