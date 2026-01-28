@@ -17,12 +17,12 @@ def forwards(apps, schema_editor):
             test.spsa_run
             continue
         except SPSARun.DoesNotExist:
-            pass
+            pass # Need to create the SPSARun
 
         spsa_run = SPSARun.objects.create(
             tune                = test,
-            reporting_type      = test.spsa.get('reporting_type'),
-            distribution_type   = test.spsa.get('distribution_type'),
+            reporting_type      = test.spsa.get('reporting_type', 'BATCHED'),
+            distribution_type   = test.spsa.get('distribution_type', 'SINGLE'),
             alpha               = test.spsa.get('Alpha'),
             gamma               = test.spsa.get('Gamma'),
             iterations          = test.spsa.get('iterations'),

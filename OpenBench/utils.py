@@ -419,8 +419,9 @@ def update_test(request, machine):
     # Pentanomial Implementation
     LL, LD, DD, DW, WW = map(int, request.POST['pentanomial'].split())
 
-    # SPSA Delta update vector
-    spsa_delta = json.loads(request.POST['spsa_delta'])
+    # SPSA Delta update vector; might not have this
+    raw_spsa_delta = request.POST.get('spsa_delta', '')
+    spsa_delta     = json.loads(raw_spsa_delta) if raw_spsa_delta else []
 
     with transaction.atomic():
 
@@ -478,7 +479,7 @@ def update_test(request, machine):
         elif test.test_mode == 'SPSA':
 
             # Apply updates to every Parameter, ensuring clipping
-            parameters = test.spsa_run.parameters.order_by('index')
+            parameters = list(test.spsa_run.parameters.order_by('index'))
             for delta, param in zip(spsa_delta, parameters):
                 param.value = max(param.min_value, min(param.max_value, param.value + delta))
 

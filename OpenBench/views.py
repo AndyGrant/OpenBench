@@ -18,7 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import csv, io, os, hashlib, datetime, json, secrets, sys, re
+import csv, io, os, json, secrets
 
 import django.http
 import django.shortcuts
@@ -954,7 +954,7 @@ def api_spsa(request, workload_id):
     if not api_authenticate(request):
         return api_response({ 'error' : 'API requires authentication for this server' })
 
-    # 1. Make sure the workload actually exists for the requested PGN
+    # 1. Make sure the workload actually exists for the requested SPSA session
     try: workload = Test.objects.get(pk=workload_id)
     except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
 
