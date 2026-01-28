@@ -243,7 +243,7 @@ def workload_to_dictionary(test, result, machine):
 
     workload['distribution']   = game_distribution(test, machine)
     workload['spsa']           = spsa_workload_assignment_dict(test, workload['distribution']['runner-count'])
-    workload['reporting_type'] = test.spsa_run.reporting_type
+    workload['reporting_type'] = test.spsa_run.reporting_type if test.test_mode == 'SPSA' else ''
 
     with transaction.atomic():
 
