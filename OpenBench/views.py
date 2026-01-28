@@ -18,15 +18,16 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import os, hashlib, datetime, json, secrets, sys, re
+import csv, io, os, json, secrets
 
 import django.http
 import django.shortcuts
 import django.contrib.auth
 
 import OpenBench.config
-import OpenBench.utils
 import OpenBench.model_utils
+import OpenBench.spsa_utils
+import OpenBench.utils
 
 from OpenBench.workloads.create_workload import create_workload
 from OpenBench.workloads.get_workload import get_workload
@@ -468,7 +469,7 @@ def workload(request, workload_type, pk, action=None):
     if action != None:
         return modify_workload(request, pk, action)
 
-    if not (workload := Test.objects.filter(id=int(pk)).first()):
+    if not (workload := Test.objects.select_related('spsa_run').filter(id=int(pk)).first()):
         return redirect(request, '/index/', error='No such Workload exists')
 
     # Trying to view a Tune as a Test, for example
@@ -944,6 +945,27 @@ def api_pgns(request, pgn_id):
     response['Expires'] = -1
     response['Content-Length'] = os.path.getsize(pgn_path)
     response['Content-Disposition'] = 'attachment; filename=%d.pgn.tar' % (pgn_id)
+    return response
+
+@csrf_exempt
+def api_spsa(request, workload_id):
+
+    # 0. Make sure the request has the correct permissions
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    # 1. Make sure the workload actually exists for the requested SPSA session
+    try: workload = Test.objects.get(pk=workload_id)
+    except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow(OpenBench.spsa_utils.spsa_param_digest_headers(workload))
+    writer.writerows(OpenBench.spsa_utils.spsa_param_digest(workload))
+
+    response = HttpResponse(output.getvalue(), content_type='text/plain')
+    response.charset = 'utf-8'
     return response
 
 @csrf_exempt

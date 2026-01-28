@@ -145,7 +145,6 @@ class Test(Model):
     currentllr    = FloatField(default=0.0) # SPRT
     upperllr      = FloatField(default=0.0) # SPRT
     max_games     = IntegerField(default=0) # GAMES or DATAGEN
-    spsa          = JSONField(default=dict, blank=True, null=True) # SPSA
     genfens_args  = CharField(max_length=256, default='', blank=True) # DATAGEN
     play_reverses = BooleanField(default=False) # DATAGEN
 
@@ -234,3 +233,41 @@ class PGN(Model):
 
     def filename(self):
         return '%s.%s.%s.pgn.bz2' % (self.test_id, self.result_id, self.book_index)
+
+class SPSARun(Model):
+
+    class SPSAReportingType(TextChoices):
+        BULK    = 'BULK'   , 'BULK'
+        BATCHED = 'BATCHED', 'BATCHED'
+
+    class SPSADistributionType(TextChoices):
+        SINGLE   = 'SINGLE'  , 'SINGLE'
+        MULTIPLE = 'MULTIPLE', 'MULTIPLE'
+
+    tune = OneToOneField(Test, on_delete=CASCADE, related_name='spsa_run', null=True, blank=True)
+
+    reporting_type    = CharField(max_length=16, choices=SPSAReportingType.choices)
+    distribution_type = CharField(max_length=16, choices=SPSADistributionType.choices)
+
+    alpha      = FloatField() # Constants
+    gamma      = FloatField()
+    iterations = IntegerField()
+    pairs_per  = IntegerField()
+    a_ratio    = FloatField()
+
+class SPSAParameter(Model):
+
+    spsa_run  = ForeignKey(SPSARun, on_delete=CASCADE, related_name='parameters')
+    name      = CharField(max_length=64)
+    index     = IntegerField()
+    value     = FloatField() # Only field that changes
+
+    is_float  = BooleanField() # Constants
+    start     = FloatField()
+    min_value = FloatField()
+    max_value = FloatField()
+    c_end     = FloatField()
+    r_end     = FloatField()
+
+    c_value   = FloatField() # Constants pre-computed for speed
+    a_value   = FloatField()

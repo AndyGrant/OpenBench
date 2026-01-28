@@ -59,7 +59,7 @@ from client import try_forever
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 42 # Client version to send to the Server
+CLIENT_VERSION   = 43 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -331,32 +331,37 @@ class ServerReporter:
             'crashes'      : 0, # " disconnect" or "connection stalls"
             'timelosses'   : 0, # " loses on time "
             'illegals'     : 0, # " illegal move "
+
+            'spsa_delta'   : '', # JSON dump of the delta vector for SPSA, otherwise empty
         }
 
         for batch in batches:
-
-            payload['trinomial'  ] = [x+y for x,y in zip(payload['trinomial'  ], batch['trinomial'  ])]
-            payload['pentanomial'] = [x+y for x,y in zip(payload['pentanomial'], batch['pentanomial'])]
-
-            payload['crashes'   ] += batch['crashes'   ]
-            payload['timelosses'] += batch['timelosses']
-            payload['illegals'  ] += batch['illegals'  ]
-
-            if config.workload['test']['type'] == 'SPSA':
-
-                # Pairs can be added one at a time, or in bulk
-                result = batch['trinomial'][2] - batch['trinomial'][0]
-
-                # For each param compute the update step for the Server
-                for name, param in config.workload['spsa'].items():
-                    delta = param['r'] * param['c'] * result * param['flip'][batch['runner_idx']]
-                    payload['spsa_%s' % (name)] = payload.get('spsa_%s' % (name), 0.0) + delta
+            payload['trinomial'  ]  = [x+y for x,y in zip(payload['trinomial'  ], batch['trinomial'  ])]
+            payload['pentanomial']  = [x+y for x,y in zip(payload['pentanomial'], batch['pentanomial'])]
+            payload['crashes'    ] += batch['crashes'   ]
+            payload['timelosses' ] += batch['timelosses']
+            payload['illegals'   ] += batch['illegals'  ]
 
         # Collapse into a JSON friendly format for Django
         payload['trinomial'  ] = ' '.join(map(str, payload['trinomial'  ]))
         payload['pentanomial'] = ' '.join(map(str, payload['pentanomial']))
 
-        print (payload)
+        if config.workload['test']['type'] == 'SPSA':
+
+            # Server expects a delta vector, already ordered by Parameter index
+            ordered_parameters = sorted(config.workload['spsa'].items(), key=lambda kv: kv[1]['index'])
+            ordered_delta = [0] * len(ordered_parameters)
+
+            for batch in batches:
+
+                # Pairs can be added one at a time, or in bulk
+                result = batch['trinomial'][2] - batch['trinomial'][0]
+
+                for index, (name, param) in enumerate(ordered_parameters):
+                    delta = param['r'] * param['c'] * result * param['flip'][batch['runner_idx']]
+                    ordered_delta[index] = ordered_delta[index] + delta
+
+            payload['spsa_delta'] = json.dumps(ordered_delta)
 
         return ServerReporter.report(config, 'clientSubmitResults', payload)
 
