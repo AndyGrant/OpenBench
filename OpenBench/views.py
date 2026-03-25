@@ -948,7 +948,7 @@ def api_pgns(request, pgn_id):
     return response
 
 @csrf_exempt
-def api_spsa(request, workload_id):
+def api_spsa(request, workload_id, query):
 
     # 0. Make sure the request has the correct permissions
     if not api_authenticate(request):
@@ -958,15 +958,20 @@ def api_spsa(request, workload_id):
     try: workload = Test.objects.get(pk=workload_id)
     except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
 
-    output = io.StringIO()
-    writer = csv.writer(output)
+    if query == 'inputs':
+        return HttpResponse(OpenBench.spsa_utils.spsa_original_input(workload), content_type='text/plain')
 
-    writer.writerow(OpenBench.spsa_utils.spsa_param_digest_headers(workload))
-    writer.writerows(OpenBench.spsa_utils.spsa_param_digest(workload))
+    if query == 'outputs':
+        return HttpResponse(OpenBench.spsa_utils.spsa_optimal_values(workload), content_type='text/plain')
 
-    response = HttpResponse(output.getvalue(), content_type='text/plain')
-    response.charset = 'utf-8'
-    return response
+    if query == 'digest':
+        return HttpResponse(OpenBench.spsa_utils.spsa_param_digest(workload), content_type='text/plain')
+
+    if query == 'perturbation':
+        return api_response({ 'perturbation' : OpenBench.spsa_utils.spsa_workload_assignment_dict(workload, 4) })
+
+    valid_endpoints = [ 'inputs', 'outputs', 'digest', 'perturbation' ]
+    return api_response({ 'error' : 'Valid /query/ endpoints are: [ %s ]' % (', '.join(valid_endpoints)) })
 
 @csrf_exempt
 def api_workload_results(request, workload_id):

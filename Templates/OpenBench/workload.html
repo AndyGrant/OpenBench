@@ -4,12 +4,13 @@
 {% load static %}
 
 {% block scripts %}
-    <script src="{% static 'copy_text.js' %}?{{ static_version }}"></script>
-    <script src="{% static 'workload_results.js' %}?{{ static_version }}"></script>
+
+    <script src="{% static 'workload_utils.js' %}?{{ static_version }}"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             populate_results({{results|safe}});
+            populate_spsa_results({{spsa_digest|safe}});
         });
     </script>
 
@@ -126,7 +127,7 @@
         <!-- Copy Button: Copy the current results statblock -->
         {% if type == "TEST" or type == "DATAGEN" %}
             <div class="anchor-container">
-                <a class="mt-1 anchorbutton btn-blue" onclick="copy_text('long-statblock', true)">Copy Stat Block</a>
+                <a class="mt-1 anchorbutton btn-blue" onclick="copy_text_from_element('long-statblock', true)">Copy Stat Block</a>
             </div>
         {% endif %}
 
@@ -137,19 +138,17 @@
             </div>
         {% endif %}
 
-        <!-- Copies Raw SPSA Input from a hidden element -->
+        <!-- Copies Raw SPSA Input from /api/spsa/{{workload.id}}/inputs/ -->
         {% if type == "TUNE" %}
             <div class="anchor-container">
-                <pre id="spsa-input" style="display: none">{{workload|spsa_original_input}}</pre>
-                <a class="mt-1 anchorbutton btn-blue" onclick="copy_text('spsa-input', false)">Copy SPSA Inputs</a>
+                <a class="mt-1 anchorbutton btn-blue" onclick="copy_spsa_inputs({{workload.id}})">Copy SPSA Inputs</a>
             </div>
         {% endif %}
 
-        <!-- Copies SPSA Optimal Values from a hidden element -->
+        <!-- Copies Optimal Values from /api/spsa/{{workload.id}}/outputs/ -->
         {% if type == "TUNE" %}
             <div class="anchor-container">
-                <pre id="spsa-output" style="display: none">{{workload|spsa_optimal_values}}</pre>
-                <a class="mt-1 anchorbutton btn-blue" onclick="copy_text('spsa-output', false)">Copy SPSA Outputs</a>
+                <a class="mt-1 anchorbutton btn-blue" onclick="copy_spsa_outputs({{workload.id}})">Copy SPSA Outputs</a>
             </div>
         {% endif %}
 
@@ -200,24 +199,12 @@
     {% if type == "TUNE" %}
         <div id="parameters" class="w-100 mt-3" style="float:left;">
             <table class="stripes wrappable">
-
-                <tr class="table-header">
-                    {% for header in workload|spsa_param_digest_headers %}
-                        <th> {{ header }} </th>
-                    {% endfor %}
-                </tr>
-
-                {% for row in workload|spsa_param_digest %}
-                    <tr>
-                        {% for element in row %}
-                            {% if not forloop.first %}
-                                <td class='numeric'> {{ element }} </td>
-                            {% else %}
-                                <td> {{ element }} </td>
-                            {% endif %}
-                        {% endfor %}
-                    <tr>
-                {% endfor %}
+                <thead id="spsa-digest-header-container">
+                    <!-- Dynamically created -->
+                </thead>
+                <tbody id="spsa-digest-body-container">
+                    <!-- Dynamically created -->
+                </tbody>
             </table>
         </div>
     {% endif %}

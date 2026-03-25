@@ -481,7 +481,7 @@ def update_test(request, machine):
             # Apply updates to every Parameter, ensuring clipping
             parameters = list(test.spsa_run.parameters.order_by('index'))
             for delta, param in zip(spsa_delta, parameters):
-                param.value = max(param.min_value, min(param.max_value, param.value + delta))
+               param.value = max(param.min_value, min(param.max_value, param.value + delta))
 
             # Bulk update to fire off all the .save()s
             SPSAParameter.objects.bulk_update(parameters, ['value'])
