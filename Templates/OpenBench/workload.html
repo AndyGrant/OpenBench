@@ -4,7 +4,15 @@
 {% load static %}
 
 {% block scripts %}
-    <script src="{% static 'copy_text.js' %}?{{ static_version }}"></script>
+
+    <script src="{% static 'workload_utils.js' %}?{{ static_version }}"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            populate_results({{results|safe}});
+        });
+    </script>
+
 {% endblock %}
 
 {% block content %}
@@ -23,7 +31,7 @@
             <tr><td class="td-label">{{dev_text}} Branch</td><td class="branch_name">{{workload.dev.name|prettyName}}</td></tr>
             <tr><td class="td-label">{{dev_text}} Bench</td><td>{{workload.dev.bench}}</td></tr>
             <tr><td class="td-label">{{dev_text}} Network</td><td><a href="{{workload|network_download_link:'dev'}}">{{workload.dev_netname}}</td></tr>
-            <tr><td class="td-label">{{dev_text}} Options</td><td>{{workload.dev_options}}</td></tr>
+            <tr><td class="td-label">{{dev_text}} Options</td><td class="engine-options">{{workload.dev_options}}</td></tr>
             <tr><td class="td-label">{{dev_text}} Time</td><td>{{workload.dev_time_control}}</td></tr>
 
             <!-- All of the Base Engine information, which only exists for TESTs -->
@@ -33,7 +41,7 @@
                 <tr><td class="td-label">Base Branch</td><td class="branch_name">{{workload.base.name|prettyName}}</td></tr>
                 <tr><td class="td-label">Base Bench</td><td>{{workload.base.bench}}</td></tr>
                 <tr><td class="td-label">Base Network</td><td><a href="{{workload|network_download_link:'base'}}">{{workload.base_netname}}</td></tr>
-                <tr><td class="td-label">Base Options</td><td>{{workload.base_options}}</td></tr>
+                <tr><td class="td-label">Base Options</td><td class="engine-options">{{workload.base_options}}</td></tr>
                 <tr><td class="td-label">Base Time</td><td>{{workload.base_time_control}}</td></tr>
             {% endif %}
 
@@ -48,13 +56,14 @@
             <tr><td class="td-label">Syzygy ADJ.</td><td>{{workload.syzygy_adj}}</td></tr>
             <tr><td class="td-label">Win ADJ.</td><td>{{workload.win_adj}}</td></tr>
             <tr><td class="td-label">Draw ADJ.</td><td>{{workload.draw_adj}}</td></tr>
+            <tr><td class="td-label">Scaling</td><td>{{workload.scale_method}} {{workload.scale_nps}} NPS</td></tr>
 
             {% if type == "TUNE" %}
-                <tr><td class="td-label">Alpha</td><td>{{workload.spsa.Alpha}}</td></tr>
-                <tr><td class="td-label">Gamma</td><td>{{workload.spsa.Gamma}}</td></tr>
-                <tr><td class="td-label">A-Ratio</td><td>{{workload.spsa.A_ratio}}</td></tr>
-                <tr><td class="td-label">Reporting</td><td>{{workload.spsa.reporting_type}}</td></tr>
-                <tr><td class="td-label">Distribution</td><td>{{workload.spsa.distribution_type}}</td></tr>
+                <tr><td class="td-label">Alpha</td><td>{{workload.spsa_run.alpha}}</td></tr>
+                <tr><td class="td-label">Gamma</td><td>{{workload.spsa_run.gamma}}</td></tr>
+                <tr><td class="td-label">A-Ratio</td><td>{{workload.spsa_run.a_ratio}}</td></tr>
+                <tr><td class="td-label">Reporting</td><td>{{workload.spsa_run.reporting_type}}</td></tr>
+                <tr><td class="td-label">Distribution</td><td>{{workload.spsa_run.distribution_type}}</td></tr>
                 <tr><td class="td-label">Pairs Per Point</td><td>{{workload.workload_size}}</td></tr>
             {% elif type == "DATAGEN" %}
                 <tr><td class="td-label">Genfens Args</td><td>{{workload.genfens_args}}</td></tr>
@@ -117,7 +126,7 @@
         <!-- Copy Button: Copy the current results statblock -->
         {% if type == "TEST" or type == "DATAGEN" %}
             <div class="anchor-container">
-                <a class="mt-1 anchorbutton btn-blue" onclick="copy_text('long-statblock', true)">Copy Stat Block</a>
+                <a class="mt-1 anchorbutton btn-blue" onclick="copy_text_from_element('long-statblock', true)">Copy Stat Block</a>
             </div>
         {% endif %}
 
@@ -128,19 +137,17 @@
             </div>
         {% endif %}
 
-        <!-- Copies Raw SPSA Input from a hidden element -->
+        <!-- Copies Raw SPSA Input from /api/spsa/{{workload.id}}/inputs/ -->
         {% if type == "TUNE" %}
             <div class="anchor-container">
-                <pre id="spsa-input" style="display: none">{{workload|spsa_original_input}}</pre>
-                <a class="mt-1 anchorbutton btn-blue" onclick="copy_text('spsa-input', false)">Copy SPSA Inputs</a>
+                <a class="mt-1 anchorbutton btn-blue" onclick="copy_spsa_inputs({{workload.id}})">Copy SPSA Inputs</a>
             </div>
         {% endif %}
 
-        <!-- Copies SPSA Optimal Values from a hidden element -->
+        <!-- Copies Optimal Values from /api/spsa/{{workload.id}}/outputs/ -->
         {% if type == "TUNE" %}
             <div class="anchor-container">
-                <pre id="spsa-output" style="display: none">{{workload|spsa_optimal_values}}</pre>
-                <a class="mt-1 anchorbutton btn-blue" onclick="copy_text('spsa-output', false)">Copy SPSA Outputs</a>
+                <a class="mt-1 anchorbutton btn-blue" onclick="copy_spsa_outputs({{workload.id}})">Copy SPSA Outputs</a>
             </div>
         {% endif %}
 
@@ -154,7 +161,7 @@
         {% endif %}
 
         <!-- Forum to modify the Priority, Throughput, or (Tests only) Workload Size -->
-        <form method="POST" action="/{{type|lower}}/{{workload.id}}/MODIFY">
+        <form method="POST" action="/{{type|lower}}/{{workload.id}}/MODIFY/">
             {% csrf_token %}
             <div class="form">
                 <div class="col-full">
@@ -191,24 +198,29 @@
     {% if type == "TUNE" %}
         <div id="parameters" class="w-100 mt-3" style="float:left;">
             <table class="stripes wrappable">
-
-                <tr class="table-header">
-                    {% for header in workload|spsa_param_digest_headers %}
-                        <th> {{ header }} </th>
-                    {% endfor %}
-                </tr>
-
-                {% for row in workload|spsa_param_digest %}
+                <thead>
+                    <tr class="table-header">
+                        <th>Name</th>
+                        <th>Curr</th>
+                        <th>Start</th>
+                        <th>Min</th>
+                        <th>Max</th>
+                        <th>C</th>
+                        <th>C_end</th>
+                        <th>R</th>
+                        <th>R_end</th>
+                    </tr>
+                </thead>
+                <tbody id="spsa-digest-button-container">
                     <tr>
-                        {% for element in row %}
-                            {% if not forloop.first %}
-                                <td class='numeric'> {{ element }} </td>
-                            {% else %}
-                                <td> {{ element }} </td>
-                            {% endif %}
-                        {% endfor %}
-                    <tr>
-                {% endfor %}
+                        <td colspan="9" style="padding: 0;">
+                            <button class="w-100 anchorbutton btn-blue" type="submit" onclick="fetch_spsa_digest({{workload.id}})">Show SPSA Digest</button>
+                        </td>
+                    </tr>
+                </tbody>
+                <tbody id="spsa-digest-body-container" style="display: none;">
+                    <!-- Dynamically created -->
+                </tbody>
             </table>
         </div>
     {% endif %}
@@ -227,21 +239,15 @@
                 <th style="width: 45px">Crash</th>
             </tr>
 
-            {% for result in results %}
-
-                <tr {% if result.active %} class="active-highlight" {% endif %}>
-                    <td><a href="/machines/{{result.data.machine.id}}">{{result.data.machine.id}}</a></td>
-                    <td>{{result.data.machine.user.username|capfirst}}</td>
-                    <td class="timestamp">{{result.data.updated|date:'U'}}</td>
-                    <td class="numeric">{{result.data.games}}</td>
-                    <td class="numeric">{{result.data.wins}}</td>
-                    <td class="numeric">{{result.data.losses}}</td>
-                    <td class="numeric">{{result.data.draws}}</td>
-                    <td class="numeric">{{result.data.timeloss}}</td>
-                    <td class="numeric">{{result.data.crashes}}</td>
-                </tr>
-            {% endfor %}
+            <tbody id="results-container">
+                <!-- Dynamically created -->
+            </tbody>
         </table>
+
+        <!-- Results were not provided, but we can fetch them on demand -->
+        {% if results_truncated %}
+            <button class="w-100 mt-1 anchorbutton btn-blue" type="submit" onclick="fetch_results({{workload.id}})">Fetch Results</button>
+        {% endif %}
     </div>
 
     </div>

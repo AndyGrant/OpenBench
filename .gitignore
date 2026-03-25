@@ -1,6 +1,5 @@
 *.pyc
 Client/*
-OpenBench/migrations/*
 
 credentials
 credentials.*
@@ -18,3 +17,6 @@ Media/*
 Media/PGNs/*
 Media/Networks/*
 Media/Events/*
+
+*.lock
+*.epd

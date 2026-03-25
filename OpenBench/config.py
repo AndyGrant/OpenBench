@@ -18,6 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+import hashlib
 import json
 import os
 import sys
@@ -25,16 +26,16 @@ import traceback
 
 from OpenSite.settings import PROJECT_PATH
 
-OPENBENCH_STATIC_VERSION = 'v4'
+OPENBENCH_STATIC_VERSION = 'v8'
 
-OPENBENCH_CONFIG = None # Initialized by OpenBench/apps.py
+OPENBENCH_CONFIG          = None # Initialized by OpenBench/apps.py
+OPENBENCH_CONFIG_CHECKSUM = None # Initialized by OpenBench/apps.py
 
 def create_openbench_config():
 
     with open(os.path.join(PROJECT_PATH, 'Config', 'config.json')) as fin:
         config_dict = json.load(fin)
         verify_general_config(config_dict)
-
 
     config_dict['books'] = {
         book : load_book_config(book) for book in config_dict['books']
@@ -44,7 +45,14 @@ def create_openbench_config():
         engine : load_engine_config(engine) for engine in config_dict['engines']
     }
 
-    return config_dict
+    # Rolling sha256sum of the engine's build configs
+    checksum = hashlib.sha256(b'').digest()
+    for engine, engine_config in config_dict['engines'].items():
+        serialized  = json.dumps(engine_config['build'], sort_keys=True)
+        partial_sum = hashlib.sha256(serialized.encode('utf-8')).digest()
+        checksum    = bytes(a ^ b for a, b in zip(checksum, partial_sum))
+
+    return config_dict, checksum.hex()
 
 def load_book_config(book_name):
 
@@ -92,14 +100,18 @@ def load_engine_config(engine_name):
 
 def verify_general_config(conf):
 
-    assert type(conf.get("client_version"  ) == int)
-    assert type(conf.get("client_repo_url" ) == str)
-    assert type(conf.get("client_repo_ref" ) == str)
+    assert type(conf.get('client_version'  ) == int)
+    assert type(conf.get('client_repo_url' ) == str)
+    assert type(conf.get('client_repo_ref' ) == str)
 
-    assert type(conf.get("use_cross_approval"         ) == bool)
-    assert type(conf.get("require_login_to_view"      ) == bool)
-    assert type(conf.get("require_manual_registration") == bool)
-    assert type(conf.get("balance_engine_throughputs" ) == bool)
+    assert type(conf.get('fastchess_min_version') == str)
+    assert type(conf.get('fastchess_repo_url') == str)
+    assert type(conf.get('fastchess_repo_ref') == str)
+
+    assert type(conf.get('use_cross_approval'         ) == bool)
+    assert type(conf.get('require_login_to_view'      ) == bool)
+    assert type(conf.get('require_manual_registration') == bool)
+    assert type(conf.get('balance_engine_throughputs' ) == bool)
 
 def verify_engine_basics(conf):
 
@@ -170,6 +182,12 @@ def verify_engine_test_preset(test_preset):
 def verify_engine_tune_preset(tune_preset):
 
     valid_keys = [
+
+        'both_branch',
+        'both_bench',
+        'both_network',
+        'both_options',
+        'both_time_control',
 
         'dev_branch',
         'dev_bench',

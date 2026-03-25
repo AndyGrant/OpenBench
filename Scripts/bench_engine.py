@@ -33,10 +33,10 @@ from bench import run_benchmark
 if __name__ == '__main__':
 
     p = argparse.ArgumentParser()
-    p.add_argument('-E', '--engine'  , help='Binary Name',                  required=True)
-    p.add_argument('-N', '--network' , help='Networks for Private Engines', required=False)
-    p.add_argument('-T', '--threads' , help='Concurrent Benchmarks',        required=True, type=int)
-    p.add_argument('-S', '--sets'    , help='Benchmark Sample Count',       required=True, type=int)
+    p.add_argument('-E', '--engine'  , help='Relative path to Binary', required=True)
+    p.add_argument('-N', '--network' , help='Relative path to Network for Private Engines', required=False)
+    p.add_argument('-T', '--threads' , help='Concurrent Benchmarks', required=True, type=int)
+    p.add_argument('-S', '--sets'    , help='Benchmark Sample Count', required=True, type=int)
     args = p.parse_args()
 
     private = args.network != None

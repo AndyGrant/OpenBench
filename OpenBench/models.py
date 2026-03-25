@@ -18,9 +18,9 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-from django.db.models import CharField, IntegerField, BooleanField, FloatField
+from django.db.models import CharField, IntegerField, BigIntegerField, BooleanField, FloatField
 from django.db.models import JSONField, ForeignKey, DateTimeField, OneToOneField
-from django.db.models import CASCADE, PROTECT, Model
+from django.db.models import CASCADE, PROTECT, Model, TextChoices
 from django.contrib.auth.models import User
 
 class Engine(Model):
@@ -89,6 +89,11 @@ class Result(Model):
 
 class Test(Model):
 
+    class ScaleMethod(TextChoices):
+        DEV  = 'DEV' , 'DEV'
+        BASE = 'BASE', 'BASE'
+        BOTH = 'BOTH', 'BOTH'
+
     # Misc information
     author      = CharField(max_length=64)
     upload_pgns = CharField(max_length=16, default='FALSE')
@@ -120,7 +125,11 @@ class Test(Model):
     priority      = IntegerField(default=0)
     throughput    = IntegerField(default=0)
 
-    # Tablebases and Cutechess adjudicatoins
+    # Scaling Mechanisms
+    scale_method  = CharField(max_length=16, choices=ScaleMethod.choices, default=ScaleMethod.BASE)
+    scale_nps     = IntegerField(default=0)
+
+    # Tablebases and Match runner adjudicatoins
     syzygy_wdl  = CharField(max_length=16, default='OPTIONAL')
     syzygy_adj  = CharField(max_length=16, default='OPTIONAL')
     win_adj     = CharField(max_length=64, default='movecount=3 score=400')
@@ -136,7 +145,6 @@ class Test(Model):
     currentllr    = FloatField(default=0.0) # SPRT
     upperllr      = FloatField(default=0.0) # SPRT
     max_games     = IntegerField(default=0) # GAMES or DATAGEN
-    spsa          = JSONField(default=dict, blank=True, null=True) # SPSA
     genfens_args  = CharField(max_length=256, default='', blank=True) # DATAGEN
     play_reverses = BooleanField(default=False) # DATAGEN
 
@@ -183,6 +191,9 @@ class Test(Model):
     def as_nwld(self):
         return (self.games, self.wins, self.losses, self.draws)
 
+    def workload_type_str(self):
+        return {'SPSA' : 'tune', 'DATAGEN' : 'datagen'}.get(self.test_mode, 'test')
+
 class LogEvent(Model):
 
     author     = CharField(max_length=128) # Username for the OpenBench Profile
@@ -222,3 +233,41 @@ class PGN(Model):
 
     def filename(self):
         return '%s.%s.%s.pgn.bz2' % (self.test_id, self.result_id, self.book_index)
+
+class SPSARun(Model):
+
+    class SPSAReportingType(TextChoices):
+        BULK    = 'BULK'   , 'BULK'
+        BATCHED = 'BATCHED', 'BATCHED'
+
+    class SPSADistributionType(TextChoices):
+        SINGLE   = 'SINGLE'  , 'SINGLE'
+        MULTIPLE = 'MULTIPLE', 'MULTIPLE'
+
+    tune = OneToOneField(Test, on_delete=CASCADE, related_name='spsa_run', null=True, blank=True)
+
+    reporting_type    = CharField(max_length=16, choices=SPSAReportingType.choices)
+    distribution_type = CharField(max_length=16, choices=SPSADistributionType.choices)
+
+    alpha      = FloatField() # Constants
+    gamma      = FloatField()
+    iterations = IntegerField()
+    pairs_per  = IntegerField()
+    a_ratio    = FloatField()
+
+class SPSAParameter(Model):
+
+    spsa_run  = ForeignKey(SPSARun, on_delete=CASCADE, related_name='parameters')
+    name      = CharField(max_length=64)
+    index     = IntegerField()
+    value     = FloatField() # Only field that changes
+
+    is_float  = BooleanField() # Constants
+    start     = FloatField()
+    min_value = FloatField()
+    max_value = FloatField()
+    c_end     = FloatField()
+    r_end     = FloatField()
+
+    c_value   = FloatField() # Constants pre-computed for speed
+    a_value   = FloatField()

@@ -266,6 +266,23 @@
                 <div class="row">
                     <label for="draw_adj"> Draw ADJ. </label> <input id="draw_adj" name="draw_adj">
                 </div>
+
+                <h3> Scaling Settings </h3>
+                <div class="row">
+                    <label for="scale_method"> Scale Method </label>
+                    <select id="scale_method" name="scale_method">
+                        {% if workload == "TEST" or workload == "DATAGEN" %}
+                            <option value="DEV"> Dev Engine </option>
+                            <option value="BASE"> Base Engine </option>
+                            <option value="BOTH"> Both Engines </option>
+                        {% else %}
+                            <option selected value="DEV"> Engine </option>
+                        {% endif %}
+                    </select>
+                </div>
+                <div class="row">
+                    <label for="scale_nps"> Expected NPS </label> <input id="scale_nps" name="scale_nps">
+                </div>
             </div>
         </div>
 

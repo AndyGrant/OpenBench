@@ -231,6 +231,9 @@ function change_engine(engine, target, workload_type) {
     if (target == 'dev' && (workload_type == 'TEST' || workload_type == 'DATAGEN'))
         set_engine(engine, 'base');
 
+    set_option('scale_nps', config.engines[engine].nps);
+    set_option('scale_method', workload_type == 'TUNE' ? 'DEV' : 'BASE');
+
     apply_preset('STC', workload_type);
 }
 

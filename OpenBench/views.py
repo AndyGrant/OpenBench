@@ -18,22 +18,24 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import os, hashlib, datetime, json, secrets, sys, re
+import csv, io, os, json, secrets
 
 import django.http
 import django.shortcuts
 import django.contrib.auth
 
 import OpenBench.config
+import OpenBench.model_utils
+import OpenBench.spsa_utils
 import OpenBench.utils
 
 from OpenBench.workloads.create_workload import create_workload
 from OpenBench.workloads.get_workload import get_workload
 from OpenBench.workloads.modify_workload import modify_workload
 from OpenBench.workloads.verify_workload import verify_workload
-from OpenBench.workloads.view_workload import view_workload
+from OpenBench.workloads.view_workload import view_workload, fetch_results
 
-from OpenBench.config import OPENBENCH_CONFIG, OPENBENCH_STATIC_VERSION
+from OpenBench.config import OPENBENCH_CONFIG, OPENBENCH_CONFIG_CHECKSUM, OPENBENCH_STATIC_VERSION
 from OpenSite.settings import PROJECT_PATH
 
 from OpenBench.models import *
@@ -268,7 +270,7 @@ def index(request, page=1):
     completed = OpenBench.utils.get_completed_tests()
     awaiting  = OpenBench.utils.get_awaiting_tests()
 
-    start, end, paging = OpenBench.utils.getPaging(completed, page, 'index')
+    start, end, paging = OpenBench.utils.getPaging(completed, int(page), 'index')
 
     data = {
         'pending'   : pending,
@@ -288,7 +290,7 @@ def user(request, username, page=1):
     completed = OpenBench.utils.get_completed_tests().filter(author=username)
     awaiting  = OpenBench.utils.get_awaiting_tests().filter(author=username)
 
-    start, end, paging = OpenBench.utils.getPaging(completed, page, 'user/%s' % (username))
+    start, end, paging = OpenBench.utils.getPaging(completed, int(page), 'user/%s' % (username))
 
     data = {
         'pending'   : pending,
@@ -304,7 +306,7 @@ def user(request, username, page=1):
 def greens(request, page=1):
 
     completed = OpenBench.utils.get_completed_tests().filter(passed=True)
-    start, end, paging = OpenBench.utils.getPaging(completed, page, 'greens')
+    start, end, paging = OpenBench.utils.getPaging(completed, int(page), 'greens')
 
     data = { 'completed' : completed[start:end], 'paging' : paging }
     return render(request, 'index.html', data)
@@ -420,10 +422,10 @@ def users(request):
     data = { 'profiles' : Profile.objects.order_by('-games', '-tests') }
     return render(request, 'users.html', data)
 
-def event(request, id):
+def event(request, pk):
 
     try:
-        with open(os.path.join(MEDIA_ROOT, LogEvent.objects.get(id=id).log_file)) as fin:
+        with open(os.path.join(MEDIA_ROOT, LogEvent.objects.get(id=pk).log_file)) as fin:
             return render(request, 'event.html', { 'content' : fin.read() })
     except:
         return redirect(request, '/index/', error='No logs for event exist')
@@ -431,7 +433,7 @@ def event(request, id):
 def events_actions(request, page=1):
 
     events = LogEvent.objects.all().filter(machine_id=0).order_by('-id')
-    start, end, paging = OpenBench.utils.getPaging(events, page, 'events')
+    start, end, paging = OpenBench.utils.getPaging(events, int(page), 'events')
 
     data = { 'events' : events[start:end], 'paging' : paging };
     return render(request, 'events.html', data)
@@ -439,19 +441,19 @@ def events_actions(request, page=1):
 def events_errors(request, page=1):
 
     events = LogEvent.objects.all().exclude(machine_id=0).order_by('-id')
-    start, end, paging = OpenBench.utils.getPaging(events, page, 'errors')
+    start, end, paging = OpenBench.utils.getPaging(events, int(page), 'errors')
 
     data = { 'events' : events[start:end], 'paging' : paging };
     return render(request, 'errors.html', data)
 
-def machines(request, machineid=None):
+def machines(request, pk=None):
 
-    if machineid == None:
+    if pk == None:
         data = { 'machines' : OpenBench.utils.getRecentMachines() }
         return render(request, 'machines.html', data)
 
     try:
-        data = { 'machine' : OpenBench.models.Machine.objects.get(id=machineid) }
+        data = { 'machine' : OpenBench.models.Machine.objects.get(id=int(pk)) }
         return render(request, 'machine.html', data)
 
     except:
@@ -462,74 +464,26 @@ def machines(request, machineid=None):
 #                            TEST MANAGEMENT VIEWS                            #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-def test(request, id, action=None):
+def workload(request, workload_type, pk, action=None):
 
-    # Request is to modify or interact with the Test
     if action != None:
-        return modify_workload(request, id, action)
+        return modify_workload(request, pk, action)
 
-    # Verify that the Test id exists
-    if not (test := Test.objects.filter(id=id).first()):
-        return redirect(request, '/index/', error='No such Test exists')
+    if not (workload := Test.objects.select_related('spsa_run').filter(id=int(pk)).first()):
+        return redirect(request, '/index/', error='No such Workload exists')
 
-    # Verify that it is indeed a Test and not a Tune
-    if test.test_mode == 'TUNE':
-        return redirect(request, '/tune/%d' % (id))
+    # Trying to view a Tune as a Test, for example
+    if workload.workload_type_str() != workload_type:
+        return django.http.HttpResponseRedirect('/%s/%d/' % (workload.workload_type_str(), int(pk)))
 
-    # Verify that it is indeed a Test and not Datagen
-    if test.test_mode == 'DATAGEN':
-        return redirect(request, '/datagen/%d' % (id))
+    return view_workload(request, workload, workload_type.upper())
 
-    return view_workload(request, test, 'TEST')
+def new_workload(request, workload_type):
 
-def tune(request, id, action=None):
+    if workload_type.upper() not in [ 'TEST', 'TUNE', 'DATAGEN' ]:
+        return redirect(request, '/index/', error='Unknown Workload type')
 
-    # Request is to modify or interact with the Tune
-    if action != None:
-        return modify_workload(request, id, action)
-
-    # Verify that the Tune id exists
-    if not (tune := Test.objects.filter(id=id).first()):
-        return redirect(request, '/index/', error='No such Tune exists')
-
-    # Verify that it is indeed a Tune and not a Test
-    if tune.test_mode == 'SPRT' or tune.test_mode == 'GAMES':
-        return redirect(request, '/test/%d' % (id))
-
-    # Verify that it is indeed a Tune and not Datagen
-    if tune.test_mode == 'DATAGEN':
-        return redirect(request, '/datagen/%d' % (id))
-
-    return view_workload(request, tune, 'TUNE')
-
-def datagen(request, id, action=None):
-
-    # Request is to modify or interact with the Datagen
-    if action != None:
-        return modify_workload(request, id, action)
-
-    # Verify that the Datagen id exists
-    if not (datagen := Test.objects.filter(id=id).first()):
-        return redirect(request, '/index/', error='No such Datagen exists')
-
-    # Verify that it is indeed a Datagen and not a Tune
-    if datagen.test_mode == 'TUNE':
-        return redirect(request, '/tune/%d' % (id))
-
-    # Verify that it is indeed a Datagen and not a Test
-    if datagen.test_mode == 'SPRT' or datagen.test_mode == 'GAMES':
-        return redirect(request, '/test/%d' % (id))
-
-    return view_workload(request, datagen, 'DATAGEN')
-
-def create_test(request):
-    return create_workload(request, 'TEST')
-
-def create_tune(request):
-    return create_workload(request, 'TUNE')
-
-def create_datagen(request):
-    return create_workload(request, 'DATAGEN')
+    return create_workload(request, workload_type.upper())
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                          NETWORK MANAGEMENT VIEWS                           #
@@ -600,7 +554,7 @@ def scripts(request):
         return networks(request, engine, 'upload', name)
 
     if request.POST['action'] == 'CREATE_TEST':
-        return create_test(request)
+        return new_workload(request, "TEST")
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              CLIENT HOOK VIEWS                              #
@@ -612,16 +566,20 @@ def verify_worker(function):
 
         # Get the machine, assuming it exists
         try: machine = Machine.objects.get(id=int(args[0].POST['machine_id']))
-        except: return JsonResponse({ 'error' : 'Bad Machine Id' })
+        except: return JsonResponse({ 'error' : 'Bad Client Version: Bad Machine Id' })
 
         # Ensure the Client is using the same version as the Server
         if machine.info['client_ver'] != OPENBENCH_CONFIG['client_version']:
             expected_ver = OPENBENCH_CONFIG['client_version']
             return JsonResponse({ 'error' : 'Bad Client Version: Expected %d' % (expected_ver)})
 
+        # Prompt the worker to soft-restart if its config is out of date
+        if machine.info.get('OPENBENCH_CONFIG_CHECKSUM') != OPENBENCH_CONFIG_CHECKSUM:
+            return JsonResponse({ 'error' : 'Bad Client Version: Server Configuration Changed' })
+
         # Use the secret token as our soft verification
         if machine.secret != args[0].POST['secret']:
-            return JsonResponse({ 'error' : 'Invalid Secret Token' })
+            return JsonResponse({ 'error' : 'Bad Client Version: Invalid Secret Token' })
 
         # Otherwise, carry on, and pass along the machine
         return function(*args, machine)
@@ -644,6 +602,21 @@ def client_version_ref(request):
     })
 
 @csrf_exempt
+def client_match_runner_version_ref(request):
+
+    # Verify the User's credentials
+    try: user = authenticate(request, True)
+    except UnableToAuthenticate:
+        return JsonResponse({ 'error' : 'Bad Credentials' })
+
+    # Enough information to build the right Fastchess version
+    return JsonResponse({
+        'fastchess_min_version' : OPENBENCH_CONFIG['fastchess_min_version'],
+        'fastchess_repo_url'    : OPENBENCH_CONFIG['fastchess_repo_url'],
+        'fastchess_repo_ref'    : OPENBENCH_CONFIG['fastchess_repo_ref'],
+    })
+
+@csrf_exempt
 def client_get_build_info(request):
 
     ## Information pulled from the config about how to build each engine.
@@ -663,17 +636,16 @@ def client_worker_info(request):
     except UnableToAuthenticate:
         return JsonResponse({ 'error' : 'Bad Credentials' })
 
-    # Attempt to fetch the Machine, or create a new one
+    # Create a new Machine for this session
     info    = json.loads(request.POST['system_info'])
-    machine = OpenBench.utils.get_machine(info['machine_id'], user, info)
-
-    # Indicate invalid request
-    if not machine:
-        return JsonResponse({ 'error' : 'Bad Machine Id' })
+    machine = OpenBench.utils.get_machine('None', user, info)
 
     # Save the machine's latest information and Secret Token for this session
     machine.info   = info
     machine.secret = secrets.token_hex(32)
+
+    # Note the Config checksum at the time of init, in case it changes
+    machine.info['OPENBENCH_CONFIG_CHECKSUM'] = OPENBENCH_CONFIG_CHECKSUM
 
     # Tag engines that the Machine can build and/or run with binaries
     machine.info['supported'] = []
@@ -867,17 +839,14 @@ def api_networks(request, engine):
 
     if engine in OPENBENCH_CONFIG['engines'].keys():
 
-        if not (network := Network.objects.filter(engine=engine, default=True).first()):
-            return api_response({ 'error' : 'Engine does not have a default Network' })
-
-        default = {
-            'sha'    : network.sha256, 'name'    : network.name,
-            'author' : network.author, 'created' : str(network.created) }
+        default = None
+        if (network := Network.objects.filter(engine=engine, default=True).first()):
+            default = OpenBench.model_utils.network_to_dict(network)
 
         networks = [
-          { 'sha'    : network.sha256, 'name'    : network.name,
-            'author' : network.author, 'created' : str(network.created) }
-            for network in Network.objects.filter(engine=engine) ]
+            OpenBench.model_utils.network_to_dict(network)
+            for network in Network.objects.filter(engine=engine)
+        ]
 
         return api_response({ 'default' : default, 'networks' : networks })
 
@@ -900,6 +869,21 @@ def api_network_download(request, engine, identifier):
         return OpenBench.utils.network_download(request, engine, network)
 
     return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
+
+@csrf_exempt
+def api_network_delete(request, engine, identifier):
+
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    if not api_authenticate(request, require_enabled=True):
+        return api_response({ 'error' : 'API requires authentication for this endpoint' })
+
+    if not (network := OpenBench.utils.network_disambiguate(engine, identifier)):
+        return api_response({ 'error' : 'Network %s for Engine %s not found' % (identifier, engine) })
+
+    message, success = OpenBench.model_utils.network_delete(network)
+    return api_response({ 'success' if success else 'error' : message })
 
 @csrf_exempt
 def api_build_info(request):
@@ -928,13 +912,30 @@ def api_build_info(request):
 @csrf_exempt
 def api_pgns(request, pgn_id):
 
+    # 0. Make sure the request has the correct permissions
     if not api_authenticate(request):
         return api_response({ 'error' : 'API requires authentication for this server' })
 
-    # Possible to request a PGN that does not exist
-    pgn_path = FileSystemStorage('Media/PGNs').path('%d.pgn.tar' % (pgn_id))
+    # 1. Make sure the workload actually exists for the requested PGN
+    try: workload = Test.objects.get(pk=pgn_id)
+    except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
+
+    # 2. Make sure there actually is a PGN attached to the Workload
+    pgn_path = FileSystemStorage().path('PGNs/%d.pgn.tar' % (pgn_id))
     if not os.path.exists(pgn_path):
         return api_response({ 'error' : 'Unable to find PGN for Workload #%d' % (pgn_id) })
+
+    # 3. Make sure the workload is not currently running
+    if not workload.finished:
+        return api_response({ 'error' : 'PGNs cannot be downloaded while the Workload is active' })
+
+    # 4. Make sure no active workers are still on this workload
+    if OpenBench.utils.getRecentMachines().filter(workload=pgn_id):
+        return api_response({ 'error' : 'Some machines are still on this Workload. Try again shortly' })
+
+    # 5. Make sure there are no pending .pgn.bz2 files to be processed
+    if PGN.objects.filter(test_id=pgn_id).filter(processed=False):
+        return api_response({ 'error' : 'Still processing individual PGNs into the archive. Try again shortly' })
 
     # Craft the download HTML response
     fwrapper = FileWrapper(open(pgn_path, 'rb'), 8192)
@@ -945,6 +946,44 @@ def api_pgns(request, pgn_id):
     response['Content-Length'] = os.path.getsize(pgn_path)
     response['Content-Disposition'] = 'attachment; filename=%d.pgn.tar' % (pgn_id)
     return response
+
+@csrf_exempt
+def api_spsa(request, workload_id, query):
+
+    # 0. Make sure the request has the correct permissions
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    # 1. Make sure the workload actually exists for the requested SPSA session
+    try: workload = Test.objects.get(pk=workload_id)
+    except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
+
+    if query == 'inputs':
+        return HttpResponse(OpenBench.spsa_utils.spsa_original_input(workload), content_type='text/plain')
+
+    if query == 'outputs':
+        return HttpResponse(OpenBench.spsa_utils.spsa_optimal_values(workload), content_type='text/plain')
+
+    if query == 'digest':
+        return HttpResponse(OpenBench.spsa_utils.spsa_param_digest(workload), content_type='text/plain')
+
+    if query == 'perturbation':
+        return api_response({ 'perturbation' : OpenBench.spsa_utils.spsa_workload_assignment_dict(workload, 4) })
+
+    valid_endpoints = [ 'inputs', 'outputs', 'digest', 'perturbation' ]
+    return api_response({ 'error' : 'Valid /query/ endpoints are: [ %s ]' % (', '.join(valid_endpoints)) })
+
+@csrf_exempt
+def api_workload_results(request, workload_id):
+
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    try: workload = Test.objects.get(pk=workload_id)
+    except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
+
+    truncated, results_json = fetch_results(workload_id, force=True)
+    return JsonResponse({'results' : results_json})
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                BUSINESS VIEWS                               #

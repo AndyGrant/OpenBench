@@ -27,15 +27,19 @@ import traceback
 
 from OpenBench.models import PGN
 
-from django.db import transaction
+from django.db import transaction, OperationalError
 from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage
 
 class PGNWatcher(threading.Thread):
 
+    def __init__(self, stop_event, *args, **kwargs):
+        self.stop_event = stop_event
+        super().__init__(*args, **kwargs)
+
     def process_pgn(self, pgn):
 
-        tar_path = FileSystemStorage('Media/PGNs').path('%d.pgn.tar' % (pgn.test_id))
+        tar_path = FileSystemStorage().path('PGNs/%d.pgn.tar' % (pgn.test_id))
         pgn_path = FileSystemStorage().path(pgn.filename())
 
         with transaction.atomic():
@@ -56,11 +60,18 @@ class PGNWatcher(threading.Thread):
             pgn.save()
 
     def run(self):
-        while True:
-            for pgn in PGN.objects.filter(processed=False):
-                try:
+        while not self.stop_event.wait(timeout=15):
+
+            try: # Never exit on errors, to keep the watcher alive
+                for pgn in PGN.objects.filter(processed=False):
                     self.process_pgn(pgn)
-                except:
+
+            # Expect the database to be locked sometimes
+            except OperationalError as error:
+                if 'database is locked' not in str(error).lower():
                     traceback.print_exc()
                     sys.stdout.flush()
-            time.sleep(15)
+
+            except: # Totally unknown error
+                traceback.print_exc()
+                sys.stdout.flush()

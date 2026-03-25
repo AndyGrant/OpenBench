@@ -32,6 +32,7 @@ import OpenBench.utils
 
 from OpenBench.config import OPENBENCH_CONFIG
 from OpenBench.models import Result, Test
+from OpenBench.spsa_utils import spsa_workload_assignment_dict
 
 from django.db import transaction
 
@@ -105,6 +106,10 @@ def filter_valid_workloads(request, machine):
     for K in range(machine.info['syzygy_max'] + 1, 10):
         workloads = workloads.exclude(syzygy_adj='%d-MAN' % (K))
         workloads = workloads.exclude(syzygy_wdl='%d-MAN' % (K))
+
+    # Skip any workload using, or measuring, Time, for --noisy workers
+    if machine.info.get('noisy'):
+        workloads = [x for x in workloads if not OpenBench.utils.workload_uses_time_based_tc(x)]
 
     # Skip workloads that we have insufficient threads to play
     options = [x for x in workloads if valid_hardware_assignment(x, machine)]
@@ -196,6 +201,8 @@ def workload_to_dictionary(test, result, machine):
         'upload_pgns'   : test.upload_pgns,
         'genfens_args'  : test.genfens_args,
         'play_reverses' : test.play_reverses,
+        'scale_method'  : test.scale_method,
+        'scale_nps'     : test.scale_nps,
     }
 
     workload['test']['book'] = {
@@ -215,7 +222,6 @@ def workload_to_dictionary(test, result, machine):
         'network'      : test.dev_network,
         'netname'      : test.dev_netname,
         'time_control' : test.dev_time_control,
-        'nps'          : OPENBENCH_CONFIG['engines'][test.dev_engine]['nps'],
         'build'        : OPENBENCH_CONFIG['engines'][test.dev_engine]['build'],
         'private'      : OPENBENCH_CONFIG['engines'][test.dev_engine]['private'],
     }
@@ -231,14 +237,13 @@ def workload_to_dictionary(test, result, machine):
         'network'      : test.base_network,
         'netname'      : test.base_netname,
         'time_control' : test.base_time_control,
-        'nps'          : OPENBENCH_CONFIG['engines'][test.base_engine]['nps'],
         'build'        : OPENBENCH_CONFIG['engines'][test.base_engine]['build'],
         'private'      : OPENBENCH_CONFIG['engines'][test.base_engine]['private'],
     }
 
     workload['distribution']   = game_distribution(test, machine)
-    workload['spsa']           = spsa_to_dictionary(test, workload)
-    workload['reporting_type'] = test.spsa.get('reporting_type', 'BATCHED')
+    workload['spsa']           = spsa_workload_assignment_dict(test, workload['distribution']['runner-count'])
+    workload['reporting_type'] = test.spsa_run.reporting_type if test.test_mode == 'SPSA' else ''
 
     with transaction.atomic():
 
@@ -246,11 +251,11 @@ def workload_to_dictionary(test, result, machine):
         workload['test']['book_seed' ] = test.id
         workload['test']['book_index'] = test.book_index
 
-        cutechess_cnt = workload['distribution']['cutechess-count']
-        pairs_per_cnt = workload['distribution']['games-per-cutechess'] // 2
+        runner_cnt    = workload['distribution']['runner-count']
+        pairs_per_cnt = workload['distribution']['rounds-per-runner'] // 2
         per_opening   = 2 if (test.test_mode == 'DATAGEN' and not test.play_reverses) else 1
 
-        test.book_index += cutechess_cnt * pairs_per_cnt * per_opening
+        test.book_index += runner_cnt * pairs_per_cnt * per_opening
 
         if test.test_mode == 'DATAGEN':
             workload['test']['genfens_seeds'] = [
@@ -259,67 +264,6 @@ def workload_to_dictionary(test, result, machine):
         test.save()
 
     return workload
-
-def spsa_to_dictionary(test, workload):
-
-    if test.test_mode != 'SPSA':
-        return None
-
-    # Only use one set of parameters if distribution is SINGLE.
-    # Duplicate the params, even though they are the same, across all
-    # Sockets on the machine, in the event of a singular SPSA distribution
-    is_single    = test.spsa['distribution_type'] == 'SINGLE'
-    permutations = 1 if is_single else workload['distribution']['cutechess-count']
-    duplicates   = 1 if not is_single else workload['distribution']['cutechess-count']
-
-    # C & R are scaled over the course of the iterations
-    iteration     = 1 + (test.games / (test.spsa['pairs_per'] * 2))
-    c_compression = iteration ** test.spsa['Gamma']
-    r_compression = (test.spsa['A'] + iteration) ** test.spsa['Alpha']
-
-    spsa = {}
-    for name, param in test.spsa['parameters'].items():
-
-        spsa[name] = {
-            'dev'  : [], # One for each Permutation the Worker will run
-            'base' : [], # One for each Permutation the Worker will run
-            'flip' : [], # One for each Permutation the Worker will run
-        }
-
-        # C & R are constants for a particular assignment, for all Permutations
-        spsa[name]['c'] = max(param['c'] / c_compression, 0.00 if param['float'] else 0.50)
-        spsa[name]['r'] = param['a'] / r_compression / spsa[name]['c'] ** 2
-
-        for f in range(permutations):
-
-            # Adjust current best by +- C
-            flip = 1 if random.getrandbits(1) else -1
-            dev  = param['value'] + flip * spsa[name]['c']
-            base = param['value'] - flip * spsa[name]['c']
-
-            # Probabilistic rounding for Integer types
-            if not param['float']:
-                r    = random.uniform(0, 1)
-                dev  = math.floor(dev  + r)
-                base = math.floor(base + r)
-
-            # Clip within [Min, Max]
-            dev  = max(param['min'], min(param['max'], dev ))
-            base = max(param['min'], min(param['max'], base))
-
-            # Round integer values down
-            if not param['float']:
-                dev  = int(dev )
-                base = int(base)
-
-            # Append each permutation
-            for g in range(duplicates):
-                spsa[name]['dev' ].append(dev)
-                spsa[name]['base'].append(base)
-                spsa[name]['flip'].append(flip)
-
-
-    return spsa
 
 def extract_option(options, option):
 
@@ -344,21 +288,21 @@ def game_distribution(test, machine):
     if machine.info['physical_cores'] < worker_threads and dev_threads != base_threads:
         worker_threads = worker_threads // 2
 
-    # Ignore sockets for concurrent cutechess, when playing with more than one thread
+    # Ignore sockets for concurrent match runners, when playing with more than one thread
     if max(dev_threads, base_threads) > 1:
         worker_sockets = 1
 
-    # Max possible concurrent engine games, per copy of cutechess
+    # Max possible concurrent engine games, per copy of match runner
     max_concurrency = (worker_threads // worker_sockets) // max(dev_threads, base_threads)
 
     # Number of params being evaluated at a single time, if doing SPSA in SINGLE mode
     spsa_count = (worker_threads // max(dev_threads, base_threads)) // 2
 
     # SPSA is treated specially, if we are distributing many parameter sets at once
-    is_multiple_spsa = test.test_mode == 'SPSA' and test.spsa['distribution_type'] == 'MULTIPLE'
+    is_multiple_spsa = test.test_mode == 'SPSA' and test.spsa_run.distribution_type == 'MULTIPLE'
 
     return {
-        'cutechess-count'     : spsa_count if is_multiple_spsa else worker_sockets,
-        'concurrency-per'     : 2 if is_multiple_spsa else max_concurrency,
-        'games-per-cutechess' : 2 * test.workload_size * (1 if is_multiple_spsa else max_concurrency),
+        'runner-count'      : spsa_count if is_multiple_spsa else worker_sockets,
+        'concurrency-per'   : 2 if is_multiple_spsa else max_concurrency,
+        'rounds-per-runner' : 2 * test.workload_size * (1 if is_multiple_spsa else max_concurrency),
     }

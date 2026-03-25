@@ -14,7 +14,7 @@
 
         "default" : {
             "base_branch"     : "main",
-            "book_name"       : "UHO_4060_vB.epd",
+            "book_name"       : "UHO_Lichess_4852_v1.epd",
             "test_bounds"     : "[0.00, 2.00]",
             "test_confidence" : "[0.1, 0.05]",
             "win_adj"         : "movecount=4 score=300",
@@ -22,84 +22,94 @@
         },
 
         "STC" : {
-            "both_options"      : "Threads=1 Hash=8",
+            "both_options"      : "Threads=1 Hash=8 Minimal=true",
             "both_time_control" : "10.0+0.1",
-            "workload_size"     : 32
+            "workload_size"     : 32,
+            "test_bounds"       : "[0.00, 2.00]"
         },
 
         "LTC" : {
-            "both_options"      : "Threads=1 Hash=64",
+            "both_options"      : "Threads=1 Hash=64 Minimal=true",
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
-            "test_bounds"       : "[0.00, 2.50]"
+            "test_bounds"       : "[0.00, 2.50]",
+            "upload_pgns"       : "COMPACT"
         },
 
         "STC Simplify" : {
-            "both_options"      : "Threads=1 Hash=8",
+            "both_options"      : "Threads=1 Hash=8 Minimal=true",
             "both_time_control" : "10.0+0.1",
             "workload_size"     : 32,
             "test_bounds"       : "[-2.00, 0.00]"
         },
 
         "LTC Simplify" : {
-            "both_options"      : "Threads=1 Hash=64",
+            "both_options"      : "Threads=1 Hash=64 Minimal=true",
             "both_time_control" : "60.0+0.6",
             "workload_size"     : 8,
-            "test_bounds"       : "[-2.00, 0.00]"
-        },
-
-        "STC Fixed" : {
-            "both_options"      : "Threads=1 Hash=8",
-            "both_time_control" : "10.0+0.1",
-            "workload_size"     : 32,
-            "test_max_games"    : 20000
-        },
-
-        "LTC Fixed" : {
-            "both_options"      : "Threads=1 Hash=64",
-            "both_time_control" : "60.0+0.6",
-            "workload_size"     : 8,
-            "test_max_games"    : 20000
+            "test_bounds"       : "[-2.00, 0.00]",
+            "upload_pgns"       : "COMPACT"
         },
 
         "SMP STC" : {
-            "both_options"      : "Threads=8 Hash=64",
+            "both_options"      : "Threads=8 Hash=64 Minimal=true",
             "both_time_control" : "5.0+0.05",
-            "workload_size"     : 64
+            "workload_size"     : 32,
+            "test_bounds"       : "[0.00, 2.00]"
         },
 
         "SMP LTC" : {
-            "both_options"      : "Threads=8 Hash=256",
+            "both_options"      : "Threads=8 Hash=512 Minimal=true",
             "both_time_control" : "30.0+0.30",
-            "workload_size"     : 16
+            "workload_size"     : 8,
+            "test_bounds"       : "[0.00, 2.50]",
+            "upload_pgns"       : "COMPACT"
+        },
+
+        "STC Fixed" : {
+            "both_options"      : "Threads=1 Hash=8 Minimal=true",
+            "both_time_control" : "10.0+0.1",
+            "workload_size"     : 32,
+            "test_max_games"    : 40000
+        },
+
+        "LTC Fixed" : {
+            "both_options"      : "Threads=1 Hash=64 Minimal=true",
+            "both_time_control" : "60.0+0.6",
+            "workload_size"     : 8,
+            "test_max_games"    : 40000
         }
     },
 
     "tune_presets" : {
 
         "default" : {
-            "book_name" : "UHO_4060_vB.epd",
+            "book_name" : "UHO_Lichess_4852_v1.epd",
             "win_adj"   : "movecount=4 score=300",
             "draw_adj"  : "movenumber=32 movecount=6 score=6"
         },
 
         "STC" : {
-            "dev_options"      : "Threads=1 Hash=8",
+            "dev_options"      : "Threads=1 Hash=8 Minimal=true",
             "dev_time_control" : "10.0+0.10"
+        },
+
+        "LTC" : {
+            "dev_options"      : "Threads=1 Hash=64 Minimal=true",
+            "dev_time_control" : "60.0+0.60"
         }
     },
 
     "datagen_presets" : {
 
         "default" : {
-            "win_adj"       : "None",
-            "draw_adj"      : "None",
-            "workload_size" : 128
-        },
-
-        "40k Nodes" : {
-            "both_options"      : "Threads=1 Hash=16",
-            "both_time_control" : "N=40000"
+            "both_options"      : "Threads=1 Hash=8 Minimal=true Normalize=false SoftNodes=true",
+            "both_time_control" : "N=20000",
+            "win_adj"           : "None",
+            "draw_adj"          : "None",
+            "datagen_max_games" : 10000000,
+            "workload_size"     : 128,
+            "upload_pgns"       : "COMPACT"
         }
     }
 }

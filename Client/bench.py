@@ -20,8 +20,8 @@
 
 # The sole purpose of this module is to invoke run_benchmark().
 #
-#   - binary   : Path to, and including, the Binary File
-#   - network  : Path to Network File, or None
+#   - binary   : Relative path to, and including, the Binary File
+#   - network  : Relative path to a private engine's Network File, or None
 #   - private  : True or False; Private NNUE engines require special care
 #   - threads  : Number of concurrent benches to run
 #   - sets     : Number of times to repeat this experiment
@@ -37,15 +37,16 @@ import re
 import subprocess
 import sys
 
-from utils import kill_process_by_name
-from utils import OpenBenchBadBenchException
+## Local imports must only use "import x", never "from x import ..."
+
+import utils
 
 MAX_BENCH_TIME_SECONDS = 60
 
 def parse_stream_output(stream):
 
     nps = bench = None # Search through output Stream
-    for line in stream.decode('ascii').strip().split('\n')[::-1]:
+    for line in stream.decode('utf-8').strip().split('\n')[::-1]:
 
         # Convert non alpha-numerics to spaces
         line = re.sub(r'[^a-zA-Z0-9 ]+', ' ', line)
@@ -103,8 +104,8 @@ def multi_core_bench(binary, network, private, threads):
         return [outqueue.get(timeout=MAX_BENCH_TIME_SECONDS) for ii in range(threads)]
 
     except queue.Empty: # Force kill the engine, thus causing the processes to finish
-        kill_process_by_name(binary)
-        raise OpenBenchBadBenchException('[%s] Bench Exceeded Max Duration' % (binary))
+        utils.kill_process_by_name(binary)
+        raise utils.OpenBenchBadBenchException('[%s] Bench Exceeded Max Duration' % (binary))
 
     finally: # Join everything to avoid zombie processes
         for process in processes:
@@ -120,12 +121,12 @@ def run_benchmark(binary, network, private, threads, sets, expected=None):
             benches.append(bench); speeds.append(speed)
 
     if len(set(benches)) != 1:
-        raise OpenBenchBadBenchException('[%s] Non-Deterministic Benches' % (engine))
+        raise utils.OpenBenchBadBenchException('[%s] Non-Deterministic Benches' % (engine))
 
     if None in benches or None in speeds:
-        raise OpenBenchBadBenchException('[%s] Failed to Execute Benchmark' % (engine))
+        raise utils.OpenBenchBadBenchException('[%s] Failed to Execute Benchmark' % (engine))
 
     if expected and expected != benches[0]:
-        raise OpenBenchBadBenchException('[%s] Wrong Bench: %d' % (engine, benches[0]))
+        raise utils.OpenBenchBadBenchException('[%s] Wrong Bench: %d' % (engine, benches[0]))
 
-    return int(sum(speeds) / len(speeds)), benches[0]
+    return sum(speeds) // len(speeds), benches[0]
