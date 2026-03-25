@@ -97,7 +97,9 @@ def spsa_param_digest(workload):
     c_compression = iteration ** spsa_run.gamma
     r_compression = (spsa_run.a_ratio * spsa_run.iterations + iteration) ** spsa_run.alpha
 
+    # If these headers are changed here, they should be changed in Templates/OpenBench/workload.html
     digest = [['Name', 'Curr', 'Start', 'Min', 'Max', 'C', 'C_end', 'R', 'R_end']]
+
     for param in spsa_run.parameters.order_by('index'):
 
         # C and R if we got a workload right now

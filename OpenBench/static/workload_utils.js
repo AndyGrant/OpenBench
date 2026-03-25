@@ -84,3 +84,31 @@ async function copy_spsa_outputs(workload_id) {
     const text = await resp.text()
     copy_text(text)
 }
+
+async function fetch_spsa_digest(workload_id) {
+    const resp  = await fetch(`/api/spsa/${workload_id}/digest/`)
+    const text  = await resp.text()
+    const lines = text.trim().split('\n')
+
+    // Skip the header line (index 0) and process data rows
+    const tbody = document.getElementById('spsa-digest-body-container')
+    tbody.innerHTML = ''
+
+    for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',')
+        const tr = document.createElement('tr')
+
+        values.forEach(value => {
+            const td = document.createElement('td')
+            td.textContent = value
+            tr.appendChild(td)
+        })
+
+        tbody.appendChild(tr)
+    }
+
+    // Show the data and hide the button
+    tbody.style.display = ''
+    const buttonContainer = document.getElementById('spsa-digest-button-container')
+    buttonContainer.style.display = 'none'
+}

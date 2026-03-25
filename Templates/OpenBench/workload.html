@@ -10,7 +10,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             populate_results({{results|safe}});
-            populate_spsa_results({{spsa_digest|safe}});
         });
     </script>
 
@@ -199,10 +198,27 @@
     {% if type == "TUNE" %}
         <div id="parameters" class="w-100 mt-3" style="float:left;">
             <table class="stripes wrappable">
-                <thead id="spsa-digest-header-container">
-                    <!-- Dynamically created -->
+                <thead>
+                    <tr class="table-header">
+                        <th>Name</th>
+                        <th>Curr</th>
+                        <th>Start</th>
+                        <th>Min</th>
+                        <th>Max</th>
+                        <th>C</th>
+                        <th>C_end</th>
+                        <th>R</th>
+                        <th>R_end</th>
+                    </tr>
                 </thead>
-                <tbody id="spsa-digest-body-container">
+                <tbody id="spsa-digest-button-container">
+                    <tr>
+                        <td colspan="9" style="padding: 0;">
+                            <button class="w-100 anchorbutton btn-blue" type="submit" onclick="fetch_spsa_digest({{workload.id}})">Show SPSA Digest</button>
+                        </td>
+                    </tr>
+                </tbody>
+                <tbody id="spsa-digest-body-container" style="display: none;">
                     <!-- Dynamically created -->
                 </tbody>
             </table>
