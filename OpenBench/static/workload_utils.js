@@ -1,4 +1,3 @@
-
 function copy_text(text) {
 
     var area = document.createElement("textarea");
