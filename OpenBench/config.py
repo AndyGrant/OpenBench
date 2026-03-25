@@ -26,7 +26,7 @@ import traceback
 
 from OpenSite.settings import PROJECT_PATH
 
-OPENBENCH_STATIC_VERSION = 'v7'
+OPENBENCH_STATIC_VERSION = 'v8'
 
 OPENBENCH_CONFIG          = None # Initialized by OpenBench/apps.py
 OPENBENCH_CONFIG_CHECKSUM = None # Initialized by OpenBench/apps.py

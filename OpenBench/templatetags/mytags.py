@@ -287,12 +287,6 @@ def test_is_time_odds(test):
 def test_is_fischer(test):
     return 'FRC' in test.book_name.upper() or '960' in test.book_name.upper()
 
-
-register.filter('spsa_param_digest', OpenBench.spsa_utils.spsa_param_digest)
-register.filter('spsa_param_digest_headers', OpenBench.spsa_utils.spsa_param_digest_headers)
-register.filter('spsa_original_input', OpenBench.spsa_utils.spsa_original_input)
-register.filter('spsa_optimal_values', OpenBench.spsa_utils.spsa_optimal_values)
-
 register.filter('book_download_link', book_download_link)
 register.filter('network_download_link', network_download_link)
 

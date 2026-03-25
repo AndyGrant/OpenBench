@@ -22,10 +22,6 @@ import numpy as np
 
 from OpenBench.models import SPSARun, SPSAParameter
 
-def spsa_param_digest_headers(workload):
-    # No real arguments are expected, but this is utilized as a template filter
-    return ['Name', 'Curr', 'Start', 'Min', 'Max', 'C', 'C_end', 'R', 'R_end']
-
 def spsa_original_input(workload):
 
     lines = []
@@ -101,7 +97,9 @@ def spsa_param_digest(workload):
     c_compression = iteration ** spsa_run.gamma
     r_compression = (spsa_run.a_ratio * spsa_run.iterations + iteration) ** spsa_run.alpha
 
-    digest = []
+    # If these headers are changed here, they should be changed in Templates/OpenBench/workload.html
+    digest = [['Name', 'Curr', 'Start', 'Min', 'Max', 'C', 'C_end', 'R', 'R_end']]
+
     for param in spsa_run.parameters.order_by('index'):
 
         # C and R if we got a workload right now
@@ -121,7 +119,7 @@ def spsa_param_digest(workload):
             '%.4f' % (param.r_end),
         ])
 
-    return digest
+    return '\n'.join([','.join(f) for f in digest])
 
 def spsa_workload_assignment_dict(workload, runner_count):
 
