@@ -29,6 +29,7 @@ import psutil
 import queue
 import re
 import requests
+import shlex
 import shutil
 import subprocess
 import sys
@@ -59,7 +60,7 @@ from client import try_forever
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 43 # Client version to send to the Server
+CLIENT_VERSION   = 44 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -508,7 +509,9 @@ class MatchRunner:
 
     @staticmethod
     def pgnout_settings(config, timestamp, runner_idx):
-        return '-pgnout file=%s seldepth=true nodes=true' % (MatchRunner.pgn_name(config, timestamp, runner_idx))
+        match_line = '^info string pgncomment .*'
+        return '-pgnout file=%s seldepth=true nodes=true match_line=%s' % (
+            MatchRunner.pgn_name(config, timestamp, runner_idx), shlex.quote(match_line))
 
     @staticmethod
     def update_results(results, line):
@@ -1145,7 +1148,7 @@ def complete_workload(config):
         if config.workload['test']['upload_pgns'] != 'FALSE':
             compact    = config.workload['test']['upload_pgns'] == 'COMPACT'
             pgn_files  = [MatchRunner.pgn_name(config, timestamp, x) for x in range(runner_cnt)]
-            ServerReporter.report_pgn(config, pgn_util.compress_list_of_pgns(pgn_files, scale_factor, compact))
+            ServerReporter.report_pgn(config, pgn_util.compress_pgn_files(pgn_files, scale_factor, compact))
 
 def safe_download_network_weights(config, branch):
 
@@ -1267,7 +1270,7 @@ def build_runner_command(config, dev_cmd, base_cmd, scale_factor, timestamp, run
 def run_and_parse_runner(config, command, runner_idx, results_queue, abort_flag):
 
     print('\n[#%d] Launching match runner...\n%s\n' % (runner_idx, command))
-    runner = Popen(command.split(), stdout=PIPE)
+    runner = Popen(shlex.split(command), stdout=PIPE)
 
     results = {
 
