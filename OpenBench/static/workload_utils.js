@@ -23,6 +23,8 @@ function copy_text_from_element(element_id, keep_url) {
 
     if (keep_url)
         text += "\n" + window.location.href;
+
+    copy_text(text);
 }
 
 function populate_results(results) {
