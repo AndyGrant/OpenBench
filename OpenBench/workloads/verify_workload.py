@@ -497,4 +497,9 @@ def fetch_artifact_url(base, engine, headers, sha):
         # All jobs finished, with at least one non-expired Artifact
         assert not any(job['conclusion'] != 'success' for job in jobs)
         assert not any(artifact['expired'] for artifact in artifacts)
-        assert len(artifacts) >= len
+        assert len(artifacts) >= len(jobs)
+
+        return artifacts[0]['archive_download_url'], True
+
+    except:
+        return base, False
