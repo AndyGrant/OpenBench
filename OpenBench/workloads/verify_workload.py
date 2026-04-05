@@ -503,5 +503,5 @@ def fetch_artifact_url(base, engine, headers, sha):
         # continue to recognize private-engine artifacts as ready.
         return url, True
 
-    except:
+    except Exception:
         return base, False
