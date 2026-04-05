@@ -36,25 +36,13 @@ def read_until_empty_line(pgn):
         lines.append(line)
     return lines
 
-def skip_empty_lines(pgn):
-
-    while True:
-        pos  = pgn.tell()
-        line = pgn.readline().rstrip()
-        if line:
-            pgn.seek(pos)
-            return
-        if not pgn.readline():
-            return
-
 def pgn_iterator(fname):
 
     with open(fname) as pgn:
         while True:
-            header_lines = read_until_empty_line(pgn)
-            skip_empty_lines(pgn)
-            move_lines = read_until_empty_line(pgn)
 
+            header_lines = read_until_empty_line(pgn)
+            move_lines   = read_until_empty_line(pgn)
             if not header_lines or not move_lines:
                 break
 
@@ -66,7 +54,7 @@ def pgn_iterator(fname):
 def format_headers(headers, compact):
 
     desired  = ['Event', 'Site', 'Date', 'Round', 'White', 'Black', 'Result']
-    desired += ['FEN', 'TimeControl', 'Variant', 'ScaleFactor']
+    desired += ['FEN', 'TimeControl', 'Variant', 'ScaleFactor', 'SetUp']
 
     if not compact:
         desired += ['GameEndTime']
@@ -125,7 +113,7 @@ def format_movelist(move_text, compact):
     formatter = format_move_comment_compact if compact else format_move_comment_verbose
     moves     = []
 
-    for move, comment in re.compile(r'\s*(?:\d+\. )?([a-zA-Z0-9+=#*-]+) (?:\s*\{\s*([^}]*)\s*\})?').findall(move_text):
+    for move, comment in re.compile(r'\s*(?:\d+\.{1,3} )?([a-zA-Z0-9+=#*-]+) (?:\s*\{\s*([^}]*)\s*\})?').findall(move_text):
         if not comment or comment.strip() == 'book':
             formatted_comment = comment.strip() if comment else 'unknown'
         else:
