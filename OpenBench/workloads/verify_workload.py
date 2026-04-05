@@ -499,9 +499,9 @@ def fetch_artifact_url(base, engine, headers, sha):
         assert not any(artifact['expired'] for artifact in artifacts)
         assert len(artifacts) >= len(jobs)
 
-        # Return the artifacts listing URL so downstream availability checks
-        # continue to recognize private-engine artifacts as ready.
-        return url, True
+        # Only set the url if we have everything we need
+        return (url, True)
 
-    except Exception:
-        return base, False
+    except Exception as error:
+        # If anything goes wrong, retry later with the same base URL
+        return (base, False)
