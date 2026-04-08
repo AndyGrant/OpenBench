@@ -36,7 +36,7 @@ class Engine(Model):
 class Profile(Model):
 
     user     = ForeignKey(User, PROTECT, related_name='user')
-    games    = IntegerField(default=0)
+    games    = BigIntegerField(default=0)
     tests    = IntegerField(default=0)
     repos    = JSONField(default=dict, blank=True, null=True)
     engine   = CharField(max_length=128, blank=True)
