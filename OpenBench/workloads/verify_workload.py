@@ -313,7 +313,7 @@ def verify_spsa_inputs(errors, request, field):
             name, data_type, value, minimum, maximum, c, r = line.split(',')
 
             if data_type.strip() not in [ 'int', 'float' ]:
-                errors.append('Datatype must be int for float, for %s' % (name))
+                errors.append('Datatype must be int or float, for %s' % (name))
 
             if float(minimum) > float(maximum):
                 errors.append('Max does not exceed Min, for %s' % (name))
@@ -323,6 +323,9 @@ def verify_spsa_inputs(errors, request, field):
 
             if data_type.strip() == 'float' and float(c) <= 0.00:
                 errors.append('C for floats must be > 0.00, for %s' % (name))
+
+            if data_type.strip() == 'int' and float(c) < 0.50:
+                errors.append('C for ints must be >= 0.50, for %s' % (name))
 
             if float(r) <= 0.00:
                 errors.append('R must be > 0.00, for %s' % (name))
