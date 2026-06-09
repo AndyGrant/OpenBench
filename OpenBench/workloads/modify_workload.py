@@ -41,18 +41,22 @@ def modify_workload(request, id, action=None):
     if action not in actions.keys():
         return OpenBench.views.redirect(request, '/index/', error='Unknown Workload action')
 
-    # Make sure that the Test or Tune exists
+    # Make sure that the workload exists
     if not (workload := Test.objects.filter(id=id).first()):
         return OpenBench.views.redirect(request, '/index/', error='No such Workload exists')
 
-    # Must be logged in to interact with Tests and Tunes
+    # Must be logged in to interact with workloads
     if not request.user.is_authenticated:
         return OpenBench.views.redirect(request, '/login/', error='Only users may modify Workloads')
 
-    # Must be an approver, or interacting with their own Test or Tune
+    # Must be an approver, or interacting with their own workload
     profile = Profile.objects.get(user=request.user)
     if not profile.approver and workload.author != request.user.username:
         return OpenBench.views.redirect(request, '/index/', error='You cannot interact with another user\'s Workload')
+
+    # Must be an approver
+    if action == 'APPROVE' and not profile.approver:
+        return OpenBench.views.redirect(request, '/index/', error='You cannot approve this Workload')
 
     # Make the change; Record the change; Save the change
     message = actions[action](request, profile, workload)
