@@ -34,19 +34,13 @@
             <!-- Currently Running tests (Waiting to be completed) -->
             {% if active %}
                 <tr class="table-header"><th colspan='6'>Active {{status}}</th></tr>
-                {% for test in active %}
-
-                    <!-- Add two empty rows ( for the colouring scheme ) when changing prio -->
-                    {% with prev_test=active|previous:forloop.counter0 %}
-                        {% if prev_test and prev_test.priority != test.priority %}
-                            <tr class="table-spacer-small"><th colspan='6'></th></tr>
-                            <tr class="table-spacer-small"><th colspan='6'></th></tr>
-                        {% endif %}
-                    {% endwith %}
-
-                    <tr>
-                        {% include "OpenBench/Blocks/testsummary.html" %}
-                    </tr>
+                {% for group in active %}
+                    <tr class="table-small-header"><th colspan='6'>Priority {{group.priority}}</th></tr>
+                    {% for test in group.tests %}
+                        <tr>
+                            {% include "OpenBench/Blocks/testsummary.html" %}
+                        </tr>
+                    {% endfor %}
                 {% endfor %}
                 <tr class="table-spacer"><th colspan='6'></th></tr>
             {% endif %}

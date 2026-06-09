@@ -172,6 +172,14 @@ def get_active_tests():
     t = t.exclude(deleted=True)
     return t.order_by('-priority', '-currentllr')
 
+def group_active_tests_by_priority(active):
+    grouped = []
+    for test in active:
+        if len(grouped) == 0 or grouped[-1]['priority'] != test.priority:
+            grouped.append({ 'priority' : test.priority, 'tests' : [] })
+        grouped[-1]['tests'].append(test)
+    return grouped
+
 def get_completed_tests():
     t = Test.objects.filter(finished=True)
     t = t.exclude(deleted=True)
