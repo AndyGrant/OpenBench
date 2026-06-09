@@ -192,7 +192,7 @@ def get_awaiting_tests():
     return t.order_by('-creation')
 
 
-def getRecentMachines(minutes=5):
+def getRecentMachines(minutes=2):
     target = datetime.datetime.utcnow()
     target = target.replace(tzinfo=timezone.utc)
     target = target - datetime.timedelta(minutes=minutes)
