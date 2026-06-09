@@ -274,7 +274,7 @@ def index(request, page=1):
 
     data = {
         'pending'   : pending,
-        'active'    : active,
+        'active'    : OpenBench.utils.group_active_tests_by_priority(active),
         'completed' : completed[start:end],
         'awaiting'  : awaiting,
         'paging'    : paging,
@@ -294,7 +294,7 @@ def user(request, username, page=1):
 
     data = {
         'pending'   : pending,
-        'active'    : active,
+        'active'    : OpenBench.utils.group_active_tests_by_priority(active),
         'completed' : completed[start:end],
         'awaiting'  : awaiting,
         'paging'    : paging,
