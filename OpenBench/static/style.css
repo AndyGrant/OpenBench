@@ -31,6 +31,7 @@ body, html, main{
 #sidebar {
     padding: 60px 16px 16px 16px;
     flex-basis: calc(min(300px, max(200px, 10%)));
+    z-index: 5;
 }
 
 #sidebar-toggle {
