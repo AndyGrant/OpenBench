@@ -369,6 +369,18 @@ def verify_scale_method(errors, request, field):
         choices = [f[0] for f in Test.ScaleMethod.choices]
         errors.append('Unknown Scale Method. Expected one of {%s}.' % (', '.join(choices)))
 
+def strip_message(m):
+    lines = m.strip().split("\n")
+    bench_search = re.compile(r"(^|\s)[Bb]ench[ :]+([1-9]\d{5,7})(?!\d)")
+    for i, line in enumerate(reversed(lines)):
+        new_line, n = bench_search.subn("", line)
+        if n:
+            lines[-i - 1] = new_line
+            break
+    s = "\n".join(lines)
+    s = re.sub(r"[ \t]+", " ", s)
+    s = re.sub(r"\n+", r"\n", s)
+    return s.rstrip()
 
 def collect_github_info(errors, request, field):
 
@@ -439,11 +451,13 @@ def collect_github_info(errors, request, field):
         errors.append('Unable to parse a Bench for %s' % (branch))
         return (None, None)
 
+    info = request.POST['info'] or strip_message(data['commit']['message'])
+
     # Public Engines: Construct the .zip download and return everything
     if not private:
         treeurl = data['commit']['tree']['sha'] + '.zip'
         source  = OpenBench.utils.path_join(request.POST['%s_repo' % (field)], 'archive', treeurl)
-        return (source, branch, data['sha'], bench), True
+        return (source, branch, data['sha'], bench, info), True
 
     ## Step 3: Construct the URL for the API request to list all Artifacts
     ## [A] OpenBench artifacts are always run via a file named openbench.yml
@@ -451,7 +465,7 @@ def collect_github_info(errors, request, field):
     ## [C] If those artifacts are not found, we flag the test as awaiting, and try later.
 
     url, has_all = fetch_artifact_url(base, engine, headers, data['sha'])
-    return (url, branch, data['sha'], bench), has_all
+    return (url, branch, data['sha'], bench, info), has_all
 
 def requests_illegal_fork(request, field):
 
