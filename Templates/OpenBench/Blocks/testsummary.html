@@ -13,3 +13,4 @@
     {% if test|test_is_smp_odds %} <span style="color: orange; cursor: pointer" title="Thread odds">*</span> {% endif %}
 </td>
 <td class='statblock statblock-{{test|testResultColour}}'><strong>{{test|shortStatBlock|linebreaksbr}}</strong></td>
+<td>{{test.info}}</td>

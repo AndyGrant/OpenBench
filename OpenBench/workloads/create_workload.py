@@ -118,6 +118,7 @@ def create_new_test(request):
     test.author            = request.user.username
     test.book_name         = request.POST['book_name']
     test.upload_pgns       = request.POST['upload_pgns']
+    test.info              = request.POST['info']
 
     test.dev               = get_engine(*dev_info)
     test.dev_repo          = request.POST['dev_repo']
@@ -186,6 +187,7 @@ def create_new_tune(request):
     test.author           = request.user.username
     test.book_name        = request.POST['book_name']
     test.upload_pgns      = request.POST['upload_pgns']
+    test.info             = request.POST['info']
 
     test.dev              = test.base              = get_engine(*dev_info)
     test.dev_repo         = test.base_repo         = request.POST['dev_repo']
@@ -238,6 +240,7 @@ def create_new_datagen(request):
     test.author            = request.user.username
     test.book_name         = request.POST['book_name']
     test.upload_pgns       = request.POST['upload_pgns']
+    test.info              = request.POST['info']
 
     test.dev               = get_engine(*dev_info)
     test.dev_repo          = request.POST['dev_repo']

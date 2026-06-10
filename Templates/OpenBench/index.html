@@ -4,6 +4,14 @@
 
 {% block content %}
 
+{% block scripts %}
+<style>
+    #content {
+        max-width: 100%;
+    }
+</style>
+{% endblock %}
+
     <table class="test-list stripes hoverable">
 
         <!-- Only show Pending tests for the front page of the Index -->
@@ -11,44 +19,44 @@
 
             <!-- Currently Pending tests (Waiting to be approved) -->
             {% if pending %}
-                <tr class="table-header"><th colspan='6'>Pending</th></tr>
+                <tr class="table-header"><th colspan='7'>Pending</th></tr>
                 {% for test in pending %}
                     <tr>
                         {% include "OpenBench/Blocks/testsummary.html" %}
                     </tr>
                 {% endfor %}
-                <tr class="table-spacer"><th colspan='6'></th></tr>
+                <tr class="table-spacer"><th colspan='7'></th></tr>
             {% endif %}
 
             <!-- Currently Awaiting tests (Waiting for Artifacts) -->
             {% if awaiting %}
-                <tr class="table-header"><th colspan='6'>Awaiting Artifacts</th></tr>
+                <tr class="table-header"><th colspan='7'>Awaiting Artifacts</th></tr>
                 {% for test in awaiting %}
                     <tr>
                         {% include "OpenBench/Blocks/testsummary.html" %}
                     </tr>
                 {% endfor %}
-                <tr class="table-spacer"><th colspan='6'></th></tr>
+                <tr class="table-spacer"><th colspan='7'></th></tr>
             {% endif %}
 
             <!-- Currently Running tests (Waiting to be completed) -->
             {% if active %}
-                <tr class="table-header"><th colspan='6'>Active {{status}}</th></tr>
+                <tr class="table-header"><th colspan='7'>Active {{status}}</th></tr>
                 {% for group in active %}
-                    <tr class="table-small-header"><th colspan='6'>Priority {{group.priority}}</th></tr>
+                    <tr class="table-small-header"><th colspan='7'>Priority {{group.priority}}</th></tr>
                     {% for test in group.tests %}
                         <tr>
                             {% include "OpenBench/Blocks/testsummary.html" %}
                         </tr>
                     {% endfor %}
                 {% endfor %}
-                <tr class="table-spacer"><th colspan='6'></th></tr>
+                <tr class="table-spacer"><th colspan='7'></th></tr>
             {% endif %}
 
         {% endif %}
 
         <!-- Tests which have already finished -->
-        <tr class="table-header"><th colspan='6'>Finished</th></tr>
+        <tr class="table-header"><th colspan='7'>Finished</th></tr>
         {% for test in completed %}
             <tr>
                 {% include "OpenBench/Blocks/testsummary.html" %}
