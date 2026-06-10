@@ -319,10 +319,14 @@ body, html, main{
 
 #content .test-list tr td:nth-of-type(7) {
     width: 100%;
-    min-width: 200px;
+    max-width: 0;
+}
+
+#content .test-list tr td:nth-of-type(7) div {
+    max-height: 5.8em;
+    overflow: hidden;
     white-space: normal;
     overflow-wrap: break-word;
-    word-break: break-all;
 }
 
 #content #config {
