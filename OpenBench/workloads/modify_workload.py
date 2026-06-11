@@ -101,4 +101,8 @@ def tweak_workload(request, profile, workload):
             workload.workload_size = max(1, int(request.POST['workload_size']))
     except: pass
 
+    try:
+        workload.info = request.POST['info']
+    except: pass
+
     return 'Workload was Modified!'

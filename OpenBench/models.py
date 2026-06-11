@@ -97,6 +97,7 @@ class Test(Model):
     # Misc information
     author      = CharField(max_length=64)
     upload_pgns = CharField(max_length=16, default='FALSE')
+    info        = CharField(max_length=1024, default='', blank=True)
 
     # Opening book settings
     book_name  = CharField(max_length=32)
