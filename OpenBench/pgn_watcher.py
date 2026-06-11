@@ -27,6 +27,7 @@ import traceback
 from OpenBench.models import PGN
 
 from django.core.files.storage import FileSystemStorage
+from django.db import close_old_connections
 
 # Max PGN rows handled per pass. Drains a backlog in chunks, and bounds how long
 # a graceful shutdown's join() can block (one batch, never the whole backlog).
@@ -74,20 +75,20 @@ class PGNWatcher(threading.Thread):
         return len(pgns)
 
     def run(self):
-      
+
         # Loop until we are shutdown by the atexit.register()
         while not self.stop_event.is_set():
 
-            # Never exit on errors, to keep the watcher alive
-            try:
+            try: # Never exit on errors, to keep the watcher alive
                 handled = self.process_pending()
 
-            # We expect -some- "database is locked" errors
             except Exception as error:
                 handled = 0
+                # Expect the database to be locked sometimes; stay silent
                 if 'database is locked' not in str(error).lower():
                     traceback.print_exc()
                     sys.stdout.flush()
+                    close_old_connections()
 
             # If we only processed a partial patch, we can go into our sleep
             # Otherwise loop again immediately, which will check the stop_event

@@ -18,17 +18,15 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import requests
 import sys
 import threading
-import time
 import traceback
 
 from OpenBench.utils import get_awaiting_tests
 from OpenBench.utils import read_git_credentials
 from OpenBench.workloads.verify_workload import fetch_artifact_url
 
-from django.db import OperationalError
+from django.db import close_old_connections
 
 class ArtifactWatcher(threading.Thread):
 
@@ -66,18 +64,19 @@ class ArtifactWatcher(threading.Thread):
 
     def run(self):
 
+        # Loop until we are shutdown by the atexit.register()
         while not self.stop_event.wait(timeout=15):
 
             try: # Never exit on errors, to keep the watcher alive
                 for test in get_awaiting_tests():
                     self.update_test(test)
 
-            # Expect the database to be locked sometimes
-            except OperationalError as error:
-                if 'database is locked' not in str(error).lower():
-                    traceback.print_exc()
-                    sys.stdout.flush()
+            except Exception as error:
 
-            except: # Totally unknown error
+                # Expect the database to be locked sometimes; stay silent
+                if 'database is locked' in str(error).lower():
+                    continue
+
                 traceback.print_exc()
                 sys.stdout.flush()
+                close_old_connections()
