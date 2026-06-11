@@ -60,6 +60,8 @@ class PGNWatcher(threading.Thread):
             pgn.save()
 
     def run(self):
+
+        # self.stop_event is set during a graceful shutdown via apps.py:shutdown()
         while not self.stop_event.wait(timeout=15):
 
             try: # Never exit on errors, to keep the watcher alive
