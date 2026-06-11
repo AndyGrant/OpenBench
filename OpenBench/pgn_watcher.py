@@ -74,6 +74,8 @@ class PGNWatcher(threading.Thread):
         return len(pgns)
 
     def run(self):
+      
+        # Loop until we are shutdown by the atexit.register()
         while not self.stop_event.is_set():
 
             # Never exit on errors, to keep the watcher alive
