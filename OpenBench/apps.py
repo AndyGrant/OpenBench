@@ -19,9 +19,9 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import atexit
-import os
-import threading
+import pathlib
 import platform
+import threading
 
 import django.apps
 
@@ -92,7 +92,7 @@ class OpenBenchConfig(django.apps.AppConfig):
             self.artifact_watcher.start()
             self.pgn_watcher.start()
 
-            # Ensure we cleanup upon exit
+            # We expect a nice sys.exit(0) to allow our atexit to execute
             atexit.register(self.shutdown)
 
     def shutdown(self):
@@ -110,4 +110,4 @@ class OpenBenchConfig(django.apps.AppConfig):
         # Cleanup Lockfile if we hold it
         if self.lockfile:
             self.lockfile.close()
-            os.remove(LOCKFILE_PATH)
+            pathlib.Path(LOCKFILE_PATH).unlink(missing_ok=True)
