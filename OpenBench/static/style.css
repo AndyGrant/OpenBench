@@ -317,12 +317,12 @@ body, html, main{
     width: 100%;
 }
 
-#content .test-list tr td:nth-of-type(7) {
+#content .test-list tr td.test-info {
     width: 100%;
     max-width: 0;
 }
 
-#content .test-list tr td:nth-of-type(7) div {
+#content .test-list tr td.test-info div {
     max-height: 5.8em;
     overflow: hidden;
     white-space: normal;
@@ -503,7 +503,7 @@ td pre {
         overflow-x: auto;
     }
 
-    #content .test-list tr td:nth-of-type(7) {
+    #content .test-list tr td.test-info {
         display: none;
     }
 }
