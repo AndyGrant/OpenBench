@@ -265,27 +265,6 @@ def branch_is_out_of_date(test):
 
 
 
-def get_machine(machineid, user, info):
-
-    # Create a new machine if we don't have an id
-    if machineid == 'None':
-        return Machine(user=user, info=info)
-
-    # Fetch the requested machine, which hopefully exists
-    try: machine = Machine.objects.get(id=int(machineid))
-    except: return None
-
-    # Workload requests should always contain a MAC
-    if 'mac_address' not in machine.info:
-        return None
-
-    # Soft-verify by checking if the MAC addresses match
-    if machine.info['mac_address'] != info['mac_address']:
-        return None
-
-    return machine
-
-
 # Purely Helper functions for Networks views
 
 def network_disambiguate(engine, identifier):

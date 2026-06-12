@@ -636,9 +636,15 @@ def client_worker_info(request):
     except UnableToAuthenticate:
         return JsonResponse({ 'error' : 'Bad Credentials' })
 
+    # Request update before creating a machine
+    info         = json.loads(request.POST['system_info'])
+    expected_ver = OPENBENCH_CONFIG['client_version']
+
+    if info.get('client_ver') != expected_ver:
+        return JsonResponse({ 'error' : 'Bad Client Version: Expected %d' % (expected_ver)})
+
     # Create a new Machine for this session
-    info    = json.loads(request.POST['system_info'])
-    machine = OpenBench.utils.get_machine('None', user, info)
+    machine = Machine(user=user, info=info)
 
     # Save the machine's latest information and Secret Token for this session
     machine.info   = info
