@@ -22,14 +22,16 @@ import os
 import sys
 import tarfile
 import threading
-import time
 import traceback
 
 from OpenBench.models import PGN
 
-from django.db import transaction, OperationalError
-from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage
+from django.db import close_old_connections
+
+# Max PGN rows handled per pass. Drains a backlog in chunks, and bounds how long
+# a graceful shutdown's join() can block (one batch, never the whole backlog).
+PGN_BATCH_SIZE = 128
 
 class PGNWatcher(threading.Thread):
 
@@ -37,41 +39,58 @@ class PGNWatcher(threading.Thread):
         self.stop_event = stop_event
         super().__init__(*args, **kwargs)
 
-    def process_pgn(self, pgn):
+    def process_test(self, storage, test_id, pgns):
 
-        tar_path = FileSystemStorage('Media/PGNs').path('%d.pgn.tar' % (pgn.test_id))
-        pgn_path = FileSystemStorage().path(pgn.filename())
+        # Bulk add individual .bz2 PGNs to the archive. We bulk add in order to avoid
+        # scanning the entire archive on every individual write, which is very slow.
 
-        with transaction.atomic():
+        tar_path = storage.path('PGNs/%d.pgn.tar' % (test_id))
+        os.makedirs(os.path.dirname(tar_path), exist_ok=True)
 
-            # Ensure Media/PGNs exists
-            dir_name = os.path.dirname(tar_path)
-            if not os.path.exists(dir_name):
-                os.makedirs(dir_name)
+        mode = 'a' if os.path.exists(tar_path) else 'w'
+        with tarfile.open(tar_path, mode) as tar:
+            for pgn in pgns:
+                tar.add(storage.path(pgn.filename()), arcname=pgn.filename())
 
-            # First PGN will create the initial .tar file
-            mode = 'a' if os.path.exists(tar_path) else 'w'
-            with tarfile.open(tar_path, mode) as tar:
-                tar.add(pgn_path, arcname=pgn.filename())
+        # Flag each of the PGNs as having been processed into the archive
+        PGN.objects.filter(pk__in=[pgn.pk for pgn in pgns]).update(processed=True)
 
-            # Delete the raw .pgn.bz2 file, and don't process it again
-            FileSystemStorage().delete(pgn.filename())
-            pgn.processed = True
-            pgn.save()
+        # Only delete the files after flagging; in case something goes wrong
+        for pgn in pgns:
+            storage.delete(pgn.filename())
+
+    def process_pending(self):
+
+        # Bounded slice, ordered by test so a test's PGNs share one tar open.
+        pgns = list(PGN.objects.filter(processed=False).order_by('test_id')[:PGN_BATCH_SIZE])
+
+        # Group by test_id, then process each test's PGNs as one batch
+        groups = {}
+        for pgn in pgns:
+            groups.setdefault(pgn.test_id, []).append(pgn)
+
+        for test_id, group in groups.items():
+            self.process_test(FileSystemStorage(), test_id, group)
+
+        return len(pgns)
 
     def run(self):
-        while not self.stop_event.wait(timeout=15):
+
+        # Loop until we are shutdown by the atexit.register()
+        while not self.stop_event.is_set():
 
             try: # Never exit on errors, to keep the watcher alive
-                for pgn in PGN.objects.filter(processed=False):
-                    self.process_pgn(pgn)
+                handled = self.process_pending()
 
-            # Expect the database to be locked sometimes
-            except OperationalError as error:
+            except Exception as error:
+                handled = 0
+                # Expect the database to be locked sometimes; stay silent
                 if 'database is locked' not in str(error).lower():
                     traceback.print_exc()
                     sys.stdout.flush()
+                    close_old_connections()
 
-            except: # Totally unknown error
-                traceback.print_exc()
-                sys.stdout.flush()
+            # If we only processed a partial patch, we can go into our sleep
+            # Otherwise loop again immediately, which will check the stop_event
+            if handled < PGN_BATCH_SIZE:
+                self.stop_event.wait(timeout=15)

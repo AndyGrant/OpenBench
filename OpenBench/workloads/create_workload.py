@@ -31,6 +31,9 @@
 
 import math
 
+from django.db import transaction
+
+import OpenBench.spsa_utils
 import OpenBench.utils
 import OpenBench.views
 
@@ -115,6 +118,7 @@ def create_new_test(request):
     test.author            = request.user.username
     test.book_name         = request.POST['book_name']
     test.upload_pgns       = request.POST['upload_pgns']
+    test.info              = dev_info[4]
 
     test.dev               = get_engine(*dev_info)
     test.dev_repo          = request.POST['dev_repo']
@@ -183,6 +187,7 @@ def create_new_tune(request):
     test.author           = request.user.username
     test.book_name        = request.POST['book_name']
     test.upload_pgns      = request.POST['upload_pgns']
+    test.info             = request.POST['info']
 
     test.dev              = test.base              = get_engine(*dev_info)
     test.dev_repo         = test.base_repo         = request.POST['dev_repo']
@@ -200,11 +205,10 @@ def create_new_tune(request):
     test.win_adj          = request.POST['win_adj']
     test.draw_adj         = request.POST['draw_adj']
 
-    test.scale_method      = request.POST['scale_method']
-    test.scale_nps         = int(request.POST['scale_nps'])
+    test.scale_method     = request.POST['scale_method']
+    test.scale_nps        = int(request.POST['scale_nps'])
 
     test.test_mode        = 'SPSA'
-    test.spsa             = extract_spas_params(request)
 
     test.awaiting         = not dev_has_all
 
@@ -212,7 +216,9 @@ def create_new_tune(request):
         name = Network.objects.get(engine=test.dev_engine, sha256=test.dev_network).name
         test.dev_netname = test.base_netname = name
 
-    test.save()
+    with transaction.atomic():
+        test.save()
+        OpenBench.spsa_utils.create_spsa_run(test, request).save()
 
     profile = Profile.objects.get(user=request.user)
     profile.tests += 1
@@ -234,6 +240,7 @@ def create_new_datagen(request):
     test.author            = request.user.username
     test.book_name         = request.POST['book_name']
     test.upload_pgns       = request.POST['upload_pgns']
+    test.info              = request.POST['info']
 
     test.dev               = get_engine(*dev_info)
     test.dev_repo          = request.POST['dev_repo']
@@ -285,52 +292,7 @@ def create_new_datagen(request):
 
     return test, None
 
-def extract_spas_params(request):
-
-    spsa = {} # SPSA Hyperparams
-    spsa['Alpha'  ] = float(request.POST['spsa_alpha'])
-    spsa['Gamma'  ] = float(request.POST['spsa_gamma'])
-    spsa['A_ratio'] = float(request.POST['spsa_A_ratio'])
-
-    # Tuning durations
-    spsa['iterations'] = int(request.POST['spsa_iterations'])
-    spsa['pairs_per' ] = int(request.POST['spsa_pairs_per'])
-    spsa['A'         ] = spsa['A_ratio'] * spsa['iterations']
-
-    # Tuning Methodologies
-    spsa['reporting_type'   ] = request.POST['spsa_reporting_type']
-    spsa['distribution_type'] = request.POST['spsa_distribution_type']
-
-    # Each individual tuning parameter
-    spsa['parameters'] = {}
-    for index, line in enumerate(request.POST['spsa_inputs'].split('\n')):
-
-        # Comma-seperated values, already verified in verify_workload()
-        name, data_type, value, minimum, maximum, c_end, r_end = line.split(',')
-
-        # Recall the original order of inputs
-        param          = {}
-        param['index'] = index
-
-        # Raw extraction
-        param['float'] = data_type.strip() == 'float'
-        param['start'] = float(value)
-        param['value'] = float(value)
-        param['min'  ] = float(minimum)
-        param['max'  ] = float(maximum)
-        param['c_end'] = float(c_end)
-        param['r_end'] = float(r_end)
-
-        # Verbatim Fishtest logic for computing these
-        param['c']     = param['c_end'] * spsa['iterations'] ** spsa['Gamma']
-        param['a_end'] = param['r_end'] * param['c_end'] ** 2
-        param['a']     = param['a_end'] * (spsa['A'] + spsa['iterations']) ** spsa['Alpha']
-
-        spsa['parameters'][name] = param
-
-    return spsa
-
-def get_engine(source, name, sha, bench):
+def get_engine(source, name, sha, bench, info):
 
     engine = Engine.objects.filter(name=name, source=source, sha=sha, bench=bench)
     if engine.first() != None:

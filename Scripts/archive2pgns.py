@@ -22,17 +22,37 @@
 
 import argparse
 import bz2
+import collections
+import concurrent.futures
+import os
 import tarfile
+
+def process_archive(archive_path):
+
+    output_path = archive_path[:-4]  # foo.pgn.tar -> foo.pgn
+    window  = min(os.cpu_count() - 1, 15)
+    pending = collections.deque()
+
+    with tarfile.open(archive_path, 'r') as tar, \
+         open(output_path, 'w') as out, \
+         concurrent.futures.ThreadPoolExecutor(max_workers=window) as executor:
+
+        for member in tar.getmembers():
+            if not member.isfile():
+                continue
+            if file := tar.extractfile(member):
+                if len(pending) >= window:
+                    out.write(pending.popleft().result().decode('utf-8'))
+                pending.append(executor.submit(bz2.decompress, file.read()))
+
+        for future in pending:
+            out.write(future.result().decode('utf-8'))
 
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('archive', help='Path to the OpenBench pgn archive')
+    parser.add_argument('archives', nargs='+', help='Paths to .pgn.tar archives')
     args = parser.parse_args()
 
-    data = {}
-    with tarfile.open(args.archive, 'r') as tar:
-        for member in filter(lambda x: x.isfile(), tar.getmembers()):
-            if file := tar.extractfile(member):
-                for line in bz2.decompress(file.read()).decode('utf-8').split('\n'):
-                    print (line)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, os.cpu_count() // 16)) as executor:
+        list(executor.map(process_archive, args.archives))

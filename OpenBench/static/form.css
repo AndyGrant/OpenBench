@@ -65,6 +65,7 @@
     background-color: var(--color2);
     color: var(--color-font2);
     font-family: "Courier Prime", serif;
+    resize: vertical;
 }
 
 #content .row input[type="file"]{
@@ -121,4 +122,16 @@
 
 #content #engines-container span input {
     cursor: pointer;
+}
+
+#content .form .workflow-edit {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 0.6rem;
+}
+
+#content .form .workflow-edit label {
+    width: 100%;
+    text-align: left;
+    margin-bottom: 0.15rem;
 }

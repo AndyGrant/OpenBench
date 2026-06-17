@@ -44,10 +44,10 @@ import utils
 
 def genfens_required_openings_each(config):
 
-    cutechess_cnt = config.workload['distribution']['cutechess-count']
-    games_per     = config.workload['distribution']['games-per-cutechess']
-    repeat        = config.workload['test']['play_reverses']
-    total_games   = cutechess_cnt * games_per // (1 + repeat)
+    runner_cnt  = config.workload['distribution']['runner-count']
+    rounds_per  = config.workload['distribution']['rounds-per-runner']
+    repeat      = config.workload['test']['play_reverses']
+    total_games = runner_cnt * rounds_per // (1 + repeat)
 
     return math.ceil(total_games / config.threads)
 
