@@ -180,7 +180,7 @@ def makefile_command(net_path, make_path, out_path, compiler):
     command = ['make', '-j', 'EXE=%s' % (out_path)]
 
     # Build with CC/CXX= when using a custom compiler
-    if compiler:
+    if compiler and not any(rc in compiler for rc in ('rustc','cargo')):
         comp_flag = ['CC', 'CXX']['++' in compiler]
         command  += ['%s=%s' % (comp_flag, compiler)]
 
