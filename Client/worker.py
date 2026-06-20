@@ -1365,17 +1365,17 @@ def parse_arguments(client_args):
 
 def format_cli_options(worker_args):
 
-    tokens = []
+    options = []
 
     for name, value in vars(worker_args).items():
         if isinstance(value, list):
-            tokens.append('--%s %s' % (name, ' '.join(map(str, value))))
+            options.append('--%s %s' % (name, ' '.join(map(str, value))))
         elif value is True:
-            tokens.append('--%s' % name)
+            options.append('--%s' % name)
         elif value:
-            tokens.append('--%s %s' % (name, value))
+            options.append('--%s %s' % (name, value))
 
-    return ' '.join(tokens)
+    return ' '.join(options)
 
 def run_openbench_worker(client_args):
 
