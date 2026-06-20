@@ -114,6 +114,7 @@ class Configuration:
         self.fleet       = args.fleet    if args.fleet    else False
         self.noisy       = args.noisy    if args.noisy    else False
         self.focus       = args.focus    if args.focus    else []
+        self.cli_options = args.cli_options
 
     def check_requirements(self):
 
@@ -1026,6 +1027,7 @@ def server_configure_worker(config):
         'syzygy_max'     : config.syzygy_max,     # Whether or not the machine has Syzygy support
         'noisy'          : config.noisy,          # Whether our results are unstable for time-based workloads
         'focus'          : config.focus,          # List of engines we have a preference to help
+        'cli_options'    : config.cli_options,    # Command line options except for credentials and server
         'cxx_comp'       : config.cxx_comp,       # C++ Compiler used to build Fastchess binaries
         'fastchess_ver'  : config.fastchess_ver,  # Fastchess Version, set during server_configure_fastchess()
         'client_ver'     : CLIENT_VERSION,        # Version of the Client, which the server may reject
@@ -1355,10 +1357,25 @@ def parse_arguments(client_args):
     p.add_argument(      '--focus'   , help='Prefer certain engine(s)'    , nargs='+'          )
 
     # Ignore unknown arguments ( from client )
-    worker_args, unknown = p.parse_known_args()
+    worker_args, unknown    = p.parse_known_args()
+    worker_args.cli_options = format_cli_options(worker_args)
 
     # Add the client args (Username, Password, and Server) to the worker args
     return argparse.Namespace(**{ **vars(client_args), **vars(worker_args) })
+
+def format_cli_options(worker_args):
+
+    tokens = []
+
+    for name, value in vars(worker_args).items():
+        if isinstance(value, list):
+            tokens.append('--%s %s' % (name, ' '.join(map(str, value))))
+        elif value is True:
+            tokens.append('--%s' % name)
+        elif value:
+            tokens.append('--%s %s' % (name, value))
+
+    return ' '.join(tokens)
 
 def run_openbench_worker(client_args):
 
