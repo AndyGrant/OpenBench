@@ -170,7 +170,6 @@ class Test(Model):
     finished    = BooleanField(default=False)
     deleted     = BooleanField(default=False)
     approved    = BooleanField(default=False)
-    awaiting    = BooleanField(default=False)
     error       = BooleanField(default=False)
 
     # Datetime house keeping for meta data
