@@ -62,8 +62,8 @@ from client import try_forever
 
 CLIENT_VERSION   = 46 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
-TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
-TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
+TIMEOUT_ERROR    = 60 # Timeout in seconds when any errors are thrown
+TIMEOUT_WORKLOAD = 60 # Timeout in seconds between workload requests
 REPORT_INTERVAL  = 30 # Seconds between reports to the Server
 
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
