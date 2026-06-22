@@ -135,6 +135,11 @@ def workload_uses_time_based_tc(workload):
        or (base_type != TimeControl.FIXED_NODES and base_type != TimeControl.FIXED_DEPTH)
 
 
+
+def path_join(*args):
+    return "/".join([f.lstrip("/").rstrip("/") for f in args]).rstrip('/')
+
+
 def read_git_credentials(engine):
     fname = 'credentials.%s' % (engine.replace(' ', '').lower())
     fpath = os.path.join(PROJECT_PATH, 'Config', fname)
@@ -142,8 +147,6 @@ def read_git_credentials(engine):
         with open(fpath) as fin:
             return { 'Authorization' : 'token %s' % fin.readlines()[0].rstrip() }
 
-def path_join(*args):
-    return "/".join([f.lstrip("/").rstrip("/") for f in args]).rstrip('/')
 
 def extract_option(options, option):
 
@@ -167,7 +170,6 @@ def get_pending_tests():
 
 def get_active_tests():
     t = Test.objects.filter(approved=True)
-    t = t.exclude(awaiting=True)
     t = t.exclude(finished=True)
     t = t.exclude(deleted=True)
     return t.order_by('-priority', '-currentllr')
@@ -184,12 +186,6 @@ def get_completed_tests():
     t = Test.objects.filter(finished=True)
     t = t.exclude(deleted=True)
     return t.order_by('-updated')
-
-def get_awaiting_tests():
-    t = Test.objects.filter(awaiting=True)
-    t = t.exclude(finished=True)
-    t = t.exclude(deleted=True)
-    return t.order_by('-creation')
 
 
 def getRecentMachines(minutes=2):
@@ -237,32 +233,6 @@ def getPaging(content, page, url, pagelen=25):
     }
 
     return start, end, context
-
-
-
-def branch_is_out_of_date(test):
-
-    # Cannot compare across engines
-    if test.dev_engine != test.base_engine:
-        return False
-
-    # Format the request to the Github endpoint
-    base = 'https://api.github.com/repos/'
-    base = test.dev_repo.replace('github.com', 'api.github.com/repos')
-    url  = path_join(base, 'compare', '%s...%s' % (test.dev.sha, test.base.sha))
-
-    try:
-        # Out of date if ahead_by is non-zero
-        headers = read_git_credentials(test.dev_engine)
-        data    = requests.get(url, headers=headers).json()
-        return data.get('ahead_by', 0) > 0
-
-    except:
-        # If something went wrong, just ignore it
-        import traceback
-        traceback.print_exc()
-        return False
-
 
 
 # Purely Helper functions for Networks views

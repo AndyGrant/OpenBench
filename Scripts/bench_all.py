@@ -21,10 +21,8 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import argparse
-import cpuinfo
 import os
 import re
-import requests
 import sys
 
 # Needed to include from ../Client/*.py
@@ -57,7 +55,7 @@ def get_default_network(args, network):
 
     return net_path
 
-def get_public_engine(engine, config):
+def get_engine(engine, config):
 
     make_path = config['build']['path']
     branch    = config['test_presets']['default']['base_branch']
@@ -68,39 +66,13 @@ def get_public_engine(engine, config):
     net_path  = os.path.join('Networks', net_sha) if net_sha else None
 
     try:
-        download_public_engine(engine, net_path, branch, target, make_path, out_path)
+        prepare_engine(engine, net_path, branch, target, make_path, out_path, config['private'])
 
     except OpenBenchBuildFailedException as error:
         print ('Failed to build %s...\n\nCompiler Output:' % (engine))
         for line in error.logs.split('\n'):
             print ('> %s' % (line))
         print ()
-
-def get_private_engine(engine, config):
-
-    branch   = config['test_presets']['default']['base_branch']
-    out_path = os.path.join('Engines', '%s-%s' % (engine, branch))
-
-    # Format an API request to get the most recent openbench.yml workflow on the primary branch
-    api_repo = config['source'].replace('github.com', 'api.github.com/repos')
-    target   = url_join(api_repo, 'actions/workflows/openbench.yml/runs', trailing_slash=False)
-    target  += '?branch=%s' % (branch)
-
-    # Use the run_id for the primary branch's openbench.yml workflow to locate the artifacts
-    headers  = read_git_credentials(engine)
-    run_id   = requests.get(url=target, headers=headers).json()['workflow_runs'][0]['id']
-    source   = url_join(api_repo, 'actions/runs/%d/artifacts' % (run_id), trailing_slash=False)
-
-    # Selecting an artifact requires knowledge of the CPU
-    cpu_info  = cpuinfo.get_cpu_info()
-    cpu_name  = cpu_info.get('brand_raw', cpu_info.get('brand', 'Unknown'))
-    cpu_flags = [x.replace('_', '').replace('.', '').upper() for x in cpu_info.get('flags', [])]
-
-    try:
-        download_private_engine(engine, branch, source, out_path, cpu_name, cpu_flags)
-
-    except OpenBenchMissingArtifactException as error:
-        print ('Failed to download %s... %s', engine, error.message)
 
 if __name__ == '__main__':
 
@@ -142,15 +114,9 @@ if __name__ == '__main__':
         if configs[engine].get('network'):
             get_default_network(args, configs[engine]['network'])
 
-    # Download artifacts for Private engines
+    # Download source and build each engine
     for engine in engines:
-        if configs[engine]['private']:
-            get_private_engine(engine, configs[engine])
-
-    # Download source and build Public engines
-    for engine in engines:
-        if not configs[engine]['private']:
-            get_public_engine(engine, configs[engine])
+        get_engine(engine, configs[engine])
 
     # Pretty Formatting
     max_length   = max(len(engine) for engine in engines)
@@ -166,12 +132,8 @@ if __name__ == '__main__':
             print ('Unable to find binary for %s...' % (engine))
             continue
 
-        # Private engines need to set the Network from the command line
-        private_net = configs[engine]['private'] and configs[engine].get('network')
-        net_path    = os.path.join('Networks', configs[engine]['network']['sha']) if private_net else None
-
         try:
-            nps, nodes = run_benchmark(binary, net_path, private_net, args.threads, args.sets)
+            nps, nodes = run_benchmark(binary, args.threads, args.sets)
             print (print_format % (engine, nps, nodes, nodes / max(1e-6, nps)))
 
         except OpenBenchBadBenchException as error:

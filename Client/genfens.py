@@ -62,9 +62,6 @@ def genfens_command_builder(args, index):
 
     command = ['./%s' % (args['engine'])]
 
-    if args['network'] and args['private']:
-        command += ['setoption name EvalFile value %s' % (args['network'])]
-
     fstr = 'genfens %d seed %d book %s %s'
     command += [fstr % (args['N'], args['seeds'][index], args['book'], args['extra']), 'quit']
 

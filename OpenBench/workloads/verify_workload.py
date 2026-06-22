@@ -26,15 +26,13 @@
 # the data from Github, and return a tuple of (errors, engines)
 #
 # For Verifying and Collection information on a Test:
-#   >>> errors, engine_info = verify_workload(request, 'TEST')
-#   >>> dev_info, base_info = engine_info
+#   >>> errors, (dev_info, base_info) = verify_workload(request, 'TEST')
 #
 # For Verifying and Collection information on a Tune:
-#   >>> errors, engine_info = verify_workload(request, 'TUNE')
+#   >>> errors, dev_info = verify_workload(request, 'TUNE')
 #
 # For Verifying and Collection information on Datagen:
-#   >>> errors, engine_info = verify_workload(request, 'DATAGEN')
-#   >>> dev_info, base_info = engine_info
+#   >>> errors, (dev_info, base_info) = verify_workload(request, 'DATAGEN')
 
 import os
 import re
@@ -369,18 +367,6 @@ def verify_scale_method(errors, request, field):
         choices = [f[0] for f in Test.ScaleMethod.choices]
         errors.append('Unknown Scale Method. Expected one of {%s}.' % (', '.join(choices)))
 
-def strip_message(m):
-    lines = m.strip().split("\n")
-    bench_search = re.compile(r"(^|\s)[Bb]ench[ :]+([1-9]\d{5,7})(?!\d)")
-    for i, line in enumerate(reversed(lines)):
-        new_line, n = bench_search.subn("", line)
-        if n:
-            lines[-i - 1] = new_line
-            break
-    s = "\n".join(lines)
-    s = re.sub(r"[ \t]+", " ", s)
-    s = re.sub(r"\n+", r"\n", s)
-    return s.rstrip()
 
 def collect_github_info(errors, request, field):
 
@@ -395,33 +381,26 @@ def collect_github_info(errors, request, field):
     headers = {}
 
     ## Step 1: Verify the target of the API requests
-    ## [A] We will not attempt to reach any site other than api.github.com
-    ## [B] Private engines may only use their main repo for sources of tests
-    ## [C] Determine which, if any, credentials we want to pass along
 
     # Private engines must have a token stored in credentials.enginename
     if private and not (headers := OpenBench.utils.read_git_credentials(engine)):
         errors.append('Server does not have access tokens for this engine')
-        return (None, None)
+        return
 
     # Do not allow private engines to use forked repos ( We don't have a token! )
     if requests_illegal_fork(request, field):
         errors.append('Forked Repositories are not allowed for Private engines')
-        return (None, None)
+        return
 
     # Avoid leaking our credentials to other websites
     if not base.startswith('https://api.github.com/'):
         errors.append('OpenBench may only reach Github\'s API')
-        return (None, None)
+        return
 
     ## Step 2: Connect to the Github API for the given Branch or Commit SHA.
-    ## [A] We will attempt to parse the most recent commit message for a
-    ##     bench, unless one was supplied.
-    ## [B] We will translate any branch name into a commit SHA for later use,
-    ##     so we may compare branches and generate diff URLs
-    ## [C] If the engine is public, we will construct the URL to download the
-    ##     source code from Github into a .zip file.
-    ## [D] If the engine is private, we will carry onto Step 3.
+    ## - Parse the most recent commit message for a bench, unless one was supplied.
+    ## - We will translate any branch name into a commit SHA for later use
+    ## - Construct the URL to download the source code from Github into a .zip file.
 
     try: # Fetch data from the Github API
 
@@ -439,33 +418,20 @@ def collect_github_info(errors, request, field):
 
         # Check that all the data we need going forward is present
         assert 'message' in data['commit'] and 'sha' in data
-        assert private or 'sha' in data['commit']['tree']
 
     except: # Unable to find for whatever reason
         traceback.print_exc()
         errors.append('%s could not be found' % (branch or 'Branch'))
-        return (None, None)
+        return
 
     # Extract the bench from the web form, or from the commit message
     if not (bench := determine_bench(request, field, data['commit']['message'])):
         errors.append('Unable to parse a Bench for %s' % (branch))
-        return (None, None)
+        return
 
-    info = request.POST['info'] or strip_message(data['commit']['message'])
-
-    # Public Engines: Construct the .zip download and return everything
-    if not private:
-        treeurl = data['commit']['tree']['sha'] + '.zip'
-        source  = OpenBench.utils.path_join(request.POST['%s_repo' % (field)], 'archive', treeurl)
-        return (source, branch, data['sha'], bench, info), True
-
-    ## Step 3: Construct the URL for the API request to list all Artifacts
-    ## [A] OpenBench artifacts are always run via a file named openbench.yml
-    ## [B] These should contain combinations for windows/linux, avx2/avx512, popcnt/pext
-    ## [C] If those artifacts are not found, we flag the test as awaiting, and try later.
-
-    url, has_all = fetch_artifact_url(base, engine, headers, data['sha'])
-    return (url, branch, data['sha'], bench, info), has_all
+    info   = request.POST['info'] or strip_message(data['commit']['message'])
+    source = OpenBench.utils.path_join(base, 'zipball', data['sha'])
+    return (source, branch, data['sha'], bench, info)
 
 def requests_illegal_fork(request, field):
 
@@ -489,30 +455,15 @@ def determine_bench(request, field, message):
         return int(benches[-1].replace(',', ''))
     except: return None
 
-def fetch_artifact_url(base, engine, headers, sha):
-
-    try:
-        # Fetch the run id for the openbench workflow for this comment
-        url    = OpenBench.utils.path_join(base, 'actions', 'workflows', 'openbench.yml', 'runs')
-        url   += '?head_sha=%s' % (sha)
-        run_id = requests.get(url=url, headers=headers).json()['workflow_runs'][0]['id']
-
-        # Fetch information about individual job results
-        url  = OpenBench.utils.path_join(base, 'actions', 'runs', str(run_id), 'jobs')
-        jobs = requests.get(url=url, headers=headers).json()['jobs']
-
-        # Fetch information about individual artifact
-        url       = OpenBench.utils.path_join(base, 'actions', 'runs', str(run_id), 'artifacts')
-        artifacts = requests.get(url=url, headers=headers).json()['artifacts']
-
-        # All jobs finished, with at least one non-expired Artifact
-        assert not any(job['conclusion'] != 'success' for job in jobs)
-        assert not any(artifact['expired'] for artifact in artifacts)
-        assert len(artifacts) >= len(jobs)
-
-        # Only set the url if we have everything we need
-        return (url, True)
-
-    except Exception as error:
-        # If anything goes wrong, retry later with the same base URL
-        return (base, False)
+def strip_message(message):
+    lines = message.strip().split("\n")
+    bench_search = re.compile(r"(^|\s)[Bb]ench[ :]+([1-9]\d{5,7})(?!\d)")
+    for i, line in enumerate(reversed(lines)):
+        new_line, n = bench_search.subn("", line)
+        if n:
+            lines[-i - 1] = new_line
+            break
+    s = "\n".join(lines)
+    s = re.sub(r"[ \t]+", " ", s)
+    s = re.sub(r"\n+", r"\n", s)
+    return s.rstrip()

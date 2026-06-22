@@ -70,9 +70,8 @@ class OpenBenchConfig(django.apps.AppConfig):
             if config.OPENBENCH_CONFIG is None:
                 config.OPENBENCH_CONFIG, config.OPENBENCH_CONFIG_CHECKSUM = config.create_openbench_config()
 
-        # Attempt to spawn the Artifact and PGN Watchers, globally once
+        # Attempt to spawn the PGN Watcher, globally once
 
-        from OpenBench.watcher import ArtifactWatcher
         from OpenBench.pgn_watcher import PGNWatcher
 
         # Result of fopen(LOCKFILE_PATH) after obtaining the lock, otherwise None
@@ -80,27 +79,15 @@ class OpenBenchConfig(django.apps.AppConfig):
 
         if self.lockfile:
 
-            # Signals to stop the watchers
-            self.stop_artifact_watcher = threading.Event()
-            self.stop_pgn_watcher      = threading.Event()
-
-            # Each watcher is a threading.Thread
-            self.artifact_watcher = ArtifactWatcher(self.stop_artifact_watcher, daemon=True)
-            self.pgn_watcher      = PGNWatcher(self.stop_pgn_watcher, daemon=True)
-
-            # Start everything
-            self.artifact_watcher.start()
+            # Start a PGN Watcher
+            self.stop_pgn_watcher = threading.Event()
+            self.pgn_watcher = PGNWatcher(self.stop_pgn_watcher, daemon=True)
             self.pgn_watcher.start()
 
             # We expect a nice sys.exit(0) to allow our atexit to execute
             atexit.register(self.shutdown)
 
     def shutdown(self):
-
-        # Signal the Artifact Watcher to shutdown
-        if hasattr(self, 'artifact_watcher') and self.artifact_watcher.is_alive():
-            self.stop_artifact_watcher.set()
-            self.artifact_watcher.join()
 
         # Signal the PGN Watcher to shutdown
         if hasattr(self, 'pgn_watcher') and self.pgn_watcher.is_alive():

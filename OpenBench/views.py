@@ -268,7 +268,6 @@ def index(request, page=1):
     pending   = OpenBench.utils.get_pending_tests()
     active    = OpenBench.utils.get_active_tests()
     completed = OpenBench.utils.get_completed_tests()
-    awaiting  = OpenBench.utils.get_awaiting_tests()
 
     start, end, paging = OpenBench.utils.getPaging(completed, int(page), 'index')
 
@@ -276,7 +275,6 @@ def index(request, page=1):
         'pending'   : pending,
         'active'    : OpenBench.utils.group_active_tests_by_priority(active),
         'completed' : completed[start:end],
-        'awaiting'  : awaiting,
         'paging'    : paging,
         'status'    : OpenBench.utils.getMachineStatus(),
     }
@@ -288,7 +286,6 @@ def user(request, username, page=1):
     pending   = OpenBench.utils.get_pending_tests().filter(author=username)
     active    = OpenBench.utils.get_active_tests().filter(author=username)
     completed = OpenBench.utils.get_completed_tests().filter(author=username)
-    awaiting  = OpenBench.utils.get_awaiting_tests().filter(author=username)
 
     start, end, paging = OpenBench.utils.getPaging(completed, int(page), 'user/%s' % (username))
 
@@ -296,7 +293,6 @@ def user(request, username, page=1):
         'pending'   : pending,
         'active'    : OpenBench.utils.group_active_tests_by_priority(active),
         'completed' : completed[start:end],
-        'awaiting'  : awaiting,
         'paging'    : paging,
         'status'    : OpenBench.utils.getMachineStatus(username),
     }
@@ -732,10 +728,9 @@ def client_submit_nps(request, machine):
 @verify_worker
 def client_submit_error(request, machine):
 
-    ## Report an error when working on test. This could be one three kinds.
-    ## 1. Error building the engine. Does not compile, for whatever reason.
-    ## 2. Error getting the artifacts. Does not exist, lacks credentials.
-    ## 3. Error during actual gameplay. Timeloss, Disconnect, Crash, etc.
+    # Report an error when working on test. This could be one three kinds.
+    # 1. Error building the engine. Does not compile, for whatever reason.
+    # 2. Error during actual gameplay. Timeloss, Disconnect, Crash, etc.
 
     # Log the Error into the Events table
     event = LogEvent.objects.create(

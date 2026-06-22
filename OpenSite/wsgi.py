@@ -17,13 +17,13 @@ from django.core.wsgi import get_wsgi_application
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "OpenSite.settings")
 
 # OpenBench.apps registers an atexit shutdown() that gracefully stops the PGN
-# and Artifact watcher threads -- joining them so any in-flight tar write is
-# allowed to finish. atexit only runs on a clean interpreter exit, not on a
-# bare SIGTERM, so we install a SIGTERM handler that turns the kill signal into
-# a clean sys.exit() and thereby triggers that atexit shutdown().
+# watcher thread -- joining it so any in-flight write is allowed to finish.
+# atexit only runs on a clean interpreter exit, not on a bare SIGTERM, so we
+# install a SIGTERM handler that turns the kill signal into a clean sys.exit()
+# and thereby triggers that atexit shutdown().
 #
 # signal.signal() may only be called from the main thread, and ready() (where
-# the watchers are spawned) is not guaranteed to run there. So the handler is
+# the watcher is spawned) is not guaranteed to run there. So the handler is
 # installed at the two process entry points instead, each of which IS the main
 # thread of its own process:
 #

@@ -4,8 +4,10 @@
     "source"  : "https://github.com/ChessCom/TorchDev",
 
     "build" : {
-        "cpuflags" : ["AVX2", "FMA", "POPCNT"],
-        "systems"  : ["Linux"]
+        "path"      : "",
+        "compilers" : ["clang++", "g++"],
+        "cpuflags"  : ["AVX2", "FMA", "POPCNT"],
+        "systems"   : ["Linux"]
     },
 
     "test_presets" : {
