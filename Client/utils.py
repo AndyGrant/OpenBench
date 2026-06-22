@@ -65,12 +65,6 @@ class OpenBenchMissingAPICredentialsException(Exception):
         self.message = message
         super().__init__(self.message)
 
-class OpenBenchMissingArtifactException(Exception):
-    def __init__(self, name, logs):
-        self.name = name
-        self.logs = logs
-        super().__init__(self.name, self.logs)
-
 class OpenBenchBadServerResponseException(Exception):
     def __init__(self):
         self.message = ''
@@ -90,6 +84,7 @@ class OpenBenchMatchRunnerBuildFailedException(Exception):
     def __init__(self):
         self.message = ''
         super().__init__(self.message)
+
 
 def kill_process_by_name(process_name):
 
@@ -153,9 +148,9 @@ def read_git_credentials(engine):
     raise OpenBenchMissingAPICredentialsException('%s not found' % fname)
 
 
-def engine_binary_name(engine, commit_sha, net_path, private):
+def engine_binary_name(engine, commit_sha, net_path):
     name = '%s-%s' % (engine, commit_sha.upper()[:8])
-    if net_path and not private:
+    if net_path:
         name += '-%s' % (net_path[-8:])
     return name
 
@@ -312,12 +307,15 @@ def download_network(server, username, password, engine, net_name, net_sha, net_
         os.remove(net_path)
         raise OpenBenchCorruptedNetworkException('Invalid SHA for %s' % (net_name))
 
-def download_public_engine(engine, net_path, branch, source, make_path, out_path, compiler=None):
+def prepare_engine(engine, net_path, branch, source, make_path, out_path, private, compiler=None):
 
     # Check to see if we already have the binary
     if check_for_engine_binary(out_path):
         print('Found [%s-%s]' % (engine, branch))
         return os.path.basename(check_for_engine_binary(out_path))
+
+    # Private engines require credentialed headers to fetch the source
+    headers = read_git_credentials(engine) if private else None
 
     # Work with temp files and directories until finished building
     with tempfile.TemporaryDirectory() as temp_dir:
@@ -327,7 +325,7 @@ def download_public_engine(engine, net_path, branch, source, make_path, out_path
         # Download the zip file from Github
         zip_path = os.path.join(temp_dir, '%s-tmp' % (engine))
         with open(zip_path, 'wb') as zip_file:
-            zip_file.write(requests.get(source).content)
+            zip_file.write(requests.get(source, headers=headers).content)
 
         # Unzip the engine to a directory called <engine>
         unzip_path = os.path.join(temp_dir, engine)
@@ -364,46 +362,3 @@ def download_public_engine(engine, net_path, branch, source, make_path, out_path
     # Someone should catch this, and possibly report it to the OpenBench server
     message = 'Error during compilation. The logs have been sent to the server'
     raise OpenBenchBuildFailedException(message, comp_output)
-
-def download_private_engine(engine, branch, source, out_path, cpu_name, cpu_flags):
-
-    # Check to see if we already have the binary
-    if check_for_engine_binary(out_path):
-        print('Found [%s-%s]' % (engine, branch))
-        return os.path.basename(check_for_engine_binary(out_path))
-
-    # Pick the best artifact to match this machine
-    headers   = read_git_credentials(engine)
-    artifacts = requests.get(url=source, headers=headers).json()['artifacts']
-    options   = { artifact['name'] : artifact for artifact in artifacts }
-    best      = select_best_artifact(options, cpu_name, cpu_flags)
-
-    # Work with temp files and directories until finished extracting
-    with tempfile.TemporaryDirectory() as temp_dir:
-
-        print('Fetching [%s-%s]' % (engine, branch))
-
-        # Download the zip file from Github
-        zip_path = os.path.join(temp_dir, '%s-tmp' % (engine))
-        with open(zip_path, 'wb') as zip_file:
-            zip_file.write(requests.get(best['archive_download_url'], headers=headers).content)
-
-        # Unzip the engine to a directory called <engine>
-        unzip_path = os.path.join(temp_dir, engine)
-        with zipfile.ZipFile(zip_path, 'r') as zip_file:
-            zip_file.extractall(unzip_path)
-
-        # Rename the sole binary
-        unzip_root = os.path.join(unzip_path, os.listdir(unzip_path)[0])
-        shutil.move(unzip_root, out_path)
-
-    # Might not have execution permissions set
-    if platform.system() != 'Windows':
-        os.system('chmod 777 %s\n' % (out_path))
-
-    # Check to see if we already have the binary
-    if check_for_engine_binary(out_path):
-        return os.path.basename(check_for_engine_binary(out_path))
-
-    # Someone should catch this, and possibly report it to the OpenBench server
-    raise OpenBenchMissingArtifactException(best['name'], artifacts)
