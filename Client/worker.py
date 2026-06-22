@@ -757,7 +757,6 @@ def cleanup_client():
 
     SECONDS_PER_DAY   = 60 * 60 * 24
     SECONDS_PER_WEEK  = SECONDS_PER_DAY * 7
-    SECONDS_PER_MONTH = SECONDS_PER_WEEK * 4
 
     file_age = lambda x: time.time() - os.path.getmtime(x)
 
@@ -766,11 +765,11 @@ def cleanup_client():
             os.remove(os.path.join('PGNs', file))
 
     for file in os.listdir('Engines'):
-        if file_age(os.path.join('Engines', file)) > SECONDS_PER_WEEK:
+        if file_age(os.path.join('Engines', file)) > SECONDS_PER_DAY:
             os.remove(os.path.join('Engines', file))
 
     for file in os.listdir('Networks'):
-        if file_age(os.path.join('Networks', file)) > SECONDS_PER_MONTH:
+        if file_age(os.path.join('Networks', file)) > SECONDS_PER_WEEK:
             os.remove(os.path.join('Networks', file))
 
 def validate_syzygy_exists(config, K):
