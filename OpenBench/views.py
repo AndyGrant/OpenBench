@@ -728,10 +728,9 @@ def client_submit_nps(request, machine):
 @verify_worker
 def client_submit_error(request, machine):
 
-    ## Report an error when working on test. This could be one three kinds.
-    ## 1. Error building the engine. Does not compile, for whatever reason.
-    ## 2. Error getting the artifacts. Does not exist, lacks credentials.
-    ## 3. Error during actual gameplay. Timeloss, Disconnect, Crash, etc.
+    # Report an error when working on test. This could be one three kinds.
+    # 1. Error building the engine. Does not compile, for whatever reason.
+    # 2. Error during actual gameplay. Timeloss, Disconnect, Crash, etc.
 
     # Log the Error into the Events table
     event = LogEvent.objects.create(

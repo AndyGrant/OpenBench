@@ -269,17 +269,6 @@ class ServerReporter:
         return ServerReporter.report(config, 'clientSubmitNPS', payload)
 
     @staticmethod
-    def report_missing_artifact(config, artifact_name, artifact_json):
-
-        payload = {
-            'test_id'    : config.workload['test']['id'],
-            'error'      : 'Artifact %s missing' % (artifact_name),
-            'logs'       : json.dumps(artifact_json, indent=2),
-        }
-
-        return ServerReporter.report(config, 'clientSubmitError', payload)
-
-    @staticmethod
     def report_build_fail(config, branch, output):
 
         branch_name = config.workload['test'][branch]['name']

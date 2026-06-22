@@ -188,51 +188,6 @@ def makefile_command(net_path, make_path, out_path, compiler):
 
     return command
 
-def select_best_artifact(options, cpu_name, cpu_flags):
-
-    # Step 1. Filter down to our operating system only
-    artifacts = [x for x in options.keys() if x.split('-')[1] == platform.system().lower()]
-
-    # Pick betwen various Vector instruction sets that might apply
-    has_ssse3  =                all(x in cpu_flags for x in ['SSSE3'])
-    has_sse4   = has_ssse3  and all(x in cpu_flags for x in ['SSE41', 'SSE42'])
-    has_avx    = has_sse4   and all(x in cpu_flags for x in ['AVX'])
-    has_avx2   = has_avx    and all(x in cpu_flags for x in ['AVX2', 'FMA'])
-    has_avx512 = has_avx2   and all(x in cpu_flags for x in ['AVX512BW', 'AVX512DQ', 'AVX512F'])
-    has_vnni   = has_avx512 and all(x in cpu_flags for x in ['AVX512VNNI'])
-
-    # Filtering system, where we remove everything but the strongest that is available
-    selection = [
-        (has_vnni  , 'vnni'  ), (has_avx512, 'avx512'), (has_avx2  , 'avx2'  ),
-        (has_avx   , 'avx'   ), (has_sse4  , 'sse4'  ), (has_ssse3 , 'ssse3' ),
-    ]
-
-    # Step 2. Filter everything but the best Vector instruction set that was available
-    for boolean, identifier in selection:
-        if boolean and identifier in [x.split('-')[2] for x in artifacts]:
-            artifacts = [x for x in artifacts if x.split('-')[2] == identifier]
-            break
-
-    # Identify any Ryzen or AMD chip, excluding the 7B12
-    ryzen = 'AMD' in cpu_name.upper()
-    ryzen = 'RYZEN' in cpu_name.upper() or ryzen
-    ryzen = ryzen and '7B12' not in cpu_name.upper()
-
-    # Pick between POPCNT and BMI2/PEXT
-    has_popcnt = 'POPCNT' in cpu_flags
-    has_bmi2   = 'BMI2' in cpu_flags and not ryzen
-
-    # Filtering system, where we remove everything but the strongest that is available
-    selection = [ (has_bmi2, 'pext'), (has_popcnt, 'popcnt') ]
-
-    # Step 3. Filter everything but the best bitop instruction set that was available
-    for boolean, identifier in selection:
-        if boolean and identifier in [x.split('-')[3] for x in artifacts]:
-            artifacts = [x for x in artifacts if x.split('-')[3] == identifier]
-            break
-
-    return options[artifacts[0]]
-
 
 def download_opening_book(book_sha, book_source, book_name):
 
