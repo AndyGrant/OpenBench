@@ -41,7 +41,6 @@ import OpenBench.views
 
 from OpenBench.config import OPENBENCH_CONFIG
 from OpenBench.models import *
-from OpenBench.utils import path_join, read_git_credentials
 from OpenBench.workloads.verify_workload import verify_workload
 
 def create_workload(request, workload_type):
@@ -300,11 +299,11 @@ def branch_is_out_of_date(workload):
     # Format the request to the Github endpoint
     base = 'https://api.github.com/repos/'
     base = workload.dev_repo.replace('github.com', 'api.github.com/repos')
-    url  = path_join(base, 'compare', '%s...%s' % (workload.dev.sha, workload.base.sha))
+    url  = OpenBench.utils.path_join(base, 'compare', '%s...%s' % (workload.dev.sha, workload.base.sha))
 
     try:
         # Out of date if ahead_by is non-zero
-        headers = read_git_credentials(workload.dev_engine)
+        headers = OpenBench.utils.read_git_credentials(workload.dev_engine)
         data    = requests.get(url, headers=headers).json()
         return data.get('ahead_by', 0) > 0
 
