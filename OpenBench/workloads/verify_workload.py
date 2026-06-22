@@ -429,10 +429,8 @@ def collect_github_info(errors, request, field):
         errors.append('Unable to parse a Bench for %s' % (branch))
         return
 
-    info = request.POST['info'] or strip_message(data['commit']['message'])
-
-    treeurl = data['commit']['tree']['sha'] + '.zip'
-    source  = OpenBench.utils.path_join(request.POST['%s_repo' % (field)], 'archive', treeurl)
+    info   = request.POST['info'] or strip_message(data['commit']['message'])
+    source = OpenBench.utils.path_join(base, 'zipball', data['sha'])
     return (source, branch, data['sha'], bench, info)
 
 def requests_illegal_fork(request, field):
