@@ -120,14 +120,14 @@ def create_new_test(request):
     test.upload_pgns       = request.POST['upload_pgns']
     test.info              = dev_info[4]
 
-    test.dev               = get_engine(*dev_info)
+    test.dev               = Engine.objects.create(name=dev_info[1], source=dev_info[0], sha=dev_info[2], bench=dev_info[3])
     test.dev_repo          = request.POST['dev_repo']
     test.dev_engine        = request.POST['dev_engine']
     test.dev_options       = request.POST['dev_options']
     test.dev_network       = request.POST['dev_network']
     test.dev_time_control  = OpenBench.utils.TimeControl.parse(request.POST['dev_time_control'])
 
-    test.base              = get_engine(*base_info)
+    test.base              = Engine.objects.create(name=base_info[1], source=base_info[0], sha=base_info[2], bench=base_info[3])
     test.base_repo         = request.POST['base_repo']
     test.base_engine       = request.POST['base_engine']
     test.base_options      = request.POST['base_options']
@@ -187,7 +187,7 @@ def create_new_tune(request):
     test.upload_pgns      = request.POST['upload_pgns']
     test.info             = request.POST['info']
 
-    test.dev              = test.base              = get_engine(*dev_info)
+    test.dev              = test.base              = Engine.objects.create(name=dev_info[1], source=dev_info[0], sha=dev_info[2], bench=dev_info[3])
     test.dev_repo         = test.base_repo         = request.POST['dev_repo']
     test.dev_engine       = test.base_engine       = request.POST['dev_engine']
     test.dev_options      = test.base_options      = request.POST['dev_options']
@@ -236,14 +236,14 @@ def create_new_datagen(request):
     test.upload_pgns       = request.POST['upload_pgns']
     test.info              = request.POST['info']
 
-    test.dev               = get_engine(*dev_info)
+    test.dev               = Engine.objects.create(name=dev_info[1], source=dev_info[0], sha=dev_info[2], bench=dev_info[3])
     test.dev_repo          = request.POST['dev_repo']
     test.dev_engine        = request.POST['dev_engine']
     test.dev_options       = request.POST['dev_options']
     test.dev_network       = request.POST['dev_network']
     test.dev_time_control  = OpenBench.utils.TimeControl.parse(request.POST['dev_time_control'])
 
-    test.base              = get_engine(*base_info)
+    test.base              = Engine.objects.create(name=base_info[1], source=base_info[0], sha=base_info[2], bench=base_info[3])
     test.base_repo         = request.POST['base_repo']
     test.base_engine       = request.POST['base_engine']
     test.base_options      = request.POST['base_options']
@@ -285,10 +285,6 @@ def create_new_datagen(request):
 
     return test, None
 
-
-def get_engine(source, name, sha, bench, info):
-    engine, _ = Engine.objects.get_or_create(name=name, source=source, sha=sha, bench=bench)
-    return engine
 
 def branch_is_out_of_date(workload):
 
