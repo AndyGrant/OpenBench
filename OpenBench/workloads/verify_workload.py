@@ -419,13 +419,17 @@ def collect_github_info(errors, request, field):
         # Check that all the data we need going forward is present
         assert 'message' in data['commit'] and 'sha' in data
 
+        bench_file_sha = data['sha']
+        bench_file_url = OpenBench.utils.path_join(base, f'contents/.bench?ref={bench_file_sha}')
+        bench_file_data = requests.get(bench_file_url, headers=headers).json()
+
     except: # Unable to find for whatever reason
         traceback.print_exc()
         errors.append('%s could not be found' % (branch or 'Branch'))
         return
 
-    # Extract the bench from the web form, or from the commit message
-    if not (bench := determine_bench(request, field, data['commit']['message'])):
+    # Extract the bench from the web form, or from the repository
+    if not (bench := determine_bench(request, field, data['commit']['message'], bench_file_data)):
         errors.append('Unable to parse a Bench for %s' % (branch))
         return
 
@@ -443,7 +447,7 @@ def requests_illegal_fork(request, field):
     # Illegal if sources do not match for Private engines
     return engine['private'] and eng_src != tar_src
 
-def determine_bench(request, field, message):
+def determine_bench(request, field, message, bench_file_data):
 
     # Use the provided bench if possible
     try: return int(request.POST['{0}_bench'.format(field)])
@@ -453,7 +457,18 @@ def determine_bench(request, field, message):
     try:
         benches = re.findall('(?:BENCH|NODES)[ :=]+([0-9,]+)', message, re.IGNORECASE)
         return int(benches[-1].replace(',', ''))
-    except: return None
+    except: pass
+
+    # If there's a bench file in the repo, use that
+    try:
+        import base64
+        base64_bench = bench_file_data["content"].strip()
+        bench = base64.b64decode(base64_bench)
+        return int(bench)
+    except: pass
+
+    return None
+
 
 def strip_message(message):
     lines = message.strip().split("\n")
