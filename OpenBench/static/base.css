@@ -18,6 +18,14 @@
     width: 100%;
 }
 
+.mw-15 {
+    max-width: 15%;
+}
+
+.mw-20 {
+    max-width: 20%;
+}
+
 .mw-25 {
     max-width: 25%;
 }
