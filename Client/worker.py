@@ -110,12 +110,12 @@ class Configuration:
         self.server       = args.server
         self.threads      = int(args.threads) if args.threads != 'auto' else self.physical_cores
         self.sockets      = int(args.nsockets)
+        self.memory_limit = int(args.memory_limit) if args.memory_limit else None
         self.identity     = args.identity if args.identity else 'None'
         self.syzygy_path  = args.syzygy   if args.syzygy   else None
         self.fleet        = args.fleet    if args.fleet    else False
         self.noisy        = args.noisy    if args.noisy    else False
         self.focus        = args.focus    if args.focus    else []
-        self.memory_limit = int(args.memory_limit) if args.memory_limit else None
 
     def check_requirements(self):
 
@@ -1372,11 +1372,11 @@ def parse_arguments(client_args):
     p.add_argument('-T', '--threads'     , help='Total Threads'                  , required=True      )
     p.add_argument('-N', '--nsockets'    , help='Number of Sockets'              , required=True      )
     p.add_argument('-I', '--identity'    , help='Machine pseudonym'              , required=False     )
+    p.add_argument(      '--memory-limit', help='Memory limit in MB (Linux only)', required=False     )
     p.add_argument(      '--syzygy'      , help='Syzygy WDL'                     , required=False     )
     p.add_argument(      '--fleet'       , help='Fleet Mode'                     , action='store_true')
     p.add_argument(      '--noisy'       , help='Reject time-based workloads'    , action='store_true')
     p.add_argument(      '--focus'       , help='Prefer certain engine(s)'       , nargs='+'          )
-    p.add_argument(      '--memory-limit', help='Memory limit in MB (Linux only)', required=False     )
 
     # Ignore unknown arguments ( from client )
     worker_args, unknown = p.parse_known_args()
