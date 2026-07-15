@@ -887,7 +887,7 @@ def determine_scale_factor(config, dev_name, base_name):
     ServerReporter.report_nps(config, dev_nps, base_nps)
 
     if config.memory_limit:
-        required = estimate_required_memory_mb(config, dev_peak, base_peak)
+        required = estimate_required_memory_mb(config, dev_name, dev_peak, base_name, base_peak)
         print('\nEstimated memory required: %.2f MB' % required)
 
         if required > config.memory_limit:
@@ -920,26 +920,40 @@ def determine_scale_factor(config, dev_name, base_name):
 
     return factor
 
-def estimate_required_memory_mb(config, dev_peak, base_peak):
+def estimate_required_memory_mb(config, dev_name, dev_peak, base_name, base_peak):
 
     MEGABYTE = 1024 * 1024
-
-    # TODO: Actually get the default Hash from the engine
-    BENCH_HASH_MB = 16
 
     MEMORY_RESERVED_BYTES = 1024 * MEGABYTE
     MEMORY_SAFETY_FACTOR = 1.25
 
-    def estimate_memory_per_engine(branch, peak):
-        hash_mb    = int(re.search(r'Hash=(\d+)', config.workload['test'][branch]['options']).group(1))
-        hash_delta = max(0, hash_mb - BENCH_HASH_MB) * MEGABYTE
+    def estimate_memory_per_engine(branch, engine, peak):
+        bench_hash    = get_engine_default_hash(os.path.join('Engines', engine))
+        workload_hash = int(re.search(r'Hash=(\d+)', config.workload['test'][branch]['options']).group(1))
+        hash_delta    = max(0, workload_hash - bench_hash) * MEGABYTE
         return peak / config.threads + hash_delta
 
     runner_cnt      = config.workload['distribution']['runner-count']
     concurrency_per = config.workload['distribution']['concurrency-per']
-    memory_per_pair = (estimate_memory_per_engine('dev', dev_peak) + estimate_memory_per_engine('base', base_peak))
+    memory_per_pair = (estimate_memory_per_engine('dev', dev_name, dev_peak) + estimate_memory_per_engine('base', base_name, base_peak))
 
     return int(runner_cnt * concurrency_per * memory_per_pair * MEMORY_SAFETY_FACTOR + MEMORY_RESERVED_BYTES) // MEGABYTE
+
+def get_engine_default_hash(binary):
+
+    DEFAULT_BENCH_HASH_MB = 16
+
+    process = Popen(['./%s' % binary], stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+
+    try:
+        stdout = process.communicate(input=b'uci\nquit\n', timeout=10)[0].decode('utf-8', 'ignore')
+        match  = re.search(r'option name Hash type spin default (\d+)', stdout, re.IGNORECASE)
+        return int(match.group(1))
+    except subprocess.TimeoutExpired:
+        process.kill()
+
+    print('[Warning] Unable to determine default Hash size for %s' % (binary))
+    return DEFAULT_BENCH_HASH_MB
 
 ## Functions interacting with the OpenBench server that establish the initial
 ## connection and then make simple requests to retrieve Workloads as json objects
