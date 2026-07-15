@@ -1007,16 +1007,25 @@ def api_spsa(request, workload_id, query):
     return api_response({ 'error' : 'Valid /query/ endpoints are: [ %s ]' % (', '.join(valid_endpoints)) })
 
 @csrf_exempt
-def api_workload_results(request, workload_id):
+def api_workload(request, workload_id, query):
 
+    # 0. Make sure the request has the correct permissions
     if not api_authenticate(request):
         return api_response({ 'error' : 'API requires authentication for this server' })
 
+    # 1. Make sure the workload actually exists for the requested query
     try: workload = Test.objects.get(pk=workload_id)
     except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
 
-    truncated, results_json = fetch_results(workload_id, force=True)
-    return JsonResponse({'results' : results_json})
+    if query == 'results':
+        truncated, results_json = fetch_results(workload_id, force=True)
+        return JsonResponse({ 'results' : results_json })
+
+    if query == 'info':
+        return api_response({ 'info' : OpenBench.model_utils.workload_to_dict(workload) })
+
+    valid_endpoints = [ 'results', 'info' ]
+    return api_response({ 'error' : 'Valid /query/ endpoints are: [ %s ]' % (', '.join(valid_endpoints)) })
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                BUSINESS VIEWS                               #
