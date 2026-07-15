@@ -307,6 +307,17 @@ class ServerReporter:
         return ServerReporter.report(config, 'clientBenchError', payload)
 
     @staticmethod
+    def report_insufficient_memory(config, error):
+
+        payload = {
+            'test_id'    : config.workload['test']['id'],
+            'error'      : error,
+            'logs'       : error,
+        }
+
+        return ServerReporter.report(config, 'clientSubmitError', payload)
+
+    @staticmethod
     def report_results(config, batches):
 
         payload = {
@@ -871,9 +882,20 @@ def find_pgn_error(reason, command):
 def determine_scale_factor(config, dev_name, base_name):
 
     # Run the benchmarks and compute the scaling NPS value
-    dev_nps  = safe_run_benchmarks(config, 'dev' , dev_name )
-    base_nps = safe_run_benchmarks(config, 'base', base_name)
+    dev_nps , dev_peak  = safe_run_benchmarks(config, 'dev' , dev_name )
+    base_nps, base_peak = safe_run_benchmarks(config, 'base', base_name)
     ServerReporter.report_nps(config, dev_nps, base_nps)
+
+    if config.memory_limit:
+        required = estimate_required_memory_mb(config, dev_peak, base_peak)
+        print('\nEstimated memory required: %.2f MB' % required)
+
+        if required > config.memory_limit:
+            error = '[Error] Insufficient memory to run this Workload (required: %.2f MB, limit: %.2f MB)' % (required, config.memory_limit)
+
+            config.blacklist.append(config.workload['test']['id'])
+            ServerReporter.report_insufficient_memory(config, error)
+            raise utils.OpenBenchInsufficientMemoryException(error)
 
     dev_factor = base_factor = None
 
@@ -897,6 +919,27 @@ def determine_scale_factor(config, dev_name, base_name):
         print ('Scale Factor (Using Both): %.4f' % (factor))
 
     return factor
+
+def estimate_required_memory_mb(config, dev_peak, base_peak):
+
+    MEGABYTE = 1024 * 1024
+
+    # TODO: Actually get the default Hash from the engine
+    BENCH_HASH_MB = 16
+
+    MEMORY_RESERVED_BYTES = 1024 * MEGABYTE
+    MEMORY_SAFETY_FACTOR = 1.25
+
+    def estimate_memory_per_engine(branch, peak):
+        hash_mb    = int(re.search(r'Hash=(\d+)', config.workload['test'][branch]['options']).group(1))
+        hash_delta = max(0, hash_mb - BENCH_HASH_MB) * MEGABYTE
+        return peak / config.threads + hash_delta
+
+    runner_cnt      = config.workload['distribution']['runner-count']
+    concurrency_per = config.workload['distribution']['concurrency-per']
+    memory_per_pair = (estimate_memory_per_engine('dev', dev_peak) + estimate_memory_per_engine('base', base_peak))
+
+    return int(runner_cnt * concurrency_per * memory_per_pair * MEMORY_SAFETY_FACTOR + MEMORY_RESERVED_BYTES) // MEGABYTE
 
 ## Functions interacting with the OpenBench server that establish the initial
 ## connection and then make simple requests to retrieve Workloads as json objects
@@ -1220,7 +1263,7 @@ def safe_run_benchmarks(config, branch, engine):
         megabyte = 1024 * 1024
         print('\nPeak memory for %s is %.2f MB' % (name, peak_memory / megabyte))
 
-    return speed
+    return speed, peak_memory
 
 
 def build_runner_command(config, dev_cmd, base_cmd, scale_factor, timestamp, runner_idx):
