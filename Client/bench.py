@@ -96,17 +96,16 @@ def multi_core_bench(binary, threads, monitor_memory=False):
 
     stop_event     = None
     monitor        = None
-    monitor_result = {'peak': 0}
+    monitor_result = {}
 
     if monitor_memory:
-        pids       = [process.pid for process in processes]
-        stop_event = threading.Event()
-        monitor    = threading.Thread(target=monitor_peak_memory, args=(pids, stop_event, monitor_result))
+        pids           = [process.pid for process in processes]
+        stop_event     = threading.Event()
+        monitor        = threading.Thread(target=monitor_peak_memory, args=(pids, stop_event, monitor_result))
         monitor.start()
 
     try: # Every process deposits exactly one result into the Queue
         results = [outqueue.get(timeout=MAX_BENCH_TIME_SECONDS) for _ in range(threads)]
-        return results, monitor_result['peak'] if monitor_memory else None
 
     except queue.Empty: # Force kill the engine, thus causing the processes to finish
         utils.kill_process_by_name(binary)
@@ -118,6 +117,8 @@ def multi_core_bench(binary, threads, monitor_memory=False):
             monitor.join()
         for process in processes:
             process.join()
+
+    return results, monitor_result.get('peak', 0)
 
 def run_benchmark(binary, threads, sets, expected=None, monitor_memory=False):
 
