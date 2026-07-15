@@ -104,16 +104,17 @@ class Configuration:
     def process_args(self, args):
 
         # Extract all of the options
-        self.username    = args.username
-        self.password    = args.password
-        self.server      = args.server
-        self.threads     = int(args.threads) if args.threads != 'auto' else self.physical_cores
-        self.sockets     = int(args.nsockets)
-        self.identity    = args.identity if args.identity else 'None'
-        self.syzygy_path = args.syzygy   if args.syzygy   else None
-        self.fleet       = args.fleet    if args.fleet    else False
-        self.noisy       = args.noisy    if args.noisy    else False
-        self.focus       = args.focus    if args.focus    else []
+        self.username     = args.username
+        self.password     = args.password
+        self.server       = args.server
+        self.threads      = int(args.threads) if args.threads != 'auto' else self.physical_cores
+        self.sockets      = int(args.nsockets)
+        self.identity     = args.identity if args.identity else 'None'
+        self.syzygy_path  = args.syzygy   if args.syzygy   else None
+        self.fleet        = args.fleet    if args.fleet    else False
+        self.noisy        = args.noisy    if args.noisy    else False
+        self.focus        = args.focus    if args.focus    else []
+        self.memory_limit = int(args.memory_limit) if args.memory_limit else None
 
     def check_requirements(self):
 
@@ -155,6 +156,7 @@ class Configuration:
 
     def validate_setup(self):
 
+        assert self.memory_limit is None or IS_LINUX
         assert self.threads >= self.sockets
         assert self.threads % self.sockets == 0
         assert min(self.threads, self.sockets) >= 1
@@ -1205,7 +1207,7 @@ def safe_run_benchmarks(config, branch, engine):
 
     try:
         print('\nRunning %dx Benchmarks for %s' % (config.threads, name))
-        speed, nodes = bench.run_benchmark(binary, config.threads, 1, expected)
+        speed, nodes, peak_memory = bench.run_benchmark(binary, config.threads, 1, expected, config.memory_limit)
 
     except utils.OpenBenchBadBenchException as error:
         ServerReporter.report_bad_bench(config, error.message)
@@ -1213,6 +1215,11 @@ def safe_run_benchmarks(config, branch, engine):
 
     print('Bench for %s is %d' % (name, nodes))
     print('Speed for %s is %d' % (name, speed))
+
+    if config.memory_limit:
+        megabyte = 1024 * 1024
+        print('\nPeak memory for %s is %.2f MB' % (name, peak_memory / megabyte))
+
     return speed
 
 
@@ -1307,13 +1314,14 @@ def parse_arguments(client_args):
     )
 
     # Arguments specific to worker.py
-    p.add_argument('-T', '--threads' , help='Total Threads'               , required=True      )
-    p.add_argument('-N', '--nsockets', help='Number of Sockets'           , required=True      )
-    p.add_argument('-I', '--identity', help='Machine pseudonym'           , required=False     )
-    p.add_argument(      '--syzygy'  , help='Syzygy WDL'                  , required=False     )
-    p.add_argument(      '--fleet'   , help='Fleet Mode'                  , action='store_true')
-    p.add_argument(      '--noisy'   , help='Reject time-based workloads' , action='store_true')
-    p.add_argument(      '--focus'   , help='Prefer certain engine(s)'    , nargs='+'          )
+    p.add_argument('-T', '--threads'     , help='Total Threads'                  , required=True      )
+    p.add_argument('-N', '--nsockets'    , help='Number of Sockets'              , required=True      )
+    p.add_argument('-I', '--identity'    , help='Machine pseudonym'              , required=False     )
+    p.add_argument(      '--syzygy'      , help='Syzygy WDL'                     , required=False     )
+    p.add_argument(      '--fleet'       , help='Fleet Mode'                     , action='store_true')
+    p.add_argument(      '--noisy'       , help='Reject time-based workloads'    , action='store_true')
+    p.add_argument(      '--focus'       , help='Prefer certain engine(s)'       , nargs='+'          )
+    p.add_argument(      '--memory-limit', help='Memory limit in MB (Linux only)', required=False     )
 
     # Ignore unknown arguments ( from client )
     worker_args, unknown = p.parse_known_args()
