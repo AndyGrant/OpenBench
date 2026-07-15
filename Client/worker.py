@@ -69,6 +69,7 @@ REPORT_INTERVAL  = 30 # Seconds between reports to the Server
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
 IS_LINUX   = platform.system() != 'Windows' # Don't touch this
 
+MEGABYTE = 1024 * 1024
 
 class Configuration:
 
@@ -922,8 +923,6 @@ def determine_scale_factor(config, dev_name, base_name):
 
 def estimate_required_memory_mb(config, dev_name, dev_peak, base_name, base_peak):
 
-    MEGABYTE = 1024 * 1024
-
     MEMORY_RESERVED_BYTES = 1024 * MEGABYTE
     MEMORY_SAFETY_FACTOR = 1.25
 
@@ -1274,8 +1273,7 @@ def safe_run_benchmarks(config, branch, engine):
     print('Speed for %s is %d' % (name, speed))
 
     if config.memory_limit:
-        megabyte = 1024 * 1024
-        print('Peak memory for %s is %.2f MB' % (name, peak_memory / megabyte))
+        print('Peak memory for %s is %.2f MB' % (name, peak_memory / MEGABYTE))
 
     return speed, peak_memory
 
