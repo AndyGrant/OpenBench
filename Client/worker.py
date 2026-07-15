@@ -1261,7 +1261,7 @@ def safe_run_benchmarks(config, branch, engine):
 
     if config.memory_limit:
         megabyte = 1024 * 1024
-        print('\nPeak memory for %s is %.2f MB' % (name, peak_memory / megabyte))
+        print('Peak memory for %s is %.2f MB' % (name, peak_memory / megabyte))
 
     return speed, peak_memory
 
