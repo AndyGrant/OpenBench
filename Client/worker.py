@@ -923,19 +923,19 @@ def estimate_required_memory_kb(config, dev_name, dev_peak, base_name, base_peak
 
     # Reserve 1GB for Python, Fastchess, etc.
     MEMORY_RESERVED_KB = 1024**2
-    MEMORY_SAFETY_FACTOR = 1.25
+    MEMORY_OVERHEAD_FACTOR = 1.25
 
     def estimate_memory_per_engine(branch, engine, peak):
         bench_hash    = get_engine_default_hash(os.path.join('Engines', engine))
         workload_hash = int(re.search(r'Hash=(\d+)', config.workload['test'][branch]['options']).group(1))
-        hash_delta    = max(0, workload_hash - bench_hash)
-        return peak / config.threads + 1024 * hash_delta
+        hash_delta    = 1024 * max(0, workload_hash - bench_hash)
+        return peak / config.threads + hash_delta
 
     runner_cnt         = config.workload['distribution']['runner-count']
     concurrency_per    = config.workload['distribution']['concurrency-per']
     memory_per_pair_kb = (estimate_memory_per_engine('dev', dev_name, dev_peak) + estimate_memory_per_engine('base', base_name, base_peak))
 
-    return int(runner_cnt * concurrency_per * memory_per_pair_kb * MEMORY_SAFETY_FACTOR + MEMORY_RESERVED_KB)
+    return int(runner_cnt * concurrency_per * memory_per_pair_kb * MEMORY_OVERHEAD_FACTOR + MEMORY_RESERVED_KB)
 
 def get_engine_default_hash(binary):
 

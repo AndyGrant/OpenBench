@@ -127,13 +127,13 @@ def run_benchmark(binary, threads, sets, expected=None, monitor_memory=False):
     peak_memory_kb = 0
     benches, speeds = [], []
     for _ in range(sets):
-        results, peak_memory_kb_run = multi_core_bench(binary, threads, monitor_memory)
+        results, peak_memory_run_kb = multi_core_bench(binary, threads, monitor_memory)
 
         for bench, speed in results:
             benches.append(bench); speeds.append(speed)
 
         if monitor_memory:
-            peak_memory_kb = max(peak_memory_kb, peak_memory_kb_run)
+            peak_memory_kb = max(peak_memory_kb, peak_memory_run_kb)
 
     if None in benches or None in speeds:
         raise utils.OpenBenchBadBenchException('[%s] Failed to Execute Benchmark' % (engine))
