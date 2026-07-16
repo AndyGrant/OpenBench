@@ -124,16 +124,16 @@ def run_benchmark(binary, threads, sets, expected=None, monitor_memory=False):
 
     engine = os.path.basename(binary)
 
-    peak_memory = 0
+    peak_memory_kb = 0
     benches, speeds = [], []
     for _ in range(sets):
-        results, peak_memory_run = multi_core_bench(binary, threads, monitor_memory)
+        results, peak_memory_kb_run = multi_core_bench(binary, threads, monitor_memory)
 
         for bench, speed in results:
             benches.append(bench); speeds.append(speed)
 
         if monitor_memory:
-            peak_memory = max(peak_memory, peak_memory_run)
+            peak_memory_kb = max(peak_memory_kb, peak_memory_kb_run)
 
     if None in benches or None in speeds:
         raise utils.OpenBenchBadBenchException('[%s] Failed to Execute Benchmark' % (engine))
@@ -144,23 +144,23 @@ def run_benchmark(binary, threads, sets, expected=None, monitor_memory=False):
     if expected and expected != benches[0]:
         raise utils.OpenBenchBadBenchException('[%s] Wrong Bench: %d' % (engine, benches[0]))
 
-    return sum(speeds) // len(speeds), benches[0], peak_memory
+    return sum(speeds) // len(speeds), benches[0], peak_memory_kb
 
 def sample_engine_memory(workers):
 
-    total = 0
+    peak_kb = 0
     for worker in workers:
         try: # Engines are direct children of the multiprocessing workers
             for engine in worker.children(recursive=True):
                 try:
                     info = engine.memory_full_info()
-                    total += getattr(info, 'pss', info.uss)
+                    peak_kb += getattr(info, 'pss', info.uss) // 1024
                 except (psutil.NoSuchProcess, psutil.AccessDenied):
                     pass
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             pass
 
-    return total
+    return peak_kb
 
 def monitor_peak_memory(worker_pids, stop_event, result):
 
@@ -171,9 +171,9 @@ def monitor_peak_memory(worker_pids, stop_event, result):
         try: workers.append(psutil.Process(pid))
         except psutil.NoSuchProcess: pass
 
-    peak = 0
+    peak_kb = 0
     while not stop_event.is_set():
-        peak = max(peak, sample_engine_memory(workers))
+        peak_kb = max(peak_kb, sample_engine_memory(workers))
         time.sleep(MEMORY_SAMPLE_SECONDS)
 
-    result['peak'] = max(peak, sample_engine_memory(workers))
+    result['peak'] = max(peak_kb, sample_engine_memory(workers))

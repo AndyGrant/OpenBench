@@ -69,8 +69,6 @@ REPORT_INTERVAL  = 30 # Seconds between reports to the Server
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
 IS_LINUX   = platform.system() != 'Windows' # Don't touch this
 
-MEGABYTE = 1024 * 1024
-
 class Configuration:
 
     ## Handles configuring the worker with the server. This means collecting
@@ -888,11 +886,11 @@ def determine_scale_factor(config, dev_name, base_name):
     ServerReporter.report_nps(config, dev_nps, base_nps)
 
     if config.memory_limit:
-        required = estimate_required_memory_mb(config, dev_name, dev_peak, base_name, base_peak)
-        print('\nEstimated memory required: %.2f MB' % required)
+        required_mb = estimate_required_memory_kb(config, dev_name, dev_peak, base_name, base_peak) / 1024
+        print('\nEstimated memory required: %.2f MB' % required_mb)
 
-        if required > config.memory_limit:
-            error = '[Error] Insufficient memory to run this Workload (required: %.2f MB, limit: %.2f MB)' % (required, config.memory_limit)
+        if required_mb > config.memory_limit:
+            error = '[Error] Insufficient memory to run this Workload (required: %.2f MB, limit: %.2f MB)' % (required_mb, config.memory_limit)
 
             config.blacklist.append(config.workload['test']['id'])
             ServerReporter.report_insufficient_memory(config, error)
@@ -921,22 +919,23 @@ def determine_scale_factor(config, dev_name, base_name):
 
     return factor
 
-def estimate_required_memory_mb(config, dev_name, dev_peak, base_name, base_peak):
+def estimate_required_memory_kb(config, dev_name, dev_peak, base_name, base_peak):
 
-    MEMORY_RESERVED_BYTES = 1024 * MEGABYTE
+    # Reserve 1GB for Python, Fastchess, etc.
+    MEMORY_RESERVED_KB = 1024**2
     MEMORY_SAFETY_FACTOR = 1.25
 
     def estimate_memory_per_engine(branch, engine, peak):
         bench_hash    = get_engine_default_hash(os.path.join('Engines', engine))
         workload_hash = int(re.search(r'Hash=(\d+)', config.workload['test'][branch]['options']).group(1))
-        hash_delta    = max(0, workload_hash - bench_hash) * MEGABYTE
-        return peak / config.threads + hash_delta
+        hash_delta    = max(0, workload_hash - bench_hash)
+        return peak / config.threads + 1024 * hash_delta
 
-    runner_cnt      = config.workload['distribution']['runner-count']
-    concurrency_per = config.workload['distribution']['concurrency-per']
-    memory_per_pair = (estimate_memory_per_engine('dev', dev_name, dev_peak) + estimate_memory_per_engine('base', base_name, base_peak))
+    runner_cnt         = config.workload['distribution']['runner-count']
+    concurrency_per    = config.workload['distribution']['concurrency-per']
+    memory_per_pair_kb = (estimate_memory_per_engine('dev', dev_name, dev_peak) + estimate_memory_per_engine('base', base_name, base_peak))
 
-    return int(runner_cnt * concurrency_per * memory_per_pair * MEMORY_SAFETY_FACTOR + MEMORY_RESERVED_BYTES) // MEGABYTE
+    return int(runner_cnt * concurrency_per * memory_per_pair_kb * MEMORY_SAFETY_FACTOR + MEMORY_RESERVED_KB)
 
 def get_engine_default_hash(binary):
 
@@ -1263,7 +1262,7 @@ def safe_run_benchmarks(config, branch, engine):
 
     try:
         print('\nRunning %dx Benchmarks for %s' % (config.threads, name))
-        speed, nodes, peak_memory = bench.run_benchmark(binary, config.threads, 1, expected, config.memory_limit)
+        speed, nodes, peak_memory_kb = bench.run_benchmark(binary, config.threads, 1, expected, config.memory_limit)
 
     except utils.OpenBenchBadBenchException as error:
         ServerReporter.report_bad_bench(config, error.message)
@@ -1273,9 +1272,9 @@ def safe_run_benchmarks(config, branch, engine):
     print('Speed for %s is %d' % (name, speed))
 
     if config.memory_limit:
-        print('Peak memory for %s is %.2f MB' % (name, peak_memory / MEGABYTE))
+        print('Peak memory for %s is %.2f MB' % (name, peak_memory_kb / 1024))
 
-    return speed, peak_memory
+    return speed, peak_memory_kb
 
 
 def build_runner_command(config, dev_cmd, base_cmd, scale_factor, timestamp, runner_idx):
