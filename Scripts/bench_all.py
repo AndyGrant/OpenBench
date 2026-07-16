@@ -91,6 +91,7 @@ if __name__ == '__main__':
     parser.add_argument('--engines', help='List of specific engines', nargs='+')
     parser.add_argument('--threads', help='Concurrent Benchmarks',  required=True, type=int)
     parser.add_argument('--sets'   , help='Benchmark Sample Count', required=True, type=int)
+    parser.add_argument('--memory' , help='Sample peak memory', action='store_true')
     args   = credentialed_cmdline_args(parser)
 
     # Get the build info, and default network info, for all applicable engines
@@ -121,6 +122,7 @@ if __name__ == '__main__':
     # Pretty Formatting
     max_length   = max(len(engine) for engine in engines)
     print_format = '%-' + str(max_length) + 's %8d nps %10d nodes in %6.3f seconds'
+    print_format_mem = '%-' + str(max_length) + 's %8d nps %10d nodes in %6.3f seconds and %6.2f MB peak memory'
 
     for engine in engines:
 
@@ -133,8 +135,11 @@ if __name__ == '__main__':
             continue
 
         try:
-            nps, nodes = run_benchmark(binary, args.threads, args.sets)
-            print (print_format % (engine, nps, nodes, nodes / max(1e-6, nps)))
+            nps, nodes, peak_kb = run_benchmark(binary, args.threads, args.sets, monitor_memory=args.memory)
+            if args.memory:
+                print (print_format_mem % (engine, nps, nodes, nodes / max(1e-6, nps), peak_kb / 1024))
+            else:
+                print (print_format % (engine, nps, nodes, nodes / max(1e-6, nps)))
 
         except OpenBenchBadBenchException as error:
             print ('%s: %s' % (engine, error))
