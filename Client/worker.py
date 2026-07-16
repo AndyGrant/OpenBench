@@ -69,7 +69,6 @@ REPORT_INTERVAL  = 30 # Seconds between reports to the Server
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
 IS_LINUX   = platform.system() != 'Windows' # Don't touch this
 
-
 class Configuration:
 
     ## Handles configuring the worker with the server. This means collecting
@@ -104,16 +103,17 @@ class Configuration:
     def process_args(self, args):
 
         # Extract all of the options
-        self.username    = args.username
-        self.password    = args.password
-        self.server      = args.server
-        self.threads     = int(args.threads) if args.threads != 'auto' else self.physical_cores
-        self.sockets     = int(args.nsockets)
-        self.identity    = args.identity if args.identity else 'None'
-        self.syzygy_path = args.syzygy   if args.syzygy   else None
-        self.fleet       = args.fleet    if args.fleet    else False
-        self.noisy       = args.noisy    if args.noisy    else False
-        self.focus       = args.focus    if args.focus    else []
+        self.username     = args.username
+        self.password     = args.password
+        self.server       = args.server
+        self.threads      = int(args.threads) if args.threads != 'auto' else self.physical_cores
+        self.sockets      = int(args.nsockets)
+        self.memory_limit = int(args.memory_limit) if args.memory_limit else None
+        self.identity     = args.identity if args.identity else 'None'
+        self.syzygy_path  = args.syzygy   if args.syzygy   else None
+        self.fleet        = args.fleet    if args.fleet    else False
+        self.noisy        = args.noisy    if args.noisy    else False
+        self.focus        = args.focus    if args.focus    else []
 
     def check_requirements(self):
 
@@ -155,6 +155,7 @@ class Configuration:
 
     def validate_setup(self):
 
+        assert self.memory_limit is None or IS_LINUX
         assert self.threads >= self.sockets
         assert self.threads % self.sockets == 0
         assert min(self.threads, self.sockets) >= 1
@@ -303,6 +304,17 @@ class ServerReporter:
         }
 
         return ServerReporter.report(config, 'clientBenchError', payload)
+
+    @staticmethod
+    def report_insufficient_memory(config, error):
+
+        payload = {
+            'test_id'    : config.workload['test']['id'],
+            'error'      : error,
+            'logs'       : error,
+        }
+
+        return ServerReporter.report(config, 'clientSubmitError', payload)
 
     @staticmethod
     def report_results(config, batches):
@@ -869,9 +881,20 @@ def find_pgn_error(reason, command):
 def determine_scale_factor(config, dev_name, base_name):
 
     # Run the benchmarks and compute the scaling NPS value
-    dev_nps  = safe_run_benchmarks(config, 'dev' , dev_name )
-    base_nps = safe_run_benchmarks(config, 'base', base_name)
+    dev_nps , dev_peak  = safe_run_benchmarks(config, 'dev' , dev_name )
+    base_nps, base_peak = safe_run_benchmarks(config, 'base', base_name)
     ServerReporter.report_nps(config, dev_nps, base_nps)
+
+    if config.memory_limit:
+        required_mb = estimate_required_memory_kb(config, dev_name, dev_peak, base_name, base_peak) / 1024
+        print('\nEstimated memory required: %.2f MB' % required_mb)
+
+        if required_mb > config.memory_limit:
+            error = '[Error] Insufficient memory to run this Workload (required: %.2f MB, limit: %.2f MB)' % (required_mb, config.memory_limit)
+
+            config.blacklist.append(config.workload['test']['id'])
+            ServerReporter.report_insufficient_memory(config, error)
+            raise utils.OpenBenchInsufficientMemoryException(error)
 
     dev_factor = base_factor = None
 
@@ -895,6 +918,40 @@ def determine_scale_factor(config, dev_name, base_name):
         print ('Scale Factor (Using Both): %.4f' % (factor))
 
     return factor
+
+def estimate_required_memory_kb(config, dev_name, dev_peak, base_name, base_peak):
+
+    # Reserve 1GB for Python, Fastchess, etc.
+    MEMORY_RESERVED_KB = 1024**2
+    MEMORY_OVERHEAD_FACTOR = 1.25
+
+    def estimate_memory_per_engine(branch, engine, peak):
+        bench_hash    = get_engine_default_hash(os.path.join('Engines', engine))
+        workload_hash = int(re.search(r'Hash=(\d+)', config.workload['test'][branch]['options']).group(1))
+        hash_delta    = 1024 * max(0, workload_hash - bench_hash)
+        return peak / config.threads + hash_delta
+
+    runner_cnt         = config.workload['distribution']['runner-count']
+    concurrency_per    = config.workload['distribution']['concurrency-per']
+    memory_per_pair_kb = (estimate_memory_per_engine('dev', dev_name, dev_peak) + estimate_memory_per_engine('base', base_name, base_peak))
+
+    return int(runner_cnt * concurrency_per * memory_per_pair_kb * MEMORY_OVERHEAD_FACTOR + MEMORY_RESERVED_KB)
+
+def get_engine_default_hash(binary):
+
+    DEFAULT_BENCH_HASH_MB = 16
+
+    process = Popen(['./%s' % binary], stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+
+    try:
+        stdout = process.communicate(input=b'uci\nquit\n', timeout=10)[0].decode('utf-8', 'ignore')
+        match  = re.search(r'option name Hash type spin default (\d+)', stdout, re.IGNORECASE)
+        return int(match.group(1))
+    except subprocess.TimeoutExpired:
+        process.kill()
+
+    print('[Warning] Unable to determine default Hash size for %s' % (binary))
+    return DEFAULT_BENCH_HASH_MB
 
 ## Functions interacting with the OpenBench server that establish the initial
 ## connection and then make simple requests to retrieve Workloads as json objects
@@ -1205,7 +1262,7 @@ def safe_run_benchmarks(config, branch, engine):
 
     try:
         print('\nRunning %dx Benchmarks for %s' % (config.threads, name))
-        speed, nodes = bench.run_benchmark(binary, config.threads, 1, expected)
+        speed, nodes, peak_memory_kb = bench.run_benchmark(binary, config.threads, 1, expected, config.memory_limit)
 
     except utils.OpenBenchBadBenchException as error:
         ServerReporter.report_bad_bench(config, error.message)
@@ -1213,7 +1270,11 @@ def safe_run_benchmarks(config, branch, engine):
 
     print('Bench for %s is %d' % (name, nodes))
     print('Speed for %s is %d' % (name, speed))
-    return speed
+
+    if config.memory_limit:
+        print('Peak memory for %s is %.2f MB' % (name, peak_memory_kb / 1024))
+
+    return speed, peak_memory_kb
 
 
 def build_runner_command(config, dev_cmd, base_cmd, scale_factor, timestamp, runner_idx):
@@ -1307,13 +1368,14 @@ def parse_arguments(client_args):
     )
 
     # Arguments specific to worker.py
-    p.add_argument('-T', '--threads' , help='Total Threads'               , required=True      )
-    p.add_argument('-N', '--nsockets', help='Number of Sockets'           , required=True      )
-    p.add_argument('-I', '--identity', help='Machine pseudonym'           , required=False     )
-    p.add_argument(      '--syzygy'  , help='Syzygy WDL'                  , required=False     )
-    p.add_argument(      '--fleet'   , help='Fleet Mode'                  , action='store_true')
-    p.add_argument(      '--noisy'   , help='Reject time-based workloads' , action='store_true')
-    p.add_argument(      '--focus'   , help='Prefer certain engine(s)'    , nargs='+'          )
+    p.add_argument('-T', '--threads'     , help='Total Threads'                  , required=True      )
+    p.add_argument('-N', '--nsockets'    , help='Number of Sockets'              , required=True      )
+    p.add_argument('-I', '--identity'    , help='Machine pseudonym'              , required=False     )
+    p.add_argument(      '--memory-limit', help='Memory limit in MB (Linux only)', required=False     )
+    p.add_argument(      '--syzygy'      , help='Syzygy WDL'                     , required=False     )
+    p.add_argument(      '--fleet'       , help='Fleet Mode'                     , action='store_true')
+    p.add_argument(      '--noisy'       , help='Reject time-based workloads'    , action='store_true')
+    p.add_argument(      '--focus'       , help='Prefer certain engine(s)'       , nargs='+'          )
 
     # Ignore unknown arguments ( from client )
     worker_args, unknown = p.parse_known_args()
