@@ -763,7 +763,7 @@ def report_disk_usage():
                 bytes += os.path.getsize(os.path.join(folder, file))
             except OSError:
                 pass
-        print('%-8s | %6.2f MB' % (folder, bytes / (1024 * 1024)))
+        print('%-8s | %7.2f MB' % (folder, bytes / (1024 * 1024)))
 
 def cleanup_client():
 
