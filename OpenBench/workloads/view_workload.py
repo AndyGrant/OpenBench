@@ -132,15 +132,20 @@ def fetch_result_summaries(workload):
         accumulate(by_isa,  info.get('isa_name'),           penta)
 
     # Turn a { key: penta } bucket into ready-to-display rows: the penta as a
-    # single "(a, b, c, d, e)" string, a point-estimate Elo, the pair count,
-    # and the share of the grouping's total. Largest contributor comes first.
+    # single "(a, b, c, d, e)" string, a point-estimate Elo with its symmetric
+    # error bar, the pair count, and the share of the grouping's total. Largest
+    # contributor comes first.
+
+    def elo_display(penta):
+        lower, mu, upper = OpenBench.stats.Elo(penta)
+        return '%.2f ± %.2f' % (mu, (upper - lower) / 2)
 
     def summarize(bucket):
         total_pairs = sum(sum(penta) for penta in bucket.values())
         rows = [{
             'key'     : key,
             'penta'   : '(%d, %d, %d, %d, %d)' % tuple(penta),
-            'elo'     : '%.2f' % (OpenBench.stats.Elo(penta)[1]),
+            'elo'     : elo_display(penta),
             'pairs'   : sum(penta),
             'percent' : '%.2f' % (100.0 * sum(penta) / total_pairs if total_pairs else 0.0),
         } for key, penta in bucket.items()]
