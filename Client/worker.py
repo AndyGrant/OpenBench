@@ -49,6 +49,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import bench
 import genfens
+import isa_detector
 import pgn_util
 import utils
 
@@ -60,7 +61,7 @@ from client import try_forever
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 48 # Client version to send to the Server
+CLIENT_VERSION   = 49 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 60 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 60 # Timeout in seconds between workload requests
@@ -83,6 +84,7 @@ class Configuration:
         self.git_tokens     = {}
         self.cpu_flags      = []
         self.cpu_name       = ''
+        self.isa_name       = ''
         self.os_name        = platform.system()
         self.os_ver         = platform.release()
         self.python_ver     = platform.python_version()
@@ -209,9 +211,7 @@ class Configuration:
 
         # Get all flags, and for sanity uppercase them
         info   = cpuinfo.get_cpu_info()
-        print (info)
         actual = [x.replace("_", "").replace(".", "").upper() for x in info.get('flags', [])]
-        print (actual)
 
         # Set the CPU name which has to be done via global
         self.cpu_name = info.get('brand_raw', info.get('brand', 'Unknown'))
@@ -229,6 +229,14 @@ class Configuration:
         # Report the results of our search, including any "missing flags
         print ('Found   |', ' '.join(self.cpu_flags))
         print ('Missing |', ' '.join([x for x in desired if x not in actual]))
+
+    def determine_isa(self):
+
+        print('\nDetermining ISA...')
+
+        # Match the machine to a Stockfish-style ISA using our C++ compiler
+        self.isa_name = isa_detector.detect_isa(self.cxx_comp)
+        print('Found   | %s' % (self.isa_name))
 
 class ServerReporter:
 
@@ -985,6 +993,7 @@ def server_configure_worker(config):
     config.scan_for_compilers(data)      # Public engine build tools
     config.scan_for_private_tokens(data) # Private engine access tokens
     config.scan_for_cpu_flags(data)      # For executing binaries
+    config.determine_isa()               # Stockfish-style ISA of this machine
     config.machine_id = None             # None, until registration occurs for a session
 
     system_info = {
@@ -992,6 +1001,7 @@ def server_configure_worker(config):
         'tokens'         : config.git_tokens,     # Key: Engine, Value: True, for tokens we have
         'cpu_flags'      : config.cpu_flags,      # List of CPU flags found in the Client or Server
         'cpu_name'       : config.cpu_name,       # Raw CPU name as per py-cpuinfo
+        'isa_name'       : config.isa_name,       # Stockfish-style ISA, e.g. x86-64-avx2
         'os_name'        : config.os_name,        # Should be Windows, Linux, or Darwin
         'os_ver'         : config.os_ver,         # Release version of the OS
         'python_ver'     : config.python_ver,     # Python version running the Client
@@ -1292,11 +1302,13 @@ def reload_local_imports():
 
     import bench
     import genfens
+    import isa_detector
     import pgn_util
     import utils
 
     importlib.reload(bench)
     importlib.reload(genfens)
+    importlib.reload(isa_detector)
     importlib.reload(pgn_util)
     importlib.reload(utils)
 
