@@ -132,6 +132,11 @@
             </div>
         {% endif %}
 
+        <!-- Builds the aggregate pentanomial summary tables on demand -->
+        <div class="anchor-container">
+            <a class="mt-1 anchorbutton btn-blue" onclick="fetch_summary({{workload.id}})">Fetch Summary</a>
+        </div>
+
         <!-- PGN Download Button -->
         {% if workload.upload_pgns != "FALSE" %}
             <div class="anchor-container">
@@ -256,6 +261,9 @@
             <button class="w-100 mt-1 anchorbutton btn-blue" type="submit" onclick="fetch_results({{workload.id}})">Fetch Results</button>
         {% endif %}
     </div>
+
+    <!-- Aggregate pentanomial summary; whole table is built on demand -->
+    <div id="summary-container" class="w-100 mt-3" style="float:left;"></div>
 
     </div>
 

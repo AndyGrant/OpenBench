@@ -27,6 +27,7 @@ function copy_text_from_element(element_id, keep_url) {
     copy_text(text);
 }
 
+
 function populate_results(results) {
 
     const container = document.getElementById('results-container');
@@ -73,6 +74,69 @@ async function fetch_results(workload_id) {
         .then(r => r.json())
         .then(data => populate_results(data.results))
 }
+
+
+function summary_cell(tag, text, class_name) {
+
+    // Keys are free-form (cpu names, isa names), so set everything as text to
+    // avoid injecting any markup a Machine might have reported
+    const cell = document.createElement(tag);
+    cell.textContent = text;
+    if (class_name) cell.className = class_name;
+    return cell;
+}
+
+function append_summary_section(table, label, rows) {
+
+    // A header row naming the grouping, then one tbody of data rows. All three
+    // sections share the one table, so their columns line up automatically.
+    const header = document.createElement('tr');
+    header.className = 'table-header';
+    header.appendChild(summary_cell('th', label));
+
+    ['Penta', 'Elo', 'Pairs', '%'].forEach(name => {
+        header.appendChild(summary_cell('th', name));
+    });
+
+    table.appendChild(header);
+
+    const tbody = document.createElement('tbody');
+
+    rows.forEach(row => {
+        const tr = document.createElement('tr');
+
+        // The API hands us display-ready fields: the penta tuple as a string,
+        // a point-estimate Elo, the pair count, and the % of the group total
+        tr.appendChild(summary_cell('td', row.key));
+        tr.appendChild(summary_cell('td', row.penta));
+        tr.appendChild(summary_cell('td', row.elo,   'numeric'));
+        tr.appendChild(summary_cell('td', row.pairs, 'numeric'));
+        tr.appendChild(summary_cell('td', row.percent, 'numeric'));
+
+        tbody.appendChild(tr);
+    });
+
+    table.appendChild(tbody);
+}
+
+async function fetch_summary(workload_id) {
+    fetch(`/api/workload/${workload_id}/summary/`)
+        .then(r => r.json())
+        .then(data => {
+            const container = document.getElementById('summary-container');
+            container.innerHTML = ''; // Rebuild the whole table each fetch
+
+            const table = document.createElement('table');
+            table.className = 'stripes wrappable';
+
+            append_summary_section(table, 'User', data.summary.user);
+            append_summary_section(table, 'CPU',  data.summary.cpu_name);
+            append_summary_section(table, 'ISA',  data.summary.isa_name);
+
+            container.appendChild(table);
+        })
+}
+
 
 async function copy_spsa_inputs(workload_id) {
     const resp = await fetch(`/api/spsa/${workload_id}/inputs/`)

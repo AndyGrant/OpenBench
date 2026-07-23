@@ -28,10 +28,13 @@
 import datetime
 import json
 
+from collections import defaultdict
+
 from django.db.models import BooleanField, ExpressionWrapper, F, Q
 from django.utils import timezone
 
 import OpenBench.views
+import OpenBench.stats
 from OpenBench.models import *
 
 def view_workload(request, workload, workload_type):
@@ -98,3 +101,53 @@ def fetch_results(workload, force):
     results = [{ **result, 'updated' : result['updated'].timestamp() } for result in qs]
 
     return False, results
+
+def fetch_result_summaries(workload):
+
+    # Aggregate the pentanomial counters across every Result of the workload,
+    # grouped three ways: by the User who ran it, and by the reporting Machine's
+    # cpu_name and isa_name. We only ever sum penta; the trinomial counts and
+    # crash/timeloss/active fields are intentionally left out.
+    qs = Result.objects.filter(test=workload).select_related('machine__user')
+    qs = qs.values(
+        'machine__user__username',
+        'machine__info',
+        'LL', 'LD', 'DD', 'DW', 'WW',
+    )
+
+    by_user = defaultdict(lambda: [0, 0, 0, 0, 0])
+    by_cpu  = defaultdict(lambda: [0, 0, 0, 0, 0])
+    by_isa  = defaultdict(lambda: [0, 0, 0, 0, 0])
+
+    def accumulate(bucket, key, penta):
+        total = bucket[key if key else 'Unknown']
+        for i in range(5):
+            total[i] += penta[i]
+
+    for row in qs:
+        penta = (row['LL'], row['LD'], row['DD'], row['DW'], row['WW'])
+        info  = row['machine__info'] or {}
+        accumulate(by_user, row['machine__user__username'], penta)
+        accumulate(by_cpu,  info.get('cpu_name'),           penta)
+        accumulate(by_isa,  info.get('isa_name'),           penta)
+
+    # Turn a { key: penta } bucket into ready-to-display rows: the penta as a
+    # single "(a, b, c, d, e)" string, a point-estimate Elo, the pair count,
+    # and the share of the grouping's total. Largest contributor comes first.
+
+    def summarize(bucket):
+        total_pairs = sum(sum(penta) for penta in bucket.values())
+        rows = [{
+            'key'     : key,
+            'penta'   : '(%d, %d, %d, %d, %d)' % tuple(penta),
+            'elo'     : '%.2f' % (OpenBench.stats.Elo(penta)[1]),
+            'pairs'   : sum(penta),
+            'percent' : '%.2f' % (100.0 * sum(penta) / total_pairs if total_pairs else 0.0),
+        } for key, penta in bucket.items()]
+        return sorted(rows, key=lambda row: row['pairs'], reverse=True)
+
+    return {
+        'user'     : summarize(by_user),
+        'cpu_name' : summarize(by_cpu),
+        'isa_name' : summarize(by_isa),
+    }
