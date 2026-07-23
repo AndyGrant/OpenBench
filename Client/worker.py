@@ -753,6 +753,18 @@ def set_runner_permissions():
         print ('[ERROR] Unable to set execute permissions on fastchess-ob')
 
 
+def report_disk_usage():
+
+    print('\nLocal disk usage:')
+    for folder in ['Engines', 'Books', 'Networks', 'PGNs']:
+        bytes = 0
+        for file in os.listdir(folder):
+            try:
+                bytes += os.path.getsize(os.path.join(folder, file))
+            except OSError:
+                pass
+        print('%-8s | %6.2f MB' % (folder, bytes / (1024 * 1024)))
+
 def cleanup_client():
 
     SECONDS_PER_DAY   = 60 * 60 * 24
@@ -771,6 +783,8 @@ def cleanup_client():
     for file in os.listdir('Networks'):
         if file_age(os.path.join('Networks', file)) > SECONDS_PER_WEEK:
             os.remove(os.path.join('Networks', file))
+
+    report_disk_usage()
 
 def validate_syzygy_exists(config, K):
 
