@@ -1018,8 +1018,7 @@ def api_workload(request, workload_id, query):
     except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
 
     if query == 'results':
-        truncated, results_json = fetch_results(workload_id, force=True)
-        return JsonResponse({ 'results' : results_json })
+        return JsonResponse({ 'results' : fetch_results(workload_id) })
 
     if query == 'info':
         return api_response({ 'info' : OpenBench.model_utils.workload_to_dict(workload) })

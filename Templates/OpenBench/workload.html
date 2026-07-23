@@ -11,7 +11,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            populate_results({{results|safe}});
+            fetch_summary({{workload.id}});
         });
     </script>
 
@@ -132,11 +132,6 @@
             </div>
         {% endif %}
 
-        <!-- Builds the aggregate pentanomial summary tables on demand -->
-        <div class="anchor-container">
-            <a class="mt-1 anchorbutton btn-blue" onclick="fetch_summary({{workload.id}})">Fetch Summary</a>
-        </div>
-
         <!-- PGN Download Button -->
         {% if workload.upload_pgns != "FALSE" %}
             <div class="anchor-container">
@@ -237,16 +232,17 @@
         </div>
     {% endif %}
 
+    <!-- Aggregate pentanomial summary; fetched automatically on page load -->
+    <div id="summary-container" class="w-100 mt-3" style="float:left;"></div>
+
     <div id="results" class="w-100 mt-3" style="float:left;">
         <table class="stripes wrappable">
             <tr class="table-header">
                 <th>#</th>
                 <th>User</th>
-                <th>Updated</th>
                 <th style="width: 45px">Games</th>
-                <th style="width: 45px">Won</th>
-                <th style="width: 45px">Lost</th>
-                <th style="width: 45px">Drawn</th>
+                <th>Penta</th>
+                <th style="width: 45px">Pairs</th>
                 <th style="width: 45px">Time</th>
                 <th style="width: 45px">Crash</th>
             </tr>
@@ -256,14 +252,9 @@
             </tbody>
         </table>
 
-        <!-- Results were not provided, but we can fetch them on demand -->
-        {% if results_truncated %}
-            <button class="w-100 mt-1 anchorbutton btn-blue" type="submit" onclick="fetch_results({{workload.id}})">Fetch Results</button>
-        {% endif %}
+        <!-- Individual per-machine results are only ever fetched on demand -->
+        <button class="w-100 mt-1 anchorbutton btn-blue" type="submit" onclick="fetch_results({{workload.id}})">Fetch Individual Results</button>
     </div>
-
-    <!-- Aggregate pentanomial summary; whole table is built on demand -->
-    <div id="summary-container" class="w-100 mt-3" style="float:left;"></div>
 
     </div>
 

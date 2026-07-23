@@ -26,7 +26,6 @@
 # A Workload can be a "DATAGEN", which is a Data Generation session
 
 import datetime
-import json
 
 from collections import defaultdict
 
@@ -41,12 +40,12 @@ def view_workload(request, workload, workload_type):
 
     assert workload_type in [ 'TEST', 'TUNE', 'DATAGEN' ]
 
-    truncated, results = fetch_results(workload, force=False)
+    # The individual per-machine Result rows are never sent with the page; they
+    # are fetched on demand via the "Fetch Individual Results" button. The
+    # aggregate summary is fetched automatically once the page loads.
 
     data = {
-        'workload'          : workload,
-        'results'           : json.dumps(results),
-        'results_truncated' : truncated
+        'workload' : workload,
     }
 
     if workload_type == 'TEST':
@@ -63,12 +62,7 @@ def view_workload(request, workload, workload_type):
 
     return OpenBench.views.render(request, 'workload.html', data)
 
-def fetch_results(workload, force):
-
-    # Bail out when there are a large number of results, unless `force`
-    qs = Result.objects.filter(test=workload)
-    if not force and qs.count() > 25:
-        return True, []
+def fetch_results(workload):
 
     # One minute prior to now
     target = datetime.datetime.utcnow()
@@ -76,7 +70,7 @@ def fetch_results(workload, force):
     target = target - datetime.timedelta(minutes=1)
 
     # Create `active` field for current machines
-    qs = qs.select_related('machine__user').annotate(
+    qs = Result.objects.filter(test=workload).select_related('machine__user').annotate(
         active=ExpressionWrapper(
             Q(machine__updated__gte=target) &
             Q(test_id=F('machine__workload')),
@@ -84,23 +78,22 @@ def fetch_results(workload, force):
         )
     )
 
-    # Only the fields consumed by the template OpenBench/workload.html
+    # Drop Results that have played nothing and are no longer active
+    qs = qs.filter(Q(games__gt=0) | Q(active=True))
+
+    # Hand back the raw pentanomial buckets; the individual results table is
+    # formatted client-side in OpenBench/static/workload_utils.js
     qs = qs.values(
         'machine__id',
         'machine__user__username',
-        'updated',
         'games',
-        'wins',
-        'losses',
-        'draws',
+        'LL', 'LD', 'DD', 'DW', 'WW',
         'timeloss',
         'crashes',
         'active',
     )
 
-    results = [{ **result, 'updated' : result['updated'].timestamp() } for result in qs]
-
-    return False, results
+    return list(qs)
 
 def fetch_result_summaries(workload):
 
