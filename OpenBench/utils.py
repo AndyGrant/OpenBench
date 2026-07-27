@@ -80,7 +80,7 @@ class TimeControl(object):
             moves = None if moves == '' else moves.rstrip('/')
             inc   = 0.0  if inc   is None else inc.lstrip('+')
 
-            # Format the time control for cutechess cleanly
+            # Format the time control for match runner cleanly
             if moves is None: return '%.1f+%.2f' % (float(base), float(inc))
             return '%d/%.1f+%.2f' % (int(moves), float(base), float(inc))
 
@@ -135,6 +135,11 @@ def workload_uses_time_based_tc(workload):
        or (base_type != TimeControl.FIXED_NODES and base_type != TimeControl.FIXED_DEPTH)
 
 
+
+def path_join(*args):
+    return "/".join([f.lstrip("/").rstrip("/") for f in args]).rstrip('/')
+
+
 def read_git_credentials(engine):
     fname = 'credentials.%s' % (engine.replace(' ', '').lower())
     fpath = os.path.join(PROJECT_PATH, 'Config', fname)
@@ -142,8 +147,6 @@ def read_git_credentials(engine):
         with open(fpath) as fin:
             return { 'Authorization' : 'token %s' % fin.readlines()[0].rstrip() }
 
-def path_join(*args):
-    return "/".join([f.lstrip("/").rstrip("/") for f in args]).rstrip('/')
 
 def extract_option(options, option):
 
@@ -167,24 +170,25 @@ def get_pending_tests():
 
 def get_active_tests():
     t = Test.objects.filter(approved=True)
-    t = t.exclude(awaiting=True)
     t = t.exclude(finished=True)
     t = t.exclude(deleted=True)
     return t.order_by('-priority', '-currentllr')
+
+def group_active_tests_by_priority(active):
+    grouped = []
+    for test in active:
+        if len(grouped) == 0 or grouped[-1]['priority'] != test.priority:
+            grouped.append({ 'priority' : test.priority, 'tests' : [] })
+        grouped[-1]['tests'].append(test)
+    return grouped
 
 def get_completed_tests():
     t = Test.objects.filter(finished=True)
     t = t.exclude(deleted=True)
     return t.order_by('-updated')
 
-def get_awaiting_tests():
-    t = Test.objects.filter(awaiting=True)
-    t = t.exclude(finished=True)
-    t = t.exclude(deleted=True)
-    return t.order_by('-creation')
 
-
-def getRecentMachines(minutes=5):
+def getRecentMachines(minutes=2):
     target = datetime.datetime.utcnow()
     target = target.replace(tzinfo=timezone.utc)
     target = target - datetime.timedelta(minutes=minutes)
@@ -229,53 +233,6 @@ def getPaging(content, page, url, pagelen=25):
     }
 
     return start, end, context
-
-
-
-def branch_is_out_of_date(test):
-
-    # Cannot compare across engines
-    if test.dev_engine != test.base_engine:
-        return False
-
-    # Format the request to the Github endpoint
-    base = 'https://api.github.com/repos/'
-    base = test.dev_repo.replace('github.com', 'api.github.com/repos')
-    url  = path_join(base, 'compare', '%s...%s' % (test.dev.sha, test.base.sha))
-
-    try:
-        # Out of date if ahead_by is non-zero
-        headers = read_git_credentials(test.dev_engine)
-        data    = requests.get(url, headers=headers).json()
-        return data.get('ahead_by', 0) > 0
-
-    except:
-        # If something went wrong, just ignore it
-        import traceback
-        traceback.print_exc()
-        return False
-
-
-
-def get_machine(machineid, user, info):
-
-    # Create a new machine if we don't have an id
-    if machineid == 'None':
-        return Machine(user=user, info=info)
-
-    # Fetch the requested machine, which hopefully exists
-    try: machine = Machine.objects.get(id=int(machineid))
-    except: return None
-
-    # Workload requests should always contain a MAC
-    if 'mac_address' not in machine.info:
-        return None
-
-    # Soft-verify by checking if the MAC addresses match
-    if machine.info['mac_address'] != info['mac_address']:
-        return None
-
-    return machine
 
 
 # Purely Helper functions for Networks views
@@ -419,7 +376,20 @@ def update_test(request, machine):
     # Pentanomial Implementation
     LL, LD, DD, DW, WW = map(int, request.POST['pentanomial'].split())
 
+    # SPSA Delta update vector; might not have this
+    raw_spsa_delta = request.POST.get('spsa_delta', '')
+    spsa_delta     = json.loads(raw_spsa_delta) if raw_spsa_delta else []
+
     with transaction.atomic():
+
+        # MASSIVE risk for concurrent access to the Test. select_for_update() will lock the row,
+        # which correctly ensures no other entity can modify it. HOWEVER, spsa_run and the various
+        # spsa_run.parameters are NOT locked via this query. This is okay because no other location
+        # in OpenBench would be modifying the contents of those models.
+        #
+        # ALL of the updates here, even the trivial ones to the Profile and Machine, are wrapped in
+        # same transaction.atomic(). The sole purpose and utility of that is to ensure either EVERYTHING
+        # gets updated as per this function, or NOTHING gets updated.
 
         test = Test.objects.select_for_update().get(id=test_id)
 
@@ -465,12 +435,15 @@ def update_test(request, machine):
 
         elif test.test_mode == 'SPSA':
 
-            # Update each parameter, as determined by the Worker
-            for name, param in test.spsa['parameters'].items():
-                x = param['value'] + float(request.POST['spsa_%s' % (name)])
-                param['value'] = max(param['min'], min(param['max'], x))
+            # Apply updates to every Parameter, ensuring clipping
+            parameters = list(test.spsa_run.parameters.order_by('index'))
+            for delta, param in zip(spsa_delta, parameters):
+                param.value = max(param.min_value, min(param.max_value, param.value + delta))
 
-            test.finished = test.games >= 2 * test.spsa['pairs_per'] * test.spsa['iterations']
+            # Bulk update to fire off all the .save()s
+            SPSAParameter.objects.bulk_update(parameters, ['value'])
+
+            test.finished = test.games >= 2 * test.spsa_run.pairs_per * test.spsa_run.iterations
 
         elif test.test_mode == 'DATAGEN':
 
@@ -479,31 +452,31 @@ def update_test(request, machine):
 
         test.save()
 
-    # Update Result object; No risk from concurrent access
-    Result.objects.filter(id=result_id).update(
-        games    = F('games'   ) + games,
-        losses   = F('losses'  ) + losses,
-        draws    = F('draws'   ) + draws,
-        wins     = F('wins'    ) + wins,
-        LL       = F('LL'      ) + LL,
-        LD       = F('LD'      ) + LD,
-        DD       = F('DD'      ) + DD,
-        DW       = F('DW'      ) + DW,
-        WW       = F('WW'      ) + WW,
-        crashes  = F('crashes' ) + crashes,
-        timeloss = F('timeloss') + timelosses,
-        updated  = timezone.now()
-    )
+        # Update Result object; No risk from concurrent access
+        Result.objects.filter(id=result_id).update(
+            games    = F('games'   ) + games,
+            losses   = F('losses'  ) + losses,
+            draws    = F('draws'   ) + draws,
+            wins     = F('wins'    ) + wins,
+            LL       = F('LL'      ) + LL,
+            LD       = F('LD'      ) + LD,
+            DD       = F('DD'      ) + DD,
+            DW       = F('DW'      ) + DW,
+            WW       = F('WW'      ) + WW,
+            crashes  = F('crashes' ) + crashes,
+            timeloss = F('timeloss') + timelosses,
+            updated  = timezone.now()
+        )
 
-    # Update Profile object; No risk from concurrent access
-    Profile.objects.filter(user=Machine.objects.get(id=machine_id).user).update(
-        games=F('games') + games,
-        updated=timezone.now()
-    )
+        # Update Profile object; Some risk from concurrent access
+        Profile.objects.filter(user=Machine.objects.select_for_update().get(id=machine_id).user).update(
+            games=F('games') + games,
+            updated=timezone.now()
+        )
 
-    # Update Machine object; No risk from concurrent access
-    Machine.objects.filter(id=machine_id).update(
-        updated=timezone.now()
-    )
+        # Update Machine object; No meaningful risk from concurrent access
+        Machine.objects.filter(id=machine_id).update(
+            updated=timezone.now()
+        )
 
     return [{}, { 'stop' : True }][test.finished]

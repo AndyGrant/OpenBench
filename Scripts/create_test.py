@@ -12,35 +12,47 @@ URL = 'http://chess.grantnet.us/scripts/'
 
 data = {
 
-    'enginename'  : '',
-    'source'      : '',
+    'dev_engine'       : '',
+    'dev_repo'         : '',
+    'dev_branch'       : '',
+    'dev_bench'        : '',
+    'dev_network'      : '',
+    'dev_options'      : 'Threads=1 Hash=16',
+    'dev_time_control' : '8.0+0.08',
 
-    'devbench'    : '',
-    'devbranch'   : '',
-    'devoptions'  : '',
-    'devnetwork'  : '',
+    'base_engine'      : '',
+    'base_repo'        : '',
+    'base_branch'      : '',
+    'base_bench'       : '',
+    'base_network'     : '',
+    'base_options'     : 'Threads=1 Hash=16',
+    'base_time_control': '8.0+0.08',
 
-    'basebench'   : '',
-    'basebranch'  : '',
-    'baseoptions' : '',
-    'basenetwork' : '',
+    'test_mode'        : 'GAMES',
+    'test_bounds'      : 'N/A',
+    'test_confidence'  : 'N/A',
+    'test_max_games'   : '',
 
-    'bookname'    : '',
-    'timecontrol' : '',
+    'book_name'        : 'UHO_Lichess_4852_v1.epd',
+    'upload_pgns'      : 'FALSE',
+    'throughput'       : '1000',
+    'workload_size'    : '32',
+    'priority'         : '0',
 
-    'test_mode'   : '',
-    'bounds'      : '',
-    'confidence'  : '',
-    'max_games'   : '',
+    'syzygy_wdl'       : 'DISABLED',
+    'syzygy_adj'       : 'OPTIONAL',
 
-    'priority'    : '',
-    'throughput'  : '',
-    'syzygy_adj'  : '',
-    'syzygy_wdl'  : '',
+    'win_adj'          : 'movecount=3 score=400',
+    'draw_adj'         : 'movenumber=30 movecount=6 score=10',
 
-    'username'    : '',
-    'password'    : '',
-    'action'      : 'CREATE_TEST',
+    'scale_method'     : 'BASE',
+    'scale_nps'        : '1000000',
+
+    'info'             : '',
+
+    'username'         : '',
+    'password'         : '',
+    'action'           : 'CREATE_TEST',
 }
 
 r = requests.post(URL, data=data)

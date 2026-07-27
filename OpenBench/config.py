@@ -26,7 +26,7 @@ import traceback
 
 from OpenSite.settings import PROJECT_PATH
 
-OPENBENCH_STATIC_VERSION = 'v6'
+OPENBENCH_STATIC_VERSION = 'v17'
 
 OPENBENCH_CONFIG          = None # Initialized by OpenBench/apps.py
 OPENBENCH_CONFIG_CHECKSUM = None # Initialized by OpenBench/apps.py
@@ -100,14 +100,18 @@ def load_engine_config(engine_name):
 
 def verify_general_config(conf):
 
-    assert type(conf.get("client_version"  ) == int)
-    assert type(conf.get("client_repo_url" ) == str)
-    assert type(conf.get("client_repo_ref" ) == str)
+    assert type(conf.get('client_version'  ) == int)
+    assert type(conf.get('client_repo_url' ) == str)
+    assert type(conf.get('client_repo_ref' ) == str)
 
-    assert type(conf.get("use_cross_approval"         ) == bool)
-    assert type(conf.get("require_login_to_view"      ) == bool)
-    assert type(conf.get("require_manual_registration") == bool)
-    assert type(conf.get("balance_engine_throughputs" ) == bool)
+    assert type(conf.get('fastchess_min_version') == str)
+    assert type(conf.get('fastchess_repo_url') == str)
+    assert type(conf.get('fastchess_repo_ref') == str)
+
+    assert type(conf.get('use_cross_approval'         ) == bool)
+    assert type(conf.get('require_login_to_view'      ) == bool)
+    assert type(conf.get('require_manual_registration') == bool)
+    assert type(conf.get('balance_engine_throughputs' ) == bool)
 
 def verify_engine_basics(conf):
 
@@ -124,14 +128,13 @@ def verify_engine_build(engine_name, conf):
     assert type(conf['build'].get('systems')) == list
     assert all(type(x) == str for x in conf['build']['systems'])
 
+    assert type(conf['build'].get('path')) == str
+    assert type(conf['build'].get('compilers')) == list
+    assert all(type(x) == str for x in conf['build']['compilers'])
+
     if conf['private']: # Private engines require a PAT
         fname = 'credentials.%s' % (engine_name.replace(' ', '').lower())
         assert os.path.exists(os.path.join(PROJECT_PATH, 'Config', fname))
-
-    else: # Public engines require a Makefile path and valid compilers
-        assert type(conf['build'].get('path')) == str
-        assert type(conf['build'].get('compilers')) == list
-        assert all(type(x) == str for x in conf['build']['compilers'])
 
 def verify_engine_test_preset(test_preset):
 

@@ -1,7 +1,11 @@
 {
-    "client_version"  : 38,
-    "client_repo_url" : "https://github.com/Mcthouacbb/OpenBench",
-    "client_repo_ref" : "master",
+    "client_version"     : 49,
+    "client_repo_url"    : "https://github.com/Mcthouacbb/OpenBench",
+    "client_repo_ref"    : "master",
+
+    "fastchess_min_version" : "1.8.1",
+    "fastchess_repo_url"    : "https://github.com/AndyGrant/fastchess",
+    "fastchess_repo_ref"    : "master",
 
     "use_cross_approval"          : false,
     "require_login_to_view"       : false,
@@ -21,7 +25,9 @@
         "UHO_4060_vB.epd",
         "UHO_4060_vT.epd",
         "UHO_Lichess_4852_v1.epd",
-        "DFRC_4852_v1.epd"
+        "DFRC_4852_v1.epd",
+        "endgames_cdb95105.epd",
+        "fortresses_150_250.epd"
     ],
 
     "engines" : [

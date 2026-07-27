@@ -26,42 +26,126 @@
 # A Workload can be a "DATAGEN", which is a Data Generation session
 
 import datetime
-import OpenBench.views
 
+from collections import defaultdict
+
+from django.db.models import BooleanField, ExpressionWrapper, F, Q
 from django.utils import timezone
+
+import OpenBench.views
+import OpenBench.stats
 from OpenBench.models import *
 
 def view_workload(request, workload, workload_type):
 
     assert workload_type in [ 'TEST', 'TUNE', 'DATAGEN' ]
 
+    # The individual per-machine Result rows are never sent with the page; they
+    # are fetched on demand via the "Fetch Individual Results" button. The
+    # aggregate summary is fetched automatically once the page loads.
+
     data = {
         'workload' : workload,
-        'results'  : [],
     }
 
-    for result in Result.objects.filter(test=workload):
-        data['results'].append({ 'data' : result, 'active' : is_active(result) })
-
     if workload_type == 'TEST':
-        data['type']            = workload_type
-        data['dev_text']        = 'Dev'
+        data['type']= workload_type
+        data['dev_text'] = 'Dev'
 
     if workload_type == 'TUNE':
-        data['type']            = workload_type
-        data['dev_text']        = ''
+        data['type'] = workload_type
+        data['dev_text'] = ''
 
     if workload_type == 'DATAGEN':
-        data['type']            = workload_type
-        data['dev_text']        = 'Dev'
+        data['type'] = workload_type
+        data['dev_text'] = 'Dev'
 
     return OpenBench.views.render(request, 'workload.html', data)
 
-def is_active(result):
+def fetch_results(workload):
 
     # One minute prior to now
     target = datetime.datetime.utcnow()
     target = target.replace(tzinfo=timezone.utc)
     target = target - datetime.timedelta(minutes=1)
 
-    return result.test.id == result.machine.workload and result.machine.updated >= target
+    # Create `active` field for current machines
+    qs = Result.objects.filter(test=workload).select_related('machine__user').annotate(
+        active=ExpressionWrapper(
+            Q(machine__updated__gte=target) &
+            Q(test_id=F('machine__workload')),
+            output_field=BooleanField()
+        )
+    )
+
+    # Drop Results that have played nothing and are no longer active
+    qs = qs.filter(Q(games__gt=0) | Q(active=True))
+
+    # Hand back the raw pentanomial buckets; the individual results table is
+    # formatted client-side in OpenBench/static/workload_utils.js
+    qs = qs.values(
+        'machine__id',
+        'machine__user__username',
+        'games',
+        'LL', 'LD', 'DD', 'DW', 'WW',
+        'timeloss',
+        'crashes',
+        'active',
+    )
+
+    return list(qs)
+
+def fetch_result_summaries(workload):
+
+    # Aggregate the pentanomial counters across every Result of the workload,
+    # grouped three ways: by the User who ran it, and by the reporting Machine's
+    # cpu_name and isa_name. We only ever sum penta; the trinomial counts and
+    # crash/timeloss/active fields are intentionally left out.
+    qs = Result.objects.filter(test=workload).select_related('machine__user')
+    qs = qs.values(
+        'machine__user__username',
+        'machine__info',
+        'LL', 'LD', 'DD', 'DW', 'WW',
+    )
+
+    by_user = defaultdict(lambda: [0, 0, 0, 0, 0])
+    by_cpu  = defaultdict(lambda: [0, 0, 0, 0, 0])
+    by_isa  = defaultdict(lambda: [0, 0, 0, 0, 0])
+
+    def accumulate(bucket, key, penta):
+        total = bucket[key if key else 'Unknown']
+        for i in range(5):
+            total[i] += penta[i]
+
+    for row in qs:
+        penta = (row['LL'], row['LD'], row['DD'], row['DW'], row['WW'])
+        info  = row['machine__info'] or {}
+        accumulate(by_user, row['machine__user__username'], penta)
+        accumulate(by_cpu,  info.get('cpu_name'),           penta)
+        accumulate(by_isa,  info.get('isa_name'),           penta)
+
+    # Turn a { key: penta } bucket into ready-to-display rows: the penta as a
+    # single "(a, b, c, d, e)" string, a point-estimate Elo with its symmetric
+    # error bar, the pair count, and the share of the grouping's total. Largest
+    # contributor comes first.
+
+    def elo_display(penta):
+        lower, mu, upper = OpenBench.stats.Elo(penta)
+        return '%.2f ± %.2f' % (mu, (upper - lower) / 2)
+
+    def summarize(bucket):
+        total_pairs = sum(sum(penta) for penta in bucket.values())
+        rows = [{
+            'key'     : key,
+            'penta'   : '(%d, %d, %d, %d, %d)' % tuple(penta),
+            'elo'     : elo_display(penta),
+            'pairs'   : sum(penta),
+            'percent' : '%.2f' % (100.0 * sum(penta) / total_pairs if total_pairs else 0.0),
+        } for key, penta in bucket.items()]
+        return sorted(rows, key=lambda row: row['pairs'], reverse=True)
+
+    return {
+        'user'     : summarize(by_user),
+        'cpu_name' : summarize(by_cpu),
+        'isa_name' : summarize(by_isa),
+    }

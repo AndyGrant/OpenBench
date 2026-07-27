@@ -46,7 +46,7 @@ def pgn_iterator(content):
 
 def process_content(content, data, result_id, use_scale):
 
-    comment_regex = r'{(book|[+-]?M?\d+(?:\.\d+)? \d+/\d+ \d+ \d+)[^}]*}'
+    comment_regex = r'\{([+-]?M?\d+(?:\.\d+)?)/(\d+)\s+([\d.]+)s,\s+n=(\d+),\s+sd=(\d+)\}'
 
     for (headers, move_text) in pgn_iterator(content):
 
@@ -66,10 +66,10 @@ def process_content(content, data, result_id, use_scale):
             data[result_id][engine]['games'] += 1
 
         for x in re.compile(comment_regex).findall(move_text):
-            if len(tokens := x.split()) == 4:
-                data[result_id][white if white_stm else black]['time']  += int(tokens[2]) / factor
-                data[result_id][white if white_stm else black]['nodes'] += int(tokens[3])
-                data[result_id][white if white_stm else black]['ply']   += 1
+            score, depth, time_seconds, nodes, seldepth = x
+            data[result_id][white if white_stm else black]['time']  += 1000 * float(time_seconds) / factor
+            data[result_id][white if white_stm else black]['nodes'] += int(nodes)
+            data[result_id][white if white_stm else black]['ply']   += 1
             white_stm = not white_stm
 
 def report_verbose_stats(data):

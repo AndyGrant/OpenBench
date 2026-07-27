@@ -29,8 +29,9 @@ body, html, main{
 }
 
 #sidebar {
-    padding: 60px 16px 16px 16px;
+    padding: 60px 10px 16px 10px;
     flex-basis: calc(min(300px, max(200px, 10%)));
+    z-index: 5;
 }
 
 #sidebar-toggle {
@@ -43,8 +44,8 @@ body, html, main{
     height: 100%;
 
     box-sizing: border-box;
-    padding-left: 2rem;
-    padding-right: 2rem;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
 }
 
 #content {
@@ -312,6 +313,22 @@ body, html, main{
 
 /* Test Views */
 
+#content .test-list {
+    width: 100%;
+}
+
+#content .test-list tr td.test-info {
+    width: 100%;
+    max-width: 0;
+}
+
+#content .test-list tr td.test-info div {
+    max-height: 5.8em;
+    overflow: hidden;
+    white-space: normal;
+    overflow-wrap: break-word;
+}
+
 #content #config {
     float: left;
 }
@@ -484,6 +501,10 @@ td pre {
 
     #content .long-statblock {
         overflow-x: auto;
+    }
+
+    #content .test-list tr td.test-info {
+        display: none;
     }
 }
 

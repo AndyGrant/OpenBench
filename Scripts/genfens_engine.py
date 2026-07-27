@@ -39,7 +39,6 @@ if __name__ == '__main__':
     p.add_argument('--count-per'  , help='Openings to generate per thread', required=True )
     p.add_argument('--book-path'  , help='Path to base Book, if any'      , default='None')
     p.add_argument('--extra'      , help='Extra genfens arguments'        , default=''    )
-    p.add_argument('--network'    , help='Network, for Private Engines'   , default=None  )
     args = p.parse_args()
 
     # Same way that get_workload.py generates seeds
@@ -52,9 +51,7 @@ if __name__ == '__main__':
             'book'    : args.book_path,
             'seeds'   : seeds,
             'extra'   : args.extra,
-            'private' : args.network != None,
             'engine'  : args.engine,
-            'network' : args.network,
             'threads' : int(args.threads),
             'output'  : fout,
         }
