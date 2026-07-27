@@ -76,7 +76,34 @@ function summary_cell(tag, text, class_name) {
     return cell;
 }
 
-function append_summary_section(table, label, rows) {
+function format_cpu_name(name) {
+
+    // CPU names as reported by py-cpuinfo can be verbose and noisy.
+    // Clean them up here so the table stays readable.
+
+    // Drop the (R) registered-trademark marker.
+    name = name.replace(/\(R\)/g, '');
+
+    // "Intel Xeon" is redundant — Xeon already implies Intel, so drop Intel.
+    if (/Intel/.test(name) && /Xeon/.test(name))
+        name = name.replace(/Intel/g, '');
+
+    // Likewise, "AMD EPYC" is redundant — EPYC already implies AMD.
+    if (/AMD/.test(name) && /EPYC/.test(name))
+        name = name.replace(/AMD/g, '');
+
+    // "Processor" and "CPU" add nothing in this context.
+    name = name.replace(/Processor/g, '');
+    name = name.replace(/CPU/g, '');
+
+    // The removals above can leave stray spacing; collapse runs of whitespace
+    // to a single space and trim the ends.
+    name = name.replace(/\s+/g, ' ').trim();
+
+    return name;
+}
+
+function append_summary_section(table, label, rows, key_formatter) {
 
     // A header row naming the grouping, then one tbody of data rows. All three
     // sections share the one table, so their columns line up automatically.
@@ -97,7 +124,7 @@ function append_summary_section(table, label, rows) {
 
         // The API hands us display-ready fields: the penta tuple as a string,
         // a point-estimate Elo, the pair count, and the % of the group total
-        tr.appendChild(summary_cell('td', row.key));
+        tr.appendChild(summary_cell('td', key_formatter ? key_formatter(row.key) : row.key));
         tr.appendChild(summary_cell('td', row.penta));
         tr.appendChild(summary_cell('td', row.elo,   'numeric'));
         tr.appendChild(summary_cell('td', row.pairs, 'numeric'));
@@ -120,7 +147,7 @@ async function fetch_summary(workload_id) {
             table.className = 'stripes wrappable';
 
             append_summary_section(table, 'User', data.summary.user);
-            append_summary_section(table, 'CPU',  data.summary.cpu_name);
+            append_summary_section(table, 'CPU',  data.summary.cpu_name, format_cpu_name);
             append_summary_section(table, 'ISA',  data.summary.isa_name);
 
             container.appendChild(table);
