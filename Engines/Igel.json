@@ -5,7 +5,7 @@
 
     "build" : {
         "path"      : "src",
-        "compilers" : ["clang", "gcc"],
+        "compilers" : ["clang++", "g++"],
         "cpuflags"  : ["AVX2", "FMA", "POPCNT"],
         "systems"   : ["Windows", "Linux"]
     },
