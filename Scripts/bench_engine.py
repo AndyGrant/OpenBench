@@ -36,9 +36,13 @@ if __name__ == '__main__':
     p.add_argument('-E', '--engine'  , help='Relative path to Binary', required=True)
     p.add_argument('-T', '--threads' , help='Concurrent Benchmarks', required=True, type=int)
     p.add_argument('-S', '--sets'    , help='Benchmark Sample Count', required=True, type=int)
+    p.add_argument('-M', '--memory'  , help='Sample peak memory', action='store_true')
     args = p.parse_args()
 
-    speed, bench = run_benchmark(args.engine, args.threads, args.sets)
+    speed, bench, peak_kb = run_benchmark(args.engine, args.threads, args.sets, monitor_memory=args.memory)
 
     print('Bench for %s is %d' % (args.engine, bench))
     print('Speed for %s is %d' % (args.engine, speed))
+
+    if args.memory:
+        print('Peak memory for %s is %.2f MB' % (args.engine, peak_kb / 1024))
