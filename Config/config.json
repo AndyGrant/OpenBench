@@ -1,6 +1,6 @@
 {
     "client_version"     : 49,
-    "client_repo_url"    : "https://github.com/AndyGrant/OpenBench",
+    "client_repo_url"    : "https://github.com/Maverick-KVB37/OpenBench",
     "client_repo_ref"    : "master",
 
     "fastchess_min_version" : "1.8.1",
@@ -50,6 +50,7 @@
         "Stockfish",
         "Weiss",
         "Winter",
-        "Zahak"
+        "Zahak",
+        "ASTROVE"
     ]
 }
