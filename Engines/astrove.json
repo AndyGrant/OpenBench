@@ -1,0 +1,15 @@
+{
+  "name": "ASTROVE",
+  "author": "Kirti Vardhan Bhushan",
+  "source": "https://github.com/Maverick-KVB37/ASTROVE",
+  "nps": 1300000,
+  "protocols": ["uci"],
+  "build": {
+    "compilers": ["g++"],
+    "commands": [
+      "make clean",
+      "make release -j"
+    ]
+  },
+  "executable": "ASTROVE"
+}
