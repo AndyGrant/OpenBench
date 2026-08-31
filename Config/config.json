@@ -12,6 +12,9 @@
     "require_manual_registration" : false,
     "balance_engine_throughputs"  : false,
 
+    "use_x_accel_redirect"  : false,
+    "x_accel_redirect_root" : "/x-accel-media/",
+
     "books" : [
         "2moves_v1.epd",
         "3moves_FRC.epd",

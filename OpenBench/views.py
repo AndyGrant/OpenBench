@@ -44,13 +44,11 @@ from OpenSite.settings import MEDIA_ROOT
 
 from django.db import transaction
 from django.db.models import F, Q
-from django.http import HttpResponse, JsonResponse, FileResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
 from django.core.files.base import ContentFile
 from django.utils import timezone
-
-from wsgiref.util import FileWrapper
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              GENERAL UTILITIES                              #
@@ -971,14 +969,7 @@ def api_pgns(request, pgn_id):
         return api_response({ 'error' : 'Still processing individual PGNs into the archive. Try again shortly' })
 
     # Craft the download HTML response
-    fwrapper = FileWrapper(open(pgn_path, 'rb'), 8192)
-    response = FileResponse(fwrapper, content_type='application/octet-stream')
-
-    # Set all headers and return response
-    response['Expires'] = -1
-    response['Content-Length'] = os.path.getsize(pgn_path)
-    response['Content-Disposition'] = 'attachment; filename=%d.pgn.tar' % (pgn_id)
-    return response
+    return OpenBench.utils.media_download_response(pgn_path, '%d.pgn.tar' % (pgn_id), -1)
 
 @csrf_exempt
 def api_spsa(request, workload_id, query):

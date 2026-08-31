@@ -113,6 +113,14 @@ def verify_general_config(conf):
     assert type(conf.get('require_manual_registration') == bool)
     assert type(conf.get('balance_engine_throughputs' ) == bool)
 
+    # Serving of Networks and PGNs may be handed off to an nginx reverse proxy.
+    # The root must match an "internal" nginx location, aliased to Media/. ie:
+    #     location /x-accel-media/ { internal; alias /path/to/OpenBench/Media/; }
+
+    assert type(conf.get('use_x_accel_redirect' )) == bool
+    assert type(conf.get('x_accel_redirect_root')) == str
+    assert conf['x_accel_redirect_root'].startswith('/')
+
 def verify_engine_basics(conf):
 
     assert type(conf.get('private')) == bool

@@ -26,13 +26,14 @@ import os
 import random
 import re
 import requests
+import urllib.parse
 
 from django.contrib.auth import authenticate
 from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage
 from django.db import transaction
 from django.db.models import F
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from wsgiref.util import FileWrapper
 
@@ -138,6 +139,30 @@ def workload_uses_time_based_tc(workload):
 
 def path_join(*args):
     return "/".join([f.lstrip("/").rstrip("/") for f in args]).rstrip('/')
+
+
+def media_download_response(fpath, filename, expires):
+
+    # Craft a download response for a file inside of MEDIA_ROOT. Django will
+    # stream the file itself, unless configured to hand the file off to an
+    # nginx reverse proxy, which serves it far more efficiently. Django still
+    # performs all of the permission checks in either case.
+
+    if not OPENBENCH_CONFIG['use_x_accel_redirect']:
+        fwrapper = FileWrapper(open(fpath, 'rb'), 8192)
+        response = FileResponse(fwrapper, content_type='application/octet-stream')
+        response['Content-Length'] = os.path.getsize(fpath)
+
+    else:
+        # nginx serves the body, and sets the Content-Length for us
+        root     = OPENBENCH_CONFIG['x_accel_redirect_root'].rstrip('/')
+        relative = os.path.relpath(fpath, MEDIA_ROOT).replace(os.sep, '/')
+        response = HttpResponse(content_type='application/octet-stream')
+        response['X-Accel-Redirect'] = urllib.parse.quote('%s/%s' % (root, relative))
+
+    response['Expires'] = expires
+    response['Content-Disposition'] = 'attachment; filename=%s' % (filename)
+    return response
 
 
 def read_git_credentials(engine):
@@ -308,15 +333,9 @@ def network_delete(request, engine, network):
 def network_download(request, engine, network):
 
     # Craft the download HTML response
-    netfile  = os.path.join(MEDIA_ROOT, network.sha256)
-    fwrapper = FileWrapper(open(netfile, 'rb'), 8192)
-    response = FileResponse(fwrapper, content_type='application/octet-stream')
-
-    # Set all headers and return response
-    response['Expires'] = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).ctime()
-    response['Content-Length'] = os.path.getsize(netfile)
-    response['Content-Disposition'] = 'attachment; filename=' + network.sha256
-    return response
+    netfile = os.path.join(MEDIA_ROOT, network.sha256)
+    expires = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).ctime()
+    return media_download_response(netfile, network.sha256, expires)
 
 def network_edit(request, engine, network):
 
