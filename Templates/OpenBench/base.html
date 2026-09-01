@@ -83,6 +83,18 @@
 
             }, false);
 
+            document.addEventListener('submit', event => {
+
+                // Prevent duplicate <form> submissions
+                const form = event.target;
+                if (form.dataset.submitting) {
+                    event.preventDefault();
+                    return;
+                }
+
+                form.dataset.submitting = true;
+            }, true);
+
             function toggle_sidebar() {
                 document.body.classList.toggle('sidebar-open')
             }
