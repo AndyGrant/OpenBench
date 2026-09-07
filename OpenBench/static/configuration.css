@@ -1,0 +1,36 @@
+.configuration { white-space: normal; padding: 12px 0 32px; color: var(--color-font1); }
+.configuration p, .configuration small, .config-muted { color: var(--color-font2); }
+.configuration p { line-height: 1.55; margin: 8px 0 16px; }
+.config-tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--color3); overflow-x: auto; margin: 22px 0; }
+.config-tabs a { padding: 10px 0; white-space: nowrap; border-bottom: 2px solid transparent; }
+.config-tabs a[aria-current] { border-color: var(--color-font3); }
+.config-toolbar, .config-toolbar form, .config-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.config-toolbar { justify-content: space-between; margin: 18px 0; font-size: 13px; }
+.config-search-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+.config-table { overflow-x: auto; }
+.configuration table { margin: 0; font-size: 13px; }
+.configuration th, .configuration td { text-align: left; white-space: normal; }
+.configuration td:first-child { max-width: 360px; }
+.configuration small { display: block; line-height: 1.5; margin-top: 6px; overflow-wrap: anywhere; }
+.config-count { color: var(--color-font2); font-weight: normal; margin-left: 6px; }
+.config-status { white-space: nowrap; }
+#content .config-empty { text-align: center; padding: 40px; }
+.config-form { min-width: 0; }
+.config-control { flex: 1; min-width: 0; }
+.config-control > input:not([type=checkbox]), .config-control textarea, .config-control select { box-sizing: border-box; width: 100%; }
+#content .config-control input[type=checkbox] { accent-color: var(--color-font3); flex: 0 0 auto; margin: 0; }
+.config-control > div:not(.config-field-links) { display: flex; flex-wrap: wrap; gap: 8px; }
+#content .config-control label { display: inline-flex; align-items: center; gap: 8px; width: auto; min-width: 0; margin: 0; text-align: left; padding: 9px 6px 6px; cursor: pointer; }
+.config-toggle input:checked ~ .toggle-off, .config-toggle input:not(:checked) ~ .toggle-on { display: none; }
+.config-control input:disabled, .config-control select:disabled { cursor: not-allowed; }
+.config-field-links { display: flex; flex-wrap: wrap; gap: 12px; }
+.config-field-links:empty { display: none; }
+.config-inline-link { display: inline-block; font-size: 13px; margin-top: 4px; }
+.config-related { display: flex; flex-wrap: wrap; gap: 12px 20px; }
+.config-actions { position: sticky; bottom: 0; padding: 16px 0; background: var(--color1); border-top: 1px solid var(--color3); }
+.config-error { padding: 14px; border-left: 3px solid var(--color-font3); background: var(--color2); }
+.configuration .errorlist { color: var(--color-font3); padding-left: 18px; font-size: 13px; white-space: normal; }
+#content .config-field.invalid input, #content .config-field.invalid select, #content .config-field.invalid textarea { border-color: var(--color-font3); }
+@media (max-width: 600px) { .config-tabs { gap: 16px; } .config-toolbar form { flex: 1; } .config-toolbar input { width: 100%; } }
+
+#content .configuration .anchorbutton { width: auto; padding: 8px 16px 6px; border: 1px solid transparent; }

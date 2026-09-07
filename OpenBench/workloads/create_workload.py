@@ -55,7 +55,10 @@ def create_workload(request, workload_type):
 
     if request.method == 'GET':
 
-        data = { 'networks' : list(Network.objects.all().values()) }
+        from OpenBench.presets import preset_data
+        data = {'networks': list(Network.objects.all().values()), 'preset_data': preset_data(request.user, workload_type)}
+        if request.GET.get('engine') in OPENBENCH_CONFIG['engines']:
+            data['preset_engine'] = request.GET['engine']
 
         if workload_type == 'TEST':
             data['workload']        = workload_type

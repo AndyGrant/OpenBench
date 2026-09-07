@@ -1,0 +1,9 @@
+<div class="row config-field{% if field.errors %} invalid{% endif %}">
+    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+    <div class="config-control">
+        {% if field.name == 'name' and field.field.disabled %}<input id="{{ field.id_for_label }}" value="{{ field.value }}" readonly>
+        {% elif field.field.widget.input_type == 'checkbox' and not field.field.widget.allow_multiple_selected %}<label class="config-toggle">{{ field }}<span class="toggle-on">On</span><span class="toggle-off">Off</span></label>
+        {% else %}{{ field }}{% endif %}
+        {{ field.errors }}
+    </div>
+</div>
