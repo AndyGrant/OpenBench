@@ -33,6 +33,17 @@ class Engine(Model):
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.bench)
 
+class Book(Model):
+
+    # Workloads refer to Books by name, therefore the name is never changed
+    name    = CharField(max_length=32, unique=True)
+    source  = CharField(max_length=1024)
+    sha     = CharField(max_length=64)
+    enabled = BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
 class Profile(Model):
 
     user      = ForeignKey(User, PROTECT, related_name='user')

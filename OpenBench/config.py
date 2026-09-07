@@ -37,10 +37,6 @@ def create_openbench_config():
         config_dict = json.load(fin)
         verify_general_config(config_dict)
 
-    config_dict['books'] = {
-        book : load_book_config(book) for book in config_dict['books']
-    }
-
     config_dict['engines'] = {
         engine : load_engine_config(engine) for engine in config_dict['engines']
     }
@@ -53,16 +49,6 @@ def create_openbench_config():
         checksum    = bytes(a ^ b for a, b in zip(checksum, partial_sum))
 
     return config_dict, checksum.hex()
-
-def load_book_config(book_name):
-
-    with open(os.path.join(PROJECT_PATH, 'Books', '%s.json' % (book_name))) as fin:
-        conf = json.load(fin)
-
-    assert type(conf.get('sha')) == str
-    assert type(conf.get('source')) == str
-
-    return conf
 
 def load_engine_config(engine_name):
 

@@ -31,7 +31,7 @@ import sys
 import OpenBench.utils
 
 from OpenBench.config import OPENBENCH_CONFIG
-from OpenBench.models import Result, Test
+from OpenBench.models import Book, Result, Test
 from OpenBench.spsa_utils import spsa_workload_assignment_dict
 
 from django.db import transaction
@@ -227,10 +227,13 @@ def workload_to_dictionary(test, result, machine):
         'scale_nps'     : test.scale_nps,
     }
 
+    # Book could have been deleted after this workload was created
+    book = Book.objects.filter(name=test.book_name).first()
+
     workload['test']['book'] = {
         'name'   : test.book_name,
-        'sha'    : OPENBENCH_CONFIG['books'].get(test.book_name, { 'sha'    : None })['sha'   ],
-        'source' : OPENBENCH_CONFIG['books'].get(test.book_name, { 'source' : None })['source'],
+        'sha'    : book.sha    if book else None,
+        'source' : book.source if book else None,
     }
 
     workload['test']['dev'] = {

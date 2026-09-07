@@ -54,6 +54,12 @@ urlpatterns = [
     django.urls.path(r'networks/<str:engine>/<str:action>/<str:name>/', OpenBench.views.networks),
     django.urls.path(r'newNetwork/', OpenBench.views.network_form),
 
+    # Links for viewing and managing the Server's configuration
+    django.urls.path(r'manage/', OpenBench.views.manage),
+    django.urls.path(r'manage/books/', OpenBench.views.manage_books),
+    django.urls.path(r'manage/books/<str:name>/', OpenBench.views.manage_books),
+    django.urls.path(r'manage/books/<str:name>/<str:action>/', OpenBench.views.manage_books),
+
     # Links for interacting with OpenBench via scripting
     django.urls.path(r'scripts/', OpenBench.views.scripts),
 

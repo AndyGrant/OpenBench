@@ -310,8 +310,11 @@ def search(request):
     # Search uses GET so the parameters live in the URL and can be shared.
     # With no parameters at all, simply present the empty search form.
 
+    # Disabled Books are still offered, so older Workloads remain searchable
+    books = Book.objects.all().order_by('name')
+
     if not (params := request.GET):
-        return render(request, 'search.html', {})
+        return render(request, 'search.html', { 'books' : books })
 
     tests  = Test.objects.all()
 
@@ -437,7 +440,8 @@ def search(request):
     }
 
     error = 'No matching tests found' if not len(filtered) else None
-    return render(request, 'search.html', { 'tests' : reversed(filtered), 'form' : form }, error=error)
+    data  = { 'tests' : reversed(filtered), 'form' : form, 'books' : books }
+    return render(request, 'search.html', data, error=error)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                           GENERAL DATA TABLE VIEWS                          #
@@ -564,6 +568,58 @@ def network_form(request):
     # Get requests should not be reaching this point
     if request.method == 'GET':
         return render(request, 'uploadnet.html', {})
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                          CONFIGURATION MANAGEMENT                           #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Everything under /manage/ may be viewed by anyone. Only those with manage
+# permissions may make changes, which is enforced here, as well as visually
+# within the Templates, by way of the can_manage flag.
+
+def has_manage_permissions(request):
+    profile = Profile.objects.filter(user=request.user).first() if request.user.is_authenticated else None
+    return bool(profile and (profile.superuser or profile.user.is_superuser))
+
+def manage(request):
+    return redirect(request, '/manage/books/')
+
+def manage_books(request, name=None, action=None):
+
+    can_manage = has_manage_permissions(request)
+
+    # Without a name, all we can do is view the list of Books. The list also
+    # carries the creation form, which posts back to <new name>/create/
+    if not name:
+        data = { 'books' : Book.objects.order_by('name'), 'can_manage' : can_manage }
+        return render(request, 'manage_books.html', data)
+
+    # Creating is the only action for a Book that does not exist yet
+    if action and action.upper() == 'CREATE':
+        if not can_manage:
+            return redirect(request, '/manage/books/', error='You may not create Books')
+        return OpenBench.utils.book_create(request, name)
+
+    if not (book := Book.objects.filter(name=name).first()):
+        return redirect(request, '/manage/books/', error='No such Book exists')
+
+    # Anyone may view a single Book, but only Managers may change one
+    if not action:
+        return render(request, 'manage_book.html', { 'book' : book, 'can_manage' : can_manage })
+
+    if not can_manage:
+        return redirect(request, '/manage/books/', error='You may not modify Books')
+
+    # Push off all the actual effort to OpenBench.utils for all actions
+    actions = {
+        'EDIT'   : OpenBench.utils.book_edit,
+        'DELETE' : OpenBench.utils.book_delete,
+    }
+
+    if action.upper() not in actions:
+        return redirect(request, '/manage/books/', error='Unknown action for a Book')
+
+    return actions[action.upper()](request, book)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                             OPENBENCH SCRIPTING                             #
@@ -863,7 +919,10 @@ def api_configs(request, engine=None):
 
     if engine == None:
         engines = list(OPENBENCH_CONFIG['engines'].keys())
-        books   = OPENBENCH_CONFIG['books']
+        books   = {
+            book.name : { 'sha' : book.sha, 'source' : book.source }
+            for book in Book.objects.filter(enabled=True).order_by('name')
+        }
         return api_response({ 'engines' : engines, 'books' : books })
 
     if engine in OPENBENCH_CONFIG['engines'].keys():

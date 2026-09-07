@@ -88,7 +88,7 @@ def verify_test_creation(errors, request):
         (verify_time_control   , 'base_time_control', 'Base Time Control'),
 
         # Verify everything about the Test Settings
-        (verify_configuration  , 'book_name', 'Book', 'books'),
+        (verify_book           , 'book_name', 'Book'),
         (verify_upload_pgns    , 'upload_pgns', 'Upload PGNs'),
         (verify_test_mode      , 'test_mode'),
         (verify_sprt_bounds    , 'test_bounds'),
@@ -136,7 +136,7 @@ def verify_tune_creation(errors, request):
         (verify_time_control          , 'dev_time_control', 'Time Control'),
 
         # Verify everything about the Test Settings
-        (verify_configuration         , 'book_name', 'Book', 'books'),
+        (verify_book                  , 'book_name', 'Book'),
         (verify_upload_pgns           , 'upload_pgns', 'Upload PGNs'),
 
         # Verify everything about the General Settings
@@ -194,7 +194,7 @@ def verify_datagen_creation(errors, request):
         (verify_datagen_games  , 'datagen_max_games'),
         (verify_datagen_genfens, 'datagen_custom_genfens'),
         (verify_datagen_reverse, 'datagen_play_reverses'),
-        (verify_datagen_book   , 'book_name', 'Book', 'books'),
+        (verify_datagen_book   , 'book_name', 'Book'),
         (verify_upload_pgns    , 'upload_pgns', 'Upload PGNs'),
 
         # Verify everything about the General Settings
@@ -239,6 +239,10 @@ def verify_options(errors, request, field, option, field_name):
 
 def verify_configuration(errors, request, field, field_name, parent):
     try: assert request.POST[field] in OpenBench.config.OPENBENCH_CONFIG[parent].keys()
+    except: errors.append('{0} was not found in the configuration'.format(field_name))
+
+def verify_book(errors, request, field, field_name):
+    try: assert Book.objects.filter(name=request.POST[field], enabled=True).exists()
     except: errors.append('{0} was not found in the configuration'.format(field_name))
 
 def verify_time_control(errors, request, field, field_name):
@@ -355,10 +359,10 @@ def verify_datagen_reverse(errors, request, field):
     try: assert request.POST[field] in ['YES', 'NO']
     except: errors.append('Play Reverses must either be YES or NO')
 
-def verify_datagen_book(errors, request, field, field_name, parent):
+def verify_datagen_book(errors, request, field, field_name):
     try:
-        valid = ['NONE'] + list(OpenBench.config.OPENBENCH_CONFIG[parent].keys())
-        assert request.POST[field] in valid
+        if request.POST[field] == 'NONE': return
+        assert Book.objects.filter(name=request.POST[field], enabled=True).exists()
     except: errors.append('{0} was neither NONE nor found in the configuration'.format(field_name))
 
 def verify_scale_method(errors, request, field):
