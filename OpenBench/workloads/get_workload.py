@@ -103,6 +103,10 @@ def filter_valid_workloads(request, machine):
     supported = machine.info['supported']
     workloads = workloads.filter(dev_engine__in=supported, base_engine__in=supported)
 
+    # Skip every engine but our own, for --only machines
+    if only := machine.info.get('only', []):
+        workloads = workloads.filter(dev_engine__in=only)
+
     # Skip workloads that are blacklisted on the machine
     if blacklisted := request.POST.getlist('blacklist'):
         workloads = workloads.exclude(id__in=blacklisted)
@@ -128,13 +132,21 @@ def filter_valid_workloads(request, machine):
     candidates = [x for x in options if x.priority == max(priorities)]
 
     # Refine to workloads that match our focus, if applicable
-    focuses    = machine.info.get('focus', [])
+    focuses    = machine_focuses(machine)
     has_focus  = any(x.dev_engine in focuses for x in candidates)
 
     if has_focus:
         candidates = list(filter(lambda x: x.dev_engine in focuses, candidates))
 
     return candidates, has_focus
+
+def machine_focuses(machine):
+
+    # --only is a hard restriction, whereas --focus is merely a preference.
+    # A Machine using --only is at least as dedicated as one using --focus,
+    # therefore --only implies --focus for the purposes of the assignment
+
+    return machine.info.get('only', []) + machine.info.get('focus', [])
 
 def valid_hardware_assignment(workload, machine):
 
@@ -172,7 +184,7 @@ def compute_resource_distribution(workloads, machine, has_focus):
 
     # Ignore our own machine;
     # Ignore machines working on non-candidates;
-    # Ignore focus-assigned machines when has_focus is false
+    # Ignore focus-assigned and only-assigned machines when has_focus is false
 
     # The first two are done in the database, so that we never pay to deserialize
     # the info blob of a machine that cannot contribute to any of the candidates
@@ -181,7 +193,7 @@ def compute_resource_distribution(workloads, machine, has_focus):
         .filter(workload__in=list(worker_dist.keys())).exclude(id=machine.id)
 
     for x in others:
-        if has_focus or worker_dist[x.workload]['engine'] not in x.info.get('focus', []):
+        if has_focus or worker_dist[x.workload]['engine'] not in machine_focuses(x):
             worker_dist[x.workload]['threads'] += x.info['concurrency']
 
     # Count of tests that exist for a particular dev_engine

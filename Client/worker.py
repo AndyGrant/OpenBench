@@ -116,6 +116,7 @@ class Configuration:
         self.fleet       = args.fleet    if args.fleet    else False
         self.noisy       = args.noisy    if args.noisy    else False
         self.focus       = args.focus    if args.focus    else []
+        self.only        = args.only     if args.only     else []
         self.cli_options = args.cli_options
 
     def check_requirements(self):
@@ -1033,6 +1034,7 @@ def server_configure_worker(config):
         'syzygy_max'     : config.syzygy_max,     # Whether or not the machine has Syzygy support
         'noisy'          : config.noisy,          # Whether our results are unstable for time-based workloads
         'focus'          : config.focus,          # List of engines we have a preference to help
+        'only'           : config.only,           # List of engines we are willing to help, exclusively
         'cli_options'    : config.cli_options,    # Command line options except for credentials and server
         'cxx_comp'       : config.cxx_comp,       # C++ Compiler used to build Fastchess binaries
         'fastchess_ver'  : config.fastchess_ver,  # Fastchess Version, set during server_configure_fastchess()
@@ -1351,6 +1353,7 @@ def parse_arguments(client_args):
     p.add_argument(      '--fleet'   , help='Fleet Mode'                  , action='store_true')
     p.add_argument(      '--noisy'   , help='Reject time-based workloads' , action='store_true')
     p.add_argument(      '--focus'   , help='Prefer certain engine(s)'    , nargs='+'          )
+    p.add_argument(      '--only'    , help='Only help certain engine(s)' , nargs='+'          )
 
     # Ignore unknown arguments ( from client )
     worker_args, unknown    = p.parse_known_args()
