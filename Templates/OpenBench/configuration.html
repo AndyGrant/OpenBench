@@ -1,0 +1,57 @@
+{% extends "OpenBench/base.html" %}
+{% load static %}
+{% block scripts %}<link rel="stylesheet" href="{% static 'configuration.css' %}?{{ static_version }}">{% endblock %}
+{% block content %}
+<section class="configuration">
+    <nav class="config-tabs" aria-label="Configuration sections">
+        {% for key, label in navigation %}<a href="{% url 'configuration' section=key %}" {% if key == section %}aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+    </nav>
+    {% if form %}
+        <form method="post" class="form config-form">
+            {% csrf_token %}
+            {% for hidden in form.hidden_fields %}{{ hidden }}{{ hidden.errors }}{% endfor %}
+            {% if form.errors %}<div class="config-error" role="alert"><strong>Changes were not saved.</strong>{{ form.non_field_errors }}</div>{% endif %}
+            <h3>{% if section == 'site' %}Site settings{% elif is_new %}Add {{ singular }}{% else %}{{ instance }}{% endif %}</h3>
+            <div class="flex">{% for column in form.columns %}
+                <div class="col">
+                {% for heading, fields in column %}
+                    <section><h3>{{ heading }}</h3>
+                        {% for field in fields %}{% include "OpenBench/Blocks/configuration_field.html" %}{% endfor %}
+                    </section>
+                {% endfor %}
+                </div>
+            {% endfor %}</div>
+            {% if section == 'engines' and not is_new and instance.enabled %}
+                <section><h3>Presets</h3><div class="config-related">
+                    <a href="/test/new/?engine={{ instance.name|urlencode }}">Edit test presets</a>
+                    <a href="/tune/new/?engine={{ instance.name|urlencode }}">Edit tune presets</a>
+                    <a href="/datagen/new/?engine={{ instance.name|urlencode }}">Edit datagen presets</a>
+                </div></section>
+            {% endif %}
+            <div class="config-actions"><button type="submit" class="anchorbutton btn-start">Save changes</button><a href="{% url 'configuration' section=section %}">Cancel</a></div>
+        </form>
+    {% elif section == 'history' %}
+        <div class="config-table"><table class="stripes hoverable w-100"><thead><tr class="table-header"><th>Revision</th><th>When</th><th>Who</th><th>Change</th></tr></thead><tbody>
+            {% for entry in page %}<tr><td>{{ entry.generation }}</td><td>{{ entry.created }}</td><td>{{ entry.actor|default:"Import" }}</td><td>{{ entry.summary }}</td></tr>{% empty %}<tr><td colspan="4">No changes yet.</td></tr>{% endfor %}
+        </tbody></table></div>
+    {% else %}
+        <div class="config-toolbar">
+            <form method="get" role="search" class="row"><label class="config-search-label" for="config-search">Find {{ title|lower }}</label><input id="config-search" name="q" type="search" value="{{ query }}" placeholder="Search by name"><button class="anchorbutton btn-start">Search</button>{% if query %}<a href="{% url 'configuration' section=section %}">Clear</a>{% endif %}</form>
+            {% if can_add %}<a class="anchorbutton btn-start" href="{% url 'configuration-new' section=section %}">+ Add {{ singular }}</a>{% endif %}
+        </div>
+        <div class="config-table"><table class="stripes hoverable w-100"><thead><tr class="table-header"><th>{{ title }} <span class="config-count">{{ page.paginator.count }}</span></th><th>Status</th>{% if section == 'engines' %}<th>Maintainers</th>{% endif %}<th></th></tr></thead><tbody>
+            {% for entry in page %}<tr>
+                <td><a class="config-name" href="{% url 'configuration-edit' section=section identifier=entry.pk %}">{{ entry.name }}</a><small>{{ entry.settings.source }}</small></td>
+                <td><span class="config-status">{{ entry.enabled|yesno:"Enabled,Draft / disabled" }}</span></td>
+                {% if section == 'engines' %}<td>{% for grant in entry.maintainers.all %}{{ grant.user }}{% if not forloop.last %}, {% endif %}{% empty %}&mdash;{% endfor %}</td>{% endif %}
+                <td><a href="{% url 'configuration-edit' section=section identifier=entry.pk %}" aria-label="Edit {{ entry.name }}"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit</a></td>
+            </tr>{% empty %}<tr><td colspan="4" class="config-empty">No {{ title|lower }}{% if query %} matching this search{% endif %}.</td></tr>{% endfor %}
+        </tbody></table></div>
+    {% endif %}
+    {% if page.paginator.num_pages > 1 %}<div class="config-toolbar">
+        {% if page.has_previous %}<a href="?q={{ query|urlencode }}&amp;page={{ page.previous_page_number }}">Previous</a>{% endif %}
+        <span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+        {% if page.has_next %}<a href="?q={{ query|urlencode }}&amp;page={{ page.next_page_number }}">Next</a>{% endif %}
+    </div>{% endif %}
+</section>
+{% endblock %}

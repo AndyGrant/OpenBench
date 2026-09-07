@@ -110,6 +110,9 @@
                 {% if user.is_authenticated %}
                     <li><a href="/logout/"><i class="fa-solid fa-right-from-bracket fa-fw"></i> Logout</a></li>
                     <li><a href="/profile/"><i class="fa-solid fa-user fa-fw"></i> Profile</a></li>
+                    {% if can_manage_configuration %}
+                        <li><a href="{% url 'configuration-home' %}"><i class="fa-solid fa-gear fa-fw"></i> Configuration</a></li>
+                    {% endif %}
                 {% else %}
                     <li><a href="/login"><i class="fa-solid fa-right-to-bracket fa-fw"></i> Login</a></li>
                     <li><a href="/register"><i class="fa-solid fa-registered fa-fw"></i> Register</a></li>

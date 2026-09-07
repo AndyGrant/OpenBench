@@ -1,0 +1,38 @@
+.preset-bar, .preset-group-buttons, .workload-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; white-space: normal; }
+.preset-bar { align-items: flex-start; margin: 16px 0 22px 1.5rem; gap: 12px; }
+#preset-slots { flex: 1; min-width: 0; display: grid; gap: 16px; white-space: normal; }
+#content #preset-slots .anchorbutton { width: auto; min-width: 0; margin: 0; padding: 8px 16px; min-height: 34px; box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; }
+.preset-group { min-width: 0; }
+.preset-group-label { margin-bottom: 4px; color: var(--color-font3); font-size: 14px; font-weight: bold; line-height: 18px; }
+.preset-group-buttons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); align-items: stretch; }
+.preset-empty-slot { min-height: 34px; box-sizing: border-box; border: 1px dashed var(--color3); border-radius: 4px; }
+.preset-link { background: var(--color2); border: 1px solid var(--color3); border-radius: 4px; color: var(--color-font1); font: inherit; font-size: 13px; line-height: 16px; padding: 8px 12px; margin-top: 22px; min-height: 34px; box-sizing: border-box; cursor: pointer; }
+.preset-link:hover { background: var(--color3); }
+#preset-message { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; white-space: normal; color: var(--color-font2); font-size: 13px; margin: -14px 0 22px 1.5rem; }
+#preset-message button { background: none; border: 0; padding: 2px 0; color: var(--color-font1); font: inherit; text-decoration: underline; cursor: pointer; }
+#preset-message button:hover { color: var(--color-font3); }
+#preset-message .preset-notice-dismiss { padding: 2px 6px; color: var(--color-font2); text-decoration: none; }
+#preset-message:empty, .preset-bar [hidden] { display: none; }
+.workload-actions { margin-left: auto; margin-right: auto; width: 84%; gap: 12px; }
+#content .workload-actions .btn-start { flex: 1; width: auto; max-width: none; }
+#content #preset-save-open { background: var(--color2); border: 1px solid var(--color3); padding: 8px 14px; }
+.workload-actions > * { cursor: pointer; }
+.preset-dialog { box-sizing: border-box; width: min(420px, calc(100% - 32px)); max-height: calc(100% - 48px); padding: 24px; background: var(--color1); color: var(--color-font1); border: 1px solid var(--color3); border-radius: 5px; white-space: normal; font: 14px/1.5 system-ui, sans-serif; }
+.preset-dialog::backdrop { background: rgb(0 0 0 / .65); }
+.preset-dialog h3 { margin: 0 0 20px; color: var(--color-font3); font-size: 18px; }
+.preset-dialog label { display: block; margin: 14px 0 6px; }
+.preset-dialog input, .preset-dialog select, .preset-dialog button { box-sizing: border-box; padding: 8px 10px; background: var(--color2); color: var(--color-font1); border: 1px solid var(--color3); border-radius: 3px; font: inherit; }
+.preset-dialog input, .preset-dialog select { width: 100%; }
+.preset-dialog button { cursor: pointer; }
+.preset-dialog button:disabled { opacity: .4; cursor: default; }
+.preset-dialog .preset-primary { border-color: var(--color-font3); }
+.preset-dialog footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px; }
+.preset-dialog .preset-error { color: var(--color-font3); margin-top: 12px; }
+.preset-dialog :focus-visible, .preset-bar :focus-visible, #preset-message :focus-visible { outline: 2px solid var(--color-font1); outline-offset: 2px; }
+.preset-manager { width: min(560px, calc(100% - 32px)); }
+#preset-editor { margin-top: 20px; }
+.preset-edit-row { display: flex; align-items: center; gap: 6px; margin: 8px 0; }
+.preset-edit-row > span { width: 20px; flex-shrink: 0; color: var(--color-font2); }
+.preset-edit-row input { min-width: 0; flex: 1; }
+.preset-edit-row button { flex-shrink: 0; }
+@media (max-width: 600px) { #preset-slots { flex-basis: 100%; } .preset-link { margin-top: 0; } .preset-dialog { padding: 16px; } }

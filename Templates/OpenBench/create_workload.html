@@ -6,17 +6,21 @@
 
     {{ config|json_script:"json-config" }}
     {{ networks|json_script:"json-networks" }}
+    {{ preset_data|json_script:"json-presets" }}
     {{ profile.repos|json_script:"json-repos" }}
 
     <script src="{% static 'create_workload.js' %}?{{ static_version }}"></script>
+    <script src="{% static 'presets.js' %}?{{ static_version }}"></script>
+    <link rel="stylesheet" href="{% static 'presets.css' %}?{{ static_version }}">
     <script src="{% static 'default_text.js' %}?{{ static_version }}"></script>
 
     <script>
         document.addEventListener(
             'DOMContentLoaded', function () {
-                change_engine('{{ profile.engine }}', 'dev', '{{workload}}');
+                change_engine('{{ preset_engine|default:profile.engine|escapejs }}', 'dev', '{{workload}}');
                 enforce_default_text('dev_repo', 'https://github.com/');
                 enforce_default_text('base_repo', 'https://github.com/');
+                initialize_presets('{{workload}}');
             }, false
         );
     </script>
@@ -24,8 +28,14 @@
 
 {% block content %}
 
-    <form method="POST" action="{{submit_endpoint}}">
+    <form id="workload-form" method="POST" action="{{submit_endpoint}}">
         {% csrf_token %}
+
+        <div class="preset-bar">
+            <div id="preset-slots" aria-label="Workload presets"></div>
+            <button type="button" id="preset-manage-open" class="preset-link">Edit presets</button>
+        </div>
+        <div id="preset-message" role="status" aria-live="polite"></div>
 
         <div class="form w-100">
             <div class="col">
@@ -298,15 +308,30 @@
             </div>
         </div>
 
-        <input type="submit" class="anchorbutton btn-start mt-3 mw-84" name="submit" value="{{submit_text}}">
+        <div class="workload-actions mt-3">
+            <input type="submit" class="anchorbutton btn-start mw-84" name="submit" value="{{submit_text}}">
+            <button type="button" id="preset-save-open" class="anchorbutton">Save as preset</button>
+        </div>
     </form>
 
-    <div class="form">
-        <div class="col-full">
-            <div id="test-mode-buttons">
-                <!-- Generated based on the selected Engine -->
-            </div>
-        </div>
-    </div>
+    <dialog id="preset-save-dialog" class="preset-dialog" aria-labelledby="preset-save-title">
+        <form id="preset-save-form">
+            <h3 id="preset-save-title">Save preset</h3>
+            <label for="preset-save-scope">Save to</label><select id="preset-save-scope"></select>
+            <label for="preset-save-slot">Slot</label><select id="preset-save-slot"></select>
+            <label for="preset-save-name">Name</label><input id="preset-save-name" maxlength="128" required autocomplete="off">
+            <div class="preset-error" role="alert"></div>
+            <footer><button type="button" data-close-dialog>Cancel</button><button type="submit" class="preset-primary" id="preset-save-submit">Save preset</button></footer>
+        </form>
+    </dialog>
+    <dialog id="preset-manage-dialog" class="preset-dialog preset-manager" aria-labelledby="preset-manage-title">
+        <form id="preset-manage-form">
+            <h3 id="preset-manage-title">Edit presets</h3>
+            <label for="preset-manage-scope">Presets for</label><select id="preset-manage-scope"></select>
+            <div id="preset-editor"></div>
+            <div class="preset-error" role="alert"></div>
+            <footer><button type="button" data-close-dialog>Cancel</button><button type="submit" class="preset-primary">Save changes</button></footer>
+        </form>
+    </dialog>
 
 {% endblock %}
