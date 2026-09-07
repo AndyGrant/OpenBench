@@ -35,14 +35,15 @@ class Engine(Model):
 
 class Profile(Model):
 
-    user     = ForeignKey(User, PROTECT, related_name='user')
-    games    = BigIntegerField(default=0)
-    tests    = IntegerField(default=0)
-    repos    = JSONField(default=dict, blank=True, null=True)
-    engine   = CharField(max_length=128, blank=True)
-    enabled  = BooleanField(default=False)
-    approver = BooleanField(default=False)
-    updated  = DateTimeField(auto_now=True)
+    user      = ForeignKey(User, PROTECT, related_name='user')
+    games     = BigIntegerField(default=0)
+    tests     = IntegerField(default=0)
+    repos     = JSONField(default=dict, blank=True, null=True)
+    engine    = CharField(max_length=128, blank=True)
+    enabled   = BooleanField(default=False)
+    approver  = BooleanField(default=False)
+    superuser = BooleanField(default=False)
+    updated   = DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.user.__str__()
