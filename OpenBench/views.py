@@ -35,7 +35,7 @@ from OpenBench.workloads.modify_workload import modify_workload
 from OpenBench.workloads.verify_workload import verify_workload
 from OpenBench.workloads.view_workload import view_workload, fetch_results, fetch_result_summaries
 
-from OpenBench.config import OPENBENCH_CONFIG, OPENBENCH_CONFIG_CHECKSUM, OPENBENCH_STATIC_VERSION
+from OpenBench.config import OPENBENCH_CONFIG, OPENBENCH_STATIC_VERSION
 from OpenSite.settings import PROJECT_PATH
 
 from OpenBench.models import *
@@ -69,6 +69,10 @@ def render(request, template, content={}, always_allow=False, error=None, warnin
     data = content.copy()
     data.update({ 'config' : OPENBENCH_CONFIG })
     data.update({ 'static_version' : OPENBENCH_STATIC_VERSION })
+
+    # Every page lists the Engines in the sidebar. Lazy, so pages that do not
+    # reference it in their Template never execute the query.
+    data.setdefault('engines', EngineConfig.objects.filter(enabled=True).order_by('name'))
 
     if OPENBENCH_CONFIG['require_login_to_view']:
         if not request.user.is_authenticated and not always_allow:
@@ -524,7 +528,7 @@ def networks(request, engine=None, action=None, name=None, client=False):
     # Without an identifier and a valid action, all we can do is view the list
     if not name or action.upper() not in ['UPLOAD', 'DEFAULT', 'DELETE', 'DOWNLOAD', 'EDIT']:
         networks = Network.objects.all()
-        if engine and engine in OPENBENCH_CONFIG['engines'].keys():
+        if engine and EngineConfig.objects.filter(name=engine).exists():
             networks = networks.filter(engine=engine)
         return render(request, 'networks.html', { 'networks' : list(networks.order_by('-id').values()) })
 
@@ -621,6 +625,48 @@ def manage_books(request, name=None, action=None):
 
     return actions[action.upper()](request, book)
 
+def manage_engines(request, name=None, action=None):
+
+    can_manage = has_manage_permissions(request)
+
+    # Without a name, all we can do is view the list of Engines. The list also
+    # carries the creation form, which posts back to <new name>/create/
+    if not name:
+        data = { 'configs' : EngineConfig.objects.order_by('name'), 'can_manage' : can_manage }
+        return render(request, 'manage_engines.html', data)
+
+    # Creating is the only action for an Engine that does not exist yet
+    if action and action.upper() == 'CREATE':
+        if not can_manage:
+            return redirect(request, '/manage/engines/', error='You may not modify Engines')
+        return OpenBench.utils.engine_create(request, name)
+
+    if not (config := EngineConfig.objects.filter(name=name).first()):
+        return redirect(request, '/manage/engines/', error='No such Engine exists')
+
+    # Anyone may view a single Engine, but only Managers may change one
+    if not action:
+        data = {
+            'config'     : config,
+            'can_manage' : can_manage,
+            'presets'    : json.dumps(config.presets, indent=4),
+        }
+        return render(request, 'manage_engine.html', data)
+
+    if not can_manage:
+        return redirect(request, '/manage/engines/', error='You may not modify Engines')
+
+    # Push off all the actual effort to OpenBench.utils for all actions
+    actions = {
+        'EDIT'   : OpenBench.utils.engine_edit,
+        'DELETE' : OpenBench.utils.engine_delete,
+    }
+
+    if action.upper() not in actions:
+        return redirect(request, '/manage/engines/', error='Unknown action for an Engine')
+
+    return actions[action.upper()](request, config)
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                             OPENBENCH SCRIPTING                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -656,7 +702,7 @@ def verify_worker(function):
             return JsonResponse({ 'error' : 'Bad Client Version: Expected %d' % (expected_ver)})
 
         # Prompt the worker to soft-restart if its config is out of date
-        if machine.info.get('OPENBENCH_CONFIG_CHECKSUM') != OPENBENCH_CONFIG_CHECKSUM:
+        if machine.info.get('OPENBENCH_CONFIG_CHECKSUM') != ServerState.checksum():
             return JsonResponse({ 'error' : 'Bad Client Version: Server Configuration Changed' })
 
         # Use the secret token as our soft verification
@@ -694,9 +740,8 @@ def client_get_build_info(request):
     ## Toss in a private flag as well to indicate the need for Github Tokens.
 
     data = {}
-    for engine, config in OPENBENCH_CONFIG['engines'].items():
-        data[engine] = config['build'].copy()
-        data[engine]['private'] = config['private']
+    for config in EngineConfig.objects.all():
+        data[config.name] = { **config.build(), 'private' : config.private }
     return JsonResponse(data)
 
 @csrf_exempt
@@ -722,30 +767,32 @@ def client_worker_info(request):
     machine.secret = secrets.token_hex(32)
 
     # Note the Config checksum at the time of init, in case it changes
-    machine.info['OPENBENCH_CONFIG_CHECKSUM'] = OPENBENCH_CONFIG_CHECKSUM
+    machine.info['OPENBENCH_CONFIG_CHECKSUM'] = ServerState.checksum()
 
     # Tag engines that the Machine can build and/or run with binaries
     machine.info['supported'] = []
-    for engine, data in OPENBENCH_CONFIG['engines'].items():
+    for config in EngineConfig.objects.all():
+
+        build = config.build()
 
         # Must have all CPU flags, for both Public and Private engines
-        if any([flag not in machine.info['cpu_flags'] for flag in data['build']['cpuflags']]):
+        if any([flag not in machine.info['cpu_flags'] for flag in build['cpuflags']]):
             continue
 
         # Private engines must have, or think they have, a Git Token
-        if data['private'] and engine not in machine.info['tokens'].keys():
+        if config.private and config.name not in machine.info['tokens'].keys():
             continue
 
         # Public engines must have a compiler of a sufficient version
-        if not data['private'] and engine not in machine.info['compilers'].keys():
+        if not config.private and config.name not in machine.info['compilers'].keys():
             continue
 
         # Must match the Operating Systems supported by the engine
-        if machine.info['os_name'] not in data['build']['systems']:
+        if machine.info['os_name'] not in build['systems']:
             continue
 
         # All requirements are met, and this Machine can play with the given engine
-        machine.info['supported'].append(engine)
+        machine.info['supported'].append(config.name)
 
     # Finish up
     machine.save()
@@ -918,15 +965,15 @@ def api_configs(request, engine=None):
         return api_response({ 'error' : 'API requires authentication for this server' })
 
     if engine == None:
-        engines = list(OPENBENCH_CONFIG['engines'].keys())
+        engines = list(EngineConfig.objects.filter(enabled=True).order_by('name').values_list('name', flat=True))
         books   = {
             book.name : { 'sha' : book.sha, 'source' : book.source }
             for book in Book.objects.filter(enabled=True).order_by('name')
         }
         return api_response({ 'engines' : engines, 'books' : books })
 
-    if engine in OPENBENCH_CONFIG['engines'].keys():
-        return api_response(OPENBENCH_CONFIG['engines'][engine])
+    if (config := EngineConfig.objects.filter(name=engine).first()):
+        return api_response(OpenBench.model_utils.engine_config_to_dict(config))
 
     return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
 
@@ -936,7 +983,7 @@ def api_networks(request, engine):
     if not api_authenticate(request):
         return api_response({ 'error' : 'API requires authentication for this server' })
 
-    if engine in OPENBENCH_CONFIG['engines'].keys():
+    if EngineConfig.objects.filter(name=engine).exists():
 
         default = None
         if (network := Network.objects.filter(engine=engine, default=True).first()):
@@ -991,8 +1038,8 @@ def api_build_info(request):
         return api_response({ 'error' : 'API requires authentication for this server' })
 
     data = {}
-    for engine, config in OPENBENCH_CONFIG['engines'].items():
-        data[engine] = config
+    for config in EngineConfig.objects.filter(enabled=True).order_by('name'):
+        data[config.name] = OpenBench.model_utils.engine_config_to_dict(config)
 
     for network in Network.objects.filter(default=True):
 

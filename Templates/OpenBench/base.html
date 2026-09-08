@@ -159,8 +159,8 @@
 
             <ul>
                 <li class="header">Engines</li>
-                {% for engine, data in config.engines.items %}
-                    <li><a href="{{data.source}}">{{engine}}</a></li>
+                {% for engine in engines %}
+                    <li><a href="{{engine.source}}">{{engine.name}}</a></li>
                 {% endfor %}
             </ul>
 

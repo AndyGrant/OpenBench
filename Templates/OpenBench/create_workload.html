@@ -5,6 +5,7 @@
 {% block scripts %}
 
     {{ config|json_script:"json-config" }}
+    {{ engine_configs|json_script:"json-engines" }}
     {{ networks|json_script:"json-networks" }}
     {{ profile.repos|json_script:"json-repos" }}
 
@@ -35,8 +36,8 @@
                 <div class="row">
                     <label for="dev_engine"> {{dev_text}} Engine </label>
                     <select id="dev_engine" name="dev_engine" onchange="change_engine(value, 'dev', '{{workload}}');">
-                        {% for engine in config.engines %}
-                            <option value="{{ engine }}">{{ engine }}</option>
+                        {% for engine in engines %}
+                            <option value="{{ engine.name }}">{{ engine.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -49,8 +50,8 @@
                     <div class="row">
                         <label for="base_engine"> Base Engine </label>
                         <select id="base_engine" name="base_engine" onchange="change_engine(value, 'base', '{{workload}}');">
-                            {% for engine in config.engines %}
-                                <option value="{{ engine }}">{{ engine }}</option>
+                            {% for engine in engines %}
+                                <option value="{{ engine.name }}">{{ engine.name }}</option>
                             {% endfor %}
                         </select>
                     </div>

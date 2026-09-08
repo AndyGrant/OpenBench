@@ -72,7 +72,7 @@ def verify_test_creation(errors, request):
     verifications = [
 
         # Verify everything about the Dev Engine
-        (verify_configuration  , 'dev_engine', 'Dev Engine', 'engines'),
+        (verify_engine         , 'dev_engine', 'Dev Engine'),
         (verify_github_repo    , 'dev_repo'),
         (verify_network        , 'dev_network', 'Dev Network', 'dev_engine'),
         (verify_options        , 'dev_options', 'Threads', 'Dev Options'),
@@ -80,7 +80,7 @@ def verify_test_creation(errors, request):
         (verify_time_control   , 'dev_time_control', 'Dev Time Control'),
 
         # Verify everything about the Base Engine
-        (verify_configuration  , 'base_engine', 'Base Engine', 'engines'),
+        (verify_engine         , 'base_engine', 'Base Engine'),
         (verify_github_repo    , 'base_repo'),
         (verify_network        , 'base_network', 'Base Network', 'base_engine'),
         (verify_options        , 'base_options', 'Threads', 'Base Options'),
@@ -128,7 +128,7 @@ def verify_tune_creation(errors, request):
         (verify_spsa_distribution_type, 'spsa_distribution_type', 'Distribution Method'),
 
         # Verify everything about the Engine
-        (verify_configuration         , 'dev_engine', 'Engine', 'engines'),
+        (verify_engine                , 'dev_engine', 'Engine'),
         (verify_github_repo           , 'dev_repo'),
         (verify_network               , 'dev_network', 'Network', 'dev_engine'),
         (verify_options               , 'dev_options', 'Threads', 'Options'),
@@ -175,7 +175,7 @@ def verify_datagen_creation(errors, request):
     verifications = [
 
         # Verify everything about the Dev Engine
-        (verify_configuration  , 'dev_engine', 'Dev Engine', 'engines'),
+        (verify_engine         , 'dev_engine', 'Dev Engine'),
         (verify_github_repo    , 'dev_repo'),
         (verify_network        , 'dev_network', 'Dev Network', 'dev_engine'),
         (verify_options        , 'dev_options', 'Threads', 'Dev Options'),
@@ -183,7 +183,7 @@ def verify_datagen_creation(errors, request):
         (verify_time_control   , 'dev_time_control', 'Dev Time Control'),
 
         # Verify everything about the Base Engine
-        (verify_configuration  , 'base_engine', 'Base Engine', 'engines'),
+        (verify_engine         , 'base_engine', 'Base Engine'),
         (verify_github_repo    , 'base_repo'),
         (verify_network        , 'base_network', 'Base Network', 'base_engine'),
         (verify_options        , 'base_options', 'Threads', 'Base Options'),
@@ -237,8 +237,8 @@ def verify_options(errors, request, field, option, field_name):
     try: assert int(OpenBench.utils.extract_option(request.POST[field], option)) >= 1
     except: errors.append('"{0}" needs to be at least 1 for {1}'.format(option, field_name))
 
-def verify_configuration(errors, request, field, field_name, parent):
-    try: assert request.POST[field] in OpenBench.config.OPENBENCH_CONFIG[parent].keys()
+def verify_engine(errors, request, field, field_name):
+    try: assert EngineConfig.objects.filter(name=request.POST[field], enabled=True).exists()
     except: errors.append('{0} was not found in the configuration'.format(field_name))
 
 def verify_book(errors, request, field, field_name):
@@ -381,7 +381,7 @@ def collect_github_info(errors, request, field):
     # All API requests will share this common path. Some engines are private.
     base    = request.POST['%s_repo' % (field)].replace('github.com', 'api.github.com/repos')
     engine  = request.POST['%s_engine' % (field)]
-    private = OpenBench.config.OPENBENCH_CONFIG['engines'][engine]['private']
+    private = EngineConfig.objects.filter(name=engine).values_list('private', flat=True).first()
     headers = {}
 
     ## Step 1: Verify the target of the API requests
@@ -440,12 +440,12 @@ def collect_github_info(errors, request, field):
 def requests_illegal_fork(request, field):
 
     # Strip trailing '/'s for sanity
-    engine  = OpenBench.config.OPENBENCH_CONFIG['engines'][request.POST['%s_engine' % (field)]]
-    eng_src = engine['source'].rstrip('/')
+    config  = EngineConfig.objects.filter(name=request.POST['%s_engine' % (field)]).first()
+    eng_src = config.source.rstrip('/')
     tar_src = request.POST['%s_repo' % (field)].rstrip('/')
 
     # Illegal if sources do not match for Private engines
-    return engine['private'] and eng_src != tar_src
+    return config.private and eng_src != tar_src
 
 def determine_bench(request, field, message):
 

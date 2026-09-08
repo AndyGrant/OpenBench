@@ -1,5 +1,6 @@
 
 var config   = JSON.parse(document.getElementById('json-config'  ).textContent);
+var engines  = JSON.parse(document.getElementById('json-engines' ).textContent);
 var networks = JSON.parse(document.getElementById('json-networks').textContent);
 var repos    = JSON.parse(document.getElementById('json-repos'   ).textContent);
 
@@ -43,9 +44,9 @@ function create_preset_buttons(engine, workload_type) {
     while (button_div.hasChildNodes())
         button_div.removeChild(button_div.lastChild);
 
-    const presets = workload_type == 'TEST'    ? config.engines[engine].test_presets
-                  : workload_type == 'TUNE'    ? config.engines[engine].tune_presets
-                  : workload_type == 'DATAGEN' ? config.engines[engine].datagen_presets : {};
+    const presets = workload_type == 'TEST'    ? engines[engine].test_presets
+                  : workload_type == 'TUNE'    ? engines[engine].tune_presets
+                  : workload_type == 'DATAGEN' ? engines[engine].datagen_presets : {};
 
     var index = 0;
     for (let mode in presets) {
@@ -95,9 +96,9 @@ function get_base_engine() {
 }
 
 function get_presets(engine, preset, workload_type) {
-    return workload_type == 'TEST'    ? config.engines[engine].test_presets[preset]
-         : workload_type == 'TUNE'    ? config.engines[engine].tune_presets[preset]
-         : workload_type == 'DATAGEN' ? config.engines[engine].datagen_presets[preset] : {};
+    return workload_type == 'TEST'    ? engines[engine].test_presets[preset]
+         : workload_type == 'TUNE'    ? engines[engine].tune_presets[preset]
+         : workload_type == 'DATAGEN' ? engines[engine].datagen_presets[preset] : {};
 }
 
 
@@ -120,7 +121,7 @@ function add_defaults_to_preset(engine, preset, workload_type) {
 function set_engine(engine, target) {
 
     document.getElementById(target + '_engine').value = engine;
-    document.getElementById(target + '_repo'  ).value = repos[engine] || config.engines[engine].source
+    document.getElementById(target + '_repo'  ).value = repos[engine] || engines[engine].source
 
     create_network_options(target + '_network', engine);
 }
@@ -231,7 +232,7 @@ function change_engine(engine, target, workload_type) {
     if (target == 'dev' && (workload_type == 'TEST' || workload_type == 'DATAGEN'))
         set_engine(engine, 'base');
 
-    set_option('scale_nps', config.engines[engine].nps);
+    set_option('scale_nps', engines[engine].nps);
     set_option('scale_method', workload_type == 'TUNE' ? 'DEV' : 'BASE');
 
     apply_preset('STC', workload_type);

@@ -44,11 +44,11 @@
                 <div class="row">
                     <label for="network-engine">Engine</label>
                     <select id="network-engine" name="engine">
-                    {% for engine in config.engines %}
-                        {% if engine == profile.engine %}
-                            <option selected value="{{ engine }}">{{ engine }}</option>
+                    {% for engine in engines %}
+                        {% if engine.name == profile.engine %}
+                            <option selected value="{{ engine.name }}">{{ engine.name }}</option>
                         {% else %}
-                            <option value="{{ engine }}">{{ engine }}</option>
+                            <option value="{{ engine.name }}">{{ engine.name }}</option>
                         {% endif %}
                     {% endfor %}
                     </select>

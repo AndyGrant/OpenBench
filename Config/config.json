@@ -13,28 +13,5 @@
     "balance_engine_throughputs"  : false,
 
     "use_x_accel_redirect"  : false,
-    "x_accel_redirect_root" : "/x-accel-media/",
-
-    "engines" : [
-        "4ku",
-        "Berserk",
-        "Bit-Genie",
-        "BlackMarlin",
-        "Demolito",
-        "Drofa",
-        "Equisetum",
-        "Ethereal",
-        "FabChess",
-        "Halogen",
-        "Igel",
-        "Koivisto",
-        "Laser",
-        "RubiChess",
-        "Seer",
-        "Stash",
-        "Stockfish",
-        "Weiss",
-        "Winter",
-        "Zahak"
-    ]
+    "x_accel_redirect_root" : "/x-accel-media/"
 }
