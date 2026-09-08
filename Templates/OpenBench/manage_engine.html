@@ -2,30 +2,30 @@
 
 {% block manage %}
 
-    <form method="POST" action="/manage/engines/{{config.name}}/edit/">
+    <form method="POST" action="/manage/engines/{{engine_config.name}}/edit/">
         {% csrf_token %}
         <div class="form">
             <div class="col">
 
                 <div class="row">
                     <label for="name"> Name </label>
-                    <input id="name" readonly value="{{config.name}}">
+                    <input id="name" readonly value="{{engine_config.name}}">
                 </div>
 
                 <div class="row">
                     <label for="source"> Source </label>
-                    <input id="source" name="source" value="{{config.source}}" {% if not can_manage %}readonly{% endif %}>
+                    <input id="source" name="source" value="{{engine_config.source}}" {% if not can_manage %}readonly{% endif %}>
                 </div>
 
                 <div class="row">
                     <label for="nps"> NPS </label>
-                    <input id="nps" name="nps" value="{{config.nps}}" {% if not can_manage %}readonly{% endif %}>
+                    <input id="nps" name="nps" value="{{engine_config.nps}}" {% if not can_manage %}readonly{% endif %}>
                 </div>
 
                 <div class="row">
                     <label for="private"> Private </label>
                     <select id="private" name="private" {% if not can_manage %}disabled{% endif %}>
-                        {% if config.private %}
+                        {% if engine_config.private %}
                             <option selected value="TRUE"> True </option>
                             <option value="FALSE"> False </option>
                         {% else %}
@@ -38,7 +38,7 @@
                 <div class="row">
                     <label for="enabled"> Enabled </label>
                     <select id="enabled" name="enabled" {% if not can_manage %}disabled{% endif %}>
-                        {% if config.enabled %}
+                        {% if engine_config.enabled %}
                             <option selected value="TRUE"> True </option>
                             <option value="FALSE"> False </option>
                         {% else %}
@@ -52,22 +52,22 @@
 
                 <div class="row">
                     <label for="build_path"> Path </label>
-                    <input id="build_path" name="build_path" value="{{config.build_path}}" {% if not can_manage %}readonly{% endif %}>
+                    <input id="build_path" name="build_path" value="{{engine_config.build_path}}" {% if not can_manage %}readonly{% endif %}>
                 </div>
 
                 <div class="row">
                     <label for="build_compilers"> Compilers </label>
-                    <input id="build_compilers" name="build_compilers" value="{{config.build_compilers}}" {% if not can_manage %}readonly{% endif %}>
+                    <input id="build_compilers" name="build_compilers" value="{{engine_config.build_compilers}}" {% if not can_manage %}readonly{% endif %}>
                 </div>
 
                 <div class="row">
                     <label for="build_cpuflags"> Cpu Flags </label>
-                    <input id="build_cpuflags" name="build_cpuflags" value="{{config.build_cpuflags}}" {% if not can_manage %}readonly{% endif %}>
+                    <input id="build_cpuflags" name="build_cpuflags" value="{{engine_config.build_cpuflags}}" {% if not can_manage %}readonly{% endif %}>
                 </div>
 
                 <div class="row">
                     <label for="build_systems"> Systems </label>
-                    <input id="build_systems" name="build_systems" value="{{config.build_systems}}" {% if not can_manage %}readonly{% endif %}>
+                    <input id="build_systems" name="build_systems" value="{{engine_config.build_systems}}" {% if not can_manage %}readonly{% endif %}>
                 </div>
 
                 <h3> Presets </h3>

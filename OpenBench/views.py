@@ -647,9 +647,9 @@ def manage_engines(request, name=None, action=None):
     # Anyone may view a single Engine, but only Managers may change one
     if not action:
         data = {
-            'config'     : config,
-            'can_manage' : can_manage,
-            'presets'    : json.dumps(config.presets, indent=4),
+            'engine_config'     : config,
+            'can_manage'        : can_manage,
+            'presets'           : json.dumps(config.presets, indent=4),
         }
         return render(request, 'manage_engine.html', data)
 
