@@ -366,6 +366,68 @@ def network_edit(request, engine, network):
     return OpenBench.views.redirect(request, '/networks/%s' % (network.engine), status='Applied changes')
 
 
+# Purely Helper functions for Books views
+
+def book_verify(request):
+
+    # A bad sha or source breaks every Client that downloads the Book. Books are
+    # only served out of Github for now, hence the restriction on the source.
+
+    if not re.match(r'^[0-9a-f]{64}$', request.POST['sha']):
+        return 'Sha must be a 64 digit lowercase hex digest'
+
+    required_path = 'https://raw.githubusercontent.com/'
+    if not request.POST['source'].startswith(required_path):
+        return 'Sources must start with %s' % (required_path)
+
+    return None
+
+def book_create(request, name):
+
+    # Rejecct Books with strange characters, or names too long for the column
+    if not re.match(r'^[a-zA-Z0-9_.-]{1,32}$', name):
+        return OpenBench.views.redirect(request, '/manage/books/', error='Valid names are 1-32 of [a-zA-Z0-9_.-]')
+
+    # Don't allow duplicates, as Workloads refer to Books by name
+    if Book.objects.filter(name=name).exists():
+        error = 'A Book already exists with the name %s' % (name)
+        return OpenBench.views.redirect(request, '/manage/books/', error=error)
+
+    if (error := book_verify(request)):
+        return OpenBench.views.redirect(request, '/manage/books/', error=error)
+
+    # The only place a Book's name is ever set
+    Book.objects.create(
+        name=name, source=request.POST['source'],
+        sha=request.POST['sha'], enabled=request.POST['enabled'] == 'TRUE')
+
+    return OpenBench.views.redirect(request, '/manage/books/', status='Created Book %s' % (name))
+
+def book_edit(request, book):
+
+    if (error := book_verify(request)):
+        return OpenBench.views.redirect(request, '/manage/books/%s/' % (book.name), error=error)
+
+    # The name is never changed, since Workloads refer to Books by name
+    book.source  = request.POST['source']
+    book.sha     = request.POST['sha']
+    book.enabled = request.POST['enabled'] == 'TRUE'
+    book.save()
+
+    return OpenBench.views.redirect(request, '/manage/books/', status='Updated Book %s' % (book.name))
+
+def book_delete(request, book):
+
+    # Workloads refer to Books by name, so any Book still in use has to be kept.
+    # Only checked here, to keep the cost off of every view of the Book list.
+    if Test.objects.filter(book_name=book.name).exists():
+        error = 'Cannot delete %s, as it is still used by existing Workloads' % (book.name)
+        return OpenBench.views.redirect(request, '/manage/books/', error=error)
+
+    book.delete()
+    return OpenBench.views.redirect(request, '/manage/books/', status='Deleted Book %s' % (book.name))
+
+
 def update_test(request, machine):
 
     # Extract error information

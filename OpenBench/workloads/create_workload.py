@@ -55,7 +55,10 @@ def create_workload(request, workload_type):
 
     if request.method == 'GET':
 
-        data = { 'networks' : list(Network.objects.all().values()) }
+        data = {
+            'networks' : list(Network.objects.all().values()),
+            'books'    : Book.objects.filter(enabled=True).order_by('name'),
+        }
 
         if workload_type == 'TEST':
             data['workload']        = workload_type

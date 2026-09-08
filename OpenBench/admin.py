@@ -20,6 +20,7 @@
 
 import django.contrib, OpenBench.models
 
+django.contrib.admin.site.register(OpenBench.models.Book)
 django.contrib.admin.site.register(OpenBench.models.Engine)
 django.contrib.admin.site.register(OpenBench.models.Profile)
 django.contrib.admin.site.register(OpenBench.models.Machine)

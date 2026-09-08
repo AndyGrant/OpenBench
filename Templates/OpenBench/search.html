@@ -167,8 +167,8 @@
                         <label for="opening-book">Book</label>
                         <select id="opening-book" name="opening-book">
                             <option value="" {% if not form.book %}selected{% endif %}>All Books</option>
-                            {% for name, data in config.books.items %}
-                                <option value="{{name}}" {% if form.book == name %}selected{% endif %}>{{name}}</option>
+                            {% for book in books %}
+                                <option value="{{book.name}}" {% if form.book == book.name %}selected{% endif %}>{{book.name}}</option>
                             {% endfor %}
                         </select><br>
                     </div>

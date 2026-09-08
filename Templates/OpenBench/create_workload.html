@@ -213,8 +213,8 @@
                 <div class="row">
                     <label for="book_name"> Opening Book </label> <select id="book_name" name="book_name">
                     <option selected value="NONE"> None </option>
-                    {% for name, data in config.books.items %}
-                        <option value="{{ name }}">{{ name }}</option>
+                    {% for book in books %}
+                        <option value="{{ book.name }}">{{ book.name }}</option>
                     {% endfor %}
                     </select>
                 </div>
