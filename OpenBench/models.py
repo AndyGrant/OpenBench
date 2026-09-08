@@ -18,6 +18,9 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+import hashlib
+import json
+
 from django.db.models import CharField, IntegerField, BigIntegerField, BooleanField, FloatField
 from django.db.models import JSONField, ForeignKey, DateTimeField, OneToOneField
 from django.db.models import CASCADE, PROTECT, Model, TextChoices
@@ -43,6 +46,75 @@ class Book(Model):
 
     def __str__(self):
         return self.name
+
+class EngineConfig(Model):
+
+    # Workloads refer to Engines by name, therefore the name is never changed
+    name    = CharField(max_length=64, unique=True)
+    private = BooleanField(default=False)
+    nps     = IntegerField(default=0)
+    source  = CharField(max_length=1024)
+    enabled = BooleanField(default=True)
+
+    # Space seperated lists, kept as strings for the sake of the edit forms
+    build_path      = CharField(max_length=64, blank=True)
+    build_compilers = CharField(max_length=64, blank=True)
+    build_cpuflags  = CharField(max_length=64, blank=True)
+    build_systems   = CharField(max_length=64, blank=True)
+
+    # { 'test_presets' : {...}, 'tune_presets' : {...}, 'datagen_presets' : {...} }
+    presets = JSONField(default=dict, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    def build(self):
+        return {
+            'path'      : self.build_path,
+            'compilers' : self.build_compilers.split(),
+            'cpuflags'  : self.build_cpuflags.split(),
+            'systems'   : self.build_systems.split(),
+        }
+
+    # Clients cache the build checksum, and restart when the Server's differs.
+    # Refreshed here, so that it holds no matter who edited the EngineConfig
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        ServerState.refresh_build_checksum()
+
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
+        ServerState.refresh_build_checksum()
+
+class ServerState(Model):
+
+    # A single row, holding the values that change while the Server is running,
+    # and must be seen by every process. Read on hot paths, so keep it small.
+    build_checksum = CharField(max_length=64, default='')
+
+    def __str__(self):
+        return self.build_checksum
+
+    @staticmethod
+    def checksum():
+        return ServerState.objects.values_list('build_checksum', flat=True).first() or ''
+
+    @staticmethod
+    def refresh_build_checksum():
+
+        # Only the build settings are hashed, so that editing an nps value or a
+        # preset does not needlessly send every Client off to restart itself.
+        # Names are included, or two Engines built alike would cancel each other.
+
+        checksum = hashlib.sha256(b'').digest()
+
+        for config in EngineConfig.objects.all():
+            serialized  = json.dumps([config.name, config.build()], sort_keys=True)
+            partial_sum = hashlib.sha256(serialized.encode('utf-8')).digest()
+            checksum    = bytes(a ^ b for a, b in zip(checksum, partial_sum))
+
+        ServerState.objects.update_or_create(pk=1, defaults={ 'build_checksum' : checksum.hex() })
 
 class Profile(Model):
 

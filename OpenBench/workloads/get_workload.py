@@ -31,7 +31,7 @@ import sys
 import OpenBench.utils
 
 from OpenBench.config import OPENBENCH_CONFIG
-from OpenBench.models import Book, Result, Test
+from OpenBench.models import Book, EngineConfig, Result, Test
 from OpenBench.spsa_utils import spsa_workload_assignment_dict
 
 from django.db import transaction
@@ -236,6 +236,11 @@ def workload_to_dictionary(test, result, machine):
         'source' : book.source if book else None,
     }
 
+    # Looked up by name without regard for the enabled flag, so that disabling
+    # an Engine does not strand the Workloads already running against it
+    dev_config  = EngineConfig.objects.get(name=test.dev_engine)
+    base_config = EngineConfig.objects.get(name=test.base_engine)
+
     workload['test']['dev'] = {
         'id'           : test.dev.id,
         'name'         : test.dev.name,
@@ -247,8 +252,8 @@ def workload_to_dictionary(test, result, machine):
         'network'      : test.dev_network,
         'netname'      : test.dev_netname,
         'time_control' : test.dev_time_control,
-        'build'        : OPENBENCH_CONFIG['engines'][test.dev_engine]['build'],
-        'private'      : OPENBENCH_CONFIG['engines'][test.dev_engine]['private'],
+        'build'        : dev_config.build(),
+        'private'      : dev_config.private,
     }
 
     workload['test']['base'] = {
@@ -262,8 +267,8 @@ def workload_to_dictionary(test, result, machine):
         'network'      : test.base_network,
         'netname'      : test.base_netname,
         'time_control' : test.base_time_control,
-        'build'        : OPENBENCH_CONFIG['engines'][test.base_engine]['build'],
-        'private'      : OPENBENCH_CONFIG['engines'][test.base_engine]['private'],
+        'build'        : base_config.build(),
+        'private'      : base_config.private,
     }
 
     workload['distribution']   = game_distribution(test, machine)

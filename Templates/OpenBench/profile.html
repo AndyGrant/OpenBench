@@ -67,9 +67,9 @@
                     <label> <!-- CSS Hack -->
                         <select name="new-engine-name" id="new-engine-name">
                             <option selected disabled hidden>New Engine</option>
-                            {% for engine in config.engines.keys %}
-                                {% if engine not in profile.repos %}
-                                    <option value="{{ engine }}">{{ engine }}</option>
+                            {% for engine in engines %}
+                                {% if engine.name not in profile.repos %}
+                                    <option value="{{ engine.name }}">{{ engine.name }}</option>
                                 {% endif %}
                             {% endfor %}
                         </select>

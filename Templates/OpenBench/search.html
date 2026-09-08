@@ -134,8 +134,8 @@
                         <label for="dev-engine">Dev</label>
                         <select id="dev-engine" name="dev-engine" class="mw-20 mr-2">
                             <option value="" {% if not form.dev_engine %}selected{% endif %}>All Engines</option>
-                            {% for name, data in config.engines.items %}
-                                <option value="{{name}}" {% if form.dev_engine == name %}selected{% endif %}>{{name}}</option>
+                            {% for engine in engines %}
+                                <option value="{{engine.name}}" {% if form.dev_engine == engine.name %}selected{% endif %}>{{engine.name}}</option>
                             {% endfor %}
                         </select>
                         <input id="dev-network" name="dev-network" value="{{form.dev_network}}" placeholder="Network Name (Case-Insensitive)"><br>
@@ -144,8 +144,8 @@
                         <label for="base-engine">Base</label>
                         <select id="base-engine" name="base-engine" class="mw-20 mr-2">
                             <option value="" {% if not form.base_engine %}selected{% endif %}>All Engines</option>
-                            {% for name, data in config.engines.items %}
-                                <option value="{{name}}" {% if form.base_engine == name %}selected{% endif %}>{{name}}</option>
+                            {% for engine in engines %}
+                                <option value="{{engine.name}}" {% if form.base_engine == engine.name %}selected{% endif %}>{{engine.name}}</option>
                             {% endfor %}
                         </select>
                         <input id="base-network" name="base-network" value="{{form.base_network}}" placeholder="Network Name (Case-Insensitive)"><br>

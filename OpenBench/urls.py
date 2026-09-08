@@ -60,6 +60,10 @@ urlpatterns = [
     django.urls.path(r'manage/books/<str:name>/', OpenBench.views.manage_books),
     django.urls.path(r'manage/books/<str:name>/<str:action>/', OpenBench.views.manage_books),
 
+    django.urls.path(r'manage/engines/', OpenBench.views.manage_engines),
+    django.urls.path(r'manage/engines/<str:name>/', OpenBench.views.manage_engines),
+    django.urls.path(r'manage/engines/<str:name>/<str:action>/', OpenBench.views.manage_engines),
+
     # Links for interacting with OpenBench via scripting
     django.urls.path(r'scripts/', OpenBench.views.scripts),
 

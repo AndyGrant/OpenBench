@@ -9,6 +9,17 @@ def network_to_dict(network):
 def engine_to_dict(engine):
     return { 'id': engine.id, **model_to_dict(engine, exclude=['id']) }
 
+def engine_config_to_dict(config):
+
+    # Matches the shape of the Engines/<name>.json files these replaced
+    return {
+        'private' : config.private,
+        'nps'     : config.nps,
+        'source'  : config.source,
+        'build'   : config.build(),
+        **config.presets,
+    }
+
 def workload_to_dict(workload):
 
     # dev/base are dumped as nested Engine dicts; the trinomial and pentanomial

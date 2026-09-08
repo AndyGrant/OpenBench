@@ -32,14 +32,14 @@ from django.contrib.auth import authenticate
 from django.core.files.base import ContentFile
 from django.core.files.storage import FileSystemStorage
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 from django.http import FileResponse, HttpResponse
 from django.utils import timezone
 from wsgiref.util import FileWrapper
 
 from OpenSite.settings import MEDIA_ROOT, PROJECT_PATH
 
-from OpenBench.config import OPENBENCH_CONFIG
+from OpenBench.config import OPENBENCH_CONFIG, PRESET_TYPES, verify_engine_presets
 from OpenBench.models import *
 from OpenBench.stats import TrinomialSPRT, PentanomialSPRT
 
@@ -286,7 +286,7 @@ def network_upload(request, engine, name):
         return OpenBench.views.redirect(request, '/networks/', error='Network with that name already exists for that engine')
 
     # Filter out anyone who has used an unknown engine
-    if engine not in OPENBENCH_CONFIG['engines'].keys():
+    if not EngineConfig.objects.filter(name=engine).exists():
         return OpenBench.views.redirect(request, '/networks/', error='No Engine found with matching name')
 
     # Save the file locally into /Media/ if we don't already have this file
@@ -426,6 +426,93 @@ def book_delete(request, book):
 
     book.delete()
     return OpenBench.views.redirect(request, '/manage/books/', status='Deleted Book %s' % (book.name))
+
+
+# Purely Helper functions for Engines views
+
+def engine_verify(request, name):
+
+    # Sources are Github repos, which is where the Client clones the Engine from
+    if not request.POST['source'].startswith('https://github.com/'):
+        return 'Sources must start with https://github.com/'
+
+    try: assert int(request.POST['nps']) > 0
+    except: return 'NPS must be a positive integer'
+
+    # Presets are only offered when editing. A new Engine starts off blank
+    if 'presets' in request.POST:
+
+        try: presets = json.loads(request.POST['presets'])
+        except: return 'Presets must be valid json'
+
+        if (error := verify_engine_presets(presets)):
+            return error
+
+    # Private Engines are cloned using a token kept in Config/credentials.<name>
+    if request.POST['private'] == 'TRUE' and not read_git_credentials(name):
+        return 'Private Engines require a Config/credentials.%s file' % (name.replace(' ', '').lower())
+
+    return None
+
+def engine_fields(request):
+
+    # Presets are only offered when editing. A new Engine starts off blank
+    blank   = { x : { 'default' : {} } for x in PRESET_TYPES }
+    presets = json.loads(request.POST['presets']) if 'presets' in request.POST else blank
+
+    return {
+        'private'         : request.POST['private'] == 'TRUE',
+        'enabled'         : request.POST['enabled'] == 'TRUE',
+        'nps'             : int(request.POST['nps']),
+        'source'          : request.POST['source'],
+        'build_path'      : request.POST['build_path'],
+        'build_compilers' : request.POST['build_compilers'],
+        'build_cpuflags'  : request.POST['build_cpuflags'],
+        'build_systems'   : request.POST['build_systems'],
+        'presets'         : presets,
+    }
+
+def engine_create(request, name):
+
+    # Rejecct Engines with strange characters, or names too long for the column
+    if not re.match(r'^[a-zA-Z0-9_.-]{1,64}$', name):
+        return OpenBench.views.redirect(request, '/manage/engines/', error='Valid names are 1-64 of [a-zA-Z0-9_.-]')
+
+    # Don't allow duplicates, as Workloads refer to Engines by name
+    if EngineConfig.objects.filter(name=name).exists():
+        error = 'An Engine already exists with the name %s' % (name)
+        return OpenBench.views.redirect(request, '/manage/engines/', error=error)
+
+    if (error := engine_verify(request, name)):
+        return OpenBench.views.redirect(request, '/manage/engines/', error=error)
+
+    # The only place an Engine's name is ever set
+    EngineConfig.objects.create(name=name, **engine_fields(request))
+
+    return OpenBench.views.redirect(request, '/manage/engines/', status='Created Engine %s' % (name))
+
+def engine_edit(request, config):
+
+    if (error := engine_verify(request, config.name)):
+        return OpenBench.views.redirect(request, '/manage/engines/%s/' % (config.name), error=error)
+
+    # The name is never changed, since Workloads refer to Engines by name
+    for field, value in engine_fields(request).items():
+        setattr(config, field, value)
+    config.save()
+
+    return OpenBench.views.redirect(request, '/manage/engines/', status='Updated Engine %s' % (config.name))
+
+def engine_delete(request, config):
+
+    # Workloads refer to Engines by name, so any Engine in use has to be kept.
+    # Only checked here, to keep the cost off of every view of the Engine list.
+    if Test.objects.filter(Q(dev_engine=config.name) | Q(base_engine=config.name)).exists():
+        error = 'Cannot delete %s, as it is still used by existing Workloads' % (config.name)
+        return OpenBench.views.redirect(request, '/manage/engines/', error=error)
+
+    config.delete()
+    return OpenBench.views.redirect(request, '/manage/engines/', status='Deleted Engine %s' % (config.name))
 
 
 def update_test(request, machine):
