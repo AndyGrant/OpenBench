@@ -19,8 +19,10 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import atexit
+import os
 import pathlib
 import platform
+import sys
 import threading
 
 import django.apps
@@ -69,6 +71,10 @@ class OpenBenchConfig(django.apps.AppConfig):
         with CONFIG_LOCK:
             if config.OPENBENCH_CONFIG is None:
                 config.OPENBENCH_CONFIG = config.create_openbench_config()
+
+        # HACK: Simple management commands should not be spawning the PGNWatcher
+        if os.path.basename(sys.argv[0]) == 'manage.py' and sys.argv[1:2] != ['runserver']:
+            return
 
         # Attempt to spawn the PGN Watcher, globally once
 
