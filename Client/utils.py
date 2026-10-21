@@ -249,7 +249,7 @@ def download_network(server, username, password, engine, net_name, net_sha, net_
 
         # The server falls back to the original file, so check what we received
         decompressor = None
-        if request.headers.get('X-OpenBench-Compressed') == 'zstd':
+        if request.headers.get('Content-Disposition', '').endswith('.zst'):
             decompressor = zstandard.ZstdDecompressor().decompressobj()
 
         # Write the content out to the net_path in kb chunks

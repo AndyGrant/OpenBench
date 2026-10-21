@@ -323,15 +323,14 @@ def network_delete(request, engine, network):
 def network_download(request, engine, network, compressed=False):
 
     # Serve the zstd copy only if asked, and if we have one. Otherwise fall back
-    # to the original file. The headers tell the caller which one they received
+    # to the original file. The filename (ending in .zst, or not) tells the caller
+    # which one they received. Custom headers do not survive nginx's X-Accel-Redirect
     use_zstd = compressed and network.has_compressed_copy()
     netfile  = network.compressed_path() if use_zstd else os.path.join(MEDIA_ROOT, network.sha256)
 
     # Craft the download HTML response
     expires  = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).ctime()
-    response = media_download_response(netfile, os.path.basename(netfile), expires)
-    if use_zstd: response['X-OpenBench-Compressed'] = 'zstd'
-    return response
+    return media_download_response(netfile, os.path.basename(netfile), expires)
 
 def network_edit(request, engine, network):
 
