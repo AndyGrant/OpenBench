@@ -20,11 +20,14 @@
 
 import hashlib
 import json
+import os
 
 from django.db.models import CharField, IntegerField, BigIntegerField, BooleanField, FloatField
 from django.db.models import JSONField, ForeignKey, DateTimeField, OneToOneField
 from django.db.models import CASCADE, PROTECT, Model, TextChoices
 from django.contrib.auth.models import User
+
+from OpenSite.settings import MEDIA_ROOT
 
 class Engine(Model):
 
@@ -310,8 +313,26 @@ class Network(Model):
     author      = CharField(max_length=64)
     created     = DateTimeField(auto_now_add=True)
 
+    # True if we hold a zstd compressed copy of the file, at compressed_path()
+    ob_compressed = BooleanField(default=False)
+
+    # Names ending in these hold data that is already compressed
+    COMPRESSED_SUFFIXES = (
+        '.zst', '.zstd', '.gz', '.gzip', '.bz2', '.xz', '.lzma', '.zip', '.7z', '.lz4', '.br', '.z',
+    )
+
     def __str__(self):
         return '[{}] {} ({})'.format(self.engine, self.name, self.sha256)
+
+    def is_precompressed(self):
+        return self.name.lower().endswith(self.COMPRESSED_SUFFIXES)
+
+    def compressed_path(self):
+        return os.path.join(MEDIA_ROOT, '%s.zst' % (self.sha256))
+
+    def has_compressed_copy(self):
+        # Trust the flag only if the file is actually there
+        return self.ob_compressed and os.path.isfile(self.compressed_path())
 
 class PGN(Model):
 
