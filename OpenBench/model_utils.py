@@ -50,5 +50,6 @@ def network_delete(network) -> (str, bool):
     # Only delete the actual file if no other engines use it
     if not Network.objects.filter(sha256=sha256):
         FileSystemStorage().delete(sha256)
+        FileSystemStorage().delete('%s.zst' % (sha256))
 
     return status, True
