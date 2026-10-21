@@ -1000,7 +1000,7 @@ def api_networks(request, engine):
         return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
 
 @csrf_exempt
-def api_network_download(request, engine, identifier):
+def api_network_download(request, engine, identifier, compressed=False):
 
     if not api_authenticate(request):
         return api_response({ 'error' : 'API requires authentication for this server' })
@@ -1009,10 +1009,10 @@ def api_network_download(request, engine, identifier):
         return api_response({ 'error' : 'API requires authentication for this endpoint' })
 
     if (network := Network.objects.filter(engine=engine, sha256=identifier).first()):
-        return OpenBench.utils.network_download(request, engine, network)
+        return OpenBench.utils.network_download(request, engine, network, compressed)
 
     if (network := Network.objects.filter(engine=engine, name=identifier).first()):
-        return OpenBench.utils.network_download(request, engine, network)
+        return OpenBench.utils.network_download(request, engine, network, compressed)
 
     return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
 

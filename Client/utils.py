@@ -28,6 +28,10 @@ import subprocess
 import tempfile
 import zipfile
 
+# Without zstandard, we simply download uncompressed Networks
+try: import zstandard
+except ImportError: zstandard = None
+
 ## Local imports must only use "import x", never "from x import ..."
 
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
@@ -240,13 +244,18 @@ def download_network(server, username, password, engine, net_name, net_sha, net_
 
         # Format the API request, including credentials
         print ('Fetching %s (%s) for %s' % (net_name, net_sha, engine))
-        endpoint = 'api/networks/%s/%s' % (engine, net_sha)
+        endpoint = 'api/networks/%s/%s%s' % (engine, net_sha, '/compressed' if zstandard else '')
         request  = credentialed_request(server, username, password, endpoint)
+
+        # The server falls back to the original file, so check what we received
+        decompressor = None
+        if request.headers.get('X-OpenBench-Compressed') == 'zstd':
+            decompressor = zstandard.ZstdDecompressor().decompressobj()
 
         # Write the content out to the net_path in kb chunks
         with open(net_path, 'wb') as fout:
             for chunk in request.iter_content(chunk_size=1024):
-                if chunk: fout.write(chunk)
+                if chunk: fout.write(decompressor.decompress(chunk) if decompressor else chunk)
             fout.flush()
 
     else:
