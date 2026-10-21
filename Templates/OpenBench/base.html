@@ -95,6 +95,14 @@
                 form.dataset.submitting = true;
             }, true);
 
+            window.addEventListener('pageshow', event => {
+                if (event.persisted) {
+                    document
+                        .querySelectorAll('form[data-submitting]')
+                        .forEach(form => delete form.dataset.submitting);
+                }
+            });
+
             function toggle_sidebar() {
                 document.body.classList.toggle('sidebar-open')
             }
