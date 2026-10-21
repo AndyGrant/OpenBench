@@ -320,12 +320,18 @@ def network_delete(request, engine, network):
     else:
         return OpenBench.views.redirect(request, '/networks/%s/' % (engine), error=message)
 
-def network_download(request, engine, network):
+def network_download(request, engine, network, compressed=False):
+
+    # Serve the zstd copy only if asked, and if we have one. Otherwise fall back
+    # to the original file. The headers tell the caller which one they received
+    use_zstd = compressed and network.has_compressed_copy()
+    netfile  = network.compressed_path() if use_zstd else os.path.join(MEDIA_ROOT, network.sha256)
 
     # Craft the download HTML response
-    netfile = os.path.join(MEDIA_ROOT, network.sha256)
-    expires = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).ctime()
-    return media_download_response(netfile, network.sha256, expires)
+    expires  = (datetime.datetime.utcnow() + datetime.timedelta(days=7)).ctime()
+    response = media_download_response(netfile, os.path.basename(netfile), expires)
+    if use_zstd: response['X-OpenBench-Compressed'] = 'zstd'
+    return response
 
 def network_edit(request, engine, network):
 

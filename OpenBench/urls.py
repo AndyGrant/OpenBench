@@ -18,84 +18,87 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import django.urls, OpenBench.views
+from django.urls import path, re_path
+
+from OpenBench import views
 
 urlpatterns = [
 
     # Links for account management
-    django.urls.path(r'register/', OpenBench.views.register),
-    django.urls.path(r'login/', OpenBench.views.login),
-    django.urls.path(r'logout/', OpenBench.views.logout),
-    django.urls.path(r'profile/', OpenBench.views.profile),
-    django.urls.path(r'profileConfig/', OpenBench.views.profile_config),
+    path(r'register/', views.register),
+    path(r'login/', views.login),
+    path(r'logout/', views.logout),
+    path(r'profile/', views.profile),
+    path(r'profileConfig/', views.profile_config),
 
     # Links for viewing test tables
-    django.urls.re_path(r'^index(?:/(?P<page>\d+))?/$', OpenBench.views.index),
-    django.urls.re_path(r'^user/(?P<username>[^/]+)(?:/(?P<page>\d+))?/$', OpenBench.views.user),
-    django.urls.re_path(r'^greens(?:/(?P<page>\d+))?/$', OpenBench.views.greens),
+    re_path(r'^index(?:/(?P<page>\d+))?/$', views.index),
+    re_path(r'^user/(?P<username>[^/]+)(?:/(?P<page>\d+))?/$', views.user),
+    re_path(r'^greens(?:/(?P<page>\d+))?/$', views.greens),
 
-    django.urls.path(r'search/', OpenBench.views.search),
+    path(r'search/', views.search),
 
     # Links for viewing general information tables
-    django.urls.path(r'users/', OpenBench.views.users),
-    django.urls.path(r'event/<int:pk>/', OpenBench.views.event),
-    django.urls.re_path(r'^events(?:/(?P<page>\d+))?/$', OpenBench.views.events_actions),
-    django.urls.re_path(r'^errors(?:/(?P<page>\d+))?/$', OpenBench.views.events_errors),
-    django.urls.re_path(r'^machines(?:/(?P<pk>\d+))?/$', OpenBench.views.machines),
+    path(r'users/', views.users),
+    path(r'event/<int:pk>/', views.event),
+    re_path(r'^events(?:/(?P<page>\d+))?/$', views.events_actions),
+    re_path(r'^errors(?:/(?P<page>\d+))?/$', views.events_errors),
+    re_path(r'^machines(?:/(?P<pk>\d+))?/$', views.machines),
 
     # Links to create, view or manage Workloads (Tests, Tunes, Datagen)
-    django.urls.re_path(r'^(?P<workload_type>tune|test|datagen)/new/$', OpenBench.views.new_workload),
-    django.urls.re_path(r'^(?P<workload_type>tune|test|datagen)/(?P<pk>\d+)(?:/(?P<action>\w+))?/$', OpenBench.views.workload),
+    re_path(r'^(?P<workload_type>tune|test|datagen)/new/$', views.new_workload),
+    re_path(r'^(?P<workload_type>tune|test|datagen)/(?P<pk>\d+)(?:/(?P<action>\w+))?/$', views.workload),
 
     # Links for viewing and managing Networks
-    django.urls.path(r'networks/', OpenBench.views.networks),
-    django.urls.path(r'networks/<str:engine>/', OpenBench.views.networks),
-    django.urls.path(r'networks/<str:engine>/<str:action>/', OpenBench.views.networks),
-    django.urls.path(r'networks/<str:engine>/<str:action>/<str:name>/', OpenBench.views.networks),
-    django.urls.path(r'newNetwork/', OpenBench.views.network_form),
+    path(r'networks/', views.networks),
+    path(r'networks/<str:engine>/', views.networks),
+    path(r'networks/<str:engine>/<str:action>/', views.networks),
+    path(r'networks/<str:engine>/<str:action>/<str:name>/', views.networks),
+    path(r'newNetwork/', views.network_form),
 
     # Links for viewing and managing the Server's configuration
-    django.urls.path(r'manage/', OpenBench.views.manage),
-    django.urls.path(r'manage/books/', OpenBench.views.manage_books),
-    django.urls.path(r'manage/books/<str:name>/', OpenBench.views.manage_books),
-    django.urls.path(r'manage/books/<str:name>/<str:action>/', OpenBench.views.manage_books),
+    path(r'manage/', views.manage),
+    path(r'manage/books/', views.manage_books),
+    path(r'manage/books/<str:name>/', views.manage_books),
+    path(r'manage/books/<str:name>/<str:action>/', views.manage_books),
 
-    django.urls.path(r'manage/engines/', OpenBench.views.manage_engines),
-    django.urls.path(r'manage/engines/<str:name>/', OpenBench.views.manage_engines),
-    django.urls.path(r'manage/engines/<str:name>/<str:action>/', OpenBench.views.manage_engines),
+    path(r'manage/engines/', views.manage_engines),
+    path(r'manage/engines/<str:name>/', views.manage_engines),
+    path(r'manage/engines/<str:name>/<str:action>/', views.manage_engines),
 
     # Links for interacting with OpenBench via scripting
-    django.urls.path(r'scripts/', OpenBench.views.scripts),
+    path(r'scripts/', views.scripts),
 
     # Links for the Client to work with the Server
-    django.urls.path(r'clientVersionRef/', OpenBench.views.client_version_ref),
-    django.urls.path(r'clientMatchRunnerVersionRef/', OpenBench.views.client_match_runner_version_ref),
-    django.urls.path(r'clientGetBuildInfo/', OpenBench.views.client_get_build_info),
-    django.urls.path(r'clientWorkerInfo/', OpenBench.views.client_worker_info),
-    django.urls.path(r'clientGetWorkload/', OpenBench.views.client_get_workload),
-    django.urls.path(r'clientGetNetwork/<str:engine>/<str:name>/', OpenBench.views.client_get_network),
-    django.urls.path(r'clientBenchError/', OpenBench.views.client_bench_error),
-    django.urls.path(r'clientSubmitNPS/', OpenBench.views.client_submit_nps),
-    django.urls.path(r'clientSubmitError/', OpenBench.views.client_submit_error),
-    django.urls.path(r'clientSubmitResults/', OpenBench.views.client_submit_results),
-    django.urls.path(r'clientSubmitNPSStats/', OpenBench.views.client_submit_nps_stats),
-    django.urls.path(r'clientHeartbeat/', OpenBench.views.client_heartbeat),
-    django.urls.path(r'clientSubmitPGN/', OpenBench.views.client_submit_pgn),
+    path(r'clientVersionRef/', views.client_version_ref),
+    path(r'clientMatchRunnerVersionRef/', views.client_match_runner_version_ref),
+    path(r'clientGetBuildInfo/', views.client_get_build_info),
+    path(r'clientWorkerInfo/', views.client_worker_info),
+    path(r'clientGetWorkload/', views.client_get_workload),
+    path(r'clientGetNetwork/<str:engine>/<str:name>/', views.client_get_network),
+    path(r'clientBenchError/', views.client_bench_error),
+    path(r'clientSubmitNPS/', views.client_submit_nps),
+    path(r'clientSubmitError/', views.client_submit_error),
+    path(r'clientSubmitResults/', views.client_submit_results),
+    path(r'clientSubmitNPSStats/', views.client_submit_nps_stats),
+    path(r'clientHeartbeat/', views.client_heartbeat),
+    path(r'clientSubmitPGN/', views.client_submit_pgn),
 
     # Nice endpoints, which can be hit from the website or with credentials cleanly
-    django.urls.path(r'api/config/', OpenBench.views.api_configs),
-    django.urls.path(r'api/config/<str:engine>/', OpenBench.views.api_configs),
-    django.urls.path(r'api/networks/<str:engine>/', OpenBench.views.api_networks),
-    django.urls.path(r'api/networks/<str:engine>/<str:identifier>/', OpenBench.views.api_network_download),
-    django.urls.path(r'api/networks/<str:engine>/<str:identifier>/delete/', OpenBench.views.api_network_delete),
-    django.urls.path(r'api/buildinfo/', OpenBench.views.api_build_info),
-    django.urls.path(r'api/pgns/<int:pgn_id>/', OpenBench.views.api_pgns),
-    django.urls.path(r'api/spsa/<int:workload_id>/<str:query>/', OpenBench.views.api_spsa),
-    django.urls.path(r'api/workload/<int:workload_id>/<str:query>/', OpenBench.views.api_workload),
+    path(r'api/config/', views.api_configs),
+    path(r'api/config/<str:engine>/', views.api_configs),
+    path(r'api/networks/<str:engine>/', views.api_networks),
+    path(r'api/networks/<str:engine>/<str:identifier>/', views.api_network_download),
+    path(r'api/networks/<str:engine>/<str:identifier>/compressed/', views.api_network_download, { 'compressed' : True }),
+    path(r'api/networks/<str:engine>/<str:identifier>/delete/', views.api_network_delete),
+    path(r'api/buildinfo/', views.api_build_info),
+    path(r'api/pgns/<int:pgn_id>/', views.api_pgns),
+    path(r'api/spsa/<int:workload_id>/<str:query>/', views.api_spsa),
+    path(r'api/workload/<int:workload_id>/<str:query>/', views.api_workload),
 
     # Redirect anything else to the Index
-    django.urls.path(r'', OpenBench.views.index),
+    path(r'', views.index),
 
     # Link for Ethereal Sales
-    django.urls.path(r'Ethereal/', OpenBench.views.buyEthereal),
+    path(r'Ethereal/', views.buyEthereal),
 ]
