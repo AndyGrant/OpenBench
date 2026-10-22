@@ -433,14 +433,8 @@ def collect_github_info(errors, request, field):
         errors.append('Unable to parse a Bench for %s' % (branch))
         return
 
-    base_branch = request.POST.get('base_branch')
-    same_branch = base_branch is not None and base_branch == request.POST.get('dev_branch')
-
-    info = request.POST.get('info') or (
-        '' if same_branch else strip_message(data['commit']['message'])
-    )
     source = OpenBench.utils.path_join(base, 'zipball', data['sha'])
-    return (source, branch, data['sha'], bench, info)
+    return (source, branch, data['sha'], bench, data['commit']['message'])
 
 def requests_illegal_fork(request, field):
 
@@ -464,7 +458,20 @@ def determine_bench(request, field, message):
         return int(benches[-1].replace(',', ''))
     except: return None
 
-def strip_message(message):
+def determine_info(request, message):
+
+    # Use the provided info if possible
+    if info := request.POST.get('info'):
+        return info
+
+    # Do not auto populate when comparing different engines, or the same branch
+    if request.POST.get('dev_engine') != request.POST.get('base_engine'):
+        return ''
+
+    if request.POST.get('dev_branch') == request.POST.get('base_branch'):
+        return ''
+
+    # Strip the bench from the commit message, and tidy the whitespace
     lines = message.strip().split("\n")
     bench_search = re.compile(r"(^|\s)[Bb]ench[ :]+([1-9]\d{5,7})(?!\d)")
     for i, line in enumerate(reversed(lines)):
