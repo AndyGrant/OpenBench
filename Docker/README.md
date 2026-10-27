@@ -27,24 +27,24 @@ them:
 
 | Variable    | Meaning                                        |
 |-------------|------------------------------------------------|
-| `OB_USER`   | Your OpenBench username                        |
-| `OB_PASS`   | Your OpenBench password                        |
-| `OB_SERVER` | Server URL, e.g. `https://openbench.example.com` |
+| `OPENBENCH_USERNAME` | Your OpenBench username                        |
+| `OPENBENCH_PASSWORD` | Your OpenBench password                        |
+| `OPENBENCH_SERVER` | Server URL, e.g. `https://openbench.example.com` |
 
 Export them in your shell, or keep them in a local, uncommitted file and source it:
 
 ```
 # .env
-export OB_USER=myname
-export OB_PASS=mypassword
-export OB_SERVER=https://openbench.example.com
+export OPENBENCH_USERNAME=myname
+export OPENBENCH_PASSWORD=mypassword
+export OPENBENCH_SERVER=https://openbench.example.com
 ```
 
 ```
 source .env
 ```
 
-`OB_IDENTITY` and `OB_THREADS` are set per container by `manage.py`, so you
+`OPENBENCH_IDENTITY` and `OPENBENCH_THREADS` are set per container by `manage.py`, so you
 don't set them yourself.
 
 ## 3. Preview the core layout
@@ -114,7 +114,7 @@ again. Note that `kill` removes every worker on the machine, not a single one.
 
 ## Troubleshooting
 
-- `error: environment variable OB_USER must be set`: source your `.env` in the
+- `error: environment variable OPENBENCH_USERNAME must be set`: source your `.env` in the
   same shell you run `make` from.
 - `--threads must be a multiple of N`: your CPU has N-way SMT; use a multiple of N.
 - `exceeds ... logical threads` or `need ... physical cores`: reduce `THREADS`

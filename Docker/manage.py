@@ -124,9 +124,9 @@ def require_env(name):
 
 def spawn(threads, count, prefix, creds):
 
-    user     = require_env('OB_USER')
-    password = require_env('OB_PASS')
-    server   = require_env('OB_SERVER')
+    user     = require_env('OPENBENCH_USERNAME')
+    password = require_env('OPENBENCH_PASSWORD')
+    server   = require_env('OPENBENCH_SERVER')
     if creds:
         creds = os.path.abspath(creds)
         if not os.path.isdir(creds):
@@ -151,11 +151,11 @@ def spawn(threads, count, prefix, creds):
             '--cpuset-cpus', cpuset,
             '--cpuset-mems', mems,
             *(['-v', '%s:/home/worker/credentials:ro' % (creds)] if creds else []),
-            '-e', 'OB_USER=%s'     % (user),
-            '-e', 'OB_PASS=%s'     % (password),
-            '-e', 'OB_SERVER=%s'   % (server),
-            '-e', 'OB_IDENTITY=%s-%s' % (prefix, lbl),
-            '-e', 'OB_THREADS=%d'  % (client_threads),
+            '-e', 'OPENBENCH_USERNAME=%s'     % (user),
+            '-e', 'OPENBENCH_PASSWORD=%s'     % (password),
+            '-e', 'OPENBENCH_SERVER=%s'   % (server),
+            '-e', 'OPENBENCH_IDENTITY=%s-%s' % (prefix, lbl),
+            '-e', 'OPENBENCH_THREADS=%d'  % (client_threads),
             IMAGE,
         ]
 

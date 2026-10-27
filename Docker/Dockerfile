@@ -66,10 +66,10 @@ COPY entrypoint.sh /home/worker/workdir/entrypoint.sh
 
 # All fields below are supplied per-container at `docker run` time
 # (see manage.py), so a single image can back all worker instances.
-ENV OB_USER="" \
-    OB_PASS="" \
-    OB_SERVER="" \
-    OB_IDENTITY="" \
-    OB_THREADS=""
+ENV OPENBENCH_USERNAME="" \
+    OPENBENCH_PASSWORD="" \
+    OPENBENCH_SERVER="" \
+    OPENBENCH_IDENTITY="" \
+    OPENBENCH_THREADS=""
 
 ENTRYPOINT [ "/home/worker/workdir/entrypoint.sh" ]

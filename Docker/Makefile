@@ -1,6 +1,6 @@
 IMAGE := openbench-client
 
-# Credentials/server are read from the environment (OB_USER, OB_PASS, OB_SERVER)
+# Credentials/server are read from the environment (OPENBENCH_USERNAME, OPENBENCH_PASSWORD, OPENBENCH_SERVER)
 # by manage.py -- export them, or source a local .env file, before spawning.
 
 .PHONY: build spawn kill enter list plan
