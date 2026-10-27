@@ -47,8 +47,8 @@ threads or the physical cores available. Each worker's client is given
 
 ### 2. Set your credentials
 
-`make spawn` reads three environment variables, the same ones the `Scripts/`
-tools use, and refuses to run without them:
+`make spawn` reads three environment variables, the same ones `client.py` and the
+`Scripts/` tools use, and refuses to run without them:
 
 | Variable             | Meaning                                          |
 |----------------------|--------------------------------------------------|
