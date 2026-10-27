@@ -57,10 +57,13 @@ def discover_topology():
     threads_per_core = sizes.pop()
 
     # physical_cores is a list of (node_id, sorted_logical_cpus), one entry
-    # per physical core, ordered by node then core id
-    physical_cores = [(node_of(min(siblings)), key, sorted(siblings)) for key, siblings in cores.items()]
-    physical_cores.sort(key=lambda item: (item[0], item[1]))
-    return [(node, cpus) for node, _, cpus in physical_cores], threads_per_core
+    # per physical core. Cores are ordered by node, then by their lowest
+    # logical cpu number. core_id is deliberately not the sort key: on Intel
+    # it is sparse and need not follow the kernel's cpu numbering, so sorting
+    # on it can interleave neighbouring cores between workers.
+    physical_cores = [(node_of(min(siblings)), sorted(siblings)) for siblings in cores.values()]
+    physical_cores.sort(key=lambda item: (item[0], item[1][0]))
+    return physical_cores, threads_per_core
 
 def format_ranges(nums):
 
