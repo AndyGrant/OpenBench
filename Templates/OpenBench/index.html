@@ -21,7 +21,7 @@
             {% if pending %}
                 <tr class="table-header"><th colspan='7'>Pending</th></tr>
                 {% for test in pending %}
-                    <tr>
+                    <tr class="test-row">
                         {% include "OpenBench/Blocks/testsummary.html" %}
                     </tr>
                 {% endfor %}
@@ -34,7 +34,7 @@
                 {% for group in active %}
                     <tr class="table-small-header"><th colspan='7'>Priority {{group.priority}}</th></tr>
                     {% for test in group.tests %}
-                        <tr>
+                        <tr class="test-row">
                             {% include "OpenBench/Blocks/testsummary.html" %}
                         </tr>
                     {% endfor %}
@@ -47,7 +47,7 @@
         <!-- Tests which have already finished -->
         <tr class="table-header"><th colspan='7'>Finished</th></tr>
         {% for test in completed %}
-            <tr>
+            <tr class="test-row">
                 {% include "OpenBench/Blocks/testsummary.html" %}
             </tr>
         {% endfor %}

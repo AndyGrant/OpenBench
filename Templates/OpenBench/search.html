@@ -213,7 +213,7 @@
 
     <table class="test-list stripes hoverable">
         {% for test in tests %}
-            <tr>
+            <tr class="test-row">
                 <td class="datestamp">{{test.creation|date:"U"}}</td>
                 {% include "OpenBench/Blocks/testsummary.html" %}
             </tr>
