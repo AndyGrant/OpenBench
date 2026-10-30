@@ -560,10 +560,7 @@ td pre {
     #content .test-list tr td.statblock {
         grid-column: 1 / -1;
         order: 1;
-        justify-self: start;
         margin: 4px 12px;
-        max-width: calc(100% - 24px);
-        box-sizing: border-box;
         white-space: normal;
     }
 
