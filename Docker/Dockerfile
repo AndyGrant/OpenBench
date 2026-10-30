@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     bash ca-certificates make cmake wget curl git python3 python3-pip \
     build-essential pkg-config libssl-dev \
     clang libclang-dev libclang-rt-dev llvm lld gdb valgrind \
+    dotnet-sdk-10.0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Engine builds invoke versioned tool names (e.g. llvm-profdata-22). Ubuntu
@@ -21,6 +22,9 @@ RUN V=$(clang -dumpversion | cut -d. -f1) && \
             ln -s "$(command -v ${tool})" "/usr/local/bin/${tool}-${V}"; \
         fi; \
     done
+
+# Install pip 26.2.2 manually until python3-pip ships 26.2.2 or later
+RUN python3 -m pip install --break-system-packages --ignore-installed "pip @ https://files.pythonhosted.org/packages/3f/06/3e4420302363fbb71be3c7f35ce042f54bfca330e3e66b3a2e3c4cca579f/pip-26.2.2-py3-none-any.whl#sha256=fd7f4dfa8190e014013b9f08f3e973f4e4c26ffd179a204895533a7254813a70"
 
 # Tools needed by OpenBench + Torch
 RUN pip3 install --break-system-packages py-cpuinfo psutil requests certifi charset-normalizer idna numpy urllib3 zstandard

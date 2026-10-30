@@ -92,6 +92,7 @@ class Configuration:
         self.logical_cores  = psutil.cpu_count(logical=True)
         self.physical_cores = psutil.cpu_count(logical=False)
         self.ram_total_mb   = psutil.virtual_memory().total // (1024 ** 2)
+        self.huge_pages     = 'UNKNOWN'
         self.machine_name   = 'None'
         self.machine_id     = 'None'
         self.secret_token   = 'None'
@@ -239,6 +240,16 @@ class Configuration:
         # Match the machine to a Stockfish-style ISA using our C++ compiler
         self.isa_name = isa_detector.detect_isa(self.cxx_comp)
         print('Found   | %s' % (self.isa_name))
+
+    def determine_huge_pages(self):
+
+        # Linux reports e.g. "always [madvise] never", with the active mode bracketed
+        try:
+            with open('/sys/kernel/mm/transparent_hugepage/enabled') as fin:
+                match = re.search(r'\[(\w+)\]', fin.read())
+                self.huge_pages = match.group(1) if match else 'UNKNOWN'
+        except OSError:
+            self.huge_pages = 'UNKNOWN'
 
 class ServerReporter:
 
@@ -1012,6 +1023,7 @@ def server_configure_worker(config):
     config.scan_for_private_tokens(data) # Private engine access tokens
     config.scan_for_cpu_flags(data)      # For executing binaries
     config.determine_isa()               # Stockfish-style ISA of this machine
+    config.determine_huge_pages()        # Transparent Huge Pages mode of this machine
     config.machine_id = None             # None, until registration occurs for a session
 
     system_info = {
@@ -1027,6 +1039,7 @@ def server_configure_worker(config):
         'logical_cores'  : config.logical_cores,  # Logical cores, to differentiate hyperthreads
         'physical_cores' : config.physical_cores, # Physical cores, to differentiate hyperthreads
         'ram_total_mb'   : config.ram_total_mb,   # Total RAM on the system, to avoid over assigning
+        'huge_pages'     : config.huge_pages,     # Transparent Huge Pages: always, madvise, never, or UNKNOWN
         'machine_id'     : config.machine_id,     # Assigned value, or None. Will be replaced if wrong
         'machine_name'   : config.identity,       # Optional pseudonym for the machine, otherwise None
         'concurrency'    : config.threads,        # Threads to use to play games
