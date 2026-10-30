@@ -11,6 +11,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     bash ca-certificates make cmake wget curl git python3 python3-pip \
     build-essential pkg-config libssl-dev \
     clang libclang-dev libclang-rt-dev llvm lld gdb valgrind \
+    dotnet-sdk-10.0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Engine builds invoke versioned tool names (e.g. llvm-profdata-22). Ubuntu
