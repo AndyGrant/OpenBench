@@ -507,7 +507,96 @@ td pre {
         overflow-x: auto;
     }
 
+    #content .test-list tbody {
+        display: grid;
+        grid-template-columns: auto auto minmax(0, 1fr) auto;
+    }
+
+    #content .test-list tr td.test-author {
+        grid-column: 2;
+    }
+
+    #content .test-list tr td.test-engine {
+        grid-column: 2;
+        order: 2;
+    }
+
+    #content .test-list tr td.test-name {
+        grid-column: 3;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    #content .test-list tr td.test-diff {
+        grid-column: 4;
+    }
+
+    #content .test-list tr td.test-tc {
+        grid-column: 3 / -1;
+        order: 2;
+    }
+
+    #content .test-list tr td.datestamp ~ td.test-engine {
+        grid-column: 1;
+    }
+
+    #content .test-list tr td.datestamp ~ td.test-tc {
+        grid-column: 2 / -1;
+    }
+
+    #content .test-list td {
+        border-bottom: none;
+    }
+
+    #content .test-list td:not(.statblock) {
+        padding: 4px 12px;
+    }
+
+    #content .test-list tr.test-row {
+        border-bottom: 1px #444444 solid;
+        padding: 6px 0;
+    }
+
+    #content .test-list tr td.statblock {
+        grid-column: 1 / -1;
+        order: 1;
+        justify-self: start;
+        margin: 4px 12px;
+        max-width: calc(100% - 24px);
+        box-sizing: border-box;
+        white-space: normal;
+    }
+
+    #content .test-list tr {
+        display: grid;
+        grid-column: 1 / -1;
+        grid-template-columns: subgrid;
+    }
+
+    #content .test-list th,
     #content .test-list tr td.test-info {
+        grid-column: 1 / -1;
+    }
+
+    #content .test-list th {
+        white-space: normal;
+        line-height: 1.3;
+    }
+
+    #content .test-list tr td.test-info {
+        order: 3;
+        width: auto;
+        max-width: none;
+        padding: 0 12px;
+        line-height: 1.3;
+    }
+
+    #content .test-list tr td.test-info div {
+        max-height: none;
+        padding: 4px 0;
+    }
+
+    #content .test-list tr td.test-info div:empty {
         display: none;
     }
 }
