@@ -18,7 +18,10 @@
 #   DELETE                                 stopped
 #   RESTORE                                the state it had before the delete
 #   APPROVE, MODIFY                        a report, state unchanged
-#   bench_error  (clientBenchError)        error
+#   bench_error  (clientBenchError)        the state it had: the verdict on the step stops a test, not the event
+#   RESTART                                waiting, or running where games were played
+#   a stage ended (clientReportStep)       an engine's failure stops the test: failed_prechecks, or error where games
+#                                          were played; a failure nobody can place, on its second try: held
 #   backfill (report_to_nyayo)             one report, the test as it stands
 #   pgn      (clientSubmitPGN)             no match report; one PUT .../pgns/<result>.<book_index>, the bytes
 #                                          the worker uploaded, after the match exists in nyayo. The worker
@@ -93,7 +96,7 @@ class Expectations:
         self.state         = {}  # test id -> the state its last report should have had
         self.before_delete = {}
 
-    def record(self, t, kind, test_id, before, after, lost=False, form=None):
+    def record(self, t, kind, test_id, before, after, lost=False, form=None, steps=None):
         previous = self.state.get(test_id, 'running')
         report   = True
 
@@ -101,14 +104,23 @@ class Expectations:
             state  = 'waiting'
         elif kind == 'workload':
             state  = previous
+        elif kind in ('step', 'bench_error') and after['finished'] and not before['finished'] and not finished_state(after):
+            # The verdict on an engine's failure stopped the test: a failed start, or an error where games were played
+            state  = 'error' if after['games'] else 'failed_prechecks'
         elif kind == 'step':
             reached = form and form.get('step') == 'running' and form.get('state') == 'passed'
             state   = 'running' if reached and previous == 'waiting' else previous
+            # A failure nobody can place, twice, on the only worker there is: held until the walks start over
+            if state in ('waiting', 'held'):
+                state = 'held' if any(x['state'] == 'failed' and x['blame'] == 'unclear' and x['tries'] >= 2
+                                      for x in steps or []) else 'waiting'
         elif kind == 'results':
             report = not (before['finished'] or before['deleted'])
             state  = finished_state(after) or ('running' if previous == 'waiting' else previous)
         elif kind == 'bench_error':
-            state  = 'error'
+            state  = previous  # The bench is a step, and the verdict on it is what stops a test
+        elif kind == 'RESTART':
+            state  = 'running' if after['games'] else 'waiting'  # Every walk starts over
         elif kind in ('STOP', 'DELETE'):
             if kind == 'DELETE': self.before_delete[test_id] = previous
             state  = 'stopped'
@@ -275,8 +287,8 @@ def check_steps(reports, rows, results):
                 if key in passed[name] and state not in ('passed', 'failed') and not failed[name]:
                     problems.append('%s: %s went back to %s after it passed' % (where, key, state))
             failed[name] = any(x.get('state') == 'failed' for x in steps)
-            if failed[name]:
-                passed[name] = set()
+            if failed[name] or all(x.get('state') == 'pending' for x in steps if x['step'] != 'picked_up'):
+                passed[name] = set()  # A failure starts the steps over, and so does a restart by hand
             passed[name] |= { (x['step'], x.get('side')) for x in steps if x.get('state') == 'passed' }
             last[name] = steps
 

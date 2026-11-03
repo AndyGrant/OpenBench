@@ -10,14 +10,30 @@ import hashlib
 import os
 import random
 import sys
+import time
 
 import chess
 
 BENCH = 1000000
 NPS   = 1000000
 
+# How the bench misbehaves, set where the zip is made (files.engine_zip): slow (outlasts the worker's wait), silent
+# (prints no count: failed to execute), flip (right the first time, wrong from the second on)
+BENCH_MODE = ''
+
 def bench():
-    print('%d nodes %d nps' % (BENCH, NPS), flush=True)
+    nodes = BENCH
+    if BENCH_MODE == 'slow':
+        time.sleep(30)
+    elif BENCH_MODE == 'silent':
+        return
+    elif BENCH_MODE == 'flip':
+        counter = os.path.abspath(sys.argv[0]) + '.benches'
+        with open(counter, 'a') as fout:
+            fout.write('x')
+        if os.path.getsize(counter) > 1:
+            nodes += 1
+    print('%d nodes %d nps' % (nodes, NPS), flush=True)
 
 PIECE_VALUES = { chess.PAWN : 100, chess.KNIGHT : 300, chess.BISHOP : 300, chess.ROOK : 500, chess.QUEEN : 900 }
 

@@ -61,6 +61,7 @@ CLIENT_VERSION   = 40 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
+TIMEOUT_RETRY    = 300 # Seconds before a test that failed a step is tried again, where the server did not say
 REPORT_INTERVAL  = 30 # Seconds between reports to the Server
 
 IS_WINDOWS = platform.system() == 'Windows' # Don't touch this
@@ -91,7 +92,8 @@ class Configuration:
         self.machine_id     = 'None'
         self.secret_token   = 'None'
         self.syzygy_max     = 2
-        self.blacklist      = []
+        self.blacklist      = {} # Test id : when to try it again (time.time())
+        self.answer         = {} # What the server answered a step that ended: stop, or retry_after
 
         self.process_args(args) # Rest of the command line settings
         self.init_client()      # Create folder structure and verify Syzygy
@@ -253,7 +255,10 @@ class ServerReporter:
         payload.update({ key : value for key, value in fields.items() if value is not None })
 
         try:
-            ServerReporter.report(config, 'clientReportStep', payload)
+            # The server judges a stage once both engines have been through it, and answers stop or retry_after
+            answer = ServerReporter.report(config, 'clientReportStep', payload).json()
+            if answer.get('stop') or answer.get('retry_after'):
+                config.answer = answer
         except BadVersionException:
             raise
         except Exception as error:
@@ -978,11 +983,29 @@ def server_configure_worker(config):
     config.machine_id   = response['machine_id']
     config.secret_token = response['secret']
 
+def blacklisted(config):
+
+    # The tests to stay away from for now. An entry is dropped when it's due.
+    now = time.time()
+    config.blacklist = { test : due for test, due in config.blacklist.items() if due > now }
+    return list(config.blacklist)
+
+def leave_for_a_while(config):
+
+    # A step failed: the server judged it (config.answer), or did not. A stopped test needs nothing, as the server
+    # no longer hands it out; otherwise the test waits as long as the server said, or TIMEOUT_RETRY.
+    test = config.workload['test']['id']
+    if config.answer.get('stop'):
+        config.blacklist.pop(test, None)
+        return
+
+    config.blacklist[test] = time.time() + (config.answer.get('retry_after') or TIMEOUT_RETRY)
+
 def server_request_workload(config):
 
     print('\nRequesting Workload from Server...')
 
-    payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token, 'blacklist' : config.blacklist }
+    payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token, 'blacklist' : blacklisted(config) }
     target   = utils.url_join(config.server, 'clientGetWorkload')
     response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
 
@@ -1193,7 +1216,6 @@ def download_engine(config, branch, net_path):
                 print ('> %s' % (line))
             print ()
 
-            config.blacklist.append(config.workload['test']['id'])
             ServerReporter.report_build_fail(config, branch, error.logs)
             raise
 
@@ -1390,6 +1412,7 @@ def run_openbench_worker(client_args):
             try_forever(server_request_workload, [config], connection_error)
 
             # Complete the workload if there was work to be done
+            config.answer = {}
             if config.workload: complete_workload(config)
 
             # Otherwise --fleet workers will exit when there is no work
@@ -1401,6 +1424,12 @@ def run_openbench_worker(client_args):
         # Caught by client.py, prompting a Client Update
         except BadVersionException:
             raise BadVersionException()
+
+        # A failed compile or bench: the test is left for as long as the server says
+        except (utils.OpenBenchBuildFailedException, utils.OpenBenchBadBenchException):
+            traceback.print_exc()
+            leave_for_a_while(config)
+            time.sleep(TIMEOUT_ERROR)
 
         # Fatal error, fully restart the Worker
         except utils.OpenBenchFatalWorkerException:

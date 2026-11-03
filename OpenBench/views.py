@@ -700,9 +700,9 @@ def client_get_workload(request, machine):
 @verify_worker
 def client_bench_error(request, machine):
 
-    # Find and stop the test with the bad bench
+    # The test is not stopped here: the bench is the worker's step, and the verdict on it (clientReportStep)
+    # says whether the test stops. This keeps the event, and the report.
     test = Test.objects.get(id=int(request.POST['test_id']))
-    test.finished = True; test.save()
 
     # Log the error into the Events table
     LogEvent.objects.create(
@@ -725,14 +725,21 @@ def client_report_step(request, machine):
     try:
         test   = Test.objects.get(id=int(request.POST['test_id']))
         result = Result.objects.get(test=test, machine=machine)
-        step   = OpenBench.steps.record_step(result, request.POST.dict())
+        form   = request.POST.dict()
+        step   = OpenBench.steps.record_step(result, form)
+
+        # A stage that has ended on both engines is judged, and the worker answered { 'stop' } or { 'retry_after' }
+        answer, judged = {}, False
+        if form.get('state') in ('passed', 'failed') and form.get('step') in ('compile', 'bench'):
+            answer, judged = OpenBench.steps.settle(result, form['step'], form.get('side', ''), getattr(step, 'was_passed', False))
     except (Test.DoesNotExist, Result.DoesNotExist, KeyError, ValueError):
         return JsonResponse({})
 
-    if step is not None:
+    # A verdict can stop the test or move another machine's: the report is built from what is committed
+    if step is not None or judged:
         transaction.on_commit(lambda: enqueue_report(test.id))
 
-    return JsonResponse({})
+    return JsonResponse(answer)
 
 @csrf_exempt
 @verify_worker

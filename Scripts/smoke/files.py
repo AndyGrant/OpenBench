@@ -14,19 +14,24 @@ BOOK_FILE  = SMOKE_DIR / 'book.epd'
 BOOK_NAME  = 'smoke.epd'
 
 
-# A makefile whose compiler fails the way g++ does: the file and line, then the error
-BROKEN_MAKEFILE = (
-    'all:\n'
-    '\t@echo "src/eval/mobility.cpp:212:9: error: mobility was not declared in this scope" >&2\n'
-    '\t@exit 2\n')
+# Makefiles whose compiler fails the way g++ does, by what the output says (the worker runs `make`, and the server
+# judges the failure from what it printed): an error with a file and a line, no disk space, killed by a signal
+BROKEN_MAKEFILES = {
+    'source' : 'src/eval/mobility.cpp:212:9: error: mobility was not declared in this scope',
+    'space'  : 'cc1plus: fatal error: error writing to /tmp/ccR2x1.s: No space left on device',
+    'killed' : 'g++: fatal error: Killed signal terminated program cc1plus',
+}
 
 
-def engine_zip(root_name, broken=False):
+def engine_zip(root_name, broken=False, bench=''):
+    # broken: False, or one of BROKEN_MAKEFILES (True is 'source'); bench: how the bench misbehaves (engine.py)
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w') as archive:
-        archive.write(ENGINE_DIR / 'engine.py', '%s/engine.py' % (root_name))
+        source = (ENGINE_DIR / 'engine.py').read_text().replace("BENCH_MODE = ''", "BENCH_MODE = %r" % (bench))
+        archive.writestr('%s/engine.py' % (root_name), source)
         if broken:
-            archive.writestr('%s/makefile' % (root_name), BROKEN_MAKEFILE)
+            output = BROKEN_MAKEFILES['source' if broken is True else broken]
+            archive.writestr('%s/makefile' % (root_name), 'all:\n\t@echo "%s" >&2\n\t@exit 2\n' % (output))
         else:
             archive.write(ENGINE_DIR / 'makefile', '%s/makefile' % (root_name))
     return buffer.getvalue()

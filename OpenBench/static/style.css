@@ -297,6 +297,10 @@ body, html, main{
     background-color: #FA9696;
 }
 
+#content .statblock-start {
+    background-color: #D2B4F0;
+}
+
 #content .redlink {
     color: #FF4D4D;
 }

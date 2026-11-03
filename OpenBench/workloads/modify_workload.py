@@ -25,6 +25,7 @@
 # requested. This will return the user to the index, or a login page, with some
 # indication as to success, or a reason for failure.
 
+import OpenBench.steps
 import OpenBench.views
 
 from django.db import transaction
@@ -71,6 +72,7 @@ def approve_workload(request, profile, workload):
     return 'Workload was Approved!'
 
 def restart_workload(request, profile, workload):
+    OpenBench.steps.restart_walks(workload) # Every worker's walk starts over; a hold is released
     workload.finished = False;
     return 'Workload was Restarted!'
 

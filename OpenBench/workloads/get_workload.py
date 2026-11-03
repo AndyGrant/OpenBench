@@ -116,6 +116,9 @@ def filter_valid_workloads(request, machine):
     if blacklisted := request.POST.getlist('blacklist'):
         workloads = workloads.exclude(id__in=blacklisted)
 
+    # Skip the tests this machine has left: a failure nobody could place, until the test is restarted by hand
+    workloads = workloads.exclude(id__in=OpenBench.steps.left_tests(machine))
+
     # Skip workloads with unmet Syzygy requirements
     for K in range(machine.info['syzygy_max'] + 1, 10):
         workloads = workloads.exclude(syzygy_adj='%d-MAN' % (K))

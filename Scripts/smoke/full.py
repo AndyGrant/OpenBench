@@ -44,6 +44,8 @@ NYAYO_INSTANCE = 'smoke'
 
 # The worker's timers, shortened in the temp copy so a scenario takes seconds, not minutes
 CLIENT_TIMERS = { 'TIMEOUT_ERROR' : 1, 'TIMEOUT_WORKLOAD' : 1, 'REPORT_INTERVAL' : 2 }
+CLIENT_RETRY  = 2  # Seconds a worker waits to try a test again after a verdict that isn't an engine's (the server's setting)
+BENCH_LIMIT   = 3  # Seconds before a bench is over its time (Client/bench.py's 60)
 
 # Client requests that are events in expect.py
 WATCHED = { 'clientSubmitResults' : 'results', 'clientBenchError' : 'bench_error', 'clientSubmitPGN' : 'pgn',
@@ -309,6 +311,7 @@ class Harness:
             self.env['NYAYO_TOKEN']    = NYAYO_TOKEN
             self.env['NYAYO_INSTANCE'] = NYAYO_INSTANCE
             self.env['NYAYO_SCHEMA']   = args.schema
+        self.env['OPENBENCH_STEP_RETRY_SECONDS'] = str(CLIENT_RETRY)  # A worker in trouble tries again this soon
 
         (self.temp / 'server').mkdir()
         self.write_config_dir()
@@ -380,10 +383,11 @@ class Harness:
         if 'sessionid' not in self.session.cookies:
             raise SmokeFailure('logging in failed: %d %s' % (response.status_code, response.text[:300]))
 
-    def engine(self, label, bench=ENGINE_BENCH, broken=False):
-        # Each engine gets its own sha, so the worker builds it from its own zip. A broken one doesn't compile
+    def engine(self, label, bench=ENGINE_BENCH, broken=False, bench_mode=''):
+        # Each engine gets its own sha, so the worker builds it from its own zip. A broken one doesn't compile (see
+        # files.BROKEN_MAKEFILES for how); bench_mode makes its bench misbehave (engine.py)
         sha    = hashlib.sha1(('%s %s %s' % (self.nonce, label, time.time())).encode()).hexdigest()
-        source = self.files.add('/engines/%s.zip' % (sha), files.engine_zip('smoke-%s' % (sha), broken))
+        source = self.files.add('/engines/%s.zip' % (sha), files.engine_zip('smoke-%s' % (sha), broken, bench_mode))
         return { 'name' : label, 'source' : source, 'sha' : sha, 'bench' : bench }
 
     def create_test(self, dev=None, base=None, **overrides):
@@ -488,7 +492,7 @@ class Harness:
 
     def step_rows(self, test_id):
         return self.query(
-            'SELECT s.step, s.side, s.state, s.at, s.tries FROM OpenBench_step s JOIN OpenBench_result r ON r.id = s.result_id '
+            'SELECT s.step, s.side, s.state, s.at, s.tries, s.blame, s.retry_at FROM OpenBench_step s JOIN OpenBench_result r ON r.id = s.result_id '
             'WHERE r.test_id = ? ORDER BY s.id', test_id)
 
     def on_client_event(self, endpoint, entry, forward):
@@ -505,7 +509,7 @@ class Harness:
                 return response
             if response.status_code == 200:
                 event = self.expect.record(entry['t'], WATCHED[endpoint], test_id, before, after, lost=self.nyayo_down,
-                                           form=entry['form'])
+                                           form=entry['form'], steps=self.step_rows(test_id))
                 if event.kind == 'pgn':
                     event.upload     = entry.get('files', {}).get('file', b'')
                     event.result_id  = entry['form']['result_id']
@@ -653,6 +657,11 @@ class Harness:
         if count != 1:
             raise SmokeFailure('worker.py has no results_queue wait to shorten')
         (client / 'worker.py').write_text(worker)
+        bench = (client / 'bench.py').read_text()
+        bench, count = re.subn(r'^(MAX_BENCH_TIME_SECONDS\s*=\s*)\d+', r'\g<1>%d' % (BENCH_LIMIT), bench, flags=re.M)
+        if count != 1:
+            raise SmokeFailure('bench.py has no MAX_BENCH_TIME_SECONDS to shorten')
+        (client / 'bench.py').write_text(bench)
 
         env = os.environ.copy()
         env['PYTHONUNBUFFERED'] = '1'
@@ -770,27 +779,6 @@ def scenario_restore(h):
     h.wait_until_released(test_id)
     h.verify(test_id)
     return 'test %d: restored at %d games, stopped at %s' % (test_id, games, score(h.test_row(test_id)))
-
-def scenario_bench_mismatch(h):
-    test_id = h.create_test(test_mode='GAMES', max_games=8, dev=h.engine('dev', bench=ENGINE_BENCH + 1))
-    h.wait_for(lambda: h.events(test_id, 'bench_error'), 60, 'a bench error for test %d' % (test_id))
-    h.wait_for(lambda: h.test_row(test_id)['finished'], 10, 'test %d to be stopped' % (test_id))
-
-    check(h.test_row(test_id)['games'] == 0, 'games were played after a bench mismatch')
-    h.verify(test_id)
-
-    # Its walk: dev's bench failed with the numbers, and base's bench ran beside it and passed
-    if h.args.schema == 'v1' and h.nyayo_enabled:
-        steps = last_walk(h, test_id)
-        check(steps[('bench', 'dev')]['state'] == 'failed' and steps[('bench', 'base')]['state'] == 'passed',
-              'dev bench %s and base bench %s, expected failed and passed' % (
-                  steps[('bench', 'dev')]['state'], steps[('bench', 'base')]['state']))
-        check(steps[('bench', 'dev')]['detail'] == 'Wrong bench: %d, expected %d' % (ENGINE_BENCH, ENGINE_BENCH + 1),
-              'the failed bench says %r' % (steps[('bench', 'dev')]['detail']))
-        check(steps[('bench', 'base')].get('nodes') == ENGINE_BENCH and steps[('bench', 'base')].get('nps'),
-              'base bench has no nodes and speed: %s' % (steps[('bench', 'base')]))
-        check(steps[('running', None)]['state'] == 'pending', 'running is %s after a failed bench' % (steps[('running', None)]['state']))
-    return 'test %d: bench error, reported error, both engines benched' % (test_id)
 
 def scenario_crash_then_stop(h):
     # The dev exits after a few moves in every game; tight error bounds keep the SPRT open
@@ -1090,37 +1078,218 @@ def scenario_walk(h):
     return 'test %d: %d reports, %d with a walk in %d states, %d workloads, all steps passed' % (
         test_id, len(reports), len(walks), len(seen), hands)
 
-def scenario_compile_fails(h):
-    # Dev doesn't compile. The worker builds base all the same, the control for a later verdict, then stops there:
-    # the benches and running are not reached. A failed compile still blacklists the test for the worker and
-    # leaves it active, as today; the test is stopped by hand.
-    test_id = h.create_test(test_mode='GAMES', max_games=8, dev=h.engine('dev', broken=True))
-    failed  = lambda side, state: any((x['step'], x['side'], x['state']) == ('compile', side, state) for x in h.step_rows(test_id))
-    h.wait_for(lambda: failed('dev', 'failed'), 60, 'dev to fail to compile for test %d' % (test_id))
-    h.wait_for(lambda: failed('base', 'passed'), 60, 'base to compile for test %d' % (test_id))
-    time.sleep(1)
+# Bounds an SPRT of the toy engine doesn't reach, so it stays open until it is stopped
+SPRT_OPEN = { 'test_mode' : 'SPRT', 'elolower' : 0.0, 'eloupper' : 5.0, 'alpha' : 1e-6, 'beta' : 1e-6 }
 
-    row = h.test_row(test_id)
-    check(not row['finished'] and row['games'] == 0, 'a failed compile changed the test: finished %s, %d games' % (row['finished'], row['games']))
-    check(not h.events(test_id, 'bench_error'), 'a bench error for a test that never reached a bench')
-    check(h.query('SELECT id FROM OpenBench_logevent WHERE test_id = ? AND log_file != ""', test_id),
-          'no event with the compiler log, as today')
+def verdict_of(h, test_id):
+    # The newest report's match.verdict, or None
+    reports = h.nyayo.for_test(test_id)
+    return (reports[-1]['document'].get('match') or {}).get('verdict') if reports else None
+
+def newest(h, test_id):
+    return (h.nyayo.for_test(test_id) or [{ 'document' : { 'match' : {} } }])[-1]['document']['match']
+
+def step_row(h, test_id, step, side):
+    rows = [x for x in h.step_rows(test_id) if (x['step'], x['side']) == (step, side)]
+    return rows[0] if rows else None
+
+def failed_start(h):
+    return h.args.schema == 'v1' and h.nyayo_enabled
+
+def scenario_worker_trouble(h, dev, base, what):
+    # A failure that is the machine's: the test goes on, waiting, and the worker is handed it again, after the
+    # time the server gave, and keeps count. Only a person ends it here.
+    test_id = h.create_test(dev=dev, base=base, **SPRT_OPEN)
+    side    = what['side']
+    # Its second failure, judged once both engines have been through the stage
+    h.wait_for(lambda: (step_row(h, test_id, what['step'], side) or {}).get('tries', 0) >= 2 and step_row(h, test_id, what['step'], side)['blame'], 60,
+               'the worker to try test %d twice' % (test_id))
+    row = step_row(h, test_id, what['step'], side)
+    check(row['blame'] == 'worker', 'the verdict is %r, expected worker; steps %s' % (row['blame'], [(x['step'], x['side'], x['state'], x['tries'], x['blame']) for x in h.step_rows(test_id)]))
+    check(not h.test_row(test_id)['finished'], 'a worker\'s failure stopped the test')
+    check(len(h.events(test_id, 'workload')) >= 2, 'the worker was not handed the test again')
+    check(h.test_row(test_id)['games'] == 0, 'games were played')
+
+    if failed_start(h):
+        h.settle(test_id)
+        match = newest(h, test_id)
+        check(match['state'] == 'waiting' and match['finished_at'] is None, 'the match is %r, finished_at %r' % (match['state'], match['finished_at']))
+        check((match.get('verdict') or {}).get('blame') == 'worker', 'verdict %s' % (match.get('verdict')))
+        walk = last_walk(h, test_id)[(what['step'], side)]
+        check(walk['state'] in ('failed', 'active', 'pending') and walk.get('tries', 0) >= 2, 'the step %s' % (walk))
+        failed = [x for x in newest_walks(h, test_id) if x['state'] == 'failed']
+        check(not failed or all(x.get('blame') == 'worker' and x.get('retry_at') and 'tries again' in x.get('effect', '') for x in failed),
+              'a failed step lacks its verdict: %s' % (failed))
+
+    if h.args.linger:
+        return 'test %d: left open to look at' % (test_id)
 
     h.action(test_id, 'STOP')
+    h.wait_until_released(test_id)
+    h.verify(test_id)
+    return 'test %d: a worker\'s failure (%s), %d tries, the test went on' % (test_id, what['why'], row['tries'])
+
+def newest_walks(h, test_id):
+    # The steps of the newest report that carries any
+    for report in reversed(h.nyayo.for_test(test_id)):
+        for machine in expect.view(report['document'])['machines']:
+            if machine.get('steps'):
+                return machine['steps']
+    return []
+
+def scenario_machine_log(h):
+    return scenario_worker_trouble(h, h.engine('dev', broken='space'), h.engine('base'),
+                                   { 'step' : 'compile', 'side' : 'dev', 'why' : 'the log says no disk space' })
+
+def scenario_both_fail_to_compile(h):
+    return scenario_worker_trouble(h, h.engine('dev', broken='source'), h.engine('base', broken='source'),
+                                   { 'step' : 'compile', 'side' : 'dev', 'why' : 'both engines fail to compile' })
+
+def scenario_bench_slow_on_both(h):
+    return scenario_worker_trouble(h, h.engine('dev', bench_mode='slow'), h.engine('base', bench_mode='slow'),
+                                   { 'step' : 'bench', 'side' : 'dev', 'why' : 'both benches over their time' })
+
+def scenario_bench_fails_to_run_on_both(h):
+    return scenario_worker_trouble(h, h.engine('dev', bench_mode='silent'), h.engine('base', bench_mode='silent'),
+                                   { 'step' : 'bench', 'side' : 'dev', 'why' : 'neither bench ran' })
+
+def scenario_engine_verdict(h, dev, step, summary, why):
+    # The engine's failure: the other engine passed beside it, the worker is told to stop, and the test is a failed start
+    test_id = h.create_test(dev=dev, **SPRT_OPEN)
+    h.wait_for(lambda: h.test_row(test_id)['finished'], 60, 'the verdict to stop test %d' % (test_id))
+    row = step_row(h, test_id, step, 'dev')
+    check(row['blame'] == 'engine', 'the verdict is %r, expected engine' % (row['blame']))
+    check(not h.query('SELECT id FROM OpenBench_logevent WHERE test_id = ? AND machine_id = 0 AND summary = "STOP"', test_id),
+          'a stop by hand')
+    check(h.query('SELECT id FROM OpenBench_logevent WHERE test_id = ? AND summary LIKE "Stopped: %"', test_id),
+          'no event for the verdict that stopped the test')
+    check(step_row(h, test_id, step, 'base')['state'] == 'passed', 'base %s beside the failed dev' % (step_row(h, test_id, step, 'base')['state']))
+    check(h.test_row(test_id)['games'] == 0, 'games were played')
+    asked = len(h.events(test_id, 'workload'))
+    time.sleep(3)
+    check(len(h.events(test_id, 'workload')) == asked == 1, 'the worker was handed the test %d time(s)' % (asked))
     h.verify(test_id)
 
-    if h.args.schema == 'v1' and h.nyayo_enabled:
+    if failed_start(h):
+        match = newest(h, test_id)
+        check(match['state'] == 'failed_prechecks' and match['finished_at'], 'the match is %r, finished_at %r' % (match['state'], match['finished_at']))
+        verdict = match.get('verdict') or {}
+        check(verdict.get('blame') == 'engine' and verdict.get('summary') == summary and verdict.get('seen_on') == ['smoke-main'],
+              'verdict %s' % (verdict))
+        walk = last_walk(h, test_id)[(step, 'dev')]
+        check(walk['state'] == 'failed' and walk['blame'] == 'engine' and walk['effect'].startswith('The test stops.')
+              and walk['evidence'] and all(x['points_at'] == 'engine' or x['points_at'] == 'either' for x in walk['evidence']),
+              'the failed step: %s' % (walk))
+        return test_id, verdict
+    return test_id, None
+
+def scenario_compile_fails(h):
+    # Dev doesn't compile. The worker builds base all the same, the control, then stops there. Base compiled, and the
+    # error has a file and a line: the engine's. The test is stopped by the verdict, not by hand.
+    test_id, verdict = scenario_engine_verdict(h, h.engine('dev', broken='source'), 'compile', "Dev doesn't compile", 'compile')
+    if verdict:
+        check(verdict['where'] == 'src/eval/mobility.cpp:212', 'where: %s' % (verdict['where']))
         steps = last_walk(h, test_id)
-        dev   = steps[('compile', 'dev')]
-        check(dev['state'] == 'failed' and 'mobility.cpp:212' in dev['detail'] and 'mobility.cpp:212' in dev['log'],
-              'dev compile: %s' % (dev))
-        check(dev.get('tries') == 1, 'dev compile tried %s time(s)' % (dev.get('tries')))
-        check(steps[('compile', 'base')]['state'] == 'passed', 'base compile %s beside the failed dev' % (steps[('compile', 'base')]['state']))
+        check(steps[('compile', 'dev')].get('tries') == 1 and 'mobility.cpp:212' in steps[('compile', 'dev')]['log'],
+              'dev compile: %s' % (steps[('compile', 'dev')]))
         check(all(steps[key]['state'] == 'pending' for key in (('bench', 'dev'), ('bench', 'base'), ('running', None))),
               'a step past the failed compile was reached: %s' % ([x['state'] for x in steps.values()]))
         states = [expect.view(x['document'])['state'] for x in h.nyayo.for_test(test_id)]
-        check(states[-1] == 'stopped' and set(states[:-1]) == { 'waiting' }, 'the match went %s' % (states))
-    return 'test %d: dev failed to compile, base compiled beside it, nothing past was reached' % (test_id)
+        check(states[-1] == 'failed_prechecks' and set(states[:-1]) == { 'waiting' }, 'the match went %s' % (states))
+    return 'test %d: dev failed to compile, base compiled beside it, the verdict stopped the test' % (test_id)
+
+def scenario_bench_mismatch(h):
+    # A wrong bench on dev, and base matched on the same machine, with no other worker to have matched: the engine's
+    test_id, verdict = scenario_engine_verdict(h, h.engine('dev', bench=ENGINE_BENCH + 1), 'bench',
+                                               "Dev's bench doesn't match its commit", 'bench')
+    check(h.events(test_id, 'bench_error'), 'no bench error was reported')
+    if verdict:
+        steps = last_walk(h, test_id)
+        check(steps[('bench', 'dev')]['detail'] == 'Wrong bench: %d, expected %d' % (ENGINE_BENCH, ENGINE_BENCH + 1),
+              'the failed bench says %r' % (steps[('bench', 'dev')]['detail']))
+        check(steps[('bench', 'base')].get('nodes') == ENGINE_BENCH and steps[('bench', 'base')].get('nps'),
+              'base bench has no nodes and speed: %s' % (steps[('bench', 'base')]))
+        check(steps[('running', None)]['state'] == 'pending', 'running is %s after a failed bench' % (steps[('running', None)]['state']))
+    return 'test %d: wrong bench on dev, base matched, the verdict stopped the test' % (test_id)
+
+def scenario_bench_slow(h):
+    test_id, _ = scenario_engine_verdict(h, h.engine('dev', bench_mode='slow'), 'bench', "Dev's bench runs over 60 seconds", 'bench')
+    return 'test %d: dev over its bench time, base within it, the verdict stopped the test' % (test_id)
+
+def scenario_bench_fails_to_run(h):
+    test_id, _ = scenario_engine_verdict(h, h.engine('dev', bench_mode='silent'), 'bench', 'Dev failed to run its bench', 'bench')
+    return 'test %d: dev\'s bench ran nothing, base\'s did, the verdict stopped the test' % (test_id)
+
+def scenario_wrong_on_both(h):
+    # Both engines' benches are wrong on the one machine: nothing says whose. One more try, then the worker leaves
+    # and, with no one else to play it, the test is held
+    return scenario_unclear(h, h.engine('dev', bench=ENGINE_BENCH + 1), h.engine('base', bench=ENGINE_BENCH + 1),
+                            'bench', "Dev's bench doesn't match its commit, and no other worker has tried it")
+
+def scenario_killed(h):
+    # The compiler is killed: not a compile error. Nobody else has tried it, so nobody can tell. One more try, then held.
+    # Restarted by hand, every walk starts over and the worker is handed it again
+    return scenario_unclear(h, h.engine('dev', broken='killed'), h.engine('base'), 'compile',
+                            "Dev's compile was killed, and no other worker has tried it", restart=True)
+
+def scenario_unclear(h, dev, base, step, summary, restart=False):
+    test_id = h.create_test(dev=dev, base=base, **SPRT_OPEN)
+    held    = lambda: (step_row(h, test_id, step, 'dev') or {}).get('tries', 0) >= 2 and step_row(h, test_id, step, 'dev')['blame']
+    h.wait_for(held, 60, 'the worker to try test %d twice' % (test_id))
+    row = step_row(h, test_id, step, 'dev')
+    check(row['blame'] == 'unclear', 'the verdict is %r, expected unclear' % (row['blame']))
+    check(not h.test_row(test_id)['finished'], 'a failure nobody can place stopped the test')
+    check(not row['retry_at'], 'the worker was given a third try')
+
+    # It has left the test: not handed it again, however long it asks
+    hands = len(h.events(test_id, 'workload'))
+    time.sleep(CLIENT_RETRY + 3)
+    check(len(h.events(test_id, 'workload')) == hands == 2, 'handed out %d time(s), then %d' % (hands, len(h.events(test_id, 'workload'))))
+
+    if failed_start(h):
+        h.settle(test_id)
+        match = newest(h, test_id)
+        check(match['state'] == 'held' and match['finished_at'] is None, 'the match is %r, finished_at %r' % (match['state'], match['finished_at']))
+        verdict = match.get('verdict') or {}
+        check(verdict.get('blame') == 'unclear' and verdict.get('summary') == summary, 'verdict %s' % (verdict))
+        walk = last_walk(h, test_id)[(step, 'dev')]
+        check(walk['blame'] == 'unclear' and walk['tries'] == 2 and walk['effect'].startswith('The test is held'), 'the step %s' % (walk))
+
+    if restart:
+        # Restarted by hand, as the page offers it on a held test: every walk starts over, tries too, and the hold goes
+        h.action(test_id, 'RESTART')
+        row = step_row(h, test_id, step, 'dev')
+        check((row['state'], row['tries'], row['blame']) == ('pending', 0, ''), 'after a restart: %s' % (row))
+        h.wait_for(held, 60, 'the worker to try test %d twice again' % (test_id))
+        check(len(h.events(test_id, 'workload')) == 4, 'handed out %d time(s) after a restart' % (len(h.events(test_id, 'workload'))))
+        if failed_start(h):
+            h.settle(test_id)
+            check(newest(h, test_id)['state'] == 'held', 'the match is %r again' % (newest(h, test_id)['state']))
+
+    if h.args.linger:
+        return 'test %d: left open to look at' % (test_id)
+
+    h.action(test_id, 'STOP')
+    h.wait_until_released(test_id)
+    h.verify(test_id)
+    return 'test %d: nobody could place it, one more try, held%s' % (test_id, ', restarted by hand and held again' if restart else '')
+
+def scenario_later_workload(h):
+    # A bench right on the first workload and wrong on a later one: the same binary gave two answers, which is the
+    # engine's, whoever else has matched. The test has games, so it is an error, not a failed start.
+    test_id = h.create_test(workload_size=1, dev=h.engine('dev', bench_mode='flip'), **SPRT_OPEN)
+    h.wait_for(lambda: h.test_row(test_id)['finished'], 90, 'the verdict to stop test %d' % (test_id))
+    row = step_row(h, test_id, 'bench', 'dev')
+    check(row['blame'] == 'engine' and h.test_row(test_id)['games'] > 0, 'verdict %r with %d games' % (row['blame'], h.test_row(test_id)['games']))
+    h.verify(test_id)
+
+    if failed_start(h):
+        match = newest(h, test_id)
+        check(match['state'] == 'error' and match['finished_at'], 'the match is %r, finished_at %r' % (match['state'], match['finished_at']))
+        check((match.get('verdict') or {}).get('blame') == 'engine', 'verdict %s' % (match.get('verdict')))
+        walk = last_walk(h, test_id)[('bench', 'dev')]
+        check('two answers' in walk['evidence'][0]['text'] and 'games kept' in walk['effect'], 'the step %s' % (walk))
+    return 'test %d: bench right, then wrong on a later workload, %d games kept, error' % (test_id, h.test_row(test_id)['games'])
 
 
 SCENARIOS = collections.OrderedDict([
@@ -1129,7 +1298,7 @@ SCENARIOS = collections.OrderedDict([
     ('3',  ('stop mid-test',                     scenario_stop)),
     ('4',  ('delete mid-test, not stopped',      scenario_delete)),
     ('5',  ('restore after a delete',            scenario_restore)),
-    ('6',  ('bench mismatch',                    scenario_bench_mismatch)),
+    ('6',  ('wrong bench on dev, base matched: the engine\'s', scenario_bench_mismatch)),
     ('7',  ('engine crashes, then stopped',      scenario_crash_then_stop)),
     ('8',  ('nyayo down for a while',            scenario_nyayo_down)),
     ('9',  ('no NYAYO_URL',                      scenario_no_nyayo)),
@@ -1141,8 +1310,17 @@ SCENARIOS = collections.OrderedDict([
     ('15', ('report_to_nyayo --games, an older upload', scenario_backfill_games)),
     ('16', ('reported from creation, waiting; its worker at hand-out', scenario_from_the_start)),
     ('17', ('a passing walk, step by step',     scenario_walk)),
-    ('18', ('dev fails to compile; base compiled beside it', scenario_compile_fails)),
+    ('18', ('dev fails to compile; base compiled beside it: the engine\'s', scenario_compile_fails)),
     ('19', ('a test with a name is that on nyayo',  scenario_named)),
+    ('20', ('the log says no disk space: the worker\'s', scenario_machine_log)),
+    ('21', ('both engines fail to compile: the worker\'s', scenario_both_fail_to_compile)),
+    ('22', ('compiler killed, nobody else has tried: held, then restarted', scenario_killed)),
+    ('23', ('wrong bench on both engines: held', scenario_wrong_on_both)),
+    ('24', ('both benches over their time: the worker\'s', scenario_bench_slow_on_both)),
+    ('25', ('dev\'s bench over its time, base\'s not: the engine\'s', scenario_bench_slow)),
+    ('26', ('dev\'s bench fails to run, base\'s runs: the engine\'s', scenario_bench_fails_to_run)),
+    ('27', ('neither bench runs: the worker\'s', scenario_bench_fails_to_run_on_both)),
+    ('28', ('a bench right, then wrong on a later workload: the engine\'s', scenario_later_workload)),
 ])
 
 # Not written yet, each waiting on the work named
@@ -1204,6 +1382,10 @@ def main(args):
 
             if failed:
                 harness.report_logs()
+
+            if args.linger:
+                print('LINGER %ds: OpenBench at %s, nyayo at %s' % (args.linger, harness.url, nyayo and nyayo.url), flush=True)
+                time.sleep(args.linger)
 
         except Exception:
             harness.report_logs()
