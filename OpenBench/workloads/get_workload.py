@@ -28,6 +28,7 @@ import random
 import re
 import sys
 
+import OpenBench.steps
 import OpenBench.utils
 
 from OpenBench.config import OPENBENCH_CONFIG
@@ -54,7 +55,9 @@ def get_workload(request, machine):
     # Update the Machine's status and save everything
     machine.workload = test.id;
     machine.mnps = machine.dev_mnps = machine.base_mnps = 0.00
-    machine.save(); result.save()
+    machine.save()
+    result.workloads += 1; result.save()
+    OpenBench.steps.start_walk(result)
 
     workload = workload_to_dictionary(test, result, machine)
 

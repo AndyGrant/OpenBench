@@ -14,7 +14,9 @@ from django.utils import timezone
 
 import OpenBench.stats
 
-from OpenBench.models import LogEvent, PGN, Result, Test
+import OpenBench.steps
+
+from OpenBench.models import LogEvent, PGN, Result, Step, Test
 
 logger = logging.getLogger(__name__)
 
@@ -81,8 +83,9 @@ def stopped_by_bench_error(test):
 
 
 def match_state(test):
-    # (state, sprt.result), derived from the test every time (openbench-reports.md, The fixes). A test no
-    # worker has played a game of is waiting (ramani plans/sprt-steps.md); the steps will tell it from running
+    # (state, sprt.result), derived from the test every time (openbench-reports.md, The fixes). A test is
+    # waiting until a worker has reached running, the last step of its walk (ramani plans/sprt-steps.md), or
+    # has played a game, which a test from before the steps did without reporting one
     if test.deleted:
         return 'stopped', None
     if test.finished and (test.passed or test.failed):
@@ -91,7 +94,8 @@ def match_state(test):
         return 'finished', 'passed' if test.passed else 'failed'
     if test.finished:
         return ('error' if stopped_by_bench_error(test) else 'stopped'), None
-    if not Result.objects.filter(test=test, games__gt=0).exists():
+    if not (Step.objects.filter(result__test=test, step='running', state='passed').exists()
+            or Result.objects.filter(test=test, games__gt=0).exists()):
         return 'waiting', None
     return 'running', None
 
@@ -171,6 +175,10 @@ def build_v1_document(test):
     # (utils.getRecentMachines)
     recent = timezone.now() - datetime.timedelta(minutes=5)
 
+    steps = collections.defaultdict(list)
+    for step in Step.objects.filter(result__test=test):
+        steps[step.result_id].append(step)
+
     machines = []
     for row in rows:
         name = (row.machine.info or {}).get('machine_name')
@@ -179,7 +187,11 @@ def build_v1_document(test):
             'machine_id': row.machine.id, 'user': row.machine.user.username,
             'games': row.games, 'crashes': row.crashes, 'timeloss': row.timeloss, 'updated_at': iso(row.updated),
             'active': row.machine.workload == test.id and row.machine.updated >= recent,
+            'workloads': row.workloads,
         })
+        walk = OpenBench.steps.walk_document(steps[row.id], iso)
+        if walk is not None:
+            machines[-1]['steps'] = walk
 
     return {
         'schema_version': 1,

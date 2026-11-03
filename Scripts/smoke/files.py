@@ -14,11 +14,21 @@ BOOK_FILE  = SMOKE_DIR / 'book.epd'
 BOOK_NAME  = 'smoke.epd'
 
 
-def engine_zip(root_name):
+# A makefile whose compiler fails the way g++ does: the file and line, then the error
+BROKEN_MAKEFILE = (
+    'all:\n'
+    '\t@echo "src/eval/mobility.cpp:212:9: error: mobility was not declared in this scope" >&2\n'
+    '\t@exit 2\n')
+
+
+def engine_zip(root_name, broken=False):
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, 'w') as archive:
-        for name in ('engine.py', 'makefile'):
-            archive.write(ENGINE_DIR / name, '%s/%s' % (root_name, name))
+        archive.write(ENGINE_DIR / 'engine.py', '%s/engine.py' % (root_name))
+        if broken:
+            archive.writestr('%s/makefile' % (root_name), BROKEN_MAKEFILE)
+        else:
+            archive.write(ENGINE_DIR / 'makefile', '%s/makefile' % (root_name))
     return buffer.getvalue()
 
 

@@ -57,7 +57,7 @@ from client import try_forever
 
 ## Basic configuration of the Client. These timeouts can be changed at will
 
-CLIENT_VERSION   = 39 # Client version to send to the Server
+CLIENT_VERSION   = 40 # Client version to send to the Server
 TIMEOUT_HTTP     = 30 # Timeout in seconds for HTTP requests
 TIMEOUT_ERROR    = 10 # Timeout in seconds when any errors are thrown
 TIMEOUT_WORKLOAD = 30 # Timeout in seconds between workload requests
@@ -242,6 +242,22 @@ class ServerReporter:
             raise utils.OpenBenchFatalWorkerException(as_json['error'])
 
         return response
+
+    @staticmethod
+    def report_step(config, step, side, state, **fields):
+
+        # A step of the walk, as it starts or ends. Best effort: a step the server doesn't hear of must
+        # never fail a workload, so everything but a bad version is caught and forgotten.
+
+        payload = { 'test_id' : config.workload['test']['id'], 'step' : step, 'side' : side or '', 'state' : state }
+        payload.update({ key : value for key, value in fields.items() if value is not None })
+
+        try:
+            ServerReporter.report(config, 'clientReportStep', payload)
+        except BadVersionException:
+            raise
+        except Exception as error:
+            print('[Note] A step could not be reported: %s' % (error))
 
     @staticmethod
     def report_nps(config, dev_nps, base_nps):
@@ -852,11 +868,33 @@ def find_pgn_error(reason, command):
     return data[ii] + pgn
 
 
+def both_engines(run_dev, run_base):
+
+    # The two engines go through a stage whatever happens to the first. What fails is raised once both
+    # are done, dev's first. A bad version or a fatal error is the worker's own business, and leaves at once.
+
+    results, errors = [], []
+    for run in (run_dev, run_base):
+        try:
+            results.append(run()); errors.append(None)
+        except (BadVersionException, utils.OpenBenchFatalWorkerException):
+            raise
+        except Exception as error:
+            results.append(None); errors.append(error)
+
+    for error in errors:
+        if error is not None:
+            raise error
+
+    return results
+
 def determine_scale_factor(config, dev_name, dev_network, base_name, base_network):
 
-    # Run the benchmarks and compute the scaling NPS value
-    dev_nps  = safe_run_benchmarks(config, 'dev' , dev_name , dev_network )
-    base_nps = safe_run_benchmarks(config, 'base', base_name, base_network)
+    # Run the benchmarks and compute the scaling NPS value. Both engines are benched even when one fails:
+    # the other is the control for the server's judgement of the failure. Then the failure is raised.
+    dev_nps, base_nps = both_engines(
+        lambda: safe_run_benchmarks(config, 'dev' , dev_name , dev_network ),
+        lambda: safe_run_benchmarks(config, 'base', base_name, base_network))
     ServerReporter.report_nps(config, dev_nps, base_nps)
 
     dev_factor = base_factor = None
@@ -993,8 +1031,9 @@ def complete_workload(config):
     base_network = safe_download_network_weights(config, 'base')
 
     # Build or download each engine, or exit if an error occured
-    dev_name  = safe_download_engine(config, 'dev' , dev_network )
-    base_name = safe_download_engine(config, 'base', base_network)
+    dev_name, base_name = both_engines(
+        lambda: safe_download_engine(config, 'dev' , dev_network ),
+        lambda: safe_download_engine(config, 'base', base_network))
 
     # Datagen creates a book on-the-fly
     if config.workload['test']['type'] == 'DATAGEN':
@@ -1012,6 +1051,9 @@ def complete_workload(config):
     print ('%d cutechess copies' % (cutechess_cnt))
     print ('%d concurrent games per copy' % (concurrency_per))
     print ('%d total games per cutechess copy\n' % (games_per))
+
+    # The last step of the walk: games are about to be played
+    ServerReporter.report_step(config, 'running', None, 'passed')
 
     # Launch and manage all of the Cutechess workers
     with ThreadPoolExecutor(max_workers=cutechess_cnt) as executor:
@@ -1066,7 +1108,53 @@ def safe_download_network_weights(config, branch):
 
     return net_path
 
+def failure_line(logs):
+    # One line of a compiler's output that a person can act on: the first that says error
+    for line in (logs or '').split('\n'):
+        if 'error' in line.lower():
+            return line.strip()[:240]
+    return 'Compilation failed'
+
 def safe_download_engine(config, branch, net_path):
+
+    # Wraps download_engine() in the compile step of the walk: started, then passed (built now, or found
+    # already built) or failed with the compiler's output. Trouble fetching things isn't a verdict on the
+    # engine: the step stays active, with the reason.
+
+    engine    = config.workload['test'][branch]['engine']
+    sha       = config.workload['test'][branch]['sha']
+    private   = config.workload['test'][branch]['private']
+    out_path  = os.path.join('Engines', utils.engine_binary_name(engine, sha, net_path, private))
+    cached    = bool(utils.check_for_engine_binary(out_path))
+    started   = time.time()
+
+    ServerReporter.report_step(config, 'compile', branch, 'active')
+
+    try:
+        name = download_engine(config, branch, net_path)
+
+    except utils.OpenBenchBuildFailedException as error:
+        ServerReporter.report_step(config, 'compile', branch, 'failed',
+            detail=failure_line(error.logs), log=error.logs, seconds=round(time.time() - started, 1))
+        raise
+
+    except utils.OpenBenchMissingArtifactException as error:
+        ServerReporter.report_step(config, 'compile', branch, 'failed',
+            detail='Artifact %s missing' % (error.name), log=error.logs, seconds=round(time.time() - started, 1))
+        raise
+
+    except (BadVersionException, utils.OpenBenchFatalWorkerException):
+        raise
+
+    except Exception as error:
+        ServerReporter.report_step(config, 'compile', branch, 'active', detail=str(error)[:500])
+        raise
+
+    ServerReporter.report_step(config, 'compile', branch, 'passed',
+        seconds=round(time.time() - started, 1), cached='true' if cached else 'false')
+    return name
+
+def download_engine(config, branch, net_path):
 
     # Wraps utils.py:download_public_engine() and utils.py:download_private_engine()
 
@@ -1138,14 +1226,25 @@ def safe_run_benchmarks(config, branch, engine, network):
     expected = int(config.workload['test'][branch]['bench'])
     binary   = os.path.join('Engines', engine)
 
+    started = time.time()
+    ServerReporter.report_step(config, 'bench', branch, 'active')
+
     try:
         print('\nRunning %dx Benchmarks for %s' % (config.threads, name))
         speed, nodes = bench.run_benchmark(
             binary, network, private, config.threads, 1, expected)
 
     except utils.OpenBenchBadBenchException as error:
+        detail = re.sub(r'^\[[^\]]*\]\s*', '', error.message)
+        if detail.startswith('Wrong Bench') and expected:
+            detail = 'Wrong bench: %s, expected %d' % (detail.split(':')[-1].strip(), expected)
+        ServerReporter.report_step(config, 'bench', branch, 'failed',
+            detail=detail, seconds=round(time.time() - started, 1))
         ServerReporter.report_bad_bench(config, error.message)
         raise
+
+    ServerReporter.report_step(config, 'bench', branch, 'passed',
+        seconds=round(time.time() - started, 1), nodes=nodes, nps=speed)
 
     print('Bench for %s is %d' % (name, nodes))
     print('Speed for %s is %d' % (name, speed))

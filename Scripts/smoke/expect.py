@@ -6,6 +6,10 @@
 #                                          agrees with it on those (nyayo answers 409 to a difference)
 #   workload (clientGetWorkload)           one report: the machine is in machines[] and active; the state is
 #                                          waiting until the first results, then running
+#   step     (clientReportStep)            one report when a step's row changed, the state unchanged: waiting
+#                                          until the worker passes running, running from then on. Quick steps
+#                                          may come as one report (coalesced), so none is missing for want of
+#                                          its own; the machine's steps in each report are checked in check_steps
 #   results  (clientSubmitResults)         one report, running, counts equal to the Test after it, LLR equal to
 #                                          test.currentllr; finished (with sprt.result) once the test ends.
 #                                          None when the test was already finished or deleted (the worker
@@ -66,6 +70,7 @@ class Event:
         self.before, self.after = before, after
         self.report, self.state = report, state
         self.old = False  # An upload from before client 39: no Subject, cutechess's names
+        self.quiet = False  # A step that left the state as it was: its report may be one with the next's
 
     def __repr__(self):
         outcome = self.state if self.report else ('%s, if it arrives' % (self.state) if self.lost else 'no report')
@@ -88,7 +93,7 @@ class Expectations:
         self.state         = {}  # test id -> the state its last report should have had
         self.before_delete = {}
 
-    def record(self, t, kind, test_id, before, after, lost=False):
+    def record(self, t, kind, test_id, before, after, lost=False, form=None):
         previous = self.state.get(test_id, 'running')
         report   = True
 
@@ -96,6 +101,9 @@ class Expectations:
             state  = 'waiting'
         elif kind == 'workload':
             state  = previous
+        elif kind == 'step':
+            reached = form and form.get('step') == 'running' and form.get('state') == 'passed'
+            state   = 'running' if reached and previous == 'waiting' else previous
         elif kind == 'results':
             report = not (before['finished'] or before['deleted'])
             state  = finished_state(after) or ('running' if previous == 'waiting' else previous)
@@ -119,6 +127,7 @@ class Expectations:
             self.state[test_id] = state
 
         event = Event(t, kind, test_id, before, after, report and not lost, state, lost and report)
+        event.quiet = kind == 'step' and state == previous
         self.events.append(event)
         return event
 
@@ -139,7 +148,7 @@ class Expectations:
         # events they don't match; one repeating the report before it may be a resend.
         events = [x for x in self.events if x.test_id == test_id and x.kind not in ('pgn', 'backfill-upload')
                   and (x.report or x.lost)]
-        optional = lambda index, report: events[index].lost or (index + 1 < len(events) and events[index + 1].t < report['t'])
+        optional = lambda index, report: events[index].lost or events[index].quiet             or (index + 1 < len(events) and events[index + 1].t < report['t'])
         pairs, extra, position = [], 0, 0
         for report in reports:
             index = position
@@ -155,7 +164,7 @@ class Expectations:
             pairs.append((events[index], report))
             position = index + 1
 
-        missing = [x for x in events[position:] if not x.lost]
+        missing = [x for x in events[position:] if not x.lost and not x.quiet]
         if missing:
             problems.append('missing %d report(s), for %s' % (len(missing), missing))
         if extra:
@@ -232,6 +241,58 @@ class Expectations:
         if problems and problems_detail:
             problems.append(problems_detail)
         return problems
+
+
+WALK = (('picked_up', None), ('compile', 'dev'), ('compile', 'base'), ('bench', 'dev'), ('bench', 'base'), ('running', None))
+
+
+def check_steps(reports, rows, results):
+    # The walks in the reports. Each is the whole walk in its order, with the fields it needs; a step that
+    # has passed doesn't go back (the graph doesn't flicker as a worker comes round again) unless a step failed
+    # in between, which starts it over; and the last report has each step as OpenBench's rows have it.
+    problems, passed, failed = [], collections.defaultdict(set), collections.defaultdict(bool)
+    last = {}
+
+    for number, report in enumerate(reports, 1):
+        for machine in view(report['document'])['machines']:
+            name, steps = machine.get('machine_id', machine.get('name')), machine.get('steps')
+            if steps is None:
+                continue
+            where = 'report %d, machine %s' % (number, name)
+            if [(x.get('step'), x.get('side')) for x in steps] != list(WALK):
+                problems.append('%s: steps %s are not the walk' % (where, [(x.get('step'), x.get('side')) for x in steps]))
+                continue
+            for step in steps:
+                key, state = (step['step'], step.get('side')), step.get('state')
+                if state not in ('pending', 'active', 'passed', 'failed'):
+                    problems.append('%s: %s is %r' % (where, key, state))
+                if state != 'pending' and not step.get('at'):
+                    problems.append('%s: %s %s with no time' % (where, key, state))
+                if state == 'failed' and not step.get('detail'):
+                    problems.append('%s: %s failed with no detail' % (where, key))
+                if len((step.get('log') or '').encode('utf-8')) > 4096:
+                    problems.append('%s: %s has a log over 4096 bytes' % (where, key))
+                if key in passed[name] and state not in ('passed', 'failed') and not failed[name]:
+                    problems.append('%s: %s went back to %s after it passed' % (where, key, state))
+            failed[name] = any(x.get('state') == 'failed' for x in steps)
+            if failed[name]:
+                passed[name] = set()
+            passed[name] |= { (x['step'], x.get('side')) for x in steps if x.get('state') == 'passed' }
+            last[name] = steps
+
+    if reports and rows and view(reports[-1]['document'])['v1']:
+        ours = collections.defaultdict(dict)
+        for row in rows:
+            ours[(row['step'], row['side'] or None)] = row['state']
+        got = { name : { (x['step'], x.get('side')) : x['state'] for x in steps } for name, steps in last.items() }
+        if len(got) == 1:
+            want = { key : ours.get(key, 'pending') for key in WALK }
+            if list(got.values())[0] != want:
+                problems.append('last report: steps %s, OpenBench has %s' % (list(got.values())[0], want))
+        elif not got:
+            problems.append('no report carries the machine\'s steps, OpenBench has %s' % (dict(ours)))
+
+    return problems
 
 
 def uploaded_games(event):

@@ -42,7 +42,7 @@ the fork's additions and how it's deployed, and how other components read OpenBe
 - hunt (172.16.100.15, 32 cores) is the worker. It plays with cutechess-ob, and downloads the client from the fork's
   `master` (`client_repo_url` and `client_repo_ref` in `Config/config.json`) when the server asks for a newer one.
   The server's client version, in `Config/config.json`, and the worker's, `CLIENT_VERSION` in `Client/worker.py`, are
-  both **39**. A change to the client that hunt must take raises both.
+  both **40**. A change to the client that hunt must take raises both.
 
 ### Engine configuration
 
@@ -91,18 +91,19 @@ Upstream, plus:
 
 | Part | Where |
 |:--|:--|
-| the reporter: every test, and every upload of games, to nyayo | `OpenBench/nyayo.py`, started from `apps.py`; queued from `workloads/create_workload.py`, `workloads/get_workload.py`, `utils.update_test`, `views.client_bench_error`, `views.client_submit_pgn` and `workloads/modify_workload.py` |
+| the reporter: every test, and every upload of games, to nyayo | `OpenBench/nyayo.py`, started from `apps.py`; queued from `workloads/create_workload.py`, `workloads/get_workload.py`, `utils.update_test`, `views.client_bench_error`, `views.client_report_step`, `views.client_submit_pgn` and `workloads/modify_workload.py` |
 | `manage.py report_to_nyayo [--all \| TEST_ID ...] [--schema openbench\|v1] [--games]` | `OpenBench/management/commands/` |
 | every test uploads its PGNs | `utils.always_upload`, `workloads/create_workload.py`, `workloads/get_workload.py`, the create page |
 | the worker names and tags each game, and keeps `Termination` | `Client/pgn_util.py`, `Client/worker.py` |
 | `OPENBENCH_CONFIG_DIR`, where `Config/`, `Books/` and `Engines/` are read from (the repo root by default) | `OpenSite/settings.py`, `OpenBench/config.py` |
 | uploads kept under `MEDIA_ROOT/PGNs`, not a path relative to the working directory | `OpenBench/pgn_watcher.py`, `OpenBench/views.py` |
-| migrations `0002`–`0006` for databases older than the models (missing columns added when absent; `0006` declares the legacy `Result` counters) | `OpenBench/migrations/` |
+| migrations `0002`–`0006` for databases older than the models (missing columns added when absent; `0006` declares the legacy `Result` counters); `0007` adds `Step` and `Result.workloads` | `OpenBench/migrations/` |
 | the client: compiling with at most 4 threads (a low spec machine), and a workload's PGN file named by its book index too, so two workloads starting in the same second don't share one | `Client/utils.py`, `Client/worker.py` |
 | `Scripts/archive2nps.py` takes the side from `Subject` when a game has one | `Scripts/archive2nps.py` |
 | the deploy scripts | `deploy/` |
+| a worker's walk through a test, reported as it goes (*Reporting to nyayo*) | `OpenBench/steps.py`, `OpenBench/models.py` (`Step`, `Result.workloads`), `views.client_report_step`, `workloads/get_workload.py`, `Client/worker.py` |
 | the full smoke test | `Scripts/smoke_client_server.py`, `Scripts/smoke/` |
-| unit tests | `UnitTests/` (`test_pgn_util.py`, `test_game_names.py`: scripts, run from `UnitTests/`) |
+| unit tests | `UnitTests/` (`test_pgn_util.py`, `test_game_names.py`, `test_steps.py`: scripts, run from `UnitTests/`) |
 
 ### Reporting to nyayo
 
@@ -119,7 +120,8 @@ this section says when OpenBench sends what.
 | `NYAYO_OPENBENCH_URL` | `http://172.16.100.11:8000` | makes the link back to a test (`producer.url`) absolute |
 
 - **When**: one match document when a test is created (on commit, whatever its approval, so before any worker has seen
-  it), when a workload is handed out (once it's committed: the machine is now on the test), after every batch of
+  it), when a workload is handed out (once it's committed: the machine is now on the test), when a step of a worker's
+  walk changes (`clientReportStep`, only if it changed a row), after every batch of
   results (once the batch is in both the `Test` and its `Result` row), every bench error and every action by hand
   (approve, stop, delete, restore, modify). Each upload of games follows its workload's last results. The first
   document holds every field nyayo fixes for a match (the settings, the engines, the SPRT's bounds), and a test can't
@@ -143,7 +145,8 @@ this section says when OpenBench sends what.
 - **The state**, derived from the test every time, in this order: deleted is `stopped`, whether or not it was stopped
   or had passed first; finished with a pass or a fail is `finished` (and, for an SPRT, `sprt.result`); finished
   otherwise is `error` when its newest bench error is newer than its newest action by hand, else `stopped`; anything
-  else is `waiting` when no game has been played (no `Result` row has games), else `running`. A bench
+  else is `waiting` until a worker has passed the `running` step of its walk (or a game has been played, which a test
+  from before the steps did without reporting one), `running` from then on. A bench
   error is the worker's `LogEvent` without a log file, which only `clientBenchError` writes. Crashes are in the counts;
   `test.error` doesn't decide the state.
 - **The document** (v1): the engine as the subject, with dev's branch and sha, and `repo` from the test's `dev_repo`;
@@ -152,8 +155,31 @@ this section says when OpenBench sends what.
   is `<engine> <dev branch> vs <base branch>`. Crashes and time losses are counted under the subject, since OpenBench
   doesn't know the side. A machine is in `machines` once it has a `Result` row, which `get_workload` makes when it
   hands the test out; `active` says it is on this test now (its workload is the test and it was heard from in the
-  last 5 minutes). `workloads` and `steps` are not sent yet. The older `openbench` shape has no `waiting`: it says
+  last 5 minutes); `workloads` is how many workloads of the test it has been handed, and `steps` its walk (below). The older `openbench` shape has no `waiting`: it says
   `running`.
+- **The walk** (client 40 on): each machine's walk through a test, as nyayo's *Steps*, in this order: `picked_up`,
+  `compile` of `dev` and of `base`, `bench` of each, `running`. A step is a `Step` row per `Result`, not a field of it:
+  `ended_at` dates a finished test by `Result.updated`, which a step arriving late must not move.
+  - `get_workload` passes `picked_up` itself (no client change) and counts the workload. The worker calls
+    `clientReportStep` (`test_id`, `step`, `side`, `state`, and `seconds`, `cached`, `detail`, `log`, `nodes`, `nps` when
+    it has them) as each step starts (`active`) and ends (`passed` or `failed`, with the compiler's output); `running`
+    is reported `passed` just before cutechess starts. It is best effort on both sides: the worker catches everything but
+    a bad version, the server answers `{}` whatever it made of the report, and a lost step never fails a workload. A
+    step reports to nyayo on the reports queue (a quick one may share its report with the next), only if it changed
+    its row.
+  - A worker that comes back keeps the steps it has passed: reporting a step passed again, or active, changes nothing,
+    so its walk doesn't go back to pending at every workload. A step it fails turns failed (`tries` counts them,
+    `detail` is one line, `log` the end of the compiler's output, sent as its last 4096 bytes in whole characters,
+    which is all nyayo takes); handed the test again after a failure (a restart by hand) it starts over, its `tries`
+    kept. A step with no row is `pending`; a `Result` from before the steps has no `steps`. Trouble fetching things
+    (the zip, the book) leaves the compile `active` with the reason as its `detail`.
+  - The worker takes **both engines through each stage**: `complete_workload` builds dev and base, then
+    `determine_scale_factor` benches both, each catching a failure so the other still runs and raising it (dev's first)
+    once both are done. A stage costs at most one more compile or bench, and the other engine's result is in the
+    walk. What follows a failed stage isn't reached. **What stops a test is unchanged**: a failed compile still
+    blacklists the test in the worker's memory and leaves it active, a failed bench still stops it
+    (`clientBenchError`, state `error`). A failed step has `state`, `detail` and `log`; `blame`, `evidence`, `effect`
+    and `retry_at` are columns of the row with nothing writing them yet.
 - **Games**: each upload is sent whole, as one `PUT /api/matches/<id>/pgns/<result id>.<book index>`,
   `application/x-bzip2`: the bytes the worker uploaded, the same bytes `Media/PGNs/<test>.pgn.tar` keeps. nyayo reads
   nothing in the request and puts the games away in the background, so a bad upload is refused later by its worker
@@ -193,6 +219,11 @@ on Windows too. With `--full` (Linux or WSL, needs `make`, g++ and `Scripts/smok
   `base` and `Termination` as cutechess wrote it (read from the worker's own `PGNs/`); an upload from before client 39
   must come renamed and tagged but for that. With a nyayo that has a worker: every upload `done` with the sha256 sent,
   and a card per game with the subject's colour, an opponent, the `Termination` and the game as sent.
+- Each walk in a report is checked (`expect.check_steps`): the six steps in order, a time on every step that has begun,
+  a detail on every failure, a log of at most 4096 bytes, no step back to pending or active after it passed unless one
+  failed in between, and the last report's steps equal to the `Step` rows. A step is an event of its own (`step`) when
+  it changed a row; it leaves the state as it was, `waiting` until the worker passes `running`, so its report may be
+  one with the next event's.
 - A test is made as the create page makes it: reported (from the harness, as `create_workload` does), then opened to
   workers. A workload handed out is an event of its own (`workload`), a report with the worker in `machines`. Every
   report of a test must agree with its first on what nyayo fixes (`expect.fixed_part`, nyayo's `ingest.fixed_part`).
@@ -218,6 +249,10 @@ Scenarios:
 | 14 | nyayo busy: every upload answered `503` twice, then taken |
 | 15 | `report_to_nyayo --games`, with an upload from before client 39 in the tar, twice |
 | 16 | a test made and not yet approved is on nyayo as `waiting` with no games and no machines; once approved, its worker shows in a `waiting` report before any game |
+| 17 | a passing walk reaches nyayo step by step (at least three different walks seen), `waiting` until `running` has passed, with the dev compile's time and both benches' nodes and speed; two workloads are counted and no step goes back |
+| 18 | dev doesn't compile: its compile is failed with the compiler's line and output, base's compiled beside it, the benches and `running` not reached, the test still active and `waiting` until it is stopped by hand |
+
+Scenario 6 also checks the walk: dev's bench failed with `Wrong bench: <got>, expected <bench>` and base's passed, with its nodes.
 
 A scenario marked expected-to-fail in `expect.py` makes the run fail once it passes. None is marked.
 
