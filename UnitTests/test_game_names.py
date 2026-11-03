@@ -83,10 +83,10 @@ def test_counts_unchanged():
 def load_reporter():
 
     # OpenBench/nyayo.py without a Django project: only its game functions are used
-    for name in ('OpenBench', 'OpenBench.stats', 'OpenBench.models'):
+    for name in ('OpenBench', 'OpenBench.stats', 'OpenBench.models', 'OpenBench.steps'):
         sys.modules.setdefault(name, types.ModuleType(name))
     sys.modules['OpenBench'].__path__ = []
-    for model in ('LogEvent', 'PGN', 'Result', 'Test'):
+    for model in ('LogEvent', 'PGN', 'Result', 'Step', 'Test'):
         setattr(sys.modules['OpenBench.models'], model, None)
 
     spec   = importlib.util.spec_from_file_location('nyayo_reporter', os.path.join(PARENT, 'OpenBench', 'nyayo.py'))

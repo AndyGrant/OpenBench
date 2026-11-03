@@ -25,6 +25,7 @@ import django.shortcuts
 import django.contrib.auth
 
 import OpenBench.config
+import OpenBench.steps
 import OpenBench.utils
 import OpenBench.model_utils
 
@@ -712,6 +713,24 @@ def client_bench_error(request, machine):
         test_id    = int(request.POST['test_id']))
 
     transaction.on_commit(lambda: enqueue_report(test.id))
+
+    return JsonResponse({})
+
+@csrf_exempt
+@verify_worker
+def client_report_step(request, machine):
+
+    # A step of the worker's walk, as it starts or ends. Best effort on both sides: a step that can't be
+    # recorded is no reason to fail the worker's workload.
+    try:
+        test   = Test.objects.get(id=int(request.POST['test_id']))
+        result = Result.objects.get(test=test, machine=machine)
+        step   = OpenBench.steps.record_step(result, request.POST.dict())
+    except (Test.DoesNotExist, Result.DoesNotExist, KeyError, ValueError):
+        return JsonResponse({})
+
+    if step is not None:
+        transaction.on_commit(lambda: enqueue_report(test.id))
 
     return JsonResponse({})
 

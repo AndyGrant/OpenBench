@@ -47,7 +47,7 @@ CLIENT_TIMERS = { 'TIMEOUT_ERROR' : 1, 'TIMEOUT_WORKLOAD' : 1, 'REPORT_INTERVAL'
 
 # Client requests that are events in expect.py
 WATCHED = { 'clientSubmitResults' : 'results', 'clientBenchError' : 'bench_error', 'clientSubmitPGN' : 'pgn',
-            'clientGetWorkload' : 'workload' }
+            'clientGetWorkload' : 'workload', 'clientReportStep' : 'step' }
 
 
 class SmokeFailure(Exception):
@@ -380,10 +380,10 @@ class Harness:
         if 'sessionid' not in self.session.cookies:
             raise SmokeFailure('logging in failed: %d %s' % (response.status_code, response.text[:300]))
 
-    def engine(self, label, bench=ENGINE_BENCH):
-        # Each engine gets its own sha, so the worker builds it from its own zip
+    def engine(self, label, bench=ENGINE_BENCH, broken=False):
+        # Each engine gets its own sha, so the worker builds it from its own zip. A broken one doesn't compile
         sha    = hashlib.sha1(('%s %s %s' % (self.nonce, label, time.time())).encode()).hexdigest()
-        source = self.files.add('/engines/%s.zip' % (sha), files.engine_zip('smoke-%s' % (sha)))
+        source = self.files.add('/engines/%s.zip' % (sha), files.engine_zip('smoke-%s' % (sha), broken))
         return { 'name' : label, 'source' : source, 'sha' : sha, 'bench' : bench }
 
     def create_test(self, dev=None, base=None, **overrides):
@@ -486,16 +486,26 @@ class Harness:
                 self.expect.record(entry['t'], 'workload', test_id, row, row, lost=self.nyayo_down)
         return response
 
+    def step_rows(self, test_id):
+        return self.query(
+            'SELECT s.step, s.side, s.state, s.at, s.tries FROM OpenBench_step s JOIN OpenBench_result r ON r.id = s.result_id '
+            'WHERE r.test_id = ? ORDER BY s.id', test_id)
+
     def on_client_event(self, endpoint, entry, forward):
         if endpoint == 'clientGetWorkload':
             return self.on_workload(entry, forward)
         test_id = int(entry['form']['test_id'])
         with self.lock:
             before   = self.test_row(test_id)
+            steps    = self.step_rows(test_id) if endpoint == 'clientReportStep' else None
             response = forward()
             after    = self.test_row(test_id)
+            # A step that changes no row (a passed one reported again) is nothing to tell nyayo
+            if steps is not None and steps == self.step_rows(test_id):
+                return response
             if response.status_code == 200:
-                event = self.expect.record(entry['t'], WATCHED[endpoint], test_id, before, after, lost=self.nyayo_down)
+                event = self.expect.record(entry['t'], WATCHED[endpoint], test_id, before, after, lost=self.nyayo_down,
+                                           form=entry['form'])
                 if event.kind == 'pgn':
                     event.upload     = entry.get('files', {}).get('file', b'')
                     event.result_id  = entry['form']['result_id']
@@ -604,6 +614,7 @@ class Harness:
         if self.nyayo_server:
             problems += self.nyayo_server.check_uploads(
                 'openbench-%s-%d' % (NYAYO_INSTANCE, test_id), self.nyayo.uploads_for_test(test_id))
+        problems += expect.check_steps(self.nyayo.for_test(test_id), self.step_rows(test_id), self.results(test_id))
         problems += ['nyayo recorder: %s %s: %s' % (x['method'], x['path'], x['problem'])
                      for x in self.nyayo.violations if self.concerns(x['path'], test_id)]
         if self.nyayo_server and self.expect.expected(test_id):
@@ -767,7 +778,19 @@ def scenario_bench_mismatch(h):
 
     check(h.test_row(test_id)['games'] == 0, 'games were played after a bench mismatch')
     h.verify(test_id)
-    return 'test %d: bench error, reported error' % (test_id)
+
+    # Its walk: dev's bench failed with the numbers, and base's bench ran beside it and passed
+    if h.args.schema == 'v1' and h.nyayo_enabled:
+        steps = last_walk(h, test_id)
+        check(steps[('bench', 'dev')]['state'] == 'failed' and steps[('bench', 'base')]['state'] == 'passed',
+              'dev bench %s and base bench %s, expected failed and passed' % (
+                  steps[('bench', 'dev')]['state'], steps[('bench', 'base')]['state']))
+        check(steps[('bench', 'dev')]['detail'] == 'Wrong bench: %d, expected %d' % (ENGINE_BENCH, ENGINE_BENCH + 1),
+              'the failed bench says %r' % (steps[('bench', 'dev')]['detail']))
+        check(steps[('bench', 'base')].get('nodes') == ENGINE_BENCH and steps[('bench', 'base')].get('nps'),
+              'base bench has no nodes and speed: %s' % (steps[('bench', 'base')]))
+        check(steps[('running', None)]['state'] == 'pending', 'running is %s after a failed bench' % (steps[('running', None)]['state']))
+    return 'test %d: bench error, reported error, both engines benched' % (test_id)
 
 def scenario_crash_then_stop(h):
     # The dev exits after a few moves in every game; tight error bounds keep the SPRT open
@@ -998,6 +1021,92 @@ def scenario_from_the_start(h):
     return 'test %d: waiting on creation, its worker shown at hand-out, then %s' % (test_id, score(h.test_row(test_id)))
 
 
+def last_walk(h, test_id):
+    # The newest report's walk of the one machine, as { (step, side) : step }
+    for report in reversed(h.nyayo.for_test(test_id)):
+        for machine in expect.view(report['document'])['machines']:
+            if machine.get('steps'):
+                return { (x['step'], x.get('side')) : x for x in machine['steps'] }
+    raise SmokeFailure('no report of test %d carries a walk' % (test_id))
+
+def scenario_walk(h):
+    # A passing walk reaches nyayo step by step: picked up, both compiles, both benches, running, and only
+    # then games. The worker comes round for more workloads and its steps stay passed.
+    test_id = h.create_test(test_mode='GAMES', max_games=8, workload_size=2)
+    h.wait_for(lambda: h.test_row(test_id)['finished'], 90, 'test %d to finish' % (test_id))
+    h.verify(test_id)  # Also: every walk in a report, in order, never back after passing; the last as OpenBench has it
+
+    if h.args.schema != 'v1':
+        return 'test %d: not a v1 document, walks not sent' % (test_id)
+
+    reports = h.nyayo.for_test(test_id)
+    walks   = []
+    for report in reports:
+        doc = expect.view(report['document'])
+        for machine in doc['machines']:
+            if machine.get('steps'):
+                walks.append((doc['state'], machine))
+    check(walks, 'no report carries a walk')
+
+    # Waiting while the walk is on, running from the step that passes running
+    for state, machine in walks:
+        running = next(x for x in machine['steps'] if x['step'] == 'running')['state'] == 'passed'
+        check(state not in ('running', 'waiting') or (state == 'running') == running,
+              'the match is %s with running %s' % (state, 'passed' if running else 'not passed'))
+
+    first = walks[0][1]['steps']
+    check(first[0]['step'] == 'picked_up' and first[0]['state'] == 'passed', 'the first walk does not start picked up: %s' % (first))
+
+    steps = last_walk(h, test_id)
+    check(all(x['state'] == 'passed' for x in steps.values()), 'the walk did not pass in full: %s' % ([x['state'] for x in steps.values()]))
+    check(steps[('compile', 'dev')].get('cached') is False and steps[('compile', 'dev')].get('seconds') is not None,
+          'dev compile: %s' % (steps[('compile', 'dev')]))
+    for side in ('dev', 'base'):
+        check(steps[('bench', side)].get('nodes') == ENGINE_BENCH and steps[('bench', side)].get('nps'),
+              '%s bench: %s' % (side, steps[('bench', side)]))
+    seen = { tuple(x['state'] for x in machine['steps']) for _, machine in walks }
+    check(len(seen) >= 3, 'the walk was seen in %d state(s), expected it step by step' % (len(seen)))
+
+    # Handed out more than once, counted, with no step back to pending (check_steps)
+    hands = len(h.events(test_id, 'workload'))
+    count = walks[-1][1].get('workloads')
+    check(hands >= 2 and count == hands, '%d workload(s) handed out, nyayo was told %s' % (hands, count))
+    return 'test %d: %d reports, %d with a walk in %d states, %d workloads, all steps passed' % (
+        test_id, len(reports), len(walks), len(seen), hands)
+
+def scenario_compile_fails(h):
+    # Dev doesn't compile. The worker builds base all the same, the control for a later verdict, then stops there:
+    # the benches and running are not reached. A failed compile still blacklists the test for the worker and
+    # leaves it active, as today; the test is stopped by hand.
+    test_id = h.create_test(test_mode='GAMES', max_games=8, dev=h.engine('dev', broken=True))
+    failed  = lambda side, state: any((x['step'], x['side'], x['state']) == ('compile', side, state) for x in h.step_rows(test_id))
+    h.wait_for(lambda: failed('dev', 'failed'), 60, 'dev to fail to compile for test %d' % (test_id))
+    h.wait_for(lambda: failed('base', 'passed'), 60, 'base to compile for test %d' % (test_id))
+    time.sleep(1)
+
+    row = h.test_row(test_id)
+    check(not row['finished'] and row['games'] == 0, 'a failed compile changed the test: finished %s, %d games' % (row['finished'], row['games']))
+    check(not h.events(test_id, 'bench_error'), 'a bench error for a test that never reached a bench')
+    check(h.query('SELECT id FROM OpenBench_logevent WHERE test_id = ? AND log_file != ""', test_id),
+          'no event with the compiler log, as today')
+
+    h.action(test_id, 'STOP')
+    h.verify(test_id)
+
+    if h.args.schema == 'v1' and h.nyayo_enabled:
+        steps = last_walk(h, test_id)
+        dev   = steps[('compile', 'dev')]
+        check(dev['state'] == 'failed' and 'mobility.cpp:212' in dev['detail'] and 'mobility.cpp:212' in dev['log'],
+              'dev compile: %s' % (dev))
+        check(dev.get('tries') == 1, 'dev compile tried %s time(s)' % (dev.get('tries')))
+        check(steps[('compile', 'base')]['state'] == 'passed', 'base compile %s beside the failed dev' % (steps[('compile', 'base')]['state']))
+        check(all(steps[key]['state'] == 'pending' for key in (('bench', 'dev'), ('bench', 'base'), ('running', None))),
+              'a step past the failed compile was reached: %s' % ([x['state'] for x in steps.values()]))
+        states = [expect.view(x['document'])['state'] for x in h.nyayo.for_test(test_id)]
+        check(states[-1] == 'stopped' and set(states[:-1]) == { 'waiting' }, 'the match went %s' % (states))
+    return 'test %d: dev failed to compile, base compiled beside it, nothing past was reached' % (test_id)
+
+
 SCENARIOS = collections.OrderedDict([
     ('1',  ('GAMES test to max_games',          scenario_games_to_max)),
     ('2',  ('SPRT with wide bounds to a result', scenario_sprt_to_result)),
@@ -1015,6 +1124,8 @@ SCENARIOS = collections.OrderedDict([
     ('14', ('nyayo busy for games (503)',         scenario_nyayo_busy)),
     ('15', ('report_to_nyayo --games, an older upload', scenario_backfill_games)),
     ('16', ('reported from creation, waiting; its worker at hand-out', scenario_from_the_start)),
+    ('17', ('a passing walk, step by step',     scenario_walk)),
+    ('18', ('dev fails to compile; base compiled beside it', scenario_compile_fails)),
 ])
 
 # Not written yet, each waiting on the work named

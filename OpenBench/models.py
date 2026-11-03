@@ -19,7 +19,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 from django.db.models import CharField, IntegerField, BigIntegerField, BooleanField, FloatField
-from django.db.models import JSONField, ForeignKey, DateTimeField, OneToOneField
+from django.db.models import JSONField, ForeignKey, DateTimeField, OneToOneField, TextField, UniqueConstraint
 from django.db.models import CASCADE, PROTECT, Model, TextChoices
 from django.contrib.auth.models import User
 
@@ -90,8 +90,42 @@ class Result(Model):
     crashes  = IntegerField(default=0)
     timeloss = IntegerField(default=0)
 
+    # How many workloads of the test this machine has been handed
+    workloads = IntegerField(default=0)
+
     def __str__(self):
         return '{0} {1}'.format(self.test.dev.name, self.machine.__str__())
+
+class Step(Model):
+
+    # One step of a machine's walk through a test, per Result and step: picked up, then compile and bench
+    # of each engine, then running (ramani plans/sprt-steps.md). Rows of their own, not fields of Result,
+    # since Result.updated dates a finished test and a step arriving late must not move it.
+
+    result   = ForeignKey('Result', CASCADE, related_name='steps')
+    step     = CharField(max_length=16)             # picked_up, compile, bench, running
+    side     = CharField(max_length=4, blank=True)  # dev or base, for a step done per engine
+    state    = CharField(max_length=8, default='pending') # pending, active, passed, failed
+    at       = DateTimeField(null=True, blank=True) # When it last changed
+    seconds  = FloatField(null=True, blank=True)
+    cached   = BooleanField(null=True, blank=True)  # A compile that found its binary
+    detail   = CharField(max_length=512, blank=True)
+    log      = TextField(blank=True)
+    nodes    = BigIntegerField(null=True, blank=True)
+    nps      = BigIntegerField(null=True, blank=True)
+    tries    = IntegerField(default=0)              # How many times this machine has failed it
+
+    # For the verdict on a failed step, which the server works out
+    blame    = CharField(max_length=8, blank=True)  # engine, worker or unclear
+    evidence = JSONField(default=list, blank=True)  # [{ 'points_at' : ..., 'text' : ... }]
+    effect   = CharField(max_length=256, blank=True)
+    retry_at = DateTimeField(null=True, blank=True)
+
+    class Meta:
+        constraints = [UniqueConstraint(fields=['result', 'step', 'side'], name='unique_step_per_result')]
+
+    def __str__(self):
+        return '{0} {1} {2} {3}'.format(self.result_id, self.step, self.side, self.state)
 
 class Test(Model):
 
