@@ -16,6 +16,7 @@
 
             <tr><td class="td-label">Author</td><td>{{workload.author|capfirst}}</td></tr>
             <tr><td class="td-label">Creation</td><td class="timestamp">{{workload.creation|date:'U'}}</td></tr>
+            {% if workload|startProblem %}<tr><td class="td-label">Status</td><td class="statblock-start">{{workload|startProblem}}</td></tr>{% endif %}
 
             <!-- All of the Dev Engine ( or Sole Engine ) information -->
             <tr><td class="td-label">{{dev_text}} Source</td><td><a href="{{workload.dev_repo}}">{{workload.dev_repo}}</a></td></tr>

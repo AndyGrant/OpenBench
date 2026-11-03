@@ -19,7 +19,7 @@
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 import re, django
-import OpenBench.config, OpenBench.utils, OpenBench.stats, OpenBench.models
+import OpenBench.config, OpenBench.utils, OpenBench.stats, OpenBench.models, OpenBench.steps
 
 def oneDigitPrecision(value):
     try:
@@ -122,7 +122,21 @@ def testResultColour(test):
     if test.failed:
         if test.wins >= test.losses: return 'yellow'
         return 'red'
+    if test.finished and OpenBench.steps.engine_failure(test):
+        return 'start' # Stopped on its engine's failure: a failed start, whatever it played
     return ''
+
+def startProblem(test):
+
+    # Why a test failed to start, or is held, in the words sent to nyayo; empty for any other test
+    import OpenBench.nyayo
+    state, _ = OpenBench.nyayo.match_state(test)
+    if state not in ('failed_prechecks', 'held'):
+        return ''
+
+    verdict = OpenBench.steps.verdict_document(test, state) or {}
+    title   = { 'failed_prechecks' : 'Failed start', 'held' : 'Held' }[state]
+    return '%s: %s. %s' % (title, verdict.get('summary', ''), verdict.get('detail', ''))
 
 def sumAttributes(iterable, attribute):
     try: return sum([getattr(f, attribute) for f in iterable])
@@ -208,6 +222,7 @@ register.filter('gitDiffLink', gitDiffLink)
 register.filter('shortStatBlock', shortStatBlock)
 register.filter('longStatBlock', longStatBlock)
 register.filter('testResultColour', testResultColour)
+register.filter('startProblem', startProblem)
 register.filter('sumAttributes', sumAttributes)
 register.filter('insertCommas', insertCommas)
 register.filter('prettyName', prettyName)

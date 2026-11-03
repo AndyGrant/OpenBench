@@ -2,7 +2,7 @@
 
 # A machine's walk through a test (ramani plans/sprt-steps.md, The walk):
 #   - a step's row per Result, and what the worker's reports do to it: a step passed stays passed when the walk
-#     comes round again, a failure is counted, a worker back after a failure starts over
+#     comes round again, a failure is counted, a worker handed the test again after a failure (a retry) keeps its tries; a restart by hand is test_verdict.py's
 #   - the walk as nyayo's machines[].steps: all six steps in order, pending where there is no row, a log cut to its
 #     last 4096 bytes whole, nothing for a machine that never reported a step
 #   - a test is waiting until a worker has passed running
@@ -70,7 +70,7 @@ def test_a_step_passed_stays_passed():
     assert report(result, 'compile', 'dev', 'sleeping') is None
     assert report(result, 'picked_up', '', 'failed') is None
 
-def test_a_failure_is_counted_and_a_restart_starts_over():
+def test_a_failure_is_counted_and_a_retry_keeps_its_tries():
     result = make_result()
     steps.start_walk(result)
     report(result, 'compile', 'dev', 'passed')
@@ -84,10 +84,10 @@ def test_a_failure_is_counted_and_a_restart_starts_over():
     report(result, 'compile', 'base', 'failed', detail='no space left', log='make: write error')
     assert Step.objects.get(result=result, step='compile', side='base').state == 'failed'
 
-    # Handed out again after a failure: the walk starts over, the tries stay
+    # Handed out again after a failure (a retry): what passed stays, what failed waits to be tried, its tries kept
     steps.start_walk(result)
     assert states(result) == {
-        ('picked_up', '') : 'passed', ('compile', 'dev') : 'pending', ('compile', 'base') : 'pending',
+        ('picked_up', '') : 'passed', ('compile', 'dev') : 'passed', ('compile', 'base') : 'pending',
         ('bench', 'dev') : 'pending', }
     assert Step.objects.get(result=result, step='bench', side='dev').tries == 1
     assert Step.objects.get(result=result, step='compile', side='base').log == ''
@@ -190,7 +190,7 @@ def test_a_step_is_never_the_workloads_failure():
 
 if __name__ == '__main__':
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    for test in (test_a_step_passed_stays_passed, test_a_failure_is_counted_and_a_restart_starts_over,
+    for test in (test_a_step_passed_stays_passed, test_a_failure_is_counted_and_a_retry_keeps_its_tries,
                  test_the_walk_as_nyayo_takes_it, test_waiting_until_a_worker_reaches_running,
                  test_both_engines_through_a_stage, test_a_step_is_never_the_workloads_failure):
         test()

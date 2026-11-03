@@ -42,6 +42,8 @@ OPENBENCH_CONFIG_DIR = os.environ.get('OPENBENCH_CONFIG_DIR', '') or PROJECT_PAT
 MEDIA_URL  = '/Media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'Media')
 
+# How long a worker in trouble waits before trying a test again, in seconds (the smoke test makes it short)
+STEP_RETRY_SECONDS = int(os.environ.get('OPENBENCH_STEP_RETRY_SECONDS', '') or 300)
 NYAYO_URL = os.environ.get('NYAYO_URL', '')
 NYAYO_TOKEN = os.environ.get('NYAYO_TOKEN', '')
 NYAYO_INSTANCE = os.environ.get('NYAYO_INSTANCE', '')

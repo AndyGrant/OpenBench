@@ -72,20 +72,12 @@ def build_match_id(test):
     return 'openbench-%s-%s' % (instance, test.id)
 
 
-def stopped_by_bench_error(test):
-    # The test's newest bench error is newer than its newest action by hand (a restart, say).
-    # Only client_bench_error logs a worker's event without a log file; a worker's other
-    # errors (crashes, illegal moves) come with one, and may arrive after a stop by hand.
-    events   = LogEvent.objects.filter(test_id=test.id)
-    bench    = events.exclude(machine_id=0).filter(log_file='').order_by('-id').first()
-    by_hand  = events.filter(machine_id=0).order_by('-id').first()
-    return bench is not None and (by_hand is None or bench.id > by_hand.id)
-
-
 def match_state(test):
-    # (state, sprt.result), derived from the test every time (openbench-reports.md, The fixes). A test is
-    # waiting until a worker has reached running, the last step of its walk (ramani plans/sprt-steps.md), or
-    # has played a game, which a test from before the steps did without reporting one
+    # (state, sprt.result), derived from the test every time (openbench-reports.md, The fixes; ramani
+    # plans/sprt-steps.md, What each verdict does). A test stopped on an engine's failure (the verdict, in the
+    # steps) is a failed start when nothing was played, an error when games were. A test is waiting until a worker
+    # has reached running, the last step of its walk, or has played a game, which a test from before the steps did
+    # without reporting one; held when a failure nobody can place has left no worker able to play it.
     if test.deleted:
         return 'stopped', None
     if test.finished and (test.passed or test.failed):
@@ -93,10 +85,12 @@ def match_state(test):
             return 'finished', None
         return 'finished', 'passed' if test.passed else 'failed'
     if test.finished:
-        return ('error' if stopped_by_bench_error(test) else 'stopped'), None
+        if OpenBench.steps.engine_failure(test):
+            return ('error' if OpenBench.steps.games_played(test) else 'failed_prechecks'), None
+        return 'stopped', None
     if not (Step.objects.filter(result__test=test, step='running', state='passed').exists()
             or Result.objects.filter(test=test, games__gt=0).exists()):
-        return 'waiting', None
+        return ('held' if OpenBench.steps.held(test) else 'waiting'), None
     return 'running', None
 
 
@@ -116,13 +110,14 @@ def build_match_document(test, schema=None):
 def ended_at(test, state, rows):
     # When a test that isn't running ended. One that passes, fails or runs out of games ends inside
     # update_test with no event, on the result that tipped it (later ones are refused), so at its newest
-    # result; one stopped or deleted by hand at its newest STOP or DELETE; a bench error at its event.
+    # result; one stopped or deleted by hand at its newest STOP or DELETE; one stopped on an engine's failure at the
+    # event its verdict wrote.
     # Not the newest event: that may be the CREATE, or a worker's crash in the middle of the run.
     events = LogEvent.objects.filter(test_id=test.id).order_by('-id')
     if state == 'finished':
         event = None
-    elif state == 'error':
-        event = events.exclude(machine_id=0).filter(log_file='').first()
+    elif state in ('error', 'failed_prechecks'):
+        event = events.filter(summary__startswith=OpenBench.steps.STOPPED).first()
     else:
         event = events.filter(machine_id=0, summary__in=['STOP', 'DELETE']).first()
     if event:
@@ -158,7 +153,7 @@ def build_v1_document(test):
     state, sprt_result = match_state(test)
     openbench_url      = getattr(settings, 'NYAYO_OPENBENCH_URL', '').strip().rstrip('/')
 
-    finished_at = iso(ended_at(test, state, rows)) if state not in ('waiting', 'running') else None
+    finished_at = iso(ended_at(test, state, rows)) if state not in ('waiting', 'held', 'running') else None
 
     sprt = stats = None
     if test.test_mode == 'SPRT':
@@ -193,7 +188,7 @@ def build_v1_document(test):
         if walk is not None:
             machines[-1]['steps'] = walk
 
-    return {
+    document = {
         'schema_version': 1,
         'match': {
             'id': build_match_id(test),
@@ -247,6 +242,11 @@ def build_v1_document(test):
         'machines': machines,
     }
 
+    verdict = OpenBench.steps.verdict_document(test, state)
+    if verdict is not None:
+        document['match']['verdict'] = verdict
+    return document
+
 
 def build_openbench_document(test, producer_url=None):
     if producer_url is None:
@@ -282,8 +282,8 @@ def build_openbench_document(test, producer_url=None):
 
     kind = 'sprt' if test.test_mode == 'SPRT' else 'games'
     state, sprt_result = match_state(test)
-    if state == 'waiting':
-        state = 'running'  # This shape (refused by nyayo from 0913a6c) predates the states before running
+    # This shape (refused by nyayo from 0913a6c) predates the states before running
+    state = { 'waiting' : 'running', 'held' : 'running', 'failed_prechecks' : 'error' }.get(state, state)
 
     document = {
         'schema_version': 1,
