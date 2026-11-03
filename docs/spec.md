@@ -91,7 +91,7 @@ Upstream, plus:
 
 | Part | Where |
 |:--|:--|
-| the reporter: every test, and every upload of games, to nyayo | `OpenBench/nyayo.py`, started from `apps.py`; queued from `utils.update_test`, `views.client_bench_error`, `views.client_submit_pgn` and `workloads/modify_workload.py` |
+| the reporter: every test, and every upload of games, to nyayo | `OpenBench/nyayo.py`, started from `apps.py`; queued from `workloads/create_workload.py`, `workloads/get_workload.py`, `utils.update_test`, `views.client_bench_error`, `views.client_submit_pgn` and `workloads/modify_workload.py` |
 | `manage.py report_to_nyayo [--all \| TEST_ID ...] [--schema openbench\|v1] [--games]` | `OpenBench/management/commands/` |
 | every test uploads its PGNs | `utils.always_upload`, `workloads/create_workload.py`, `workloads/get_workload.py`, the create page |
 | the worker names and tags each game, and keeps `Termination` | `Client/pgn_util.py`, `Client/worker.py` |
@@ -118,9 +118,13 @@ this section says when OpenBench sends what.
 | `NYAYO_SCHEMA` | `v1` (also the default) | `v1`, nyayo's match schema, or `openbench`, the reporter's older shape, which nyayo refuses (`400`) from nyayo `0913a6c` on; kept for the smoke test's move of an old match |
 | `NYAYO_OPENBENCH_URL` | `http://172.16.100.11:8000` | makes the link back to a test (`producer.url`) absolute |
 
-- **When**: one match document after every batch of results (once the batch is in both the `Test` and its `Result`
-  row), every bench error and every action by hand (approve, stop, delete, restore, modify). Each upload of games
-  follows its workload's last results.
+- **When**: one match document when a test is created (on commit, whatever its approval, so before any worker has seen
+  it), when a workload is handed out (once it's committed: the machine is now on the test), after every batch of
+  results (once the batch is in both the `Test` and its `Result` row), every bench error and every action by hand
+  (approve, stop, delete, restore, modify). Each upload of games follows its workload's last results. The first
+  document holds every field nyayo fixes for a match (the settings, the engines, the SPRT's bounds), and a test can't
+  change any of them, so no later document differs (nyayo answers `409` to a difference). From `waiting` on, nyayo
+  must be at or after `6f951d6`, which refuses a state it doesn't know: don't deploy this before it.
 - **When a test ended** (`finished_at` of a match that isn't running): a test that passes, fails or runs out of games
   ends inside OpenBench's `update_test` with no event, so it ends at its newest result (later results are refused); a
   test stopped or deleted by hand at its newest `STOP` or `DELETE` event; a bench error at the worker's event. Never
@@ -139,14 +143,17 @@ this section says when OpenBench sends what.
 - **The state**, derived from the test every time, in this order: deleted is `stopped`, whether or not it was stopped
   or had passed first; finished with a pass or a fail is `finished` (and, for an SPRT, `sprt.result`); finished
   otherwise is `error` when its newest bench error is newer than its newest action by hand, else `stopped`; anything
-  else is `running`. A bench
+  else is `waiting` when no game has been played (no `Result` row has games), else `running`. A bench
   error is the worker's `LogEvent` without a log file, which only `clientBenchError` writes. Crashes are in the counts;
   `test.error` doesn't decide the state.
 - **The document** (v1): the engine as the subject, with dev's branch and sha, and `repo` from the test's `dev_repo`;
   one opponent `base`, with base's branch and `base_repo`; one row of counts with the pentanomial; for an SPRT its
   bounds, the LLR and OpenBench's own Elo and error as `stats`, computed as the test page shows them. The match's name
   is `<engine> <dev branch> vs <base branch>`. Crashes and time losses are counted under the subject, since OpenBench
-  doesn't know the side.
+  doesn't know the side. A machine is in `machines` once it has a `Result` row, which `get_workload` makes when it
+  hands the test out; `active` says it is on this test now (its workload is the test and it was heard from in the
+  last 5 minutes). `workloads` and `steps` are not sent yet. The older `openbench` shape has no `waiting`: it says
+  `running`.
 - **Games**: each upload is sent whole, as one `PUT /api/matches/<id>/pgns/<result id>.<book index>`,
   `application/x-bzip2`: the bytes the worker uploaded, the same bytes `Media/PGNs/<test>.pgn.tar` keeps. nyayo reads
   nothing in the request and puts the games away in the background, so a bad upload is refused later by its worker
@@ -186,6 +193,9 @@ on Windows too. With `--full` (Linux or WSL, needs `make`, g++ and `Scripts/smok
   `base` and `Termination` as cutechess wrote it (read from the worker's own `PGNs/`); an upload from before client 39
   must come renamed and tagged but for that. With a nyayo that has a worker: every upload `done` with the sha256 sent,
   and a card per game with the subject's colour, an opponent, the `Termination` and the game as sent.
+- A test is made as the create page makes it: reported (from the harness, as `create_workload` does), then opened to
+  workers. A workload handed out is an event of its own (`workload`), a report with the worker in `machines`. Every
+  report of a test must agree with its first on what nyayo fixes (`expect.fixed_part`, nyayo's `ingest.fixed_part`).
 
 `--schema openbench|v1` picks the document (`v1` by default), `--only`, `--keep` and `--verbose` select and keep.
 Scenarios:
@@ -207,6 +217,7 @@ Scenarios:
 | 13 | two tests at once: the second's first report arrives while the first's uploads are held back |
 | 14 | nyayo busy: every upload answered `503` twice, then taken |
 | 15 | `report_to_nyayo --games`, with an upload from before client 39 in the tar, twice |
+| 16 | a test made and not yet approved is on nyayo as `waiting` with no games and no machines; once approved, its worker shows in a `waiting` report before any game |
 
 A scenario marked expected-to-fail in `expect.py` makes the run fail once it passes. None is marked.
 

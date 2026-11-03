@@ -32,6 +32,7 @@ import OpenBench.utils
 
 from OpenBench.config import OPENBENCH_CONFIG
 from OpenBench.models import Result, Test
+from OpenBench.nyayo import enqueue_report
 
 from django.db import transaction
 from django.db import IntegrityError
@@ -55,7 +56,12 @@ def get_workload(request, machine):
     machine.mnps = machine.dev_mnps = machine.base_mnps = 0.00
     machine.save(); result.save()
 
-    return { 'workload' : workload_to_dictionary(test, result, machine) }
+    workload = workload_to_dictionary(test, result, machine)
+
+    # The machine is on the test now: nyayo is told once all of it is committed
+    transaction.on_commit(lambda: enqueue_report(test.id))
+
+    return { 'workload' : workload }
 
 def select_workload(request, machine):
 

@@ -1,7 +1,12 @@
 # What nyayo should get after each event, and the checks run over a scenario's reports.
 #
 #   Event                                  nyayo should get
-#   results  (clientSubmitResults)         one report, counts equal to the Test after it, LLR equal to
+#   create   (the create page)             one report at once, approved or not: waiting, no games, no machines.
+#                                          Every field the test can't change is in it, and every later report
+#                                          agrees with it on those (nyayo answers 409 to a difference)
+#   workload (clientGetWorkload)           one report: the machine is in machines[] and active; the state is
+#                                          waiting until the first results, then running
+#   results  (clientSubmitResults)         one report, running, counts equal to the Test after it, LLR equal to
 #                                          test.currentllr; finished (with sprt.result) once the test ends.
 #                                          None when the test was already finished or deleted (the worker
 #                                          is told to stop and nothing changes).
@@ -34,6 +39,7 @@
 
 import bz2
 import collections
+import copy
 import math
 import re
 
@@ -86,9 +92,13 @@ class Expectations:
         previous = self.state.get(test_id, 'running')
         report   = True
 
-        if kind == 'results':
+        if kind == 'create':
+            state  = 'waiting'
+        elif kind == 'workload':
+            state  = previous
+        elif kind == 'results':
             report = not (before['finished'] or before['deleted'])
-            state  = finished_state(after) or previous
+            state  = finished_state(after) or ('running' if previous == 'waiting' else previous)
         elif kind == 'bench_error':
             state  = 'error'
         elif kind in ('STOP', 'DELETE'):
@@ -101,7 +111,7 @@ class Expectations:
         elif kind in ('pgn', 'backfill-upload'):
             report, state = False, previous
         elif kind in ('backfill', 'backfill-v1'):
-            state  = finished_state(after) or previous
+            state  = finished_state(after) or ('running' if previous == 'waiting' and after['games'] else previous)
         else:
             raise ValueError('no expectation for %s' % (kind))
 
@@ -167,6 +177,15 @@ class Expectations:
             if event.kind == 'backfill-v1' and not doc['v1']:
                 problems.append('%s: not a version 1 document' % (where))
 
+            if event.kind == 'create' and doc['counts']['games']:
+                problems.append('%s: %d games in the first report' % (where, doc['counts']['games']))
+            if event.kind in ('create', 'workload') and doc['v1']:
+                problems += ['%s: %s' % (where, x) for x in check_v1(report['document'], event.after, engines)]
+            if event.kind == 'workload' and doc['v1'] and not doc['machines']:
+                problems.append('%s: no machine in the report of a workload handed out' % (where))
+            if event.kind == 'workload' and doc['v1'] and not any(x.get('active') for x in doc['machines']):
+                problems.append('%s: no machine is active in the report of a workload handed out' % (where))
+
             if event.kind in ('results', 'backfill', 'backfill-v1'):
                 want = { name : event.after[name] for name in COUNTS }
                 if doc['counts'] != want:
@@ -184,6 +203,13 @@ class Expectations:
                 want = 'passed' if event.after['passed'] else 'failed'
                 if doc['sprt_result'] != want:
                     problems.append('%s: sprt.result %r, expected %r' % (where, doc['sprt_result'], want))
+
+        # What a test can't change is the same in every report, or nyayo answers 409 (nyayo's ingest.fixed_part)
+        fixed = [(index, fixed_part(x['document'])) for index, x in enumerate(reports, 1) if 'match' in x['document']]
+        for index, part in fixed[1:]:
+            changed = first_difference(fixed[0][1], part, '')
+            if changed:
+                problems.append('report %d: %s differs from the first report, which nyayo refuses (409)' % (index, changed))
 
         # Counts never go down
         for index, (older, newer) in enumerate(zip(reports, reports[1:])):
@@ -339,6 +365,32 @@ def matches(event, report):
     return event.kind != 'results' or doc['counts'] == { name : event.after[name] for name in COUNTS }
 
 
+def fixed_part(document):
+    # The document without what a producer may change as the match goes on: nyayo's ingest.fixed_part
+    fixed = copy.deepcopy(document)
+    for name in ('results', 'machines', 'pgn', 'progress', 'games', 'stats', 'report'):
+        fixed.pop(name, None)
+    match = fixed.get('match') or {}
+    for name in ('state', 'name', 'verdict', 'updated_at', 'finished_at'):
+        match.pop(name, None)
+    if isinstance(match.get('producer'), dict):
+        match['producer'].pop('url', None)
+    if isinstance(fixed.get('sprt'), dict):
+        for name in ('llr', 'result'):
+            fixed['sprt'].pop(name, None)
+    return fixed
+
+
+def first_difference(a, b, path):
+    if isinstance(a, dict) and isinstance(b, dict):
+        for key in sorted(set(a) | set(b)):
+            found = first_difference(a.get(key), b.get(key), '%s.%s' % (path, key))
+            if found:
+                return found
+        return None
+    return None if a == b else path.lstrip('.')
+
+
 def view(doc):
     # The same facts from either document: OpenBench's own shape, or match schema v1
     if 'match' in doc:
@@ -346,7 +398,7 @@ def view(doc):
         penta = row.get('penta') or [None] * 5
         sprt  = doc.get('sprt') or {}
         return {
-            'v1' : True, 'id' : doc['match'].get('id'), 'kind' : doc['match'].get('kind'),
+            'v1' : True, 'machines' : doc.get('machines') or [], 'id' : doc['match'].get('id'), 'kind' : doc['match'].get('kind'),
             'state' : doc['match'].get('state'), 'llr' : sprt.get('llr'), 'sprt_result' : sprt.get('result'),
             'counts' : { **{ name : row.get(name) for name in ('games', 'wins', 'losses', 'draws') },
                          **dict(zip(('LL', 'LD', 'DD', 'DW', 'WW'), penta)) },
@@ -355,7 +407,7 @@ def view(doc):
     rows = doc.get('results') or [{}]
     sprt = doc.get('sprt') or {}
     return {
-        'v1' : False, 'id' : doc.get('id'), 'kind' : doc.get('kind'), 'state' : doc.get('state'),
+        'v1' : False, 'machines' : doc.get('machines') or [], 'id' : doc.get('id'), 'kind' : doc.get('kind'), 'state' : doc.get('state'),
         'llr' : sprt.get('current_llr'), 'sprt_result' : sprt.get('result'),
         'counts' : { name : rows[0].get(name) for name in COUNTS },
         'crashes' : sum(x.get('crashes', 0) for x in rows),

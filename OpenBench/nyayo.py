@@ -1,5 +1,6 @@
 import bz2
 import collections
+import datetime
 import logging
 import os
 import queue
@@ -80,7 +81,8 @@ def stopped_by_bench_error(test):
 
 
 def match_state(test):
-    # (state, sprt.result), derived from the test every time (openbench-reports.md, The fixes)
+    # (state, sprt.result), derived from the test every time (openbench-reports.md, The fixes). A test no
+    # worker has played a game of is waiting (ramani plans/sprt-steps.md); the steps will tell it from running
     if test.deleted:
         return 'stopped', None
     if test.finished and (test.passed or test.failed):
@@ -89,6 +91,8 @@ def match_state(test):
         return 'finished', 'passed' if test.passed else 'failed'
     if test.finished:
         return ('error' if stopped_by_bench_error(test) else 'stopped'), None
+    if not Result.objects.filter(test=test, games__gt=0).exists():
+        return 'waiting', None
     return 'running', None
 
 
@@ -150,7 +154,7 @@ def build_v1_document(test):
     state, sprt_result = match_state(test)
     openbench_url      = getattr(settings, 'NYAYO_OPENBENCH_URL', '').strip().rstrip('/')
 
-    finished_at = iso(ended_at(test, state, rows)) if state != 'running' else None
+    finished_at = iso(ended_at(test, state, rows)) if state not in ('waiting', 'running') else None
 
     sprt = stats = None
     if test.test_mode == 'SPRT':
@@ -163,6 +167,10 @@ def build_v1_document(test):
         lower, elo, upper = OpenBench.stats.Elo(test.results())
         stats = { 'elo': elo, 'error': max(upper - elo, elo - lower), 'model': model }
 
+    # A machine is on the test now when its workload is this test and it was heard from in the last 5 minutes
+    # (utils.getRecentMachines)
+    recent = timezone.now() - datetime.timedelta(minutes=5)
+
     machines = []
     for row in rows:
         name = (row.machine.info or {}).get('machine_name')
@@ -170,6 +178,7 @@ def build_v1_document(test):
             'name': name if name and name != 'None' else 'machine %d' % (row.machine.id),
             'machine_id': row.machine.id, 'user': row.machine.user.username,
             'games': row.games, 'crashes': row.crashes, 'timeloss': row.timeloss, 'updated_at': iso(row.updated),
+            'active': row.machine.workload == test.id and row.machine.updated >= recent,
         })
 
     return {
@@ -261,6 +270,8 @@ def build_openbench_document(test, producer_url=None):
 
     kind = 'sprt' if test.test_mode == 'SPRT' else 'games'
     state, sprt_result = match_state(test)
+    if state == 'waiting':
+        state = 'running'  # This shape (refused by nyayo from 0913a6c) predates the states before running
 
     document = {
         'schema_version': 1,
