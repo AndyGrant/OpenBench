@@ -46,8 +46,9 @@ the fork's additions and how it's deployed, and how other components read OpenBe
 
 ### Engine configuration
 
-Elephant's configuration is the fork's `Engines/elephant.json`: built from `ob_build`, reference nps **1198000**
-(unchanged since it was added, 2025-12-10). OpenBench scales time controls by that reference against what a worker
+Elephant's configuration is the fork's `Engines/elephant.json`: built from `ob_build`, reference nps **1487000**
+(2026-11-03, when Elephant's bench went from depth 7 to 11: the old 1198000 times the 1.2414 depth 11 reports with every
+thread benching at once, measured on the developer PC, so a test's time factor stays about 1.41). OpenBench scales time controls by that reference against what a worker
 measures with `bench`. The reference must be recalibrated whenever the bench changes, or test TCs come out wrong; a
 stale value once stretched 8+0.08 to roughly 42+0.42. The bench uses one 16 MB TT for all positions since 1.0.0 so it
 isn't dominated by page faults when a worker benches many copies at once: about 4.4M nps alone, 2.85M per copy at 16
@@ -93,6 +94,7 @@ Upstream, plus:
 |:--|:--|
 | the reporter: every test, and every upload of games, to nyayo | `OpenBench/nyayo.py`, started from `apps.py`; queued from `workloads/create_workload.py`, `workloads/get_workload.py`, `utils.update_test`, `views.client_bench_error`, `views.client_report_step`, `views.client_submit_pgn` and `workloads/modify_workload.py` |
 | `manage.py report_to_nyayo [--all \| TEST_ID ...] [--schema openbench\|v1] [--games]` | `OpenBench/management/commands/` |
+| a sha is named by its branch, a pull request or its commit; a name typed on the create page | `workloads/verify_workload.py` (`branch_of_sha`), `workloads/create_workload.py`, `Test.name`, `nyayo.py`, the create page |
 | every test uploads its PGNs | `utils.always_upload`, `workloads/create_workload.py`, `workloads/get_workload.py`, the create page |
 | the worker names and tags each game, and keeps `Termination` | `Client/pgn_util.py`, `Client/worker.py` |
 | `OPENBENCH_CONFIG_DIR`, where `Config/`, `Books/` and `Engines/` are read from (the repo root by default) | `OpenSite/settings.py`, `OpenBench/config.py` |
@@ -104,7 +106,7 @@ Upstream, plus:
 | a worker's walk through a test, reported as it goes, and the verdict on a failed step (*Reporting to nyayo*) | `OpenBench/steps.py`, `OpenBench/models.py` (`Step`, `Result.workloads`), `views.client_report_step`, `workloads/get_workload.py`, `workloads/modify_workload.py`, `Client/worker.py` |
 | a failed start shown on OpenBench's own pages | `testResultColour` and `startProblem` in `OpenBench/templatetags/mytags.py`, `Templates/OpenBench/workload.html`, `statblock-start` in `OpenBench/static/style.css` |
 | the full smoke test | `Scripts/smoke_client_server.py`, `Scripts/smoke/` |
-| unit tests | `UnitTests/` (`test_pgn_util.py`, `test_game_names.py`, `test_steps.py`, `test_verdict.py`, `test_client_retry.py`: scripts, run from `UnitTests/`) |
+| unit tests | `UnitTests/` (`test_pgn_util.py`, `test_game_names.py`, `test_steps.py`, `test_names.py`, `test_verdict.py`, `test_client_retry.py`: scripts, run from `UnitTests/`) |
 
 ### Reporting to nyayo
 
@@ -157,7 +159,7 @@ Not nyayo's, but the verdict's: `OPENBENCH_STEP_RETRY_SECONDS` (`STEP_RETRY_SECO
 - **The document** (v1): the engine as the subject, with dev's branch and sha, and `repo` from the test's `dev_repo`;
   one opponent `base`, with base's branch and `base_repo`; one row of counts with the pentanomial; for an SPRT its
   bounds, the LLR and OpenBench's own Elo and error as `stats`, computed as the test page shows them. The match's name
-  is `<engine> <dev branch> vs <base branch>`. Crashes and time losses are counted under the subject, since OpenBench
+  is the test's `name` when it has one (*A name for a test*), else `<engine> <dev branch> vs <base branch>`. Crashes and time losses are counted under the subject, since OpenBench
   doesn't know the side. A machine is in `machines` once it has a `Result` row, which `get_workload` makes when it
   hands the test out; `active` says it is on this test now (its workload is the test and it was heard from in the
   last 5 minutes); `workloads` is how many workloads of the test it has been handed, and `steps` its walk (below).
@@ -165,6 +167,20 @@ Not nyayo's, but the verdict's: `OPENBENCH_STEP_RETRY_SECONDS` (`STEP_RETRY_SECO
   ended (`finished`, `stopped`, `error`, `failed_prechecks`), not on `waiting`, `held` or `running`: nyayo expires a
   `failed_prechecks` match 48 hours after it. The older `openbench` shape has no `waiting`, `held` or `failed_prechecks`:
   it says `running`, `running` and `error`.
+- **A name for a test**: a branch or tag typed is the branch, and is not looked up further. When a sha is typed (40 hex
+  digits), `collect_github_info` names it, in this order, the first to answer winning (it asks GitHub with the engine's token if it is private, and
+  needs none for a public one; a request that fails or answers oddly is passed over and never stops a test being made):
+  1. the **name** typed on the create page (`Test.name`, cut to 200 characters, nyayo's limit, offered for a test only) is the match's name, whatever else follows, and is used for a branch typed too;
+  2. `commits/<sha>/branches-where-head`: that branch, preferring one that is not the repository's default;
+  3. `commits/<sha>/pulls`: the head branch of a pull request from the repository itself (a fork's is another's
+     branch of the same name);
+  4. the commit's message, which was fetched anyway: its first line becomes `Test.name` of the dev side, and the
+     branch stays the sha;
+  5. the short sha, as before.
+  A branch found by 2 or 3 is returned as if it had been typed, so the `Engine` row, the games' players,
+  `subject.branch` and OpenBench's pages carry it; `subject.commit` stays the sha. Row 4 is for dev only: a base by sha
+  with no branch stays the sha. All of it is settled at creation, before the first report, since nyayo fixes
+  `subject.branch` and `subject.commit` (not the name). A test from before has no `name` and keeps its rows.
 - **The walk** (client 40 on): each machine's walk through a test, as nyayo's *Steps*, in this order: `picked_up`,
   `compile` of `dev` and of `base`, `bench` of each, `running`. A step is a `Step` row per `Result`, not a field of it:
   `ended_at` dates a finished test by `Result.updated`, which a step arriving late must not move.
@@ -303,15 +319,16 @@ Scenarios:
 | 16 | a test made and not yet approved is on nyayo as `waiting` with no games and no machines; once approved, its worker shows in a `waiting` report before any game |
 | 17 | a passing walk reaches nyayo step by step (at least three different walks seen), `waiting` until `running` has passed, with the dev compile's time and both benches' nodes and speed; two workloads are counted and no step goes back |
 | 18 | dev doesn't compile with a file and a line, and base's compiled beside it: the engine's; the test is stopped by the verdict, `failed_prechecks` with `finished_at` and the verdict's `where` and `seen_on`, the worker not handed it again |
-| 19 | the compiler's log says no disk space: the worker's; the test goes on `waiting` and the worker is handed it again after the retry, two tries, a worker verdict in the document; stopped by hand |
-| 20 | both engines fail to compile with a file and a line: the worker's |
-| 21 | the compiler is killed and no other worker has tried: one more try, then the worker leaves and the test is `held` (open, no `finished_at`); restarted by hand (the page offers Restart on a held test), every walk starts over (tries 0), the worker is handed it again and it is held again |
-| 22 | a wrong bench on both engines: held, as 21 |
-| 23 | both benches over their time: the worker's, as 19 |
-| 24 | dev's bench over its time and base's not: the engine's, as 18 |
-| 25 | dev's bench prints nothing (failed to execute) and base's runs: the engine's |
-| 26 | neither bench runs: the worker's |
-| 27 | a bench right on the first workload and wrong on a later one: the engine's, with games played, so `error` and not a failed start |
+| 19 | a test made with a name is that name in every report to nyayo, one without is `<engine> <dev branch> vs <base branch>` (`v1` only). The harness makes tests in the database, so the lookups of *A name for a test* are `test_names.py`'s, with GitHub's answers faked |
+| 20 | the compiler's log says no disk space: the worker's; the test goes on `waiting` and the worker is handed it again after the retry, two tries, a worker verdict in the document; stopped by hand |
+| 21 | both engines fail to compile with a file and a line: the worker's |
+| 22 | the compiler is killed and no other worker has tried: one more try, then the worker leaves and the test is `held` (open, no `finished_at`); restarted by hand (the page offers Restart on a held test), every walk starts over (tries 0), the worker is handed it again and it is held again |
+| 23 | a wrong bench on both engines: held, as 22 |
+| 24 | both benches over their time: the worker's, as 20 |
+| 25 | dev's bench over its time and base's not: the engine's, as 18 |
+| 26 | dev's bench prints nothing (failed to execute) and base's runs: the engine's |
+| 27 | neither bench runs: the worker's |
+| 28 | a bench right on the first workload and wrong on a later one: the engine's, with games played, so `error` and not a failed start |
 
 A scenario marked expected-to-fail in `expect.py` makes the run fail once it passes. None is marked.
 

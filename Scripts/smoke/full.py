@@ -1008,6 +1008,22 @@ def scenario_from_the_start(h):
     h.verify(test_id)
     return 'test %d: waiting on creation, its worker shown at hand-out, then %s' % (test_id, score(h.test_row(test_id)))
 
+def scenario_named(h):
+    # A test created with a name is that name on nyayo from its first report to its last, and its games still carry
+    # <engine> <branch> (verify reads them); one created without is <engine> <branch> vs <branch>. A name found at
+    # creation (a branch or a commit's first line for a sha) is a unit test, since the harness makes tests in the
+    # database and never asks GitHub
+    if h.args.schema != 'v1':
+        return 'skipped: OpenBench own document has no match name'
+
+    named   = h.create_test(test_mode='GAMES', max_games=4, name='Smoke: a name for a test')
+    unnamed = h.create_test(test_mode='GAMES', max_games=4)
+    for test_id, want in ((named, 'Smoke: a name for a test'), (unnamed, '%s dev vs base' % (ENGINE_NAME))):
+        h.wait_for(lambda: h.test_row(test_id)['finished'], 90, 'test %d to finish' % (test_id))
+        h.verify(test_id)
+        names = { x['document']['match']['name'] for x in h.nyayo.for_test(test_id) }
+        check(names == { want }, 'test %d reached nyayo as %s, expected %r' % (test_id, sorted(names), want))
+    return 'test %d named, test %d by its engine and branches' % (named, unnamed)
 
 def last_walk(h, test_id):
     # The newest report's walk of the one machine, as { (step, side) : step }
@@ -1295,15 +1311,16 @@ SCENARIOS = collections.OrderedDict([
     ('16', ('reported from creation, waiting; its worker at hand-out', scenario_from_the_start)),
     ('17', ('a passing walk, step by step',     scenario_walk)),
     ('18', ('dev fails to compile; base compiled beside it: the engine\'s', scenario_compile_fails)),
-    ('19', ('the log says no disk space: the worker\'s', scenario_machine_log)),
-    ('20', ('both engines fail to compile: the worker\'s', scenario_both_fail_to_compile)),
-    ('21', ('compiler killed, nobody else has tried: held, then restarted', scenario_killed)),
-    ('22', ('wrong bench on both engines: held', scenario_wrong_on_both)),
-    ('23', ('both benches over their time: the worker\'s', scenario_bench_slow_on_both)),
-    ('24', ('dev\'s bench over its time, base\'s not: the engine\'s', scenario_bench_slow)),
-    ('25', ('dev\'s bench fails to run, base\'s runs: the engine\'s', scenario_bench_fails_to_run)),
-    ('26', ('neither bench runs: the worker\'s', scenario_bench_fails_to_run_on_both)),
-    ('27', ('a bench right, then wrong on a later workload: the engine\'s', scenario_later_workload)),
+    ('19', ('a test with a name is that on nyayo',  scenario_named)),
+    ('20', ('the log says no disk space: the worker\'s', scenario_machine_log)),
+    ('21', ('both engines fail to compile: the worker\'s', scenario_both_fail_to_compile)),
+    ('22', ('compiler killed, nobody else has tried: held, then restarted', scenario_killed)),
+    ('23', ('wrong bench on both engines: held', scenario_wrong_on_both)),
+    ('24', ('both benches over their time: the worker\'s', scenario_bench_slow_on_both)),
+    ('25', ('dev\'s bench over its time, base\'s not: the engine\'s', scenario_bench_slow)),
+    ('26', ('dev\'s bench fails to run, base\'s runs: the engine\'s', scenario_bench_fails_to_run)),
+    ('27', ('neither bench runs: the worker\'s', scenario_bench_fails_to_run_on_both)),
+    ('28', ('a bench right, then wrong on a later workload: the engine\'s', scenario_later_workload)),
 ])
 
 # Not written yet, each waiting on the work named
