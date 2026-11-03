@@ -123,6 +123,7 @@ def create_new_test(request):
     test.book_name         = request.POST['book_name']
     test.upload_pgns       = OpenBench.utils.always_upload(request.POST['upload_pgns'])
 
+    test.name              = request.POST.get('name', '').strip() or dev_info[4]
     test.dev               = get_engine(*dev_info)
     test.dev_repo          = request.POST['dev_repo']
     test.dev_engine        = request.POST['dev_engine']
@@ -337,7 +338,9 @@ def extract_spas_params(request):
 
     return spsa
 
-def get_engine(source, name, sha, bench):
+def get_engine(source, name, sha, bench, title=''):
+
+    # title: a test by sha without a branch is called by its commit's first line, which is the test's, not the engine's
 
     engine = Engine.objects.filter(name=name, source=source, sha=sha, bench=bench)
     if engine.first() != None:
