@@ -18,7 +18,7 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import os, hashlib, datetime, json, secrets, sys, re
+import csv, io, os, json, secrets
 
 import django.http
 import django.shortcuts
@@ -26,17 +26,18 @@ import django.contrib.auth
 
 import OpenBench.config
 import OpenBench.steps
-import OpenBench.utils
 import OpenBench.model_utils
+import OpenBench.spsa_utils
+import OpenBench.utils
 
 from OpenBench.workloads.create_workload import create_workload
 from OpenBench.workloads.get_workload import get_workload
 from OpenBench.workloads.modify_workload import modify_workload
 from OpenBench.workloads.verify_workload import verify_workload
-from OpenBench.workloads.view_workload import view_workload
+from OpenBench.workloads.view_workload import view_workload, fetch_results, fetch_result_summaries
 from OpenBench.nyayo import enqueue_pgn, enqueue_report
 
-from OpenBench.config import OPENBENCH_CONFIG, OPENBENCH_CONFIG_CHECKSUM, OPENBENCH_STATIC_VERSION
+from OpenBench.config import OPENBENCH_CONFIG, OPENBENCH_STATIC_VERSION
 from OpenSite.settings import PROJECT_PATH
 
 from OpenBench.models import *
@@ -46,13 +47,11 @@ from OpenSite.settings import MEDIA_ROOT
 from django.conf import settings
 from django.db import transaction, IntegrityError
 from django.db.models import F, Q
-from django.http import HttpResponse, JsonResponse, FileResponse
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import FileSystemStorage
 from django.core.files.base import ContentFile
 from django.utils import timezone
-
-from wsgiref.util import FileWrapper
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                              GENERAL UTILITIES                              #
@@ -73,6 +72,10 @@ def render(request, template, content={}, always_allow=False, error=None, warnin
     data = content.copy()
     data.update({ 'config' : OPENBENCH_CONFIG })
     data.update({ 'static_version' : OPENBENCH_STATIC_VERSION })
+
+    # Every page lists the Engines in the sidebar. Lazy, so pages that do not
+    # reference it in their Template never execute the query.
+    data.setdefault('engines', EngineConfig.objects.filter(enabled=True).order_by('name'))
 
     if OPENBENCH_CONFIG['require_login_to_view']:
         if not request.user.is_authenticated and not always_allow:
@@ -270,15 +273,13 @@ def index(request, page=1):
     pending   = OpenBench.utils.get_pending_tests()
     active    = OpenBench.utils.get_active_tests()
     completed = OpenBench.utils.get_completed_tests()
-    awaiting  = OpenBench.utils.get_awaiting_tests()
 
     start, end, paging = OpenBench.utils.getPaging(completed, int(page), 'index')
 
     data = {
         'pending'   : pending,
-        'active'    : active,
+        'active'    : OpenBench.utils.group_active_tests_by_priority(active),
         'completed' : completed[start:end],
-        'awaiting'  : awaiting,
         'paging'    : paging,
         'status'    : OpenBench.utils.getMachineStatus(),
     }
@@ -290,15 +291,13 @@ def user(request, username, page=1):
     pending   = OpenBench.utils.get_pending_tests().filter(author=username)
     active    = OpenBench.utils.get_active_tests().filter(author=username)
     completed = OpenBench.utils.get_completed_tests().filter(author=username)
-    awaiting  = OpenBench.utils.get_awaiting_tests().filter(author=username)
 
     start, end, paging = OpenBench.utils.getPaging(completed, int(page), 'user/%s' % (username))
 
     data = {
         'pending'   : pending,
-        'active'    : active,
+        'active'    : OpenBench.utils.group_active_tests_by_priority(active),
         'completed' : completed[start:end],
-        'awaiting'  : awaiting,
         'paging'    : paging,
         'status'    : OpenBench.utils.getMachineStatus(username),
     }
@@ -315,105 +314,141 @@ def greens(request, page=1):
 
 def search(request):
 
-    if request.method == 'GET':
-        return render(request, 'search.html', {})
+    # Search uses GET so the parameters live in the URL and can be shared.
+    # With no parameters at all, simply present the empty search form.
 
-    tests = Test.objects.all()
+    # Disabled Books are still offered, so older Workloads remain searchable
+    books = Book.objects.all().order_by('name')
 
-    # Optional Selection box filters
+    if not (params := request.GET):
+        return render(request, 'search.html', { 'books' : books })
 
-    if request.POST['author']:
-        tests = tests.filter(author=request.POST['author'])
+    tests  = Test.objects.all()
 
-    if request.POST['engine']:
-        tests = tests.filter(Q(base_engine=request.POST['engine']) | Q(dev_engine=request.POST['engine']))
+    # Optional field-based filters, defaulting to no restriction
 
-    if request.POST['opening-book']:
-        tests = tests.filter(book_name=request.POST['opening-book'])
+    if params.get('dev-engine'):
+        tests = tests.filter(dev_engine=params['dev-engine'])
 
-    if request.POST['test-mode']:
-        tests = tests.filter(test_mode=request.POST['test-mode'])
+    if params.get('base-engine'):
+        tests = tests.filter(base_engine=params['base-engine'])
 
-    if request.POST['syzygy-wdl']:
-        tests = tests.filter(syzygy_wdl=request.POST['syzygy-wdl'])
+    if params.get('workload-type'):
+        tests = tests.filter(test_mode=params['workload-type'])
 
-    # Checkboxes for Test statuses
+    if params.get('opening-book'):
+        tests = tests.filter(book_name=params['opening-book'])
 
-    if 'show-greens' not in request.POST:
+    if params.get('info-contains'):
+        tests = tests.filter(info__icontains=params['info-contains'])
+
+    if params.get('dev-network'):
+        tests = tests.filter(dev_netname__icontains=params['dev-network'])
+
+    if params.get('base-network'):
+        tests = tests.filter(base_netname__icontains=params['base-network'])
+
+    # Authors are space-separated; match any of them case-insensitively
+
+    if authors := params.get('authors', '').split():
+        query = Q()
+        for author in authors:
+            query |= Q(author__iexact=author)
+        tests = tests.filter(query)
+
+    # Test statuses. These default to shown, except for deleted, so the URL
+    # only carries the deviations: hide-<status>, or show-deleted to opt in.
+
+    if 'hide-greens' in params:
         tests = tests.annotate(x=F('elolower') + F('eloupper')).exclude(x__gte=0, passed=True)
 
-    if 'show-yellows' not in request.POST:
+    if 'hide-yellows' in params:
         tests = tests.exclude(failed=True, wins__gte=F('losses'))
 
-    if 'show-reds' not in request.POST:
+    if 'hide-reds' in params:
         tests = tests.exclude(failed=True, wins__lt=F('losses'))
 
-    if 'show-blues' not in request.POST:
+    if 'hide-blues' in params:
         tests = tests.annotate(x=F('elolower') + F('eloupper')).exclude(x__lt=0, passed=True)
 
-    if 'show-stopped' not in request.POST:
+    if 'hide-stopped' in params:
         tests = tests.exclude(passed=False, failed=False)
 
-    if 'show-deleted' not in request.POST:
+    if 'show-deleted' not in params:
         tests = tests.exclude(deleted=True)
 
-    # Remaining filtering is hard to do with standard Django queries
+    # Keywords match the dev branch name, ANDed against the database so we never
+    # pull non-matching rows into Python. Any single keyword is enough to match.
 
-    filtered = []
-    keywords = request.POST['keywords'].upper().split()
+    if keywords := params.get('keywords', '').split():
+        query = Q()
+        for keyword in keywords:
+            query |= Q(dev__name__icontains=keyword)
+        tests = tests.filter(query)
 
-    tc_type   = request.POST['tc-type']
-    tc_value  = request.POST['tc-value-input']
-    tc_select = request.POST['tc-value-select']
+    # A workload is single-threaded only when both engines run with "Threads=1"
 
-    # Attempt to parse the time control
+    dev_single  = Q(dev_options__contains='Threads=1 ')  | Q(dev_options__endswith='Threads=1')
+    base_single = Q(base_options__contains='Threads=1 ') | Q(base_options__endswith='Threads=1')
 
-    try:
-        if tc_value:
-            tc_value = OpenBench.utils.TimeControl.parse(tc_value)
-    except:
-        return redirect(request, '/search/', error='Invalid Time Control')
+    if params.get('threads') == 'single':
+        tests = tests.filter(dev_single & base_single)
 
-    # Filter out tests
+    elif params.get('threads') == 'multi':
+        tests = tests.exclude(dev_single & base_single)
 
-    for test in tests:
+    # The time control type is determined by the shape of the stored string, so
+    # it can be matched with prefix / substring lookups rather than in Python.
 
-        # None of the keywords appear in the dev branch name
-        if keywords and not any(x in test.dev.name.upper() for x in keywords):
-            continue
+    TC      = OpenBench.utils.TimeControl
+    tc_type = params.get('tc-type', '')
 
-        # Determine the max number of threads that either engine used
-        dev_threads  = OpenBench.utils.extract_option(test.dev_options, 'Threads')
-        base_threads = OpenBench.utils.extract_option(test.base_options, 'Threads')
-        max_threads  = max(int(dev_threads), int(base_threads))
+    if tc_type == TC.FIXED_NODES:
+        tests = tests.filter(dev_time_control__startswith='N=')
+    elif tc_type == TC.FIXED_DEPTH:
+        tests = tests.filter(dev_time_control__startswith='D=')
+    elif tc_type == TC.FIXED_TIME:
+        tests = tests.filter(dev_time_control__startswith='MT=')
+    elif tc_type == TC.CYCLIC:
+        tests = tests.filter(dev_time_control__contains='/')
+    elif tc_type == TC.FISCHER:
+        tests = tests.exclude(dev_time_control__contains='=') \
+                     .exclude(dev_time_control__contains='/')
 
-        # Extract requsted configuration
-        select_value = request.POST['threads-select']
-        input_value  = int(request.POST['threads-input'])
+    # A specific time control value is matched as a loose substring of the dev
+    # control string, leaving it to the user to phrase it how it is stored.
 
-        # Requested Threads value did not match observed value
-        if select_value == '='  and max_threads != input_value: continue
-        if select_value == '>=' and max_threads  < input_value: continue
-        if select_value == '<=' and max_threads  > input_value: continue
+    if tc_value := params.get('tc-value-input', ''):
+        tests = tests.filter(dev_time_control__contains=tc_value)
 
-        # Filter our undesired time control types
-        if tc_type and tc_type != OpenBench.utils.TimeControl.control_type(test.dev_time_control):
-            continue
+    filtered = list(tests)
 
-        # Filter tests of the same time control type, but outside our range
-        if tc_value:
+    # Echo the submitted values back so the form stays populated for tweaking
 
-            search_base = OpenBench.utils.TimeControl.control_base(tc_value)
-            test_base   = OpenBench.utils.TimeControl.control_base(test.dev_time_control)
-
-            if tc_select == '='  and search_base != test_base: continue
-            if tc_select == '>=' and search_base  > test_base: continue
-            if tc_select == '<=' and search_base  < test_base: continue
-
-        filtered.append(test)
+    form = {
+        'keywords'      : params.get('keywords', ''),
+        'info'          : params.get('info-contains', ''),
+        'authors'       : params.get('authors', ''),
+        'dev_engine'    : params.get('dev-engine', ''),
+        'base_engine'   : params.get('base-engine', ''),
+        'dev_network'   : params.get('dev-network', ''),
+        'base_network'  : params.get('base-network', ''),
+        'workload_type' : params.get('workload-type', ''),
+        'book'          : params.get('opening-book', ''),
+        'tc_type'       : params.get('tc-type', ''),
+        'tc_value'      : params.get('tc-value-input', ''),
+        'threads'       : params.get('threads', ''),
+        'hide_greens'   : 'hide-greens'  in params,
+        'hide_yellows'  : 'hide-yellows' in params,
+        'hide_reds'     : 'hide-reds'    in params,
+        'hide_blues'    : 'hide-blues'   in params,
+        'hide_stopped'  : 'hide-stopped' in params,
+        'show_deleted'  : 'show-deleted' in params,
+    }
 
     error = 'No matching tests found' if not len(filtered) else None
-    return render(request, 'search.html', { 'tests' : reversed(filtered) }, error=error)
+    data  = { 'tests' : reversed(filtered), 'form' : form, 'books' : books }
+    return render(request, 'search.html', data, error=error)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                           GENERAL DATA TABLE VIEWS                          #
@@ -471,7 +506,7 @@ def workload(request, workload_type, pk, action=None):
     if action != None:
         return modify_workload(request, pk, action)
 
-    if not (workload := Test.objects.filter(id=int(pk)).first()):
+    if not (workload := Test.objects.select_related('spsa_run').filter(id=int(pk)).first()):
         return redirect(request, '/index/', error='No such Workload exists')
 
     # Trying to view a Tune as a Test, for example
@@ -496,7 +531,7 @@ def networks(request, engine=None, action=None, name=None, client=False):
     # Without an identifier and a valid action, all we can do is view the list
     if not name or action.upper() not in ['UPLOAD', 'DEFAULT', 'DELETE', 'DOWNLOAD', 'EDIT']:
         networks = Network.objects.all()
-        if engine and engine in OPENBENCH_CONFIG['engines'].keys():
+        if engine and EngineConfig.objects.filter(name=engine).exists():
             networks = networks.filter(engine=engine)
         return render(request, 'networks.html', { 'networks' : list(networks.order_by('-id').values()) })
 
@@ -542,6 +577,100 @@ def network_form(request):
         return render(request, 'uploadnet.html', {})
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+#                          CONFIGURATION MANAGEMENT                           #
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+# Everything under /manage/ may be viewed by anyone. Only those with manage
+# permissions may make changes, which is enforced here, as well as visually
+# within the Templates, by way of the can_manage flag.
+
+def has_manage_permissions(request):
+    profile = Profile.objects.filter(user=request.user).first() if request.user.is_authenticated else None
+    return bool(profile and (profile.superuser or profile.user.is_superuser))
+
+def manage(request):
+    return redirect(request, '/manage/books/')
+
+def manage_books(request, name=None, action=None):
+
+    can_manage = has_manage_permissions(request)
+
+    # Without a name, all we can do is view the list of Books. The list also
+    # carries the creation form, which posts back to <new name>/create/
+    if not name:
+        data = { 'books' : Book.objects.order_by('name'), 'can_manage' : can_manage }
+        return render(request, 'manage_books.html', data)
+
+    # Creating is the only action for a Book that does not exist yet
+    if action and action.upper() == 'CREATE':
+        if not can_manage:
+            return redirect(request, '/manage/books/', error='You may not create Books')
+        return OpenBench.utils.book_create(request, name)
+
+    if not (book := Book.objects.filter(name=name).first()):
+        return redirect(request, '/manage/books/', error='No such Book exists')
+
+    # Anyone may view a single Book, but only Managers may change one
+    if not action:
+        return render(request, 'manage_book.html', { 'book' : book, 'can_manage' : can_manage })
+
+    if not can_manage:
+        return redirect(request, '/manage/books/', error='You may not modify Books')
+
+    # Push off all the actual effort to OpenBench.utils for all actions
+    actions = {
+        'EDIT'   : OpenBench.utils.book_edit,
+        'DELETE' : OpenBench.utils.book_delete,
+    }
+
+    if action.upper() not in actions:
+        return redirect(request, '/manage/books/', error='Unknown action for a Book')
+
+    return actions[action.upper()](request, book)
+
+def manage_engines(request, name=None, action=None):
+
+    can_manage = has_manage_permissions(request)
+
+    # Without a name, all we can do is view the list of Engines. The list also
+    # carries the creation form, which posts back to <new name>/create/
+    if not name:
+        data = { 'configs' : EngineConfig.objects.order_by('name'), 'can_manage' : can_manage }
+        return render(request, 'manage_engines.html', data)
+
+    # Creating is the only action for an Engine that does not exist yet
+    if action and action.upper() == 'CREATE':
+        if not can_manage:
+            return redirect(request, '/manage/engines/', error='You may not modify Engines')
+        return OpenBench.utils.engine_create(request, name)
+
+    if not (config := EngineConfig.objects.filter(name=name).first()):
+        return redirect(request, '/manage/engines/', error='No such Engine exists')
+
+    # Anyone may view a single Engine, but only Managers may change one
+    if not action:
+        data = {
+            'engine_config'     : config,
+            'can_manage'        : can_manage,
+            'presets'           : json.dumps(config.presets, indent=4),
+        }
+        return render(request, 'manage_engine.html', data)
+
+    if not can_manage:
+        return redirect(request, '/manage/engines/', error='You may not modify Engines')
+
+    # Push off all the actual effort to OpenBench.utils for all actions
+    actions = {
+        'EDIT'   : OpenBench.utils.engine_edit,
+        'DELETE' : OpenBench.utils.engine_delete,
+    }
+
+    if action.upper() not in actions:
+        return redirect(request, '/manage/engines/', error='Unknown action for an Engine')
+
+    return actions[action.upper()](request, config)
+
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                             OPENBENCH SCRIPTING                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -568,20 +697,20 @@ def verify_worker(function):
 
         # Get the machine, assuming it exists
         try: machine = Machine.objects.get(id=int(args[0].POST['machine_id']))
-        except: return JsonResponse({ 'error' : 'Bad Machine Id' })
+        except: return JsonResponse({ 'error' : 'Bad Client Version: Bad Machine Id' })
 
         # Ensure the Client is using the same version as the Server
         if machine.info['client_ver'] != OPENBENCH_CONFIG['client_version']:
             expected_ver = OPENBENCH_CONFIG['client_version']
             return JsonResponse({ 'error' : 'Bad Client Version: Expected %d' % (expected_ver)})
 
+        # Prompt the worker to soft-restart if its config is out of date
+        if machine.info.get('OPENBENCH_CONFIG_CHECKSUM') != ServerState.checksum():
+            return JsonResponse({ 'error' : 'Bad Client Version: Server Configuration Changed' })
+
         # Use the secret token as our soft verification
         if machine.secret != args[0].POST['secret']:
-            return JsonResponse({ 'error' : 'Invalid Secret Token' })
-
-        # Prompt the worker to soft-restart if its config is out of date
-        if machine.info.get('OPENBENCH_CONFIG_CHECKSUM') != OPENBENCH_CONFIG_CHECKSUM:
-            return JsonResponse({ 'error' : 'Server Configuration Changed' })
+            return JsonResponse({ 'error' : 'Bad Client Version: Invalid Secret Token' })
 
         # Otherwise, carry on, and pass along the machine
         return function(*args, machine)
@@ -590,12 +719,6 @@ def verify_worker(function):
 
 @csrf_exempt
 def client_version_ref(request):
-
-    # Verify the User's credentials
-    try: user = authenticate(request, True)
-    except UnableToAuthenticate:
-        return JsonResponse({ 'error' : 'Bad Credentials' })
-
     # Enough information to download the right Client
     return JsonResponse({
         'client_version'  : OPENBENCH_CONFIG['client_version' ],
@@ -606,16 +729,11 @@ def client_version_ref(request):
 @csrf_exempt
 def client_match_runner_version_ref(request):
 
-    # Verify the User's credentials
-    try: authenticate(request, True)
-    except UnableToAuthenticate:
-        return JsonResponse({ 'error' : 'Bad Credentials' })
-
     # Enough information to build the right Fastchess version
     return JsonResponse({
-        'fastchess_min_version' : OPENBENCH_CONFIG.get('fastchess_min_version', '1.8.1'),
-        'fastchess_repo_url'    : OPENBENCH_CONFIG.get('fastchess_repo_url', 'https://github.com/AndyGrant/fastchess'),
-        'fastchess_repo_ref'    : OPENBENCH_CONFIG.get('fastchess_repo_ref', 'master'),
+        'fastchess_min_version' : OPENBENCH_CONFIG['fastchess_min_version'],
+        'fastchess_repo_url'    : OPENBENCH_CONFIG['fastchess_repo_url'],
+        'fastchess_repo_ref'    : OPENBENCH_CONFIG['fastchess_repo_ref'],
     })
 
 @csrf_exempt
@@ -625,9 +743,8 @@ def client_get_build_info(request):
     ## Toss in a private flag as well to indicate the need for Github Tokens.
 
     data = {}
-    for engine, config in OPENBENCH_CONFIG['engines'].items():
-        data[engine] = config['build'].copy()
-        data[engine]['private'] = config['private']
+    for config in EngineConfig.objects.all():
+        data[config.name] = { **config.build(), 'private' : config.private }
     return JsonResponse(data)
 
 @csrf_exempt
@@ -638,39 +755,47 @@ def client_worker_info(request):
     except UnableToAuthenticate:
         return JsonResponse({ 'error' : 'Bad Credentials' })
 
+    # Request update before creating a machine
+    info         = json.loads(request.POST['system_info'])
+    expected_ver = OPENBENCH_CONFIG['client_version']
+
+    if info.get('client_ver') != expected_ver:
+        return JsonResponse({ 'error' : 'Bad Client Version: Expected %d' % (expected_ver)})
+
     # Create a new Machine for this session
-    info    = json.loads(request.POST['system_info'])
-    machine = OpenBench.utils.get_machine('None', user, info)
+    machine = Machine(user=user, info=info)
 
     # Save the machine's latest information and Secret Token for this session
     machine.info   = info
     machine.secret = secrets.token_hex(32)
 
     # Note the Config checksum at the time of init, in case it changes
-    machine.info['OPENBENCH_CONFIG_CHECKSUM'] = OPENBENCH_CONFIG_CHECKSUM
+    machine.info['OPENBENCH_CONFIG_CHECKSUM'] = ServerState.checksum()
 
     # Tag engines that the Machine can build and/or run with binaries
     machine.info['supported'] = []
-    for engine, data in OPENBENCH_CONFIG['engines'].items():
+    for config in EngineConfig.objects.all():
+
+        build = config.build()
 
         # Must have all CPU flags, for both Public and Private engines
-        if any([flag not in machine.info['cpu_flags'] for flag in data['build']['cpuflags']]):
+        if any([flag not in machine.info['cpu_flags'] for flag in build['cpuflags']]):
             continue
 
         # Private engines must have, or think they have, a Git Token
-        if data['private'] and engine not in machine.info['tokens'].keys():
+        if config.private and config.name not in machine.info['tokens'].keys():
             continue
 
         # Public engines must have a compiler of a sufficient version
-        if not data['private'] and engine not in machine.info['compilers'].keys():
+        if not config.private and config.name not in machine.info['compilers'].keys():
             continue
 
         # Must match the Operating Systems supported by the engine
-        if machine.info['os_name'] not in data['build']['systems']:
+        if machine.info['os_name'] not in build['systems']:
             continue
 
         # All requirements are met, and this Machine can play with the given engine
-        machine.info['supported'].append(engine)
+        machine.info['supported'].append(config.name)
 
     # Finish up
     machine.save()
@@ -749,7 +874,7 @@ def client_submit_nps(request, machine):
     machine.mnps      = float(request.POST['nps'     ]) / 1e6;
     machine.dev_mnps  = float(request.POST['dev_nps' ]) / 1e6;
     machine.base_mnps = float(request.POST['base_nps']) / 1e6;
-    machine.save()
+    machine.save(update_fields=['mnps', 'dev_mnps', 'base_mnps', 'updated'])
 
     # Pass back an empty JSON response
     return JsonResponse({})
@@ -758,10 +883,9 @@ def client_submit_nps(request, machine):
 @verify_worker
 def client_submit_error(request, machine):
 
-    ## Report an error when working on test. This could be one three kinds.
-    ## 1. Error building the engine. Does not compile, for whatever reason.
-    ## 2. Error getting the artifacts. Does not exist, lacks credentials.
-    ## 3. Error during actual gameplay. Timeloss, Disconnect, Crash, etc.
+    # Report an error when working on test. This could be one three kinds.
+    # 1. Error building the engine. Does not compile, for whatever reason.
+    # 2. Error during actual gameplay. Timeloss, Disconnect, Crash, etc.
 
     # Log the Error into the Events table
     event = LogEvent.objects.create(
@@ -790,11 +914,31 @@ def client_submit_results(request, machine):
 def client_heartbeat(request, machine):
 
     # Force a refresh of the updated timestamp
-    machine.save()
+    machine.save(update_fields=['updated'])
 
     # Include a 'stop' header iff the test was finished
-    test = Test.objects.get(id=int(request.POST['test_id']))
-    return JsonResponse([{}, { 'stop' : True }][test.finished])
+    finished = Test.objects.filter(id=int(request.POST['test_id'])).values_list('finished', flat=True).first()
+
+    return JsonResponse([{}, { 'stop' : True }][bool(finished)])
+
+@csrf_exempt
+@verify_worker
+def client_submit_nps_stats(request, _):
+
+    result_id = int(request.POST['result_id'])
+
+    # No risk from concurrent access
+    Result.objects.filter(id=result_id).update(
+        dev_nodes        = F('dev_nodes'       ) + int(request.POST['dev_nodes'       ]),
+        dev_time         = F('dev_time'        ) + int(request.POST['dev_time'        ]),
+        dev_time_scaled  = F('dev_time_scaled' ) + int(request.POST['dev_time_scaled' ]),
+        base_nodes       = F('base_nodes'      ) + int(request.POST['base_nodes'      ]),
+        base_time        = F('base_time'       ) + int(request.POST['base_time'       ]),
+        base_time_scaled = F('base_time_scaled') + int(request.POST['base_time_scaled']),
+        updated          = timezone.now(),
+    )
+
+    return JsonResponse({})
 
 @csrf_exempt
 @verify_worker
@@ -858,12 +1002,15 @@ def api_configs(request, engine=None):
         return api_response({ 'error' : 'API requires authentication for this server' })
 
     if engine == None:
-        engines = list(OPENBENCH_CONFIG['engines'].keys())
-        books   = OPENBENCH_CONFIG['books']
+        engines = list(EngineConfig.objects.filter(enabled=True).order_by('name').values_list('name', flat=True))
+        books   = {
+            book.name : { 'sha' : book.sha, 'source' : book.source }
+            for book in Book.objects.filter(enabled=True).order_by('name')
+        }
         return api_response({ 'engines' : engines, 'books' : books })
 
-    if engine in OPENBENCH_CONFIG['engines'].keys():
-        return api_response(OPENBENCH_CONFIG['engines'][engine])
+    if (config := EngineConfig.objects.filter(name=engine).first()):
+        return api_response(OpenBench.model_utils.engine_config_to_dict(config))
 
     return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
 
@@ -873,7 +1020,7 @@ def api_networks(request, engine):
     if not api_authenticate(request):
         return api_response({ 'error' : 'API requires authentication for this server' })
 
-    if engine in OPENBENCH_CONFIG['engines'].keys():
+    if EngineConfig.objects.filter(name=engine).exists():
 
         default = None
         if (network := Network.objects.filter(engine=engine, default=True).first()):
@@ -890,7 +1037,7 @@ def api_networks(request, engine):
         return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
 
 @csrf_exempt
-def api_network_download(request, engine, identifier):
+def api_network_download(request, engine, identifier, compressed=False):
 
     if not api_authenticate(request):
         return api_response({ 'error' : 'API requires authentication for this server' })
@@ -899,10 +1046,10 @@ def api_network_download(request, engine, identifier):
         return api_response({ 'error' : 'API requires authentication for this endpoint' })
 
     if (network := Network.objects.filter(engine=engine, sha256=identifier).first()):
-        return OpenBench.utils.network_download(request, engine, network)
+        return OpenBench.utils.network_download(request, engine, network, compressed)
 
     if (network := Network.objects.filter(engine=engine, name=identifier).first()):
-        return OpenBench.utils.network_download(request, engine, network)
+        return OpenBench.utils.network_download(request, engine, network, compressed)
 
     return api_response({ 'error' : 'Engine not found. Check /api/config/ for a full list' })
 
@@ -928,8 +1075,8 @@ def api_build_info(request):
         return api_response({ 'error' : 'API requires authentication for this server' })
 
     data = {}
-    for engine, config in OPENBENCH_CONFIG['engines'].items():
-        data[engine] = config
+    for config in EngineConfig.objects.filter(enabled=True).order_by('name'):
+        data[config.name] = OpenBench.model_utils.engine_config_to_dict(config)
 
     for network in Network.objects.filter(default=True):
 
@@ -957,7 +1104,7 @@ def api_pgns(request, pgn_id):
     except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
 
     # 2. Make sure there actually is a PGN attached to the Workload
-    pgn_path = os.path.join(settings.MEDIA_ROOT, 'PGNs', '%d.pgn.tar' % (pgn_id))
+    pgn_path = FileSystemStorage().path('PGNs/%d.pgn.tar' % (pgn_id))
     if not os.path.exists(pgn_path):
         return api_response({ 'error' : 'Unable to find PGN for Workload #%d' % (pgn_id) })
 
@@ -974,14 +1121,56 @@ def api_pgns(request, pgn_id):
         return api_response({ 'error' : 'Still processing individual PGNs into the archive. Try again shortly' })
 
     # Craft the download HTML response
-    fwrapper = FileWrapper(open(pgn_path, 'rb'), 8192)
-    response = FileResponse(fwrapper, content_type='application/octet-stream')
+    return OpenBench.utils.media_download_response(pgn_path, '%d.pgn.tar' % (pgn_id), -1)
 
-    # Set all headers and return response
-    response['Expires'] = -1
-    response['Content-Length'] = os.path.getsize(pgn_path)
-    response['Content-Disposition'] = 'attachment; filename=%d.pgn.tar' % (pgn_id)
-    return response
+@csrf_exempt
+def api_spsa(request, workload_id, query):
+
+    # 0. Make sure the request has the correct permissions
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    # 1. Make sure the workload actually exists for the requested SPSA session
+    try: workload = Test.objects.get(pk=workload_id)
+    except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
+
+    if query == 'inputs':
+        return HttpResponse(OpenBench.spsa_utils.spsa_original_input(workload), content_type='text/plain')
+
+    if query == 'outputs':
+        return HttpResponse(OpenBench.spsa_utils.spsa_optimal_values(workload), content_type='text/plain')
+
+    if query == 'digest':
+        return HttpResponse(OpenBench.spsa_utils.spsa_param_digest(workload), content_type='text/plain')
+
+    if query == 'perturbation':
+        return api_response({ 'perturbation' : OpenBench.spsa_utils.spsa_workload_assignment_dict(workload, 4) })
+
+    valid_endpoints = [ 'inputs', 'outputs', 'digest', 'perturbation' ]
+    return api_response({ 'error' : 'Valid /query/ endpoints are: [ %s ]' % (', '.join(valid_endpoints)) })
+
+@csrf_exempt
+def api_workload(request, workload_id, query):
+
+    # 0. Make sure the request has the correct permissions
+    if not api_authenticate(request):
+        return api_response({ 'error' : 'API requires authentication for this server' })
+
+    # 1. Make sure the workload actually exists for the requested query
+    try: workload = Test.objects.get(pk=workload_id)
+    except: return api_response({ 'error' : 'Requested Workload Id does not exist' })
+
+    if query == 'results':
+        return JsonResponse({ 'results' : fetch_results(workload_id) })
+
+    if query == 'info':
+        return api_response({ 'info' : OpenBench.model_utils.workload_to_dict(workload) })
+
+    if query == 'summary':
+        return api_response({ 'summary' : fetch_result_summaries(workload) })
+
+    valid_endpoints = [ 'results', 'info', 'summary' ]
+    return api_response({ 'error' : 'Valid /query/ endpoints are: [ %s ]' % (', '.join(valid_endpoints)) })
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                BUSINESS VIEWS                               #

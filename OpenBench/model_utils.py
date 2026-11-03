@@ -6,6 +6,36 @@ from django.forms.models import model_to_dict
 def network_to_dict(network):
     return { **model_to_dict(network, exclude=['id']), 'created': str(network.created) }
 
+def engine_to_dict(engine):
+    return { 'id': engine.id, **model_to_dict(engine, exclude=['id']) }
+
+def engine_config_to_dict(config):
+
+    # Matches the shape of the Engines/<name>.json files these replaced
+    return {
+        'private' : config.private,
+        'nps'     : config.nps,
+        'source'  : config.source,
+        'build'   : config.build(),
+        **config.presets,
+    }
+
+def workload_to_dict(workload):
+
+    # dev/base are dumped as nested Engine dicts; the trinomial and pentanomial
+    # counters are regrouped into tuples. Everything else is dumped verbatim.
+    nested = ['dev', 'base', 'losses', 'draws', 'wins', 'LL', 'LD', 'DD', 'DW', 'WW']
+
+    return {
+        'id'       : workload.id,
+        **model_to_dict(workload, exclude=['id'] + nested),
+        'dev'      : engine_to_dict(workload.dev),
+        'base'     : engine_to_dict(workload.base),
+        'tri'      : workload.as_tri(),
+        'penta'    : workload.as_penta(),
+        'creation' : str(workload.creation),
+        'updated'  : str(workload.updated),
+    }
 
 def network_delete(network) -> (str, bool):
 
@@ -20,5 +50,6 @@ def network_delete(network) -> (str, bool):
     # Only delete the actual file if no other engines use it
     if not Network.objects.filter(sha256=sha256):
         FileSystemStorage().delete(sha256)
+        FileSystemStorage().delete('%s.zst' % (sha256))
 
     return status, True

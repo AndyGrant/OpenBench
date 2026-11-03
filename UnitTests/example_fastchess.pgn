@@ -1,0 +1,272 @@
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.11.03"]
+[Round "1"]
+[White "smoke-dev"]
+[Black "smoke-base"]
+[Result "1-0"]
+[EngineWhiteName "smoke"]
+[EngineWhiteAuthor "OpenBench smoke test"]
+[EngineBlackName "smoke"]
+[EngineBlackAuthor "OpenBench smoke test"]
+[SetUp "1"]
+[FEN "rnbq1bnr/pppppk1p/8/5pp1/1P4P1/4P3/P1PP1P1P/RNBQKBNR w KQ - 0 1"]
+[GameDuration "00:00:00"]
+[GameStartTime "2026-11-03T08:18:08 -0700"]
+[GameEndTime "2026-11-03T08:18:08 -0700"]
+[PlyCount "16"]
+[Termination "adjudication"]
+[TimeControl "-"]
+
+1. gxf5 {+1.00/1 0.000s, n=1, sd=0} Bh6 {-1.00/1 0.000s, n=1, sd=0}
+2. Qf3 {+1.00/1 0.000s, n=1, sd=0} Bg7 {-1.00/1 0.000s, n=1, sd=0}
+3. Qxb7 {+2.00/1 0.000s, n=1, sd=0} Ke8 {-2.00/1 0.000s, n=1, sd=0}
+4. Qxa8 {+7.00/1 0.000s, n=1, sd=0} Bxa1 {-2.00/1 0.000s, n=1, sd=0}
+5. Qxa7 {+3.00/1 0.000s, n=1, sd=0} d6 {-3.00/1 0.000s, n=1, sd=0}
+6. Qxb8 {+6.00/1 0.000s, n=1, sd=0} Bxf5 {-5.00/1 0.000s, n=1, sd=0}
+7. Qxd8+ {+14.00/1 0.000s, n=1, sd=0} Kxd8 {-5.00/1 0.000s, n=1, sd=0}
+8. Na3 {+5.00/1 0.000s, n=1, sd=0}
+Bxc2 {-4.00/1 0.000s, n=1, sd=0, White wins by adjudication} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.11.03"]
+[Round "1"]
+[White "smoke-base"]
+[Black "smoke-dev"]
+[Result "1-0"]
+[EngineWhiteName "smoke"]
+[EngineWhiteAuthor "OpenBench smoke test"]
+[EngineBlackName "smoke"]
+[EngineBlackAuthor "OpenBench smoke test"]
+[SetUp "1"]
+[FEN "rnbq1bnr/pppppk1p/8/5pp1/1P4P1/4P3/P1PP1P1P/RNBQKBNR w KQ - 0 1"]
+[GameDuration "00:00:00"]
+[GameStartTime "2026-11-03T08:18:08 -0700"]
+[GameEndTime "2026-11-03T08:18:08 -0700"]
+[PlyCount "16"]
+[Termination "adjudication"]
+[TimeControl "-"]
+
+1. gxf5 {+1.00/1 0.000s, n=1, sd=0} Bh6 {-1.00/1 0.000s, n=1, sd=0}
+2. Qf3 {+1.00/1 0.000s, n=1, sd=0} Bg7 {-1.00/1 0.000s, n=1, sd=0}
+3. Qxb7 {+2.00/1 0.000s, n=1, sd=0} Ke8 {-2.00/1 0.000s, n=1, sd=0}
+4. Qxa8 {+7.00/1 0.000s, n=1, sd=0} Bxa1 {-2.00/1 0.000s, n=1, sd=0}
+5. Qxa7 {+3.00/1 0.000s, n=1, sd=0} d6 {-3.00/1 0.000s, n=1, sd=0}
+6. Qxb8 {+6.00/1 0.000s, n=1, sd=0} Bxf5 {-5.00/1 0.000s, n=1, sd=0}
+7. Qxd8+ {+14.00/1 0.000s, n=1, sd=0} Kxd8 {-5.00/1 0.000s, n=1, sd=0}
+8. Na3 {+5.00/1 0.000s, n=1, sd=0}
+Bxc2 {-4.00/1 0.000s, n=1, sd=0, White wins by adjudication} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.11.03"]
+[Round "2"]
+[White "smoke-dev"]
+[Black "smoke-base"]
+[Result "0-1"]
+[EngineWhiteName "smoke"]
+[EngineWhiteAuthor "OpenBench smoke test"]
+[EngineBlackName "smoke"]
+[EngineBlackAuthor "OpenBench smoke test"]
+[SetUp "1"]
+[FEN "rnbqk1nr/p1pp1ppp/1p6/4p3/8/bP5P/P1PPPPP1/R1BQKBNR w KQkq - 0 1"]
+[GameDuration "00:00:00"]
+[GameStartTime "2026-11-03T08:18:08 -0700"]
+[GameEndTime "2026-11-03T08:18:09 -0700"]
+[PlyCount "43"]
+[Termination "adjudication"]
+[TimeControl "-"]
+
+1. Bxa3 {0.00/1 0.000s, n=1, sd=0} Qg5 {0.00/1 0.000s, n=1, sd=0}
+2. Nf3 {0.00/1 0.000s, n=1, sd=0} Qxg2 {+1.00/1 0.000s, n=1, sd=0}
+3. Nxe5 {0.00/1 0.000s, n=1, sd=0} Qxh3 {+1.00/1 0.000s, n=1, sd=0}
+4. Nxd7 {0.00/1 0.000s, n=1, sd=0} Qxd7 {+3.00/1 0.000s, n=1, sd=0}
+5. Rxh7 {-2.00/1 0.000s, n=1, sd=0} Rxh7 {+7.00/1 0.000s, n=1, sd=0}
+6. Rb1 {-7.00/1 0.000s, n=1, sd=0} Qxd2+ {+8.00/1 0.000s, n=1, sd=0}
+7. Qxd2 {+1.00/1 0.000s, n=1, sd=0} Ne7 {-1.00/1 0.000s, n=1, sd=0}
+8. Bxe7 {+4.00/1 0.000s, n=1, sd=0} Kxe7 {-1.00/1 0.000s, n=1, sd=0}
+9. f4 {+1.00/1 0.000s, n=1, sd=0} g6 {-1.00/1 0.000s, n=1, sd=0}
+10. Ra1 {+1.00/1 0.000s, n=1, sd=0} Rg7 {-1.00/1 0.000s, n=1, sd=0}
+11. Qc1 {+1.00/1 0.000s, n=1, sd=0} c6 {-1.00/1 0.000s, n=1, sd=0}
+12. e3 {+1.00/1 0.000s, n=1, sd=0} Bg4 {-1.00/1 0.000s, n=1, sd=0}
+13. Qa3+ {+1.00/1 0.000s, n=1, sd=0} Kf6 {-1.00/1 0.000s, n=1, sd=0}
+14. Qxa7 {+2.00/1 0.000s, n=1, sd=0} Nd7 {-2.00/1 0.000s, n=1, sd=0}
+15. Qxb6 {+3.00/1 0.000s, n=1, sd=0} Rxa2 {-2.00/1 0.000s, n=1, sd=0}
+16. Qb4 {+2.00/1 0.000s, n=1, sd=0} Rxc2 {-1.00/1 0.000s, n=1, sd=0}
+17. Qe7+ {+1.00/1 0.000s, n=1, sd=0} Kxe7 {+8.00/1 0.000s, n=1, sd=0}
+18. Ra5 {-8.00/1 0.000s, n=1, sd=0} Rc5 {+8.00/1 0.000s, n=1, sd=0}
+19. Rxc5 {-3.00/1 0.000s, n=1, sd=0} Nxc5 {+8.00/1 0.000s, n=1, sd=0}
+20. Kd2 {-8.00/1 0.000s, n=1, sd=0} Be2 {+8.00/1 0.000s, n=1, sd=0}
+21. Kxe2 {-5.00/1 0.000s, n=1, sd=0} Nxb3 {+6.00/1 0.000s, n=1, sd=0}
+22. Kd1 {-6.00/1 0.000s, n=1, sd=0, Black wins by adjudication} 0-1
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.11.03"]
+[Round "2"]
+[White "smoke-base"]
+[Black "smoke-dev"]
+[Result "0-1"]
+[EngineWhiteName "smoke"]
+[EngineWhiteAuthor "OpenBench smoke test"]
+[EngineBlackName "smoke"]
+[EngineBlackAuthor "OpenBench smoke test"]
+[SetUp "1"]
+[FEN "rnbqk1nr/p1pp1ppp/1p6/4p3/8/bP5P/P1PPPPP1/R1BQKBNR w KQkq - 0 1"]
+[GameDuration "00:00:00"]
+[GameStartTime "2026-11-03T08:18:09 -0700"]
+[GameEndTime "2026-11-03T08:18:09 -0700"]
+[PlyCount "43"]
+[Termination "adjudication"]
+[TimeControl "-"]
+
+1. Bxa3 {0.00/1 0.000s, n=1, sd=0} Qg5 {0.00/1 0.000s, n=1, sd=0}
+2. Nf3 {0.00/1 0.000s, n=1, sd=0} Qxg2 {+1.00/1 0.000s, n=1, sd=0}
+3. Nxe5 {0.00/1 0.000s, n=1, sd=0} Qxh3 {+1.00/1 0.000s, n=1, sd=0}
+4. Nxd7 {0.00/1 0.000s, n=1, sd=0} Qxd7 {+3.00/1 0.000s, n=1, sd=0}
+5. Rxh7 {-2.00/1 0.000s, n=1, sd=0} Rxh7 {+7.00/1 0.000s, n=1, sd=0}
+6. Rb1 {-7.00/1 0.000s, n=1, sd=0} Qxd2+ {+8.00/1 0.000s, n=1, sd=0}
+7. Qxd2 {+1.00/1 0.000s, n=1, sd=0} Ne7 {-1.00/1 0.000s, n=1, sd=0}
+8. Bxe7 {+4.00/1 0.000s, n=1, sd=0} Kxe7 {-1.00/1 0.000s, n=1, sd=0}
+9. f4 {+1.00/1 0.000s, n=1, sd=0} g6 {-1.00/1 0.000s, n=1, sd=0}
+10. Ra1 {+1.00/1 0.000s, n=1, sd=0} Rg7 {-1.00/1 0.000s, n=1, sd=0}
+11. Qc1 {+1.00/1 0.000s, n=1, sd=0} c6 {-1.00/1 0.000s, n=1, sd=0}
+12. e3 {+1.00/1 0.000s, n=1, sd=0} Bg4 {-1.00/1 0.000s, n=1, sd=0}
+13. Qa3+ {+1.00/1 0.000s, n=1, sd=0} Kf6 {-1.00/1 0.000s, n=1, sd=0}
+14. Qxa7 {+2.00/1 0.000s, n=1, sd=0} Nd7 {-2.00/1 0.000s, n=1, sd=0}
+15. Qxb6 {+3.00/1 0.000s, n=1, sd=0} Rxa2 {-2.00/1 0.000s, n=1, sd=0}
+16. Qb4 {+2.00/1 0.000s, n=1, sd=0} Rxc2 {-1.00/1 0.000s, n=1, sd=0}
+17. Qe7+ {+1.00/1 0.000s, n=1, sd=0} Kxe7 {+8.00/1 0.000s, n=1, sd=0}
+18. Ra5 {-8.00/1 0.000s, n=1, sd=0} Rc5 {+8.00/1 0.000s, n=1, sd=0}
+19. Rxc5 {-3.00/1 0.000s, n=1, sd=0} Nxc5 {+8.00/1 0.000s, n=1, sd=0}
+20. Kd2 {-8.00/1 0.000s, n=1, sd=0} Be2 {+8.00/1 0.000s, n=1, sd=0}
+21. Kxe2 {-5.00/1 0.000s, n=1, sd=0} Nxb3 {+6.00/1 0.000s, n=1, sd=0}
+22. Kd1 {-6.00/1 0.000s, n=1, sd=0, Black wins by adjudication} 0-1
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.11.03"]
+[Round "3"]
+[White "smoke-dev"]
+[Black "smoke-base"]
+[Result "1-0"]
+[EngineWhiteName "smoke"]
+[EngineWhiteAuthor "OpenBench smoke test"]
+[EngineBlackName "smoke"]
+[EngineBlackAuthor "OpenBench smoke test"]
+[SetUp "1"]
+[FEN "r1bqkb1r/pppp1ppp/n4n2/4p3/8/P7/1PPPPPPP/RNBQKBNR w KQkq - 0 1"]
+[GameDuration "00:00:00"]
+[GameStartTime "2026-11-03T08:18:09 -0700"]
+[GameEndTime "2026-11-03T08:18:09 -0700"]
+[PlyCount "14"]
+[Termination "adjudication"]
+[TimeControl "-"]
+
+1. Nh3 {0.00/1 0.000s, n=1, sd=0} Bxa3 {+1.00/1 0.000s, n=1, sd=0}
+2. Rg1 {-1.00/1 0.000s, n=1, sd=0} Bxb2 {+2.00/1 0.000s, n=1, sd=0}
+3. Bxb2 {+1.00/1 0.000s, n=1, sd=0} Nb4 {-1.00/1 0.000s, n=1, sd=0}
+4. c3 {+1.00/1 0.000s, n=1, sd=0} Rf8 {-1.00/1 0.000s, n=1, sd=0}
+5. cxb4 {+4.00/1 0.000s, n=1, sd=0} b5 {-4.00/1 0.000s, n=1, sd=0}
+6. Rxa7 {+5.00/1 0.000s, n=1, sd=0} Ke7 {-5.00/1 0.000s, n=1, sd=0}
+7. Rxa8 {+10.00/1 0.000s, n=1, sd=0}
+Ng4 {-10.00/1 0.000s, n=1, sd=0, White wins by adjudication} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.11.03"]
+[Round "3"]
+[White "smoke-base"]
+[Black "smoke-dev"]
+[Result "1-0"]
+[EngineWhiteName "smoke"]
+[EngineWhiteAuthor "OpenBench smoke test"]
+[EngineBlackName "smoke"]
+[EngineBlackAuthor "OpenBench smoke test"]
+[SetUp "1"]
+[FEN "r1bqkb1r/pppp1ppp/n4n2/4p3/8/P7/1PPPPPPP/RNBQKBNR w KQkq - 0 1"]
+[GameDuration "00:00:00"]
+[GameStartTime "2026-11-03T08:18:09 -0700"]
+[GameEndTime "2026-11-03T08:18:09 -0700"]
+[PlyCount "14"]
+[Termination "adjudication"]
+[TimeControl "-"]
+
+1. Nh3 {0.00/1 0.000s, n=1, sd=0} Bxa3 {+1.00/1 0.000s, n=1, sd=0}
+2. Rg1 {-1.00/1 0.000s, n=1, sd=0} Bxb2 {+2.00/1 0.000s, n=1, sd=0}
+3. Bxb2 {+1.00/1 0.000s, n=1, sd=0} Nb4 {-1.00/1 0.000s, n=1, sd=0}
+4. c3 {+1.00/1 0.000s, n=1, sd=0} Rf8 {-1.00/1 0.000s, n=1, sd=0}
+5. cxb4 {+4.00/1 0.000s, n=1, sd=0} b5 {-4.00/1 0.000s, n=1, sd=0}
+6. Rxa7 {+5.00/1 0.000s, n=1, sd=0} Ke7 {-5.00/1 0.000s, n=1, sd=0}
+7. Rxa8 {+10.00/1 0.000s, n=1, sd=0}
+Ng4 {-10.00/1 0.000s, n=1, sd=0, White wins by adjudication} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.11.03"]
+[Round "4"]
+[White "smoke-dev"]
+[Black "smoke-base"]
+[Result "1-0"]
+[EngineWhiteName "smoke"]
+[EngineWhiteAuthor "OpenBench smoke test"]
+[EngineBlackName "smoke"]
+[EngineBlackAuthor "OpenBench smoke test"]
+[SetUp "1"]
+[FEN "rnbqkbnr/1pp1ppp1/p2p3p/8/8/1P4P1/PBPPPP1P/RN1QKBNR w KQkq - 0 1"]
+[GameDuration "00:00:00"]
+[GameStartTime "2026-11-03T08:18:09 -0700"]
+[GameEndTime "2026-11-03T08:18:09 -0700"]
+[PlyCount "24"]
+[Termination "adjudication"]
+[TimeControl "-"]
+
+1. Bxg7 {+1.00/1 0.000s, n=1, sd=0} Nf6 {-1.00/1 0.000s, n=1, sd=0}
+2. Bxh6 {+2.00/1 0.000s, n=1, sd=0} Ng4 {-2.00/1 0.000s, n=1, sd=0}
+3. Bxf8 {+5.00/1 0.000s, n=1, sd=0} Kxf8 {-2.00/1 0.000s, n=1, sd=0}
+4. f3 {+2.00/1 0.000s, n=1, sd=0} Rxh2 {-1.00/1 0.000s, n=1, sd=0}
+5. Rxh2 {+6.00/1 0.000s, n=1, sd=0} Nxh2 {-1.00/1 0.000s, n=1, sd=0}
+6. d3 {+1.00/1 0.000s, n=1, sd=0} Nxf3+ {0.00/1 0.000s, n=1, sd=0}
+7. exf3 {+3.00/1 0.000s, n=1, sd=0} Ke8 {-3.00/1 0.000s, n=1, sd=0}
+8. Kf2 {+3.00/1 0.000s, n=1, sd=0} Qd7 {-3.00/1 0.000s, n=1, sd=0}
+9. Bh3 {+3.00/1 0.000s, n=1, sd=0} Qxh3 {0.00/1 0.000s, n=1, sd=0}
+10. Nxh3 {+9.00/1 0.000s, n=1, sd=0} Bd7 {-9.00/1 0.000s, n=1, sd=0}
+11. Ke1 {+9.00/1 0.000s, n=1, sd=0} Bxh3 {-6.00/1 0.000s, n=1, sd=0}
+12. Ke2 {+6.00/1 0.000s, n=1, sd=0}
+Ra7 {-6.00/1 0.000s, n=1, sd=0, White wins by adjudication} 1-0
+
+[Event "Fastchess Tournament"]
+[Site "?"]
+[Date "2026.11.03"]
+[Round "4"]
+[White "smoke-base"]
+[Black "smoke-dev"]
+[Result "1-0"]
+[EngineWhiteName "smoke"]
+[EngineWhiteAuthor "OpenBench smoke test"]
+[EngineBlackName "smoke"]
+[EngineBlackAuthor "OpenBench smoke test"]
+[SetUp "1"]
+[FEN "rnbqkbnr/1pp1ppp1/p2p3p/8/8/1P4P1/PBPPPP1P/RN1QKBNR w KQkq - 0 1"]
+[GameDuration "00:00:00"]
+[GameStartTime "2026-11-03T08:18:09 -0700"]
+[GameEndTime "2026-11-03T08:18:09 -0700"]
+[PlyCount "24"]
+[Termination "adjudication"]
+[TimeControl "-"]
+
+1. Bxg7 {+1.00/1 0.000s, n=1, sd=0} Nf6 {-1.00/1 0.000s, n=1, sd=0}
+2. Bxh6 {+2.00/1 0.000s, n=1, sd=0} Ng4 {-2.00/1 0.000s, n=1, sd=0}
+3. Bxf8 {+5.00/1 0.000s, n=1, sd=0} Kxf8 {-2.00/1 0.000s, n=1, sd=0}
+4. f3 {+2.00/1 0.000s, n=1, sd=0} Rxh2 {-1.00/1 0.000s, n=1, sd=0}
+5. Rxh2 {+6.00/1 0.000s, n=1, sd=0} Nxh2 {-1.00/1 0.000s, n=1, sd=0}
+6. d3 {+1.00/1 0.000s, n=1, sd=0} Nxf3+ {0.00/1 0.000s, n=1, sd=0}
+7. exf3 {+3.00/1 0.000s, n=1, sd=0} Ke8 {-3.00/1 0.000s, n=1, sd=0}
+8. Kf2 {+3.00/1 0.000s, n=1, sd=0} Qd7 {-3.00/1 0.000s, n=1, sd=0}
+9. Bh3 {+3.00/1 0.000s, n=1, sd=0} Qxh3 {0.00/1 0.000s, n=1, sd=0}
+10. Nxh3 {+9.00/1 0.000s, n=1, sd=0} Bd7 {-9.00/1 0.000s, n=1, sd=0}
+11. Ke1 {+9.00/1 0.000s, n=1, sd=0} Bxh3 {-6.00/1 0.000s, n=1, sd=0}
+12. Ke2 {+6.00/1 0.000s, n=1, sd=0}
+Ra7 {-6.00/1 0.000s, n=1, sd=0, White wins by adjudication} 1-0
+

@@ -18,7 +18,7 @@
         <link rel="preconnect" href="https://fonts.gstatic.com">
         <link href="https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap" rel="stylesheet">
 
-        <title>OpenBench</title>
+        <title>{% block title %}OpenBench{% endblock %}</title>
 
         {% block scripts %}
         {% endblock %}
@@ -83,6 +83,26 @@
 
             }, false);
 
+            document.addEventListener('submit', event => {
+
+                // Prevent duplicate <form> submissions
+                const form = event.target;
+                if (form.dataset.submitting) {
+                    event.preventDefault();
+                    return;
+                }
+
+                form.dataset.submitting = true;
+            }, true);
+
+            window.addEventListener('pageshow', event => {
+                if (event.persisted) {
+                    document
+                        .querySelectorAll('form[data-submitting]')
+                        .forEach(form => delete form.dataset.submitting);
+                }
+            });
+
             function toggle_sidebar() {
                 document.body.classList.toggle('sidebar-open')
             }
@@ -102,6 +122,7 @@
                     <li><a href="/login"><i class="fa-solid fa-right-to-bracket fa-fw"></i> Login</a></li>
                     <li><a href="/register"><i class="fa-solid fa-registered fa-fw"></i> Register</a></li>
                 {% endif %}
+                <li><a href="/manage"><i class="fa-solid fa-sliders fa-fw"></i> Manage</a></li>
             </ul>
 
             <hr>
@@ -146,8 +167,8 @@
 
             <ul>
                 <li class="header">Engines</li>
-                {% for engine, data in config.engines.items %}
-                    <li><a href="{{data.source}}">{{engine}}</a></li>
+                {% for engine in engines %}
+                    <li><a href="{{engine.source}}">{{engine.name}}</a></li>
                 {% endfor %}
             </ul>
 

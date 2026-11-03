@@ -14,20 +14,24 @@
 
             <tr><td class="td-label">User</td><td>{{machine.user.username}}</td></tr>
             <tr><td class="td-label">Machine Name</td><td>{{machine.info.machine_name}}</td></tr>
-            <tr><td class="td-label">Client Version</td><td>{{machine.info.client_ver}}</td></tr>
-            <tr><td class="td-label">Python Version</td><td>{{machine.info.python_ver}}</td></tr>
-            <tr><td class="td-label">System Version</td><td>{{machine.info.os_name}} {{machine.info.os_ver}}</td></tr>
             <tr><td class="td-label">Last Seen</td><td class="timestamp">{{machine.updated|date:'U'}}</td>
-
             <tr><td class="td-label"></td><td><br></td></tr>
 
+            <tr><td class="td-label">Client Version</td><td>{{machine.info.client_ver}}</td></tr>
+            <tr><td class="td-label">Fastchess Version</td><td>{{machine.info.fastchess_ver}}</td></tr>
+            <tr><td class="td-label">Python Version</td><td>{{machine.info.python_ver}}</td></tr>
+            <tr><td class="td-label">System Version</td><td>{{machine.info.os_name}} {{machine.info.os_ver}}</td></tr>
+            <tr><td class="td-label"></td><td><br></td></tr>
+
+            <tr><td class="td-label">ISA Name</td><td>{{machine.info.isa_name}}</td></tr>
             <tr><td class="td-label">CPU Name</td><td>{{machine.info.cpu_name}}</td></tr>
             <tr><td class="td-label">CPU Flags</td><td><pre>{{machine|cpuflagsBlock}}</pre></td></tr>
             <tr><td class="td-label">Logical Cores</td><td>{{machine.info.logical_cores}}</td></tr>
             <tr><td class="td-label">Physical Cores</td><td>{{machine.info.physical_cores}}</td></tr>
             <tr><td class="td-label">Total RAM (MB)</td><td>{{machine.info.ram_total_mb}}</td></tr>
+            <tr><td class="td-label">Huge Pages</td><td>{{machine.info.huge_pages|default:"UNKNOWN"}}</td></tr>
             <tr><td class="td-label">Syzygy WDL</td><td>{{machine.info.syzygy_max}}-Man</td></tr>
-            <tr><td class="td-label">Init Args</td><td>--threads {{machine.info.concurrency}} --nsockets {{machine.info.sockets}} --focus {{machine.info.focus}}</td></tr>
+            <tr><td class="td-label">CLI Options</td><td>{{machine.info.cli_options}}</td></tr>
 
             <tr><td class="td-label"></td><td><br></td></tr>
 

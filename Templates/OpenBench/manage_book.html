@@ -1,0 +1,46 @@
+{% extends "OpenBench/manage.html" %}
+
+{% block manage %}
+
+    <form method="POST" action="/manage/books/{{book.name}}/edit/">
+        {% csrf_token %}
+        <div class="form">
+            <div class="col">
+
+                <div class="row">
+                    <label for="name"> Name </label>
+                    <input id="name" readonly value="{{book.name}}">
+                </div>
+
+                <div class="row">
+                    <label for="source"> Source </label>
+                    <input id="source" name="source" value="{{book.source}}" {% if not can_manage %}readonly{% endif %}>
+                </div>
+
+                <div class="row">
+                    <label for="sha"> Sha256 </label>
+                    <input id="sha" name="sha" value="{{book.sha}}" {% if not can_manage %}readonly{% endif %}>
+                </div>
+
+                <div class="row">
+                    <label for="enabled"> Enabled </label>
+                    <select id="enabled" name="enabled" {% if not can_manage %}disabled{% endif %}>
+                        {% if book.enabled %}
+                            <option selected value="TRUE"> True </option>
+                            <option value="FALSE"> False </option>
+                        {% else %}
+                            <option value="TRUE"> True </option>
+                            <option selected value="FALSE"> False </option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                {% if can_manage %}
+                    <input class="anchorbutton btn-blue w-100" type="submit" value="Update Book">
+                {% endif %}
+
+            </div>
+        </div>
+    </form>
+
+{% endblock %}

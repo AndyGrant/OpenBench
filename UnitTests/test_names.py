@@ -29,6 +29,7 @@ call_command('migrate', verbosity=0)
 from django.contrib.auth.models import User
 
 import OpenBench.nyayo
+import OpenBench.views  # first: it imports the workloads, which import OpenBench.utils, which imports it
 import OpenBench.workloads.create_workload as create_workload
 import OpenBench.workloads.verify_workload as verify_workload
 
@@ -77,9 +78,9 @@ def collect(answers, dev=SHA, side='dev', **more):
     github, errors = Github(answers), []
     verify_workload.requests.get = github
     request = types.SimpleNamespace(POST={ **form(dev), **more })
-    info, has_all = verify_workload.collect_github_info(errors, request, side)
+    info = verify_workload.collect_github_info(errors, request, side)
     assert not errors, errors
-    return info, github
+    return info[:4] + (info[5],), github  # source, branch, sha, bench, and the title (info[4] is the whole message)
 
 def create(answers, dev, base='main', name=''):
     # As the create page makes a test, but for the form checks that need the whole config
