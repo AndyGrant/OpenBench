@@ -439,11 +439,19 @@ def collect_github_info(errors, request, field):
         errors.append('Unable to parse a Bench for %s' % (branch))
         return (None, None)
 
+    # A sha is named by the branch it is the head of, or the pull request it is in, as if that was typed. With
+    # neither, the branch stays the sha, and the commit's first line is what the test is called
+    title = ''
+    if bysha:
+        found = branch_of_sha(base, branch, headers)
+        if found: branch = found
+        else: title = data['commit']['message'].strip().partition('\n')[0].strip()
+
     # Public Engines: Construct the .zip download and return everything
     if not private:
         treeurl = data['commit']['tree']['sha'] + '.zip'
         source  = OpenBench.utils.path_join(request.POST['%s_repo' % (field)], 'archive', treeurl)
-        return (source, branch, data['sha'], bench), True
+        return (source, branch, data['sha'], bench, title), True
 
     ## Step 3: Construct the URL for the API request to list all Artifacts
     ## [A] OpenBench artifacts are always run via a file named openbench.yml
@@ -451,7 +459,31 @@ def collect_github_info(errors, request, field):
     ## [C] If those artifacts are not found, we flag the test as awaiting, and try later.
 
     url, has_all = fetch_artifact_url(base, engine, headers, data['sha'])
-    return (url, branch, data['sha'], bench), has_all
+    return (url, branch, data['sha'], bench, title), has_all
+
+def branch_of_sha(base, sha, headers):
+
+    # The branch a commit is the head of, preferring one that is not the default, or else the head branch of a pull
+    # request with the commit in it ( for a commit whose branch has moved on or is gone ). Whatever goes wrong,
+    # None: a lookup never stops a test from being made
+    try:
+        url = OpenBench.utils.path_join(base, 'commits', sha, 'branches-where-head')
+        names = [x['name'] for x in requests.get(url, headers=headers, timeout=10).json()]
+        if len(names) > 1:
+            default = requests.get(base, headers=headers, timeout=10).json().get('default_branch')
+            names   = [x for x in names if x != default] or names
+        if names: return names[0]
+    except Exception: pass
+
+    try:
+        url = OpenBench.utils.path_join(base, 'commits', sha, 'pulls')
+        for pull in requests.get(url, headers=headers, timeout=10).json():
+            head, into = pull['head'], pull['base']
+            same = (head.get('repo') or {}).get('full_name') == into['repo']['full_name']
+            if same and head['ref']: return head['ref']
+    except Exception: pass
+
+    return None
 
 def requests_illegal_fork(request, field):
 

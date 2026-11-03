@@ -65,6 +65,11 @@
                 <div class="row">
                     <label for="dev_branch" > {{dev_text}} Branch </label> <input id="dev_branch" name="dev_branch" autofocus>
                 </div>
+                {% if workload == "TEST" %}
+                    <div class="row">
+                        <label for="name" > Name </label> <input id="name" name="name" placeholder="Optional, names the match in nyayo">
+                    </div>
+                {% endif %}
                 <div class="row">
                     <label for="dev_bench" > {{dev_text}} Bench </label> <input value="Autofill" id="dev_bench" name="dev_bench">
                 </div>

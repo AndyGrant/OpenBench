@@ -197,7 +197,7 @@ def build_v1_document(test):
         'schema_version': 1,
         'match': {
             'id': build_match_id(test),
-            'name': '%s vs %s' % (player_name(test.dev_engine, test.dev.name), test.base.name),
+            'name': test.name or '%s vs %s' % (player_name(test.dev_engine, test.dev.name), test.base.name),
             'kind': 'sprt' if test.test_mode == 'SPRT' else 'games',
             'state': state,
             'producer': {
