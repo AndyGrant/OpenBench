@@ -461,6 +461,9 @@ def verdict_document(test, state):
         detail = '%s, and %s compiled beside it. %s' % (
             'Every worker that tried gave the same error' if len(names) > 1 else 'The compiler found an error in the source',
             other.lower(), played)
+    elif kind == 'wrong' and 'two answers' in ' '.join(x['text'] for x in first.evidence):
+        detail = ("%s matched its bench on this worker before, and gave another answer now: the same binary gave "
+                  "two answers, so it isn't deterministic across runs.") % (side)
     elif kind == 'wrong':
         detail = ("%s benched as expected on the same machine, so the worker is measuring correctly. Either the commit's "
                   "bench line is stale, or %s isn't deterministic across builds.") % (other, side.lower())

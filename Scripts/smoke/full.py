@@ -1062,6 +1062,9 @@ def scenario_walk(h):
     return 'test %d: %d reports, %d with a walk in %d states, %d workloads, all steps passed' % (
         test_id, len(reports), len(walks), len(seen), hands)
 
+# Bounds an SPRT of the toy engine doesn't reach, so it stays open until it is stopped
+SPRT_OPEN = { 'test_mode' : 'SPRT', 'elolower' : 0.0, 'eloupper' : 5.0, 'alpha' : 1e-6, 'beta' : 1e-6 }
+
 def verdict_of(h, test_id):
     # The newest report's match.verdict, or None
     reports = h.nyayo.for_test(test_id)
@@ -1080,7 +1083,7 @@ def failed_start(h):
 def scenario_worker_trouble(h, dev, base, what):
     # A failure that is the machine's: the test goes on, waiting, and the worker is handed it again, after the
     # time the server gave, and keeps count. Only a person ends it here.
-    test_id = h.create_test(test_mode='GAMES', max_games=8, dev=dev, base=base)
+    test_id = h.create_test(dev=dev, base=base, **SPRT_OPEN)
     side    = what['side']
     # Its second failure, judged once both engines have been through the stage
     h.wait_for(lambda: (step_row(h, test_id, what['step'], side) or {}).get('tries', 0) >= 2 and step_row(h, test_id, what['step'], side)['blame'], 60,
@@ -1101,6 +1104,9 @@ def scenario_worker_trouble(h, dev, base, what):
         failed = [x for x in newest_walks(h, test_id) if x['state'] == 'failed']
         check(not failed or all(x.get('blame') == 'worker' and x.get('retry_at') and 'tries again' in x.get('effect', '') for x in failed),
               'a failed step lacks its verdict: %s' % (failed))
+
+    if h.args.linger:
+        return 'test %d: left open to look at' % (test_id)
 
     h.action(test_id, 'STOP')
     h.wait_until_released(test_id)
@@ -1131,9 +1137,9 @@ def scenario_bench_fails_to_run_on_both(h):
     return scenario_worker_trouble(h, h.engine('dev', bench_mode='silent'), h.engine('base', bench_mode='silent'),
                                    { 'step' : 'bench', 'side' : 'dev', 'why' : 'neither bench ran' })
 
-def scenario_engine_verdict(h, dev, step, summary, why, games=0, **create):
+def scenario_engine_verdict(h, dev, step, summary, why):
     # The engine's failure: the other engine passed beside it, the worker is told to stop, and the test is a failed start
-    test_id = h.create_test(test_mode='GAMES', max_games=8, dev=dev, **create)
+    test_id = h.create_test(dev=dev, **SPRT_OPEN)
     h.wait_for(lambda: h.test_row(test_id)['finished'], 60, 'the verdict to stop test %d' % (test_id))
     row = step_row(h, test_id, step, 'dev')
     check(row['blame'] == 'engine', 'the verdict is %r, expected engine' % (row['blame']))
@@ -1211,7 +1217,7 @@ def scenario_killed(h):
                             "Dev's compile was killed, and no other worker has tried it", restart=True)
 
 def scenario_unclear(h, dev, base, step, summary, restart=False):
-    test_id = h.create_test(test_mode='GAMES', max_games=8, dev=dev, base=base)
+    test_id = h.create_test(dev=dev, base=base, **SPRT_OPEN)
     held    = lambda: (step_row(h, test_id, step, 'dev') or {}).get('tries', 0) >= 2 and step_row(h, test_id, step, 'dev')['blame']
     h.wait_for(held, 60, 'the worker to try test %d twice' % (test_id))
     row = step_row(h, test_id, step, 'dev')
@@ -1245,6 +1251,9 @@ def scenario_unclear(h, dev, base, step, summary, restart=False):
             h.settle(test_id)
             check(newest(h, test_id)['state'] == 'held', 'the match is %r again' % (newest(h, test_id)['state']))
 
+    if h.args.linger:
+        return 'test %d: left open to look at' % (test_id)
+
     h.action(test_id, 'STOP')
     h.wait_until_released(test_id)
     h.verify(test_id)
@@ -1253,7 +1262,7 @@ def scenario_unclear(h, dev, base, step, summary, restart=False):
 def scenario_later_workload(h):
     # A bench right on the first workload and wrong on a later one: the same binary gave two answers, which is the
     # engine's, whoever else has matched. The test has games, so it is an error, not a failed start.
-    test_id = h.create_test(test_mode='GAMES', max_games=400, workload_size=1, dev=h.engine('dev', bench_mode='flip'))
+    test_id = h.create_test(workload_size=1, dev=h.engine('dev', bench_mode='flip'), **SPRT_OPEN)
     h.wait_for(lambda: h.test_row(test_id)['finished'], 90, 'the verdict to stop test %d' % (test_id))
     row = step_row(h, test_id, 'bench', 'dev')
     check(row['blame'] == 'engine' and h.test_row(test_id)['games'] > 0, 'verdict %r with %d games' % (row['blame'], h.test_row(test_id)['games']))
@@ -1357,6 +1366,10 @@ def main(args):
 
             if failed:
                 harness.report_logs()
+
+            if args.linger:
+                print('LINGER %ds: OpenBench at %s, nyayo at %s' % (args.linger, harness.url, nyayo and nyayo.url), flush=True)
+                time.sleep(args.linger)
 
         except Exception:
             harness.report_logs()

@@ -101,9 +101,10 @@ Upstream, plus:
 | the client: compiling with at most 4 threads (a low spec machine), and a workload's PGN file named by its book index too, so two workloads starting in the same second don't share one | `Client/utils.py`, `Client/worker.py` |
 | `Scripts/archive2nps.py` takes the side from `Subject` when a game has one | `Scripts/archive2nps.py` |
 | the deploy scripts | `deploy/` |
-| a worker's walk through a test, reported as it goes (*Reporting to nyayo*) | `OpenBench/steps.py`, `OpenBench/models.py` (`Step`, `Result.workloads`), `views.client_report_step`, `workloads/get_workload.py`, `Client/worker.py` |
+| a worker's walk through a test, reported as it goes, and the verdict on a failed step (*Reporting to nyayo*) | `OpenBench/steps.py`, `OpenBench/models.py` (`Step`, `Result.workloads`), `views.client_report_step`, `workloads/get_workload.py`, `workloads/modify_workload.py`, `Client/worker.py` |
+| a failed start shown on OpenBench's own pages | `testResultColour` and `startProblem` in `OpenBench/templatetags/mytags.py`, `Templates/OpenBench/workload.html`, `statblock-start` in `OpenBench/static/style.css` |
 | the full smoke test | `Scripts/smoke_client_server.py`, `Scripts/smoke/` |
-| unit tests | `UnitTests/` (`test_pgn_util.py`, `test_game_names.py`, `test_steps.py`: scripts, run from `UnitTests/`) |
+| unit tests | `UnitTests/` (`test_pgn_util.py`, `test_game_names.py`, `test_steps.py`, `test_verdict.py`, `test_client_retry.py`: scripts, run from `UnitTests/`) |
 
 ### Reporting to nyayo
 
@@ -118,6 +119,8 @@ this section says when OpenBench sends what.
 | `NYAYO_INSTANCE` | `openbench` | ids are `openbench-<instance>-<test id>`; changing it makes every test a new match |
 | `NYAYO_SCHEMA` | `v1` (also the default) | `v1`, nyayo's match schema, or `openbench`, the reporter's older shape, which nyayo refuses (`400`) from nyayo `0913a6c` on; kept for the smoke test's move of an old match |
 | `NYAYO_OPENBENCH_URL` | `http://172.16.100.11:8000` | makes the link back to a test (`producer.url`) absolute |
+
+Not nyayo's, but the verdict's: `OPENBENCH_STEP_RETRY_SECONDS` (`STEP_RETRY_SECONDS`, 300) is how long a worker in trouble is told to wait before it tries a test again; the smoke test makes it 2.
 
 - **When**: one match document when a test is created (on commit, whatever its approval, so before any worker has seen
   it), when a workload is handed out (once it's committed: the machine is now on the test), when a step of a worker's
@@ -144,19 +147,24 @@ this section says when OpenBench sends what.
   for up to 300 s of waiting, on the games' thread only. Reports never get a `503`.
 - **The state**, derived from the test every time, in this order: deleted is `stopped`, whether or not it was stopped
   or had passed first; finished with a pass or a fail is `finished` (and, for an SPRT, `sprt.result`); finished
-  otherwise is `error` when its newest bench error is newer than its newest action by hand, else `stopped`; anything
-  else is `waiting` until a worker has passed the `running` step of its walk (or a game has been played, which a test
-  from before the steps did without reporting one), `running` from then on. A bench
-  error is the worker's `LogEvent` without a log file, which only `clientBenchError` writes. Crashes are in the counts;
-  `test.error` doesn't decide the state.
+  otherwise is `failed_prechecks` when a verdict blamed the engine for a failed step and no game was played, `error`
+  when one did and games were played, else `stopped`; anything else is `held` when a failure nobody can place has left
+  no worker able to play the test, `waiting` until a worker has passed the `running` step of its walk (or a game has
+  been played, which a test from before the steps did without reporting one), and `running` from then on. An engine
+  verdict is a failed `Step` row with `blame` `engine`, which a restart by hand clears. Crashes are in the counts;
+  `test.error` doesn't decide the state. A test an older OpenBench stopped as `error` on a bench error is `stopped`
+  when it is sent again.
 - **The document** (v1): the engine as the subject, with dev's branch and sha, and `repo` from the test's `dev_repo`;
   one opponent `base`, with base's branch and `base_repo`; one row of counts with the pentanomial; for an SPRT its
   bounds, the LLR and OpenBench's own Elo and error as `stats`, computed as the test page shows them. The match's name
   is `<engine> <dev branch> vs <base branch>`. Crashes and time losses are counted under the subject, since OpenBench
   doesn't know the side. A machine is in `machines` once it has a `Result` row, which `get_workload` makes when it
   hands the test out; `active` says it is on this test now (its workload is the test and it was heard from in the
-  last 5 minutes); `workloads` is how many workloads of the test it has been handed, and `steps` its walk (below). The older `openbench` shape has no `waiting`: it says
-  `running`.
+  last 5 minutes); `workloads` is how many workloads of the test it has been handed, and `steps` its walk (below).
+  `match.verdict` (below) is sent when the state comes from a failure. `finished_at` is set on every state that has
+  ended (`finished`, `stopped`, `error`, `failed_prechecks`), not on `waiting`, `held` or `running`: nyayo expires a
+  `failed_prechecks` match 48 hours after it. The older `openbench` shape has no `waiting`, `held` or `failed_prechecks`:
+  it says `running`, `running` and `error`.
 - **The walk** (client 40 on): each machine's walk through a test, as nyayo's *Steps*, in this order: `picked_up`,
   `compile` of `dev` and of `base`, `bench` of each, `running`. A step is a `Step` row per `Result`, not a field of it:
   `ended_at` dates a finished test by `Result.updated`, which a step arriving late must not move.
@@ -170,16 +178,47 @@ this section says when OpenBench sends what.
   - A worker that comes back keeps the steps it has passed: reporting a step passed again, or active, changes nothing,
     so its walk doesn't go back to pending at every workload. A step it fails turns failed (`tries` counts them,
     `detail` is one line, `log` the end of the compiler's output, sent as its last 4096 bytes in whole characters,
-    which is all nyayo takes); handed the test again after a failure (a restart by hand) it starts over, its `tries`
-    kept. A step with no row is `pending`; a `Result` from before the steps has no `steps`. Trouble fetching things
-    (the zip, the book) leaves the compile `active` with the reason as its `detail`.
+    which is all nyayo takes). Two things start it again, and differ: **a retry** (the worker was told to try again,
+    and is handed the test) turns the steps that failed to pending and keeps their `tries`, which count until the
+    step passes; **a restart by hand** (`RESTART`, which `modify_workload` answers with `steps.restart_walks`) turns
+    every step of every worker to pending, `tries` and verdicts too, and releases a hold. A step with no row is
+    `pending`; a `Result` from before the steps has no `steps`. Trouble fetching things (the zip, the book) leaves the
+    compile `active` with the reason as its `detail`. A private engine's missing artifact is not judged (the step
+    fails with `Artifact ... missing`, no verdict), and goes on as before.
   - The worker takes **both engines through each stage**: `complete_workload` builds dev and base, then
     `determine_scale_factor` benches both, each catching a failure so the other still runs and raising it (dev's first)
     once both are done. A stage costs at most one more compile or bench, and the other engine's result is in the
-    walk. What follows a failed stage isn't reached. **What stops a test is unchanged**: a failed compile still
-    blacklists the test in the worker's memory and leaves it active, a failed bench still stops it
-    (`clientBenchError`, state `error`). A failed step has `state`, `detail` and `log`; `blame`, `evidence`, `effect`
-    and `retry_at` are columns of the row with nothing writing them yet.
+    walk. What follows a failed stage isn't reached.
+- **The verdict** (`steps.settle`, on the server so a rule changes without a client version): when a stage (the two
+  compiles, or the two benches) has ended on both engines of a worker, each failed step in it that has no verdict gets
+  one, from the first row that fits of the plan's table (ramani `plans/sprt-steps.md`, *Whose failure it is*), by
+  the step's `log` and `detail`, the other engine on the same worker, and the same step of this engine on the other
+  workers. It fills `blame` (`engine`, `worker` or `unclear`), `evidence` (each with `points_at`), `effect` and
+  `retry_at`, written out for a person. A compile is judged by the wording of its log (`steps.compile_kind`: the
+  machine, a file and a line, killed, anything else); a bench by its `detail` (`bench_kind`: over its time, wrong,
+  non-deterministic, failed to execute). A bench that passed on an earlier workload of the worker and fails with a
+  wrong bench now is the engine's: the same binary gave two answers. Not built: the plan's last row, no heartbeat for
+  5 minutes as a worker verdict; nyayo already shows a worker as gone quiet from `active` and its last report, and
+  the test simply goes on.
+  - **engine**: the test is stopped (`finished`, with a `Stopped: ...` event that dates it); with no game played its
+    state is `failed_prechecks`, which nyayo expires, with games `error`. The step report is answered `{ "stop": true }`.
+  - **worker**: the test goes on, the state unchanged. The worker is answered `{ "retry_after": <seconds> }`
+    (`STEP_RETRY_SECONDS`, 300), `retry_at` says when, and every failure of the step counts in `tries`.
+  - **unclear**: a failure nothing places. The first one gets the same retry; on the second the worker leaves the test
+    (`get_workload` leaves out the tests a machine has a step failed `unclear` on with two `tries`, until a restart by
+    hand). When no other worker has taken the test without a failed step, it is **held**: `held`, still open, nobody is
+    told to stop, and nyayo does not expire it. Another worker's result settles it by the same table: the first
+    worker's step is judged again when another worker fails the same way (engine: the test stops) or passes the step
+    (worker: it may try again).
+  - The worker keeps the answer (`config.answer`) and, when the workload fails on a compile or a bench, leaves the
+    test in `config.blacklist` for `retry_after` seconds (5 minutes where it hears neither), dropping the entry when
+    it is due, in place of never. `clientBenchError` and `clientSubmitError` still log their events (the events page and
+    its logs); `clientBenchError` no longer stops the test.
+- **match.verdict**, when the state comes from a failure: `failed_prechecks` or `error`: the engine's step, with
+  `where` (the file and line of a compile error) and `seen_on` (the machines that failed it); `held`: the step nobody
+  could place; `waiting`: every machine that took the test is in trouble of its own, `blame` `worker`. OpenBench's own
+  list colours a stopped test with an engine's failure `statblock-start`, and the test page says `Failed start` or
+  `Held` with the reason.
 - **Games**: each upload is sent whole, as one `PUT /api/matches/<id>/pgns/<result id>.<book index>`,
   `application/x-bzip2`: the bytes the worker uploaded, the same bytes `Media/PGNs/<test>.pgn.tar` keeps. nyayo reads
   nothing in the request and puts the games away in the background, so a bad upload is refused later by its worker
@@ -221,9 +260,19 @@ on Windows too. With `--full` (Linux or WSL, needs `make`, g++ and `Scripts/smok
   and a card per game with the subject's colour, an opponent, the `Termination` and the game as sent.
 - Each walk in a report is checked (`expect.check_steps`): the six steps in order, a time on every step that has begun,
   a detail on every failure, a log of at most 4096 bytes, no step back to pending or active after it passed unless one
-  failed in between, and the last report's steps equal to the `Step` rows. A step is an event of its own (`step`) when
-  it changed a row; it leaves the state as it was, `waiting` until the worker passes `running`, so its report may be
-  one with the next event's.
+  failed in between or the test was restarted by hand (every step but `picked_up` pending), and the last report's
+  steps equal to the `Step` rows. A step is an event of its own (`step`) when
+  it changed a row (or made a verdict); it leaves the state as it was, `waiting` until the worker passes `running`, so
+  its report may be one with the next event's, except where it makes a verdict: the engine's stops the test
+  (`failed_prechecks`, or `error` with games), and a second can't-tell on the only worker holds it (`held`). A restart
+  by hand (`RESTART`) is `waiting`.
+- The rig's engine fails the way a scenario asks (`files.BROKEN_MAKEFILES`: a file and a line, no disk space, killed;
+  `BENCH_MODE` in `engine.py`: a bench over its time, one that prints nothing, one right once and wrong after), with
+  the server's retry shortened to 2 s and the client's bench limit to 3 s in the copy. It can't stage what needs a
+  second worker or a bench copy that disagrees (the rig runs one thread): a compile another worker passed, a failure
+  another worker had the same way, a bench another worker matched, a non-deterministic bench; those rows are unit
+  tests (`UnitTests/test_verdict.py`). `--linger SECONDS` keeps the servers up after the run, a worker's trouble and a
+  hold left open, to look at nyayo's pages.
 - A test is made as the create page makes it: reported (from the harness, as `create_workload` does), then opened to
   workers. A workload handed out is an event of its own (`workload`), a report with the worker in `machines`. Every
   report of a test must agree with its first on what nyayo fixes (`expect.fixed_part`, nyayo's `ingest.fixed_part`).
@@ -238,7 +287,7 @@ Scenarios:
 | 3 | stop mid-test |
 | 4 | delete mid-test, not stopped |
 | 5 | restore after a delete |
-| 6 | a bench mismatch |
+| 6 | dev's bench is wrong and base's matched: the engine's; the verdict stops the test (`failed_prechecks`), with the walk's `Wrong bench: <got>, expected <bench>`, base's nodes and `running` not reached |
 | 7 | crashes, then a stop |
 | 8 | nyayo down for a while |
 | 9 | no `NYAYO_URL`: a second server that sends nothing |
@@ -250,9 +299,16 @@ Scenarios:
 | 15 | `report_to_nyayo --games`, with an upload from before client 39 in the tar, twice |
 | 16 | a test made and not yet approved is on nyayo as `waiting` with no games and no machines; once approved, its worker shows in a `waiting` report before any game |
 | 17 | a passing walk reaches nyayo step by step (at least three different walks seen), `waiting` until `running` has passed, with the dev compile's time and both benches' nodes and speed; two workloads are counted and no step goes back |
-| 18 | dev doesn't compile: its compile is failed with the compiler's line and output, base's compiled beside it, the benches and `running` not reached, the test still active and `waiting` until it is stopped by hand |
-
-Scenario 6 also checks the walk: dev's bench failed with `Wrong bench: <got>, expected <bench>` and base's passed, with its nodes.
+| 18 | dev doesn't compile with a file and a line, and base's compiled beside it: the engine's; the test is stopped by the verdict, `failed_prechecks` with `finished_at` and the verdict's `where` and `seen_on`, the worker not handed it again |
+| 19 | the compiler's log says no disk space: the worker's; the test goes on `waiting` and the worker is handed it again after the retry, two tries, a worker verdict in the document; stopped by hand |
+| 20 | both engines fail to compile with a file and a line: the worker's |
+| 21 | the compiler is killed and no other worker has tried: one more try, then the worker leaves and the test is `held` (open, no `finished_at`); stopped and restarted by hand, every walk starts over (tries 0), the worker is handed it again and it is held again |
+| 22 | a wrong bench on both engines: held, as 21 |
+| 23 | both benches over their time: the worker's, as 19 |
+| 24 | dev's bench over its time and base's not: the engine's, as 18 |
+| 25 | dev's bench prints nothing (failed to execute) and base's runs: the engine's |
+| 26 | neither bench runs: the worker's |
+| 27 | a bench right on the first workload and wrong on a later one: the engine's, with games played, so `error` and not a failed start |
 
 A scenario marked expected-to-fail in `expect.py` makes the run fail once it passes. None is marked.
 

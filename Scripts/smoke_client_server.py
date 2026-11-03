@@ -324,6 +324,8 @@ def main():
     parser.add_argument("--only", default="", help="--full: comma-separated scenario numbers to run")
     parser.add_argument("--keep", action="store_true", help="--full: keep the temp directory and logs")
     parser.add_argument("--verbose", action="store_true", help="--full: print the details of expected failures")
+    parser.add_argument("--linger", type=int, default=0,
+                        help="--full: seconds to keep the servers up after the scenarios (a worker's trouble and a hold are left open), to look at nyayo's pages")
     parser.add_argument("--nyayo", default="", help="--full: a nyayo checkout to run behind the recorder")
     parser.add_argument("--nyayo-python", default="", help="--full: the Python for --nyayo (Django 5.2)")
     parser.add_argument("--schema", default="v1", choices=["openbench", "v1"],

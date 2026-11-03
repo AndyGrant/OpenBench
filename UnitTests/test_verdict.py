@@ -354,6 +354,9 @@ def test_the_verdicts_in_nyayos_words():
     assert step['blame'] == 'engine' and step['effect'].startswith('The test stops.') and step['tries'] == 1
     assert [x['points_at'] for x in step['evidence']] == ['engine', 'engine']
 
+    # The older shape knows no failed start: it says error
+    assert nyayo.build_openbench_document(stopped)['state'] == 'error'
+
     # A passing test has no verdict
     assert 'verdict' not in nyayo.build_match_document(reload(new_test()))['match']
 
