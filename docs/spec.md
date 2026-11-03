@@ -46,8 +46,9 @@ the fork's additions and how it's deployed, and how other components read OpenBe
 
 ### Engine configuration
 
-Elephant's configuration is the fork's `Engines/elephant.json`: built from `ob_build`, reference nps **1198000**
-(unchanged since it was added, 2025-12-10). OpenBench scales time controls by that reference against what a worker
+Elephant's configuration is the fork's `Engines/elephant.json`: built from `ob_build`, reference nps **1487000**
+(2026-11-03, when Elephant's bench went from depth 7 to 11: the old 1198000 times the 1.2414 depth 11 reports with every
+thread benching at once, measured on the developer PC, so a test's time factor stays about 1.41). OpenBench scales time controls by that reference against what a worker
 measures with `bench`. The reference must be recalibrated whenever the bench changes, or test TCs come out wrong; a
 stale value once stretched 8+0.08 to roughly 42+0.42. The bench uses one 16 MB TT for all positions since 1.0.0 so it
 isn't dominated by page faults when a worker benches many copies at once: about 4.4M nps alone, 2.85M per copy at 16
