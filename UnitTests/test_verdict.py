@@ -53,7 +53,7 @@ def new_test():
 
 def new_worker(test, name):
     user    = User.objects.create(username='%s%d' % (name, User.objects.count()))
-    machine = Machine.objects.create(user=user, info={ 'machine_name' : name })
+    machine = Machine.objects.create(user=user, info={ 'machine_name' : name }, workload=test.id)
     result  = Result.objects.create(test=test, machine=machine, workloads=1)
     steps.start_walk(result)
     return result
@@ -318,10 +318,51 @@ def test_a_second_worker_settles_a_held_test():
     assert verdict(hunt, 'compile', 'dev')[0] == 'worker' and row(hunt, 'compile', 'dev').retry_at
     assert left(hunt) == [] and not reload(test).finished
 
+def test_a_test_with_games_can_be_held():
+    test = new_test(); hunt = new_worker(test, 'hunt')
+    hunt.games = 6; hunt.save()
+    ok(hunt, 'compile', 'dev'); ok(hunt, 'compile', 'base'); ok(hunt, 'running', '')
+    assert nyayo.match_state(reload(test)) == ('running', None)
+    # A later workload fails in a way nobody can place, twice: nothing is playing, so it is held, with its verdict
+    for _ in range(2):
+        steps.start_walk(hunt)
+        fail(hunt, 'bench', 'dev', WRONG); fail(hunt, 'bench', 'base', WRONG)
+    assert nyayo.match_state(reload(test)) == ('held', None)
+    assert steps.verdict_document(reload(test), 'held')['blame'] == 'unclear'
+    assert nyayo.build_match_document(reload(test))['match']['state'] == 'held'
+
+def test_a_machine_that_is_gone_cannot_play_it():
+    test = new_test(); hunt = new_worker(test, 'hunt'); tor = new_worker(test, 'tor')
+    leave(hunt)
+    assert nyayo.match_state(reload(test))[0] == 'waiting'  # tor is on it
+    effect = lambda: next(x for x in steps.walk_document(Step.objects.filter(result=hunt), nyayo.iso) if x['step'] == 'compile' and x.get('side') == 'dev')['effect']
+    assert 'another worker can still play' in effect()
+
+    # Not heard from for days: held, and the wording follows
+    import datetime
+    from django.utils import timezone
+    Machine.objects.filter(id=tor.machine_id).update(updated=timezone.now() - datetime.timedelta(days=3))
+    assert nyayo.match_state(reload(test))[0] == 'held' and effect().startswith('The test is held')
+
+    # Back on it: the next report is waiting again. On something else instead: still held
+    Machine.objects.filter(id=tor.machine_id).update(updated=timezone.now())
+    assert nyayo.match_state(reload(test))[0] == 'waiting'
+    Machine.objects.filter(id=tor.machine_id).update(workload=test.id + 1)
+    assert nyayo.match_state(reload(test))[0] == 'held'
+
+def test_a_held_test_is_restarted_where_it_is():
+    import OpenBench.templatetags.mytags as tags
+    test = new_test(); hunt = new_worker(test, 'hunt')
+    leave(hunt)
+    assert tags.isHeld(reload(test)) and not reload(test).finished  # The page offers Restart on it
+    steps.restart_walks(test)
+    assert not tags.isHeld(reload(test)) and nyayo.match_state(reload(test))[0] == 'waiting'
+    assert left(hunt) == [] and row(hunt, 'compile', 'dev').tries == 0
+
 def test_nobody_can_place_it_but_another_worker_can_play():
     test = new_test(); hunt = new_worker(test, 'hunt'); tor = new_worker(test, 'tor')
     leave(hunt)
-    assert 'goes on with the other workers' in row(hunt, 'compile', 'dev').effect
+    assert 'another worker can still play' in row(hunt, 'compile', 'dev').effect
     assert nyayo.match_state(reload(test)) == ('waiting', None)
     assert left(hunt) == [test.id]
 

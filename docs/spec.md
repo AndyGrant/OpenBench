@@ -149,7 +149,7 @@ Not nyayo's, but the verdict's: `OPENBENCH_STEP_RETRY_SECONDS` (`STEP_RETRY_SECO
   or had passed first; finished with a pass or a fail is `finished` (and, for an SPRT, `sprt.result`); finished
   otherwise is `failed_prechecks` when a verdict blamed the engine for a failed step and no game was played, `error`
   when one did and games were played, else `stopped`; anything else is `held` when a failure nobody can place has left
-  no worker able to play the test, `waiting` until a worker has passed the `running` step of its walk (or a game has
+  no worker able to play the test (games or none: a test with games and nothing playing is held too), `waiting` until a worker has passed the `running` step of its walk (or a game has
   been played, which a test from before the steps did without reporting one), and `running` from then on. An engine
   verdict is a failed `Step` row with `blame` `engine`, which a restart by hand clears. Crashes are in the counts;
   `test.error` doesn't decide the state. A test an older OpenBench stopped as `error` on a bench error is `stopped`
@@ -206,7 +206,8 @@ Not nyayo's, but the verdict's: `OPENBENCH_STEP_RETRY_SECONDS` (`STEP_RETRY_SECO
     (`STEP_RETRY_SECONDS`, 300), `retry_at` says when, and every failure of the step counts in `tries`.
   - **unclear**: a failure nothing places. The first one gets the same retry; on the second the worker leaves the test
     (`get_workload` leaves out the tests a machine has a step failed `unclear` on with two `tries`, until a restart by
-    hand). When no other worker has taken the test without a failed step, it is **held**: `held`, still open, nobody is
+    hand). When no other worker is on the test (its workload is the test, heard from in the last 5 minutes, as nyayo's
+    `active`) without a failed step, it is **held**: `held`, still open, nobody is
     told to stop, and nyayo does not expire it. Another worker's result settles it by the same table: the first
     worker's step is judged again when another worker fails the same way (engine: the test stops) or passes the step
     (worker: it may try again).
@@ -218,7 +219,9 @@ Not nyayo's, but the verdict's: `OPENBENCH_STEP_RETRY_SECONDS` (`STEP_RETRY_SECO
   `where` (the file and line of a compile error) and `seen_on` (the machines that failed it); `held`: the step nobody
   could place; `waiting`: every machine that took the test is in trouble of its own, `blame` `worker`. OpenBench's own
   list colours a stopped test with an engine's failure `statblock-start`, and the test page says `Failed start` or
-  `Held` with the reason.
+  `Held` with the reason, and a held test shows the Restart button (it is not finished): restarting it starts every walk over and
+  releases the hold. The `effect` of a step that left the test is written again at each report, since whether another
+  worker can still play it changes.
 - **Games**: each upload is sent whole, as one `PUT /api/matches/<id>/pgns/<result id>.<book index>`,
   `application/x-bzip2`: the bytes the worker uploaded, the same bytes `Media/PGNs/<test>.pgn.tar` keeps. nyayo reads
   nothing in the request and puts the games away in the background, so a bad upload is refused later by its worker
@@ -302,7 +305,7 @@ Scenarios:
 | 18 | dev doesn't compile with a file and a line, and base's compiled beside it: the engine's; the test is stopped by the verdict, `failed_prechecks` with `finished_at` and the verdict's `where` and `seen_on`, the worker not handed it again |
 | 19 | the compiler's log says no disk space: the worker's; the test goes on `waiting` and the worker is handed it again after the retry, two tries, a worker verdict in the document; stopped by hand |
 | 20 | both engines fail to compile with a file and a line: the worker's |
-| 21 | the compiler is killed and no other worker has tried: one more try, then the worker leaves and the test is `held` (open, no `finished_at`); stopped and restarted by hand, every walk starts over (tries 0), the worker is handed it again and it is held again |
+| 21 | the compiler is killed and no other worker has tried: one more try, then the worker leaves and the test is `held` (open, no `finished_at`); restarted by hand (the page offers Restart on a held test), every walk starts over (tries 0), the worker is handed it again and it is held again |
 | 22 | a wrong bench on both engines: held, as 21 |
 | 23 | both benches over their time: the worker's, as 19 |
 | 24 | dev's bench over its time and base's not: the engine's, as 18 |

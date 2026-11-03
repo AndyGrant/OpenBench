@@ -1240,8 +1240,7 @@ def scenario_unclear(h, dev, base, step, summary, restart=False):
         check(walk['blame'] == 'unclear' and walk['tries'] == 2 and walk['effect'].startswith('The test is held'), 'the step %s' % (walk))
 
     if restart:
-        # Restarted by hand (a stop first, as the page offers it): every walk starts over, tries too, and a hold goes
-        h.action(test_id, 'STOP')
+        # Restarted by hand, as the page offers it on a held test: every walk starts over, tries too, and the hold goes
         h.action(test_id, 'RESTART')
         row = step_row(h, test_id, step, 'dev')
         check((row['state'], row['tries'], row['blame']) == ('pending', 0, ''), 'after a restart: %s' % (row))

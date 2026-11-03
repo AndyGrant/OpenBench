@@ -89,6 +89,10 @@
                 <a class="anchorbutton btn-yellow" href="/{{type|lower}}/{{workload.id}}/RESTART">Restart</a>
             {% elif workload.finished %}
                 <a class="anchorbutton btn-disabled">Restart</a>
+            {% elif workload|isHeld and profile.approver %}
+                <a class="anchorbutton btn-yellow" href="/{{type|lower}}/{{workload.id}}/RESTART">Restart</a>
+            {% elif workload|isHeld and profile.user.username == workload.author %}
+                <a class="anchorbutton btn-yellow" href="/{{type|lower}}/{{workload.id}}/RESTART">Restart</a>
             {% endif %}
 
             <!-- Stop Button: For Approvers or Workload Authors of active workloads -->

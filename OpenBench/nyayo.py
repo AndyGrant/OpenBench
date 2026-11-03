@@ -88,9 +88,11 @@ def match_state(test):
         if OpenBench.steps.engine_failure(test):
             return ('error' if OpenBench.steps.games_played(test) else 'failed_prechecks'), None
         return 'stopped', None
+    if OpenBench.steps.held(test):
+        return 'held', None
     if not (Step.objects.filter(result__test=test, step='running', state='passed').exists()
             or Result.objects.filter(test=test, games__gt=0).exists()):
-        return ('held' if OpenBench.steps.held(test) else 'waiting'), None
+        return 'waiting', None
     return 'running', None
 
 

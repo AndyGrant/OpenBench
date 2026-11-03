@@ -126,6 +126,12 @@ def testResultColour(test):
         return 'start' # Stopped on its engine's failure: a failed start, whatever it played
     return ''
 
+def isHeld(test):
+
+    # An open test no worker can play after a failure nobody could place: restarted by hand, as a finished one is
+    import OpenBench.nyayo
+    return not test.finished and OpenBench.nyayo.match_state(test)[0] == 'held'
+
 def startProblem(test):
 
     # Why a test failed to start, or is held, in the words sent to nyayo; empty for any other test
@@ -223,6 +229,7 @@ register.filter('shortStatBlock', shortStatBlock)
 register.filter('longStatBlock', longStatBlock)
 register.filter('testResultColour', testResultColour)
 register.filter('startProblem', startProblem)
+register.filter('isHeld', isHeld)
 register.filter('sumAttributes', sumAttributes)
 register.filter('insertCommas', insertCommas)
 register.filter('prettyName', prettyName)

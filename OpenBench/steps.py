@@ -124,6 +124,8 @@ def walk_document(rows, iso):
             continue
 
         entry['state'] = row.state
+        if row.state == 'failed' and row.blame == 'unclear' and row.tries >= TRIES_UNCLEAR:
+            row.effect = leaving_effect(row)  # Written again each time: it changes as other workers come and go
         for name, value in (('at', iso(row.at)), ('seconds', None if row.seconds is None else round(row.seconds, 1)),
                             ('cached', row.cached), ('detail', row.detail), ('log', tail(row.log, 4096)),
                             ('nodes', row.nodes), ('nps', row.nps), ('tries', row.tries or None),
@@ -283,8 +285,11 @@ def decide(step, was_passed=False):
 
 
 def others_able(test, result):
-    # Whether another machine could still play the test: it has taken it and nothing of its walk has failed
-    return Result.objects.filter(test=test).exclude(id=result.id).exclude(steps__state='failed').exists()
+    # Whether another machine could still play the test: it is on it now (its workload is the test and it was heard
+    # from in the last 5 minutes, as nyayo's `active`) and nothing of its walk has failed
+    recent = timezone.now() - datetime.timedelta(minutes=5)
+    return Result.objects.filter(test=test, machine__workload=test.id, machine__updated__gte=recent
+                                 ).exclude(id=result.id).exclude(steps__state='failed').exists()
 
 
 def games_played(test):
@@ -313,12 +318,18 @@ def enact(step, blame, evidence):
     elif step.tries < TRIES_UNCLEAR:
         retry_in(step, seconds)
         step.effect = '%s tries once more in %s, then leaves the test.' % (machine, spoken(seconds))
-    elif others_able(test, result):
-        step.effect = '%s leaves the test. It goes on with the other workers.' % (machine)
     else:
-        step.effect = 'The test is held: no more tries from %s, no verdict, and no expiry.' % (machine)
+        step.effect = leaving_effect(step)
     step.save()
     return blame == 'engine'
+
+
+def leaving_effect(step):
+    # What a machine that has left the test means for it, as it stands now: whether anyone else can play it changes
+    machine = machine_name(step.result.machine)
+    if others_able(step.result.test, step.result):
+        return '%s leaves the test, which another worker can still play.' % (machine)
+    return 'The test is held: no more tries from %s, no verdict, and no expiry.' % (machine)
 
 
 def headline(step):
