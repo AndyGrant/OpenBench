@@ -18,10 +18,16 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+import hashlib
+import json
+import os
+
 from django.db.models import CharField, IntegerField, BigIntegerField, BooleanField, FloatField
 from django.db.models import JSONField, ForeignKey, DateTimeField, OneToOneField, TextField, UniqueConstraint
 from django.db.models import CASCADE, PROTECT, Model, TextChoices
 from django.contrib.auth.models import User
+
+from OpenSite.settings import MEDIA_ROOT
 
 class Engine(Model):
 
@@ -33,16 +39,97 @@ class Engine(Model):
     def __str__(self):
         return '{0} ({1})'.format(self.name, self.bench)
 
+class Book(Model):
+
+    # Workloads refer to Books by name, therefore the name is never changed
+    name    = CharField(max_length=32, unique=True)
+    source  = CharField(max_length=1024)
+    sha     = CharField(max_length=64)
+    enabled = BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+class EngineConfig(Model):
+
+    # Workloads refer to Engines by name, therefore the name is never changed
+    name    = CharField(max_length=64, unique=True)
+    private = BooleanField(default=False)
+    nps     = IntegerField(default=0)
+    source  = CharField(max_length=1024)
+    enabled = BooleanField(default=True)
+
+    # Space seperated lists, kept as strings for the sake of the edit forms
+    build_path      = CharField(max_length=64, blank=True)
+    build_compilers = CharField(max_length=64, blank=True)
+    build_cpuflags  = CharField(max_length=64, blank=True)
+    build_systems   = CharField(max_length=64, blank=True)
+
+    # { 'test_presets' : {...}, 'tune_presets' : {...}, 'datagen_presets' : {...} }
+    presets = JSONField(default=dict, blank=True)
+
+    def __str__(self):
+        return self.name
+
+    def build(self):
+        return {
+            'path'      : self.build_path,
+            'compilers' : self.build_compilers.split(),
+            'cpuflags'  : self.build_cpuflags.split(),
+            'systems'   : self.build_systems.split(),
+        }
+
+    # Clients cache the build checksum, and restart when the Server's differs.
+    # Refreshed here, so that it holds no matter who edited the EngineConfig
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        ServerState.refresh_build_checksum()
+
+    def delete(self, *args, **kwargs):
+        super().delete(*args, **kwargs)
+        ServerState.refresh_build_checksum()
+
+class ServerState(Model):
+
+    # A single row, holding the values that change while the Server is running,
+    # and must be seen by every process. Read on hot paths, so keep it small.
+    build_checksum = CharField(max_length=64, default='')
+
+    def __str__(self):
+        return self.build_checksum
+
+    @staticmethod
+    def checksum():
+        return ServerState.objects.values_list('build_checksum', flat=True).first() or ''
+
+    @staticmethod
+    def refresh_build_checksum():
+
+        # Only the build settings are hashed, so that editing an nps value or a
+        # preset does not needlessly send every Client off to restart itself.
+        # Names are included, or two Engines built alike would cancel each other.
+
+        checksum = hashlib.sha256(b'').digest()
+
+        for config in EngineConfig.objects.all():
+            serialized  = json.dumps([config.name, config.build()], sort_keys=True)
+            partial_sum = hashlib.sha256(serialized.encode('utf-8')).digest()
+            checksum    = bytes(a ^ b for a, b in zip(checksum, partial_sum))
+
+        ServerState.objects.update_or_create(pk=1, defaults={ 'build_checksum' : checksum.hex() })
+
 class Profile(Model):
 
-    user     = ForeignKey(User, PROTECT, related_name='user')
-    games    = IntegerField(default=0)
-    tests    = IntegerField(default=0)
-    repos    = JSONField(default=dict, blank=True, null=True)
-    engine   = CharField(max_length=128, blank=True)
-    enabled  = BooleanField(default=False)
-    approver = BooleanField(default=False)
-    updated  = DateTimeField(auto_now=True)
+    user      = ForeignKey(User, PROTECT, related_name='user')
+    games     = BigIntegerField(default=0)
+    tests     = IntegerField(default=0)
+    repos     = JSONField(default=dict, blank=True, null=True)
+    engine    = CharField(max_length=128, blank=True)
+    enabled   = BooleanField(default=False)
+    approver  = BooleanField(default=False)
+    superuser = BooleanField(default=False)
+    updated   = DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.user.__str__()
@@ -53,7 +140,7 @@ class Machine(Model):
     mnps      = FloatField(default=0.00)
     dev_mnps  = FloatField(default=0.00)
     base_mnps = FloatField(default=0.00)
-    updated   = DateTimeField(auto_now=True)
+    updated   = DateTimeField(auto_now=True, db_index=True)
     secret    = CharField(max_length=64, default='None')
     info      = JSONField()
     workload  = IntegerField(default=0)
@@ -92,6 +179,14 @@ class Result(Model):
 
     # How many workloads of the test this machine has been handed
     workloads = IntegerField(default=0)
+
+    # Total counters for nodes and ms for NPS tracking
+    dev_nodes         = BigIntegerField(default=0)
+    dev_time          = BigIntegerField(default=0)
+    dev_time_scaled   = BigIntegerField(default=0)
+    base_nodes        = BigIntegerField(default=0)
+    base_time         = BigIntegerField(default=0)
+    base_time_scaled  = BigIntegerField(default=0)
 
     def __str__(self):
         return '{0} {1}'.format(self.test.dev.name, self.machine.__str__())
@@ -137,7 +232,9 @@ class Test(Model):
     # Misc information
     author      = CharField(max_length=64)
     upload_pgns = CharField(max_length=16, default='FALSE')
+    info        = CharField(max_length=1024, default='', blank=True)
     name        = CharField(max_length=200, default='', blank=True) # The match's name in nyayo, if not <engine> <branch> vs <branch>
+    runner      = CharField(max_length=16, default='fastchess') # What played its games; nyayo fixes it, so a test from before fastchess stays cutechess-ob
 
     # Opening book settings
     book_name  = CharField(max_length=32)
@@ -170,7 +267,7 @@ class Test(Model):
     scale_method  = CharField(max_length=16, choices=ScaleMethod.choices, default=ScaleMethod.BASE)
     scale_nps     = IntegerField(default=0)
 
-    # Tablebases and Cutechess adjudicatoins
+    # Tablebases and Match runner adjudicatoins
     syzygy_wdl  = CharField(max_length=16, default='OPTIONAL')
     syzygy_adj  = CharField(max_length=16, default='OPTIONAL')
     win_adj     = CharField(max_length=64, default='movecount=3 score=400')
@@ -186,7 +283,6 @@ class Test(Model):
     currentllr    = FloatField(default=0.0) # SPRT
     upperllr      = FloatField(default=0.0) # SPRT
     max_games     = IntegerField(default=0) # GAMES or DATAGEN
-    spsa          = JSONField(default=dict, blank=True, null=True) # SPSA
     genfens_args  = CharField(max_length=256, default='', blank=True) # DATAGEN
     play_reverses = BooleanField(default=False) # DATAGEN
 
@@ -211,7 +307,6 @@ class Test(Model):
     finished    = BooleanField(default=False)
     deleted     = BooleanField(default=False)
     approved    = BooleanField(default=False)
-    awaiting    = BooleanField(default=False)
     error       = BooleanField(default=False)
 
     # Datetime house keeping for meta data
@@ -260,8 +355,26 @@ class Network(Model):
     author      = CharField(max_length=64)
     created     = DateTimeField(auto_now_add=True)
 
+    # True if we hold a zstd compressed copy of the file, at compressed_path()
+    ob_compressed = BooleanField(default=False)
+
+    # Names ending in these hold data that is already compressed
+    COMPRESSED_SUFFIXES = (
+        '.zst', '.zstd', '.gz', '.gzip', '.bz2', '.xz', '.lzma', '.zip', '.7z', '.lz4', '.br', '.z',
+    )
+
     def __str__(self):
         return '[{}] {} ({})'.format(self.engine, self.name, self.sha256)
+
+    def is_precompressed(self):
+        return self.name.lower().endswith(self.COMPRESSED_SUFFIXES)
+
+    def compressed_path(self):
+        return os.path.join(MEDIA_ROOT, '%s.zst' % (self.sha256))
+
+    def has_compressed_copy(self):
+        # Trust the flag only if the file is actually there
+        return self.ob_compressed and os.path.isfile(self.compressed_path())
 
 class PGN(Model):
 
@@ -275,3 +388,41 @@ class PGN(Model):
 
     def filename(self):
         return '%s.%s.%s.pgn.bz2' % (self.test_id, self.result_id, self.book_index)
+
+class SPSARun(Model):
+
+    class SPSAReportingType(TextChoices):
+        BULK    = 'BULK'   , 'BULK'
+        BATCHED = 'BATCHED', 'BATCHED'
+
+    class SPSADistributionType(TextChoices):
+        SINGLE   = 'SINGLE'  , 'SINGLE'
+        MULTIPLE = 'MULTIPLE', 'MULTIPLE'
+
+    tune = OneToOneField(Test, on_delete=CASCADE, related_name='spsa_run', null=True, blank=True)
+
+    reporting_type    = CharField(max_length=16, choices=SPSAReportingType.choices)
+    distribution_type = CharField(max_length=16, choices=SPSADistributionType.choices)
+
+    alpha      = FloatField() # Constants
+    gamma      = FloatField()
+    iterations = IntegerField()
+    pairs_per  = IntegerField()
+    a_ratio    = FloatField()
+
+class SPSAParameter(Model):
+
+    spsa_run  = ForeignKey(SPSARun, on_delete=CASCADE, related_name='parameters')
+    name      = CharField(max_length=64)
+    index     = IntegerField()
+    value     = FloatField() # Only field that changes
+
+    is_float  = BooleanField() # Constants
+    start     = FloatField()
+    min_value = FloatField()
+    max_value = FloatField()
+    c_end     = FloatField()
+    r_end     = FloatField()
+
+    c_value   = FloatField() # Constants pre-computed for speed
+    a_value   = FloatField()

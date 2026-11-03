@@ -26,7 +26,7 @@
 #   pgn      (clientSubmitPGN)             no match report; one PUT .../pgns/<result>.<book_index>, the bytes
 #                                          the worker uploaded, after the match exists in nyayo. The worker
 #                                          uploads each game named <engine> <branch> and tagged Subject and
-#                                          Opponent "base", cutechess's Termination kept
+#                                          Opponent "base", the runner's Termination kept
 #   backfill-upload (report_to_nyayo --games)  no match report; the stored upload again, the same bytes, or for
 #                                          one from before client 39 (no Subject) its games renamed and tagged,
 #                                          compressed again: the same bytes on every backfill
@@ -72,7 +72,7 @@ class Event:
         self.t, self.kind, self.test_id, self.lost = t, kind, test_id, lost
         self.before, self.after = before, after
         self.report, self.state = report, state
-        self.old = False  # An upload from before client 39: no Subject, cutechess's names
+        self.old = False  # An upload from before client 39: no Subject, the old runner's names
         self.quiet = False  # A step that left the state as it was: its report may be one with the next's
 
     def __repr__(self):
@@ -333,7 +333,7 @@ def check_games(events, uploads, reports, names=None, endings=None):
 
     # Returns (problems, how many games must have arrived); an upload while nyayo was down may be
     # missing, since nothing resends it but the backfill. names: (dev, base) as the match names them;
-    # endings: { game : cutechess's Termination, or None }, from the worker's own PGNs
+    # endings: { game : the runner's Termination, or None }, from the worker's own PGNs
 
     problems, live, sends, optional, games = [], {}, collections.Counter(), set(), set()
     for event in events:
@@ -399,8 +399,16 @@ def check_games(events, uploads, reports, names=None, endings=None):
             if tags.get('Opponent') != 'base':
                 problems.append('game %s: Opponent %r, expected base' % (game, tags.get('Opponent')))
             if endings is not None and not event.old and tags.get('Termination') != endings.get(game):
-                problems.append('game %s: Termination %r, cutechess wrote %r' % (
+                problems.append('game %s: Termination %r, the runner wrote %r' % (
                     game, tags.get('Termination'), endings.get(game)))
+
+            # Every move of a game from client 54 on has fastchess's whole comment: score/depth, time, nodes, seldepth
+            if not event.old:
+                comments = re.findall(r'\{([^}]*)\}', re.split(r'\n\s*\n', pgn, 1)[-1])
+                whole    = [x for x in comments if re.match(r'^[+-]?M?\d+(?:\.\d+)?/\d+ \d+(?:\.\d+)?s, n=\d+, sd=\d+', x)]
+                if not comments or len(whole) != len([x for x in comments if x != 'book']):
+                    problems.append('game %s: a move has not the whole comment: %s' % (
+                        game, [x for x in comments if x not in whole and x != 'book'][:2]))
 
     return problems, len(games)
 

@@ -58,6 +58,9 @@ REPORT_THREAD = GAME_THREAD = None
 # How long a game is sent again while nyayo answers 503 (busy), before it's given up and logged
 GAME_BUSY_LIMIT = 300
 
+# What the runner is told to write into a move's comment (the worker's pgnout_settings), as nyayo's pgn_options
+PGN_OPTIONS = { 'fastchess' : ['nodes', 'seldepth'] }
+
 
 def nyayo_enabled():
     return bool(
@@ -207,7 +210,7 @@ def build_v1_document(test):
             'host': { 'name': instance },
             'settings': {
                 'tc': test.dev_time_control, 'book': test.book_name,
-                'runner': { 'name': 'cutechess-ob' }, 'pgn_options': [],
+                'runner': { 'name': test.runner }, 'pgn_options': PGN_OPTIONS.get(test.runner, []),
                 # Fixed once nyayo has the match, so only what a test can't change: not its
                 # workload size (MODIFY), upload_pgns or scale_nps (both set at a first workload)
                 'openbench': {
@@ -402,7 +405,7 @@ def split_games(text):
 
 
 def tag_game(headers, moves, subject_colour, opponent):
-    # Which player is the engine under test: cutechess names them <engine>-dev and <engine>-base
+    # Which player is the engine under test: the runner names them <engine>-dev and <engine>-base
     tags = headers
     if subject_colour:
         tags += '\n[Subject "%s"]' % (subject_colour)
@@ -412,7 +415,7 @@ def tag_game(headers, moves, subject_colour, opponent):
 
 
 def rename_players(headers, dev, base):
-    # cutechess's <engine>-dev and <engine>-base, as the sides' names in the match document
+    # The runner's <engine>-dev and <engine>-base, as the sides' names in the match document
     def rename(match):
         name = match.group(2)
         name = dev if name.endswith('-dev') else base if name.endswith('-base') else name
@@ -432,7 +435,7 @@ def subject_colour(headers):
 
 def name_and_tag(test, data):
     # An upload as nyayo takes it. From client 39 the worker names and tags every game (Client/pgn_util.py), and the
-    # bytes go as they are. An older one (the tars' uploads from before) still has cutechess's names and no tags: its
+    # bytes go as they are. An older one (the tars' uploads from before) still has the runner's names and no tags: its
     # games are renamed and tagged here, and it is compressed again, so its sha256 is no longer the tar's.
     games  = split_games(bz2.decompress(data).decode('utf-8'))
     tagged = lambda tags: re.search(r'^\[Subject "', tags, re.M)

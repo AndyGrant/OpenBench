@@ -5,6 +5,7 @@
 {% block scripts %}
 
     {{ config|json_script:"json-config" }}
+    {{ engine_configs|json_script:"json-engines" }}
     {{ networks|json_script:"json-networks" }}
     {{ profile.repos|json_script:"json-repos" }}
 
@@ -35,8 +36,8 @@
                 <div class="row">
                     <label for="dev_engine"> {{dev_text}} Engine </label>
                     <select id="dev_engine" name="dev_engine" onchange="change_engine(value, 'dev', '{{workload}}');">
-                        {% for engine in config.engines %}
-                            <option value="{{ engine }}">{{ engine }}</option>
+                        {% for engine in engines %}
+                            <option value="{{ engine.name }}">{{ engine.name }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -49,8 +50,8 @@
                     <div class="row">
                         <label for="base_engine"> Base Engine </label>
                         <select id="base_engine" name="base_engine" onchange="change_engine(value, 'base', '{{workload}}');">
-                            {% for engine in config.engines %}
-                                <option value="{{ engine }}">{{ engine }}</option>
+                            {% for engine in engines %}
+                                <option value="{{ engine.name }}">{{ engine.name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -103,6 +104,12 @@
                         <label for="base_time_control" > Base Time </label> <input id="base_time_control" name="base_time_control">
                     </div>
 
+                    <h3> Information </h3>
+
+                    <div class="row">
+                        <label for="info"> Info </label> <textarea id="info" name="info" rows="4"></textarea>
+                    </div>
+
                 {% elif workload == "TUNE" %}
 
                     <h3> SPSA Methodologies </h3>
@@ -121,6 +128,12 @@
                             <option selected value="SINGLE"> Single </option>
                             <option value="MULTIPLE"> Multiple </option>
                         </select>
+                    </div>
+
+                    <h3> Information </h3>
+
+                    <div class="row">
+                        <label for="info"> Info </label> <textarea id="info" name="info" rows="4"></textarea>
                     </div>
 
                     <h3> SPSA Input </h3>
@@ -206,8 +219,8 @@
                 <div class="row">
                     <label for="book_name"> Opening Book </label> <select id="book_name" name="book_name">
                     <option selected value="NONE"> None </option>
-                    {% for name, data in config.books.items %}
-                        <option value="{{ name }}">{{ name }}</option>
+                    {% for book in books %}
+                        <option value="{{ book.name }}">{{ book.name }}</option>
                     {% endfor %}
                     </select>
                 </div>

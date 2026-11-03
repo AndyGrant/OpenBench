@@ -1,0 +1,114 @@
+{% extends "OpenBench/manage.html" %}
+
+{% load mytags %}
+
+{% block scripts %}
+
+    <script>
+
+        document.addEventListener(
+            'DOMContentLoaded', function () {
+
+                var form = document.getElementById("book-form");
+                if (!form) return; // Only Managers are served the form
+
+                form.addEventListener("submit", function(event) {
+
+                    event.preventDefault(); // Stop event from hitting the wrong URL
+
+                    // Adjust the Form endpoint based on the new Book's name
+                    var book_name = encodeURIComponent(document.getElementById("book-name").value);
+
+                    // OpenBench Endpoint: manage/books/name/create/
+                    form.action = '/manage/books/' + book_name + '/create/'
+                    form.submit()
+                });
+            }, false
+        );
+
+    </script>
+
+{% endblock %}
+
+{% block manage %}
+
+    <table class="hoverable w-100">
+
+        <tr class="table-header">
+            <th>Name</th>
+            <th>Source</th>
+            <th></th>
+            <th></th>
+            <th></th>
+        </tr>
+
+        {% for book in books %}
+            <tr>
+                <td>{{book.name}}</td>
+                <td><a href="{{book.source}}">{{book.source|removePrefix:"https://raw.githubusercontent.com/"}}</a></td>
+
+                <td style="text-align: center">
+                    {% if book.enabled %}
+                        <i class="fa-solid fa-check" style="color: #308030;"></i>
+                    {% else %}
+                        <i class="fa-solid fa-xmark" style="color: #A03030;"></i>
+                    {% endif %}
+                </td>
+
+                <td>
+                    <a href="/manage/books/{{book.name}}/">
+                        <i class="fa-solid fa-pen-to-square" style="color: grey;"></i>
+                    </a>
+                </td>
+
+                <td>
+                    {% if can_manage %}
+                        <a onclick="return confirm('YOU ARE DELETING THIS BOOK FOREVER')"
+                            href="/manage/books/{{book.name}}/delete/">
+                        <i class="fa-solid fa-trash-can" style="color: #A03030;"></i></a>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+
+    </table>
+
+    {% if can_manage %}
+        <form method="POST" id="book-form" class="mt-4">
+            {% csrf_token %}
+            <div class="form">
+                <div class="col">
+
+                    <h3> New Book </h3>
+
+                    <div class="row">
+                        <label for="book-name"> Name </label>
+                        <input id="book-name" required pattern="[a-zA-Z0-9_.-]{1,32}">
+                    </div>
+
+                    <div class="row">
+                        <label for="source"> Source </label>
+                        <input id="source" name="source" value="https://raw.githubusercontent.com/">
+                    </div>
+
+                    <div class="row">
+                        <label for="sha"> Sha256 </label>
+                        <input id="sha" name="sha">
+                    </div>
+
+                    <div class="row">
+                        <label for="enabled"> Enabled </label>
+                        <select id="enabled" name="enabled">
+                            <option selected value="TRUE"> True </option>
+                            <option value="FALSE"> False </option>
+                        </select>
+                    </div>
+
+                    <input type="submit" class="anchorbutton btn-blue w-100" value="Create Book">
+
+                </div>
+            </div>
+        </form>
+    {% endif %}
+
+{% endblock %}

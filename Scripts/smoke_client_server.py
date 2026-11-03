@@ -15,7 +15,6 @@ import requests
 
 ROOT = Path(__file__).resolve().parents[1]
 MANAGE = ROOT / "manage.py"
-CONFIG_FILE = ROOT / "Config" / "config.json"
 
 
 def find_free_port():
@@ -66,7 +65,6 @@ def create_active_workload(env, author, engine_name, book_name):
         "priority=1, "
         "throughput=100, "
         "approved=True, "
-        "awaiting=False, "
         "finished=False, "
         "deleted=False"
         ")"
@@ -135,10 +133,8 @@ def run_smoke(base_url, env, username, password):
     )
     engine_name, engine_build = pick_engine_for_workload(build_info)
 
-    config_data = json.loads(CONFIG_FILE.read_text(encoding="utf-8"))
-    if not config_data.get("books"):
-        raise RuntimeError("config.json has no books configured")
-    create_active_workload(env, username, engine_name, config_data["books"][0])
+    # Books and engines are rows of the database: migrations make the books and the lab's Elephant
+    create_active_workload(env, username, engine_name, "8moves_v3.epd")
 
     system_info = {
         "compilers": {

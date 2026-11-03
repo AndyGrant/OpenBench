@@ -1,6 +1,6 @@
 # OpenBench integration
 
-Upstream: [AndyGrant/OpenBench](https://github.com/AndyGrant/OpenBench), not maintained here · this fork:
+Upstream: [AndyGrant/OpenBench](https://github.com/AndyGrant/OpenBench), merged in as a whole (last at `7d8f7da`, 2026-11-03; later merges need a merge commit, never a rebase), not maintained here · this fork:
 [looak/openbench_eg](https://github.com/looak/openbench_eg) · instance on bobby :8000, worker hunt
 
 ## Purpose
@@ -39,14 +39,19 @@ the fork's additions and how it's deployed, and how other components read OpenBe
   conda env, or an env named `openbench`, in that order.
 - **Settings for nyayo** come from `/etc/openbench/nyayo.env` (root only), read by the unit's drop-in
   (`openbench.service.d/override.conf`, `EnvironmentFile=`): see *Reporting to nyayo*.
-- hunt (172.16.100.15, 32 cores) is the worker. It plays with cutechess-ob, and downloads the client from the fork's
-  `master` (`client_repo_url` and `client_repo_ref` in `Config/config.json`) when the server asks for a newer one.
-  The server's client version, in `Config/config.json`, and the worker's, `CLIENT_VERSION` in `Client/worker.py`, are
-  both **40**. A change to the client that hunt must take raises both.
+- hunt (172.16.100.15, 32 cores) is the worker. It plays with fastchess (`fastchess-ob`, which the worker builds from
+  source itself, from `fastchess_repo_url` and `fastchess_repo_ref` in `Config/config.json`, needing `make`, a C++
+  compiler and GitHub), and downloads the client from the fork's `master` (`client_repo_url` and `client_repo_ref`
+  there) when the server asks for a newer one. The server's client version, in `Config/config.json`, and the worker's,
+  `CLIENT_VERSION` in `Client/worker.py`, are both **54**: upstream's 53 plus one. A change to the client that hunt
+  must take raises both, and a server taken from upstream raises both to its number plus one.
 
 ### Engine configuration
 
-Elephant's configuration is the fork's `Engines/elephant.json`: built from `ob_build`, reference nps **1487000**
+Engines and books are rows of the database (`EngineConfig`, `Book`), edited on the website (*Manage*), as upstream
+has them since its migrations `0015` and `0016`. Elephant's row is made by the fork's migration `0018` from
+`Engines/elephant.json` when it isn't there (a row edited on the website is left alone), and `manage.py import_engines
+Engines/elephant.json` puts the file's values into the row again. The file holds: built from `ob_build`, reference nps **1487000**
 (2026-11-03, when Elephant's bench went from depth 7 to 11: the old 1198000 times the 1.2414 depth 11 reports with every
 thread benching at once, measured on the developer PC, so a test's time factor stays about 1.41). OpenBench scales time controls by that reference against what a worker
 measures with `bench`. The reference must be recalibrated whenever the bench changes, or test TCs come out wrong; a
@@ -54,10 +59,11 @@ stale value once stretched 8+0.08 to roughly 42+0.42. The bench uses one 16 MB T
 isn't dominated by page faults when a worker benches many copies at once: about 4.4M nps alone, 2.85M per copy at 16
 copies (1.0.0).
 
-Elephant is the only engine the create page offers (`Config/config.json`, `engines`): every test here is Elephant
-against Elephant, and gauntlets against other engines are played by uwanja. The other engines' `Engines/*.json` files
-stay so upstream merges stay clean; one is offered again by listing it. `Engines/elephant.json` defaults a test's book
-to `8moves_v3.epd` (`book_name`).
+Elephant is the only engine the create page offers: every test here is Elephant against Elephant, and gauntlets
+against other engines are played by uwanja. Another engine is offered by importing it or by adding it on the website.
+Upstream's books are all in the database (its migration `0015`), among them every book this lab listed before (the
+shas are checked in `UnitTests/test_migrations.py`); there are no `Books/*.json` files. `Engines/elephant.json`
+defaults a test's book to `8moves_v3.epd` (`book_name`).
 
 ### Testing workflow
 
@@ -70,21 +76,25 @@ to `8moves_v3.epd` (`book_name`).
 - Changes that are node-identical (same bench) can merge on smoke & extended alone, the owner's call (1.0.2).
 - **Every test uploads its games.** `Upload PGNs` is `COMPACT` or `VERBOSE`, never `FALSE`: the create page doesn't
   offer it, creation turns it into `COMPACT`, and an older test is switched when it next hands out a workload. Both
-  keep cutechess's whole comment per move (score, depth/seldepth, time, nodes); `VERBOSE` adds `GameEndTime`.
+  keep fastchess's whole comment per move (score/depth, time, nodes, seldepth, and the reason a game ended on its last
+  move); `VERBOSE` adds `GameEndTime`. Upstream's own stripping of the comments (to the score and depth for `COMPACT`) is
+  replaced for that: nyayo's game page reads time, nodes and the end from them.
 - **A game leaves the worker named and tagged** (client 39 on). The worker rewrites each game's tags in
-  `Client/pgn_util.py` (`pgn_strip_headers`, called by `compress_list_of_pgns`), as the match document names the sides:
+  `Client/pgn_util.py` (`format_headers`, with `tag_players`, called by `compress_pgn_files`), as the match document
+  names the sides:
 
   | Tag | Upload |
   |:--|:--|
-  | `White`, `Black` | `<engine> <branch>`, from cutechess's `<engine>-dev` and `<engine>-base`; a `"` in a name becomes `'` |
+  | `White`, `Black` | `<engine> <branch>`, from fastchess's `<engine>-dev` and `<engine>-base`; a `"` in a name becomes `'` |
   | `Subject` | `white` or `black`: the colour dev played |
   | `Opponent` | `base` |
-  | `Termination` | kept (cutechess writes it only when a game isn't ended by the rules: adjudication, a time loss, a crash) |
+  | `Termination` | kept (fastchess writes it on every game: `normal`, `adjudication`, `time forfeit`, ...; a game uploaded by a worker before client 54 has it only when cutechess wrote it) |
 
-  The other tags and the move text are upstream's stripping, unchanged. cutechess still plays under
-  `name=<engine>-dev` and `name=<engine>-base`: `Cutechess.update_results` reads its `Finished game` lines by word
-  position, and a name with a space would break the counts. Uploads from before client 39 keep `-dev` and `-base`, no
-  `Subject`, and no `Termination`.
+  The other tags are upstream's (`Event`, `Site`, `Date`, `Round`, `Result`, `FEN`, `SetUp`, `TimeControl`, `Variant`,
+  `ScaleFactor`, and `GameEndTime` for `VERBOSE`). fastchess still plays under `name=<engine>-dev` and
+  `name=<engine>-base`: `MatchRunner.update_results` reads its `Finished game` lines by word position, a name with a
+  space would break the counts, and `collect_nps_stats` takes the side from the name. Uploads from before client 39 keep
+  `-dev` and `-base`, no `Subject`, and no `Termination`; from client 39 to 53 they are cutechess's games.
 
 ### What the fork adds
 
@@ -94,19 +104,19 @@ Upstream, plus:
 |:--|:--|
 | the reporter: every test, and every upload of games, to nyayo | `OpenBench/nyayo.py`, started from `apps.py`; queued from `workloads/create_workload.py`, `workloads/get_workload.py`, `utils.update_test`, `views.client_bench_error`, `views.client_report_step`, `views.client_submit_pgn` and `workloads/modify_workload.py` |
 | `manage.py report_to_nyayo [--all \| TEST_ID ...] [--schema openbench\|v1] [--games]` | `OpenBench/management/commands/` |
-| a sha is named by its branch, a pull request or its commit; a name typed on the create page | `workloads/verify_workload.py` (`branch_of_sha`), `workloads/create_workload.py`, `Test.name`, `nyayo.py`, the create page |
+| a sha is named by its branch, a pull request or its commit; a name typed on the create page | `workloads/verify_workload.py` (`branch_of_sha`; `collect_github_info` returns upstream's five values and the title as a sixth), `workloads/create_workload.py`, `Test.name`, `nyayo.py`, the create page |
 | every test uploads its PGNs | `utils.always_upload`, `workloads/create_workload.py`, `workloads/get_workload.py`, the create page |
-| the worker names and tags each game, and keeps `Termination` | `Client/pgn_util.py`, `Client/worker.py` |
-| `OPENBENCH_CONFIG_DIR`, where `Config/`, `Books/` and `Engines/` are read from (the repo root by default) | `OpenSite/settings.py`, `OpenBench/config.py` |
-| uploads kept under `MEDIA_ROOT/PGNs`, not a path relative to the working directory | `OpenBench/pgn_watcher.py`, `OpenBench/views.py` |
-| migrations `0002`–`0006` for databases older than the models (missing columns added when absent; `0006` declares the legacy `Result` counters); `0007` adds `Step` and `Result.workloads` | `OpenBench/migrations/` |
+| the worker names and tags each game, keeps `Termination` and the whole comment of each move | `Client/pgn_util.py`, `Client/worker.py` |
+| `OPENBENCH_CONFIG_DIR`, where `Config/` (and a private engine's `credentials.*`) is read from (the repo root by default) | `OpenSite/settings.py`, `OpenBench/config.py`, `OpenBench/utils.py` |
+| migrations: the fork's `0002`–`0008` run first (`0002`–`0006` for databases older than the models: missing columns added when absent, `0006` declares the legacy `Result` counters; `0007` adds `Step` and `Result.workloads`; `0008` `Test.name`), upstream's `0002`–`0017` after them (its first depends on `0008_test_name`, and its `0013` adds the counters only where they are missing), then `0018` (Elephant's `EngineConfig`) and `0019` (`Test.runner`) | `OpenBench/migrations/`, `UnitTests/test_migrations.py` |
+| `Test.runner`: what played a test's games, `cutechess-ob` for a test from before the merge and `fastchess` after, as nyayo fixes `settings.runner` for a match | `OpenBench/models.py`, `OpenBench/nyayo.py` |
 | the client: compiling with at most 4 threads (a low spec machine), and a workload's PGN file named by its book index too, so two workloads starting in the same second don't share one | `Client/utils.py`, `Client/worker.py` |
 | `Scripts/archive2nps.py` takes the side from `Subject` when a game has one | `Scripts/archive2nps.py` |
 | the deploy scripts | `deploy/` |
 | a worker's walk through a test, reported as it goes, and the verdict on a failed step (*Reporting to nyayo*) | `OpenBench/steps.py`, `OpenBench/models.py` (`Step`, `Result.workloads`), `views.client_report_step`, `workloads/get_workload.py`, `workloads/modify_workload.py`, `Client/worker.py` |
 | a failed start shown on OpenBench's own pages | `testResultColour` and `startProblem` in `OpenBench/templatetags/mytags.py`, `Templates/OpenBench/workload.html`, `statblock-start` in `OpenBench/static/style.css` |
 | the full smoke test | `Scripts/smoke_client_server.py`, `Scripts/smoke/` |
-| unit tests | `UnitTests/` (`test_pgn_util.py`, `test_game_names.py`, `test_steps.py`, `test_names.py`, `test_verdict.py`, `test_client_retry.py`: scripts, run from `UnitTests/`) |
+| unit tests | `UnitTests/` (`test_game_names.py`, `test_steps.py`, `test_names.py`, `test_verdict.py`, `test_client_retry.py`, `test_migrations.py`, `test_workload_kinds.py`: scripts, run from `UnitTests/`) |
 
 ### Reporting to nyayo
 
@@ -130,7 +140,8 @@ Not nyayo's, but the verdict's: `OPENBENCH_STEP_RETRY_SECONDS` (`STEP_RETRY_SECO
   results (once the batch is in both the `Test` and its `Result` row), every bench error and every action by hand
   (approve, stop, delete, restore, modify). Each upload of games follows its workload's last results. The first
   document holds every field nyayo fixes for a match (the settings, the engines, the SPRT's bounds), and a test can't
-  change any of them, so no later document differs (nyayo answers `409` to a difference). From `waiting` on, nyayo
+  change any of them (`settings.runner` is `Test.runner`, and `pgn_options` follows it: `nodes` and `seldepth` for
+  fastchess, none for a test from before), so no later document differs (nyayo answers `409` to a difference). From `waiting` on, nyayo
   must be at or after `6f951d6`, which refuses a state it doesn't know: don't deploy this before it.
 - **When a test ended** (`finished_at` of a match that isn't running): a test that passes, fails or runs out of games
   ends inside OpenBench's `update_test` with no event, so it ends at its newest result (later results are refused); a
@@ -187,7 +198,7 @@ Not nyayo's, but the verdict's: `OPENBENCH_STEP_RETRY_SECONDS` (`STEP_RETRY_SECO
   - `get_workload` passes `picked_up` itself (no client change) and counts the workload. The worker calls
     `clientReportStep` (`test_id`, `step`, `side`, `state`, and `seconds`, `cached`, `detail`, `log`, `nodes`, `nps` when
     it has them) as each step starts (`active`) and ends (`passed` or `failed`, with the compiler's output); `running`
-    is reported `passed` just before cutechess starts. It is best effort on both sides: the worker catches everything but
+    is reported `passed` just before fastchess starts. It is best effort on both sides: the worker catches everything but
     a bad version, the server answers `{}` whatever it made of the report, and a lost step never fails a workload. A
     step reports to nyayo on the reports queue (a quick one may share its report with the next), only if it changed
     its row.
@@ -199,8 +210,9 @@ Not nyayo's, but the verdict's: `OPENBENCH_STEP_RETRY_SECONDS` (`STEP_RETRY_SECO
     step passes; **a restart by hand** (`RESTART`, which `modify_workload` answers with `steps.restart_walks`) turns
     every step of every worker to pending, `tries` and verdicts too, and releases a hold. A step with no row is
     `pending`; a `Result` from before the steps has no `steps`. Trouble fetching things (the zip, the book) leaves the
-    compile `active` with the reason as its `detail`. A private engine's missing artifact is not judged (the step
-    fails with `Artifact ... missing`, no verdict), and goes on as before.
+    compile `active` with the reason as its `detail`. Upstream no longer fetches a private engine's
+    artifact (it downloads the source with the engine's token), so no step is `Artifact ... missing` any more; the
+    verdict still leaves that wording unjudged.
   - The worker takes **both engines through each stage**: `complete_workload` builds dev and base, then
     `determine_scale_factor` benches both, each catching a failure so the other still runs and raising it (dev's first)
     once both are done. A stage costs at most one more compile or bench, and the other engine's result is in the
@@ -260,10 +272,11 @@ Not nyayo's, but the verdict's: `OPENBENCH_STEP_RETRY_SECONDS` (`STEP_RETRY_SECO
 on Windows too. With `--full` (Linux or WSL, needs `make`, g++ and `Scripts/smoke/requirements.txt`, plus
 `Client/requirements.txt` for the client) it runs whole tests on one machine in under two minutes:
 
-- an isolated server (database, media and config in a temp directory, through `OPENBENCH_CONFIG_DIR`) and the real
-  client from a temp copy of `Client/`, its timers shortened in the copy only;
+- an isolated server (database, media and config in a temp directory, through `OPENBENCH_CONFIG_DIR`; its engine and
+  book are written as files and put in the database with `import_engines` and `import_books`) and the real client
+  from a temp copy of `Client/`, its timers shortened in the copy only;
 - a toy UCI engine (`Scripts/smoke/engine/`, Python and python-chess behind a makefile) and a fixed book, served as
-  zips by a local file server, so the client builds, benches and plays node-limited games with cutechess-ob;
+  zips by a local file server, so the client builds, benches and plays node-limited games with fastchess (its `fastchess-ob` is built by the worker, once: a copy is kept in `~/.cache/openbench-smoke/` for the next run, delete it to build again);
 - two recorders: one between the client and the server, one in nyayo's place. The nyayo recorder takes a match
   document (`201`, then `200`) and an upload (`202`, `200` for the same bytes, `409` for other bytes, `404` before the
   match), and can be told to hold a test's uploads (`hold_games`) or answer them `503` (`busy_games`). It can forward
@@ -274,7 +287,7 @@ on Windows too. With `--full` (Linux or WSL, needs `make`, g++ and `Scripts/smok
   equal to the `Test` and never going down. A report may be missing when a later event came before it arrived
   (coalesced), and an extra one is allowed for each upload nyayo answered `404`. Each upload must reach nyayo once,
   byte for byte as the worker uploaded it, its games named `<engine> <branch>` by their `Subject`, with `Opponent`
-  `base` and `Termination` as cutechess wrote it (read from the worker's own `PGNs/`); an upload from before client 39
+  `base` and `Termination` as fastchess wrote it (read from the worker's own `PGNs/`); an upload from before client 39
   must come renamed and tagged but for that. With a nyayo that has a worker: every upload `done` with the sha256 sent,
   and a card per game with the subject's colour, an opponent, the `Termination` and the game as sent.
 - Each walk in a report is checked (`expect.check_steps`): the six steps in order, a time on every step that has begun,

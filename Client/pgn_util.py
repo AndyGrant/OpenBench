@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 #                                                                           #
 #   OpenBench is a chess engine testing framework by Andrew Grant.          #
@@ -18,34 +20,40 @@
 #                                                                           #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
+import argparse
 import bz2
 import re
-import sys
 
 ## Local imports must only use "import x", never "from x import ..."
 
-# For use externally
-REGEX_COMMENT_VERBOSE  = r'(book|[+-]?M?\d+(?:\.\d+)? \d+/\d+ \d+ \d+)'
-REGEX_COMMENT_COMPACT  = r'(book|[+-]?M?\d+(?:\.\d+)?) \d+/\d+ \d+ \d+'
-REGEX_MOVE_AND_COMMENT = r'\s*(?:\d+\. )?([a-zA-Z0-9+=#-]+) (?:\s*\{\s*([^}]*)\s*\})?'
-REGEX_GAME_RESULT      = r'\s*(1-0|0-1|1/2-1/2|\*)'
+def read_until_empty_line(pgn):
+
+    lines = []
+    while True:
+        line = pgn.readline().rstrip()
+        if not line:
+            break
+        lines.append(line)
+    return lines
 
 def pgn_iterator(fname):
+
     with open(fname) as pgn:
         while True:
-            headers   = pgn_header_list(iter(lambda: pgn.readline().rstrip(), ''))
-            move_list = ' '.join(iter(lambda: pgn.readline().rstrip(), ''))
-            if not headers or not move_list:
+
+            header_lines = read_until_empty_line(pgn)
+            move_lines   = read_until_empty_line(pgn)
+            if not header_lines or not move_lines:
                 break
-            yield (headers, move_list)
 
-def pgn_header_list(lines):
-    # PGN Format: [<Header> "<Value>"]
-    return { f.split()[0][1:] : re.search(r'"([^"]*)"', f).group(1) for f in lines }
+            headers   = { line.split()[0][1:] : re.search(r'"([^"]*)"', line).group(1) for line in header_lines }
+            move_text = ' '.join(move_lines)
 
-def pgn_player_tags(headers, players):
+            yield (headers, move_text)
 
-    # cutechess plays <engine>-dev and <engine>-base; the fork names them as its match document
+def tag_players(headers, players):
+
+    # The match runner plays <engine>-dev and <engine>-base; the fork names them as its match document
     # does, <engine> <branch>, and tags dev's colour and the opponent (nyayo's game database)
     renamed = dict(headers)
     for colour in ('White', 'Black'):
@@ -58,70 +66,103 @@ def pgn_player_tags(headers, players):
     renamed['Opponent'] = 'base'
     return renamed
 
-def pgn_strip_headers(headers, compact, players=None):
+def format_headers(headers, compact, players=None):
 
-    # players: { 'dev' : <name>, 'base' : <name> }, the final names of cutechess's <engine>-<side>
+    # players: { 'dev' : <name>, 'base' : <name> }, the final names of the match runner's <engine>-<side>
     if players:
-        headers = pgn_player_tags(headers, players)
+        headers = tag_players(headers, players)
 
-    # 7-Tag Roster that is required to be a legal PGN
-    desired = [
-        'Event',  'Site',
-        'Date',   'Round',
-        'White',  'Black',
-        'Result',
-    ]
+    desired  = ['Event', 'Site', 'Date', 'Round', 'White', 'Black', 'Result']
+    desired += ['FEN', 'TimeControl', 'Variant', 'ScaleFactor', 'SetUp']
+    desired += ['Termination'] # Tells an adjudication from a time loss or a crash
 
-    desired += [
-        'FEN',         # Required due to .epd openings
-        'TimeControl', # Useful to extract statistics
-        'Variant',     # Useful to account for FRC/DFRC
-        'ScaleFactor', # Useful to extract statistics
-        'Termination', # Tells an adjudication from a time loss or a crash
-    ]
-
-    if not compact: # Useful to reconstruct time events
+    if not compact:
         desired += ['GameEndTime']
 
-    desired += ['Subject', 'Opponent'] # The fork's, from pgn_player_tags()
+    desired += ['Subject', 'Opponent'] # The fork's, from tag_players()
 
-    # PGN Format: [<Header> "<Value>"]
-    return '\n'.join('[%s "%s"]' % (f, headers[f]) for f in desired if f in headers)
+    return '\n'.join('[%s "%s"]' % (key, headers[key]) for key in desired if key in headers)
 
-def pgn_strip_movelist(move_text, compact):
+def format_move_comment(comment):
 
-    # May parse book, otherwise Score for Compact, Score Depth/SelDepth Time Nodes for Verbose
-    comment_regex = re.compile(REGEX_COMMENT_COMPACT if compact else REGEX_COMMENT_VERBOSE)
+    # The match runner's whole comment per move (score/depth, time, nodes, seldepth, ...), whitespace tidied
+    return re.sub(r'\s+', ' ', comment).strip()
 
-    # Parses the move number, the SAN, and an optional comment
-    one_ply_regex = re.compile(r'\s*(?:\d+\. )?([a-zA-Z0-9+=#-]+) (?:\s*\{\s*([^}]*)\s*\})?')
+def format_movelist(move_text, compact):
 
-    # Captures the trailing game result
-    result_regex  = re.compile(r'\s*(1-0|0-1|1/2-1/2|\*)')
+    moves = []
 
-    stripped = '' # Add each: <Move> {<Comment>}
-    for move, comment in re.compile(REGEX_MOVE_AND_COMMENT).findall(move_text):
-        match = re.search(comment_regex, comment)
-        stripped += '%s {%s} ' % (move, match.group() if match else 'unknown')
+    for move, comment in re.compile(r'\s*(?:\d+\.{1,3} )?([a-zA-Z0-9+=#*-]+) (?:\s*\{\s*([^}]*)\s*\})?').findall(move_text):
+        if not comment or comment.strip() == 'book':
+            formatted_comment = comment.strip() if comment else 'unknown'
+        else:
+            formatted_comment = format_move_comment(comment)
 
-    # PGNs expect trailing game result text
-    return stripped + re.compile(REGEX_GAME_RESULT).search(move_text).group(1)
+        moves.append('%s {%s}' % (move, formatted_comment))
 
-def strip_entire_pgn(file_name, scale_factor, compact, players=None):
+    result_match = re.search(r'\s*(1-0|0-1|1/2-1/2|\*)', move_text)
+    result       = result_match.group(1) if result_match else '*'
 
-    stripped = ''
-    for header_dict, move_text in pgn_iterator(file_name):
-        header_dict['ScaleFactor'] = str(scale_factor)
-        stripped += pgn_strip_headers(header_dict, compact, players) + '\n\n'
-        stripped += pgn_strip_movelist(move_text, compact) + '\n\n'
+    return ' '.join(moves) + ' ' + result
 
-    return stripped
+def process_pgn_file(file_name, scale_factor, compact, players=None):
 
-def compress_list_of_pgns(file_names, scale_factor, compact, players=None):
+    output = []
 
-    text = ''
+    for headers, move_text in pgn_iterator(file_name):
+        headers['ScaleFactor'] = str(scale_factor)
+        output.append(format_headers(headers, compact, players))
+        output.append('')
+        output.append(format_movelist(move_text, compact))
+        output.append('')
+
+    return '\n'.join(output)
+
+def compress_pgn_files(file_names, scale_factor, compact, players=None):
+
+    compressed_text = []
     for fname in file_names:
-        print ('Compressing %s...' % (fname))
-        text += strip_entire_pgn(fname, scale_factor, compact, players)
+        print ('Compressing %s...' % fname)
+        compressed_text.append(process_pgn_file(fname, scale_factor, compact, players))
 
-    return bz2.compress(text.encode())
+    return bz2.compress('\n'.join(compressed_text).encode())
+
+def collect_nps_stats(pgn_files, scale_factor):
+
+    nps_regex = re.compile(r'([\d.]+)s,\s*n=(\d+)')
+
+    stats = {
+        'dev' : { 'nodes': 0, 'time': 0, 'time_scaled': 0 },
+        'base': { 'nodes': 0, 'time': 0, 'time_scaled': 0 },
+    }
+
+    for file in pgn_files:
+        for (headers, move_text) in pgn_iterator(file):
+
+            white     = headers['White'].split('-')[-1]
+            black     = headers['Black'].split('-')[-1]
+            white_stm = 'FEN' not in headers or headers['FEN'].split()[1] == 'w'
+
+            for time, nodes in nps_regex.findall(move_text):
+                stm = white if white_stm else black
+                if stm in stats:
+                    stats[stm]['nodes']       += int(nodes)
+                    stats[stm]['time']        += float(time) * 1000
+                    stats[stm]['time_scaled'] += float(time) * 1000 / scale_factor
+                white_stm = not white_stm
+
+    return stats
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description='Process PGN files')
+    parser.add_argument('--pgn', required=True, help='Path to PGN file')
+
+    mode_group = parser.add_mutually_exclusive_group(required=True)
+    mode_group.add_argument('--compact', action='store_true', help='Use compact mode')
+    mode_group.add_argument('--verbose', action='store_true', help='Use verbose mode')
+
+    args = parser.parse_args()
+
+    result = process_pgn_file(args.pgn, scale_factor=1.0, compact=args.compact)
+    print (result)

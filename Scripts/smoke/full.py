@@ -1,5 +1,5 @@
 # The full smoke test: an isolated server, the real client in a temp copy of Client/,
-# a test engine built with make, games played with cutechess-ob, results reported back,
+# a test engine built with make, games played with fastchess-ob, results reported back,
 # and every report the server sends to nyayo checked against Scripts/smoke/expect.py.
 # Linux and WSL only. Run through Scripts/smoke_client_server.py --full.
 
@@ -34,6 +34,9 @@ from smoke.recorders import ClientRecorder, NyayoRecorder
 
 ROOT   = Path(__file__).resolve().parents[2]
 MANAGE = ROOT / 'manage.py'
+
+# Where the fastchess-ob a worker built is kept, so the next run doesn't build it again (delete it to)
+FASTCHESS_CACHE = Path(os.environ.get('XDG_CACHE_HOME') or Path.home() / '.cache') / 'openbench-smoke' / 'fastchess-ob'
 
 ENGINE_NAME  = 'smoke'
 ENGINE_NPS   = 1000000
@@ -323,9 +326,8 @@ class Harness:
         for folder in ('Config', 'Books', 'Engines'):
             (config / folder).mkdir(parents=True)
 
+        # Engines and books are in the database now: written as the files import_engines and import_books read
         general = json.loads((ROOT / 'Config' / 'config.json').read_text())
-        general['books']   = [files.BOOK_NAME]
-        general['engines'] = [ENGINE_NAME]
         (config / 'Config' / 'config.json').write_text(json.dumps(general, indent=4))
 
         book = { 'sha' : files.book_sha(), 'source' : self.files.add('/books/smoke.zip', files.book_zip()) }
@@ -351,6 +353,8 @@ class Harness:
 
     def start_server(self):
         self.manage('migrate', '--noinput', capture=True)
+        self.manage('import_books', str(self.temp / 'config' / 'Books'), capture=True)
+        self.manage('import_engines', str(self.temp / 'config' / 'Engines'), capture=True)
         self.manage('shell', '-c', (
             'from django.contrib.auth.models import User; '
             'from OpenBench.models import Profile; '
@@ -411,7 +415,6 @@ class Harness:
             'test_mode'         : 'GAMES',
             'max_games'         : 8,
             'approved'          : True,
-            'awaiting'          : False,
         }
         test.update(overrides)
 
@@ -631,7 +634,7 @@ class Harness:
     # Client side
 
     def endings(self, test_id):
-        # cutechess's Termination of each game the worker played, from its own PGNs, as { game id : tag or None }:
+        # the runner's Termination of each game the worker played, from its own PGNs, as { game id : tag or None }:
         # PGNs/<test>.<result>.<book index>.<time>.<copy>.pgn, the copies uploaded in order
         endings, folder = {}, self.temp / 'Client' / 'PGNs'
         files = sorted(folder.glob('%d.*.pgn' % (test_id)), key=lambda x: [int(n) for n in x.name.split('.')[:-1]])
@@ -662,6 +665,10 @@ class Harness:
         if count != 1:
             raise SmokeFailure('bench.py has no MAX_BENCH_TIME_SECONDS to shorten')
         (client / 'bench.py').write_text(bench)
+
+        # fastchess-ob is built by the worker from source, minutes of compiling; a copy kept from an earlier run does
+        if FASTCHESS_CACHE.is_file():
+            shutil.copy2(FASTCHESS_CACHE, client / 'fastchess-ob')
 
         env = os.environ.copy()
         env['PYTHONUNBUFFERED'] = '1'
@@ -701,6 +708,10 @@ class Harness:
 
     def close(self, keep):
         stop_process(self.client, group=True)
+        built = self.temp / 'Client' / 'fastchess-ob'
+        if built.is_file() and not FASTCHESS_CACHE.is_file():
+            FASTCHESS_CACHE.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(built, FASTCHESS_CACHE)
         stop_process(self.server)
         self.recorder.stop()
         self.nyayo.stop()
@@ -940,7 +951,7 @@ def scenario_nyayo_busy(h):
 
 
 def old_style(data):
-    # An upload as a worker before client 39 made it: cutechess's <engine>-dev and <engine>-base,
+    # An upload as a worker before client 39 made it: the runner's <engine>-dev and <engine>-base,
     # no Subject, Opponent or Termination
     games = []
     for pgn in expect.split_upload(data):
@@ -1036,7 +1047,7 @@ def last_walk(h, test_id):
 def scenario_walk(h):
     # A passing walk reaches nyayo step by step: picked up, both compiles, both benches, running, and only
     # then games. The worker comes round for more workloads and its steps stay passed.
-    test_id = h.create_test(test_mode='GAMES', max_games=8, workload_size=2)
+    test_id = h.create_test(test_mode='GAMES', max_games=8, workload_size=1)  # A workload is 4 games here (fastchess: 2 per round, 2 rounds), so two for 8
     h.wait_for(lambda: h.test_row(test_id)['finished'], 90, 'test %d to finish' % (test_id))
     h.verify(test_id)  # Also: every walk in a report, in order, never back after passing; the last as OpenBench has it
 

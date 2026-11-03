@@ -1,0 +1,87 @@
+{% extends "OpenBench/manage.html" %}
+
+{% block manage %}
+
+    <form method="POST" action="/manage/engines/{{engine_config.name}}/edit/">
+        {% csrf_token %}
+        <div class="form">
+            <div class="col">
+
+                <div class="row">
+                    <label for="name"> Name </label>
+                    <input id="name" readonly value="{{engine_config.name}}">
+                </div>
+
+                <div class="row">
+                    <label for="source"> Source </label>
+                    <input id="source" name="source" value="{{engine_config.source}}" {% if not can_manage %}readonly{% endif %}>
+                </div>
+
+                <div class="row">
+                    <label for="nps"> NPS </label>
+                    <input id="nps" name="nps" value="{{engine_config.nps}}" {% if not can_manage %}readonly{% endif %}>
+                </div>
+
+                <div class="row">
+                    <label for="private"> Private </label>
+                    <select id="private" name="private" {% if not can_manage %}disabled{% endif %}>
+                        {% if engine_config.private %}
+                            <option selected value="TRUE"> True </option>
+                            <option value="FALSE"> False </option>
+                        {% else %}
+                            <option value="TRUE"> True </option>
+                            <option selected value="FALSE"> False </option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                <div class="row">
+                    <label for="enabled"> Enabled </label>
+                    <select id="enabled" name="enabled" {% if not can_manage %}disabled{% endif %}>
+                        {% if engine_config.enabled %}
+                            <option selected value="TRUE"> True </option>
+                            <option value="FALSE"> False </option>
+                        {% else %}
+                            <option value="TRUE"> True </option>
+                            <option selected value="FALSE"> False </option>
+                        {% endif %}
+                    </select>
+                </div>
+
+                <h3> Build Settings </h3>
+
+                <div class="row">
+                    <label for="build_path"> Path </label>
+                    <input id="build_path" name="build_path" value="{{engine_config.build_path}}" {% if not can_manage %}readonly{% endif %}>
+                </div>
+
+                <div class="row">
+                    <label for="build_compilers"> Compilers </label>
+                    <input id="build_compilers" name="build_compilers" value="{{engine_config.build_compilers}}" {% if not can_manage %}readonly{% endif %}>
+                </div>
+
+                <div class="row">
+                    <label for="build_cpuflags"> Cpu Flags </label>
+                    <input id="build_cpuflags" name="build_cpuflags" value="{{engine_config.build_cpuflags}}" {% if not can_manage %}readonly{% endif %}>
+                </div>
+
+                <div class="row">
+                    <label for="build_systems"> Systems </label>
+                    <input id="build_systems" name="build_systems" value="{{engine_config.build_systems}}" {% if not can_manage %}readonly{% endif %}>
+                </div>
+
+                <h3> Presets </h3>
+
+                <div class="row">
+                    <textarea id="presets" name="presets" rows="24" {% if not can_manage %}readonly{% endif %}>{{ presets }}</textarea>
+                </div>
+
+                {% if can_manage %}
+                    <input class="anchorbutton btn-blue w-100" type="submit" value="Update Engine">
+                {% endif %}
+
+            </div>
+        </div>
+    </form>
+
+{% endblock %}

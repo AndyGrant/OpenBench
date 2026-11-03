@@ -18,18 +18,16 @@
 #                                                                             #
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
-import hashlib
 import json
 import os
-import sys
-import traceback
 
 from OpenSite.settings import OPENBENCH_CONFIG_DIR
 
-OPENBENCH_STATIC_VERSION = 'v6'
+OPENBENCH_STATIC_VERSION = 'v19'
 
-OPENBENCH_CONFIG          = None # Initialized by OpenBench/apps.py
-OPENBENCH_CONFIG_CHECKSUM = None # Initialized by OpenBench/apps.py
+OPENBENCH_CONFIG = None # Initialized by OpenBench/apps.py
+
+PRESET_TYPES = [ 'test_presets', 'tune_presets', 'datagen_presets' ]
 
 def create_openbench_config():
 
@@ -37,101 +35,65 @@ def create_openbench_config():
         config_dict = json.load(fin)
         verify_general_config(config_dict)
 
-    config_dict['books'] = {
-        book : load_book_config(book) for book in config_dict['books']
+    return config_dict
+
+def verify_engine_presets(presets):
+
+    # Schema for an EngineConfig.presets JSONField. Returns an error message,
+    # or None. Every preset type is required, each with a "default" preset,
+    # and each preset may only contain the keys its type knows how to apply.
+
+    verifiers = {
+        'test_presets'    : verify_engine_test_preset,
+        'tune_presets'    : verify_engine_tune_preset,
+        'datagen_presets' : verify_engine_datagen_preset,
     }
 
-    config_dict['engines'] = {
-        engine : load_engine_config(engine) for engine in config_dict['engines']
-    }
+    if type(presets) != dict:
+        return 'Presets must be a json object'
 
-    # Rolling sha256sum of the engine's build configs
-    checksum = hashlib.sha256(b'').digest()
-    for engine, engine_config in config_dict['engines'].items():
-        serialized  = json.dumps(engine_config['build'], sort_keys=True)
-        partial_sum = hashlib.sha256(serialized.encode('utf-8')).digest()
-        checksum    = bytes(a ^ b for a, b in zip(checksum, partial_sum))
+    if sorted(presets.keys()) != sorted(PRESET_TYPES):
+        return 'Presets must contain exactly: %s' % (', '.join(PRESET_TYPES))
 
-    return config_dict, checksum.hex()
+    for preset_type, group in presets.items():
 
-def load_book_config(book_name):
+        if type(group) != dict or 'default' not in group.keys():
+            return '%s must be a json object, containing a "default"' % (preset_type)
 
-    with open(os.path.join(OPENBENCH_CONFIG_DIR, 'Books', '%s.json' % (book_name))) as fin:
-        conf = json.load(fin)
+        for name, preset in group.items():
 
-    assert type(conf.get('sha')) == str
-    assert type(conf.get('source')) == str
+            if type(preset) != dict:
+                return '%s "%s" must be a json object' % (preset_type, name)
 
-    return conf
+            try: verifiers[preset_type](preset)
+            except Exception as error:
+                return '%s "%s" %s' % (preset_type, name, error)
 
-def load_engine_config(engine_name):
-
-    try:
-        with open(os.path.join(OPENBENCH_CONFIG_DIR, 'Engines', '%s.json' % (engine_name))) as fin:
-            conf = json.load(fin)
-
-        verify_engine_basics(conf)
-        verify_engine_build(engine_name, conf)
-
-        for preset_type in ['test_presets', 'tune_presets', 'datagen_presets']:
-            if preset_type not in conf.keys() or 'default' not in conf[preset_type].keys():
-                conf[preset_type] = { 'default' : {} }
-
-        assert 'default' in conf['test_presets'].keys()
-        assert 'default' in conf['tune_presets'].keys()
-        assert 'default' in conf['datagen_presets'].keys()
-
-        for key, test_preset in conf['test_presets'].items():
-            verify_engine_test_preset(test_preset)
-
-        for key, tune_preset in conf['tune_presets'].items():
-            verify_engine_tune_preset(tune_preset)
-
-        for key, datagen_preset in conf['datagen_presets'].items():
-          verify_engine_datagen_preset(datagen_preset)
-
-    except Exception as error:
-        traceback.print_exc()
-        print ('%s has errors on the configuration json' % (engine_name))
-        sys.exit()
-
-    return conf
+    return None
 
 
 def verify_general_config(conf):
 
-    assert type(conf.get("client_version"  ) == int)
-    assert type(conf.get("client_repo_url" ) == str)
-    assert type(conf.get("client_repo_ref" ) == str)
+    assert type(conf.get('client_version'  ) == int)
+    assert type(conf.get('client_repo_url' ) == str)
+    assert type(conf.get('client_repo_ref' ) == str)
 
-    assert type(conf.get("use_cross_approval"         ) == bool)
-    assert type(conf.get("require_login_to_view"      ) == bool)
-    assert type(conf.get("require_manual_registration") == bool)
-    assert type(conf.get("balance_engine_throughputs" ) == bool)
+    assert type(conf.get('fastchess_min_version') == str)
+    assert type(conf.get('fastchess_repo_url') == str)
+    assert type(conf.get('fastchess_repo_ref') == str)
 
-def verify_engine_basics(conf):
+    assert type(conf.get('use_cross_approval'         ) == bool)
+    assert type(conf.get('require_login_to_view'      ) == bool)
+    assert type(conf.get('require_manual_registration') == bool)
+    assert type(conf.get('balance_engine_throughputs' ) == bool)
 
-    assert type(conf.get('private')) == bool
-    assert type(conf.get('nps')) == int and conf['nps'] > 0
-    assert type(conf.get('source')) == str
-    assert type(conf.get('build')) == dict
+    # Serving of Networks and PGNs may be handed off to an nginx reverse proxy.
+    # The root must match an "internal" nginx location, aliased to Media/. ie:
+    #     location /x-accel-media/ { internal; alias /path/to/OpenBench/Media/; }
 
-def verify_engine_build(engine_name, conf):
-
-    assert type(conf['build'].get('cpuflags')) == list
-    assert all(type(x) == str for x in conf['build']['cpuflags'])
-
-    assert type(conf['build'].get('systems')) == list
-    assert all(type(x) == str for x in conf['build']['systems'])
-
-    if conf['private']: # Private engines require a PAT
-        fname = 'credentials.%s' % (engine_name.replace(' ', '').lower())
-        assert os.path.exists(os.path.join(OPENBENCH_CONFIG_DIR, 'Config', fname))
-
-    else: # Public engines require a Makefile path and valid compilers
-        assert type(conf['build'].get('path')) == str
-        assert type(conf['build'].get('compilers')) == list
-        assert all(type(x) == str for x in conf['build']['compilers'])
+    assert type(conf.get('use_x_accel_redirect' )) == bool
+    assert type(conf.get('x_accel_redirect_root')) == str
+    assert conf['x_accel_redirect_root'].startswith('/')
 
 def verify_engine_test_preset(test_preset):
 

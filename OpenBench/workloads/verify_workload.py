@@ -26,15 +26,13 @@
 # the data from Github, and return a tuple of (errors, engines)
 #
 # For Verifying and Collection information on a Test:
-#   >>> errors, engine_info = verify_workload(request, 'TEST')
-#   >>> dev_info, base_info = engine_info
+#   >>> errors, (dev_info, base_info) = verify_workload(request, 'TEST')
 #
 # For Verifying and Collection information on a Tune:
-#   >>> errors, engine_info = verify_workload(request, 'TUNE')
+#   >>> errors, dev_info = verify_workload(request, 'TUNE')
 #
 # For Verifying and Collection information on Datagen:
-#   >>> errors, engine_info = verify_workload(request, 'DATAGEN')
-#   >>> dev_info, base_info = engine_info
+#   >>> errors, (dev_info, base_info) = verify_workload(request, 'DATAGEN')
 
 import os
 import re
@@ -74,7 +72,7 @@ def verify_test_creation(errors, request):
     verifications = [
 
         # Verify everything about the Dev Engine
-        (verify_configuration  , 'dev_engine', 'Dev Engine', 'engines'),
+        (verify_engine         , 'dev_engine', 'Dev Engine'),
         (verify_github_repo    , 'dev_repo'),
         (verify_network        , 'dev_network', 'Dev Network', 'dev_engine'),
         (verify_options        , 'dev_options', 'Threads', 'Dev Options'),
@@ -82,7 +80,7 @@ def verify_test_creation(errors, request):
         (verify_time_control   , 'dev_time_control', 'Dev Time Control'),
 
         # Verify everything about the Base Engine
-        (verify_configuration  , 'base_engine', 'Base Engine', 'engines'),
+        (verify_engine         , 'base_engine', 'Base Engine'),
         (verify_github_repo    , 'base_repo'),
         (verify_network        , 'base_network', 'Base Network', 'base_engine'),
         (verify_options        , 'base_options', 'Threads', 'Base Options'),
@@ -90,7 +88,7 @@ def verify_test_creation(errors, request):
         (verify_time_control   , 'base_time_control', 'Base Time Control'),
 
         # Verify everything about the Test Settings
-        (verify_configuration  , 'book_name', 'Book', 'books'),
+        (verify_book           , 'book_name', 'Book'),
         (verify_upload_pgns    , 'upload_pgns', 'Upload PGNs'),
         (verify_test_mode      , 'test_mode'),
         (verify_sprt_bounds    , 'test_bounds'),
@@ -130,7 +128,7 @@ def verify_tune_creation(errors, request):
         (verify_spsa_distribution_type, 'spsa_distribution_type', 'Distribution Method'),
 
         # Verify everything about the Engine
-        (verify_configuration         , 'dev_engine', 'Engine', 'engines'),
+        (verify_engine                , 'dev_engine', 'Engine'),
         (verify_github_repo           , 'dev_repo'),
         (verify_network               , 'dev_network', 'Network', 'dev_engine'),
         (verify_options               , 'dev_options', 'Threads', 'Options'),
@@ -138,7 +136,7 @@ def verify_tune_creation(errors, request):
         (verify_time_control          , 'dev_time_control', 'Time Control'),
 
         # Verify everything about the Test Settings
-        (verify_configuration         , 'book_name', 'Book', 'books'),
+        (verify_book                  , 'book_name', 'Book'),
         (verify_upload_pgns           , 'upload_pgns', 'Upload PGNs'),
 
         # Verify everything about the General Settings
@@ -177,7 +175,7 @@ def verify_datagen_creation(errors, request):
     verifications = [
 
         # Verify everything about the Dev Engine
-        (verify_configuration  , 'dev_engine', 'Dev Engine', 'engines'),
+        (verify_engine         , 'dev_engine', 'Dev Engine'),
         (verify_github_repo    , 'dev_repo'),
         (verify_network        , 'dev_network', 'Dev Network', 'dev_engine'),
         (verify_options        , 'dev_options', 'Threads', 'Dev Options'),
@@ -185,7 +183,7 @@ def verify_datagen_creation(errors, request):
         (verify_time_control   , 'dev_time_control', 'Dev Time Control'),
 
         # Verify everything about the Base Engine
-        (verify_configuration  , 'base_engine', 'Base Engine', 'engines'),
+        (verify_engine         , 'base_engine', 'Base Engine'),
         (verify_github_repo    , 'base_repo'),
         (verify_network        , 'base_network', 'Base Network', 'base_engine'),
         (verify_options        , 'base_options', 'Threads', 'Base Options'),
@@ -196,7 +194,7 @@ def verify_datagen_creation(errors, request):
         (verify_datagen_games  , 'datagen_max_games'),
         (verify_datagen_genfens, 'datagen_custom_genfens'),
         (verify_datagen_reverse, 'datagen_play_reverses'),
-        (verify_datagen_book   , 'book_name', 'Book', 'books'),
+        (verify_datagen_book   , 'book_name', 'Book'),
         (verify_upload_pgns    , 'upload_pgns', 'Upload PGNs'),
 
         # Verify everything about the General Settings
@@ -239,8 +237,12 @@ def verify_options(errors, request, field, option, field_name):
     try: assert int(OpenBench.utils.extract_option(request.POST[field], option)) >= 1
     except: errors.append('"{0}" needs to be at least 1 for {1}'.format(option, field_name))
 
-def verify_configuration(errors, request, field, field_name, parent):
-    try: assert request.POST[field] in OpenBench.config.OPENBENCH_CONFIG[parent].keys()
+def verify_engine(errors, request, field, field_name):
+    try: assert EngineConfig.objects.filter(name=request.POST[field], enabled=True).exists()
+    except: errors.append('{0} was not found in the configuration'.format(field_name))
+
+def verify_book(errors, request, field, field_name):
+    try: assert Book.objects.filter(name=request.POST[field], enabled=True).exists()
     except: errors.append('{0} was not found in the configuration'.format(field_name))
 
 def verify_time_control(errors, request, field, field_name):
@@ -357,10 +359,10 @@ def verify_datagen_reverse(errors, request, field):
     try: assert request.POST[field] in ['YES', 'NO']
     except: errors.append('Play Reverses must either be YES or NO')
 
-def verify_datagen_book(errors, request, field, field_name, parent):
+def verify_datagen_book(errors, request, field, field_name):
     try:
-        valid = ['NONE'] + list(OpenBench.config.OPENBENCH_CONFIG[parent].keys())
-        assert request.POST[field] in valid
+        if request.POST[field] == 'NONE': return
+        assert Book.objects.filter(name=request.POST[field], enabled=True).exists()
     except: errors.append('{0} was neither NONE nor found in the configuration'.format(field_name))
 
 def verify_scale_method(errors, request, field):
@@ -379,37 +381,30 @@ def collect_github_info(errors, request, field):
     # All API requests will share this common path. Some engines are private.
     base    = request.POST['%s_repo' % (field)].replace('github.com', 'api.github.com/repos')
     engine  = request.POST['%s_engine' % (field)]
-    private = OpenBench.config.OPENBENCH_CONFIG['engines'][engine]['private']
+    private = EngineConfig.objects.filter(name=engine).values_list('private', flat=True).first()
     headers = {}
 
     ## Step 1: Verify the target of the API requests
-    ## [A] We will not attempt to reach any site other than api.github.com
-    ## [B] Private engines may only use their main repo for sources of tests
-    ## [C] Determine which, if any, credentials we want to pass along
 
     # Private engines must have a token stored in credentials.enginename
     if private and not (headers := OpenBench.utils.read_git_credentials(engine)):
         errors.append('Server does not have access tokens for this engine')
-        return (None, None)
+        return
 
     # Do not allow private engines to use forked repos ( We don't have a token! )
     if requests_illegal_fork(request, field):
         errors.append('Forked Repositories are not allowed for Private engines')
-        return (None, None)
+        return
 
     # Avoid leaking our credentials to other websites
     if not base.startswith('https://api.github.com/'):
         errors.append('OpenBench may only reach Github\'s API')
-        return (None, None)
+        return
 
     ## Step 2: Connect to the Github API for the given Branch or Commit SHA.
-    ## [A] We will attempt to parse the most recent commit message for a
-    ##     bench, unless one was supplied.
-    ## [B] We will translate any branch name into a commit SHA for later use,
-    ##     so we may compare branches and generate diff URLs
-    ## [C] If the engine is public, we will construct the URL to download the
-    ##     source code from Github into a .zip file.
-    ## [D] If the engine is private, we will carry onto Step 3.
+    ## - Parse the most recent commit message for a bench, unless one was supplied.
+    ## - We will translate any branch name into a commit SHA for later use
+    ## - Construct the URL to download the source code from Github into a .zip file.
 
     try: # Fetch data from the Github API
 
@@ -427,17 +422,16 @@ def collect_github_info(errors, request, field):
 
         # Check that all the data we need going forward is present
         assert 'message' in data['commit'] and 'sha' in data
-        assert private or 'sha' in data['commit']['tree']
 
     except: # Unable to find for whatever reason
         traceback.print_exc()
         errors.append('%s could not be found' % (branch or 'Branch'))
-        return (None, None)
+        return
 
     # Extract the bench from the web form, or from the commit message
     if not (bench := determine_bench(request, field, data['commit']['message'])):
         errors.append('Unable to parse a Bench for %s' % (branch))
-        return (None, None)
+        return
 
     # A sha is named by the branch it is the head of, or the pull request it is in, as if that was typed. With
     # neither, the branch stays the sha, and the commit's first line is what the test is called
@@ -447,19 +441,8 @@ def collect_github_info(errors, request, field):
         if found: branch = found
         else: title = data['commit']['message'].strip().partition('\n')[0].strip()
 
-    # Public Engines: Construct the .zip download and return everything
-    if not private:
-        treeurl = data['commit']['tree']['sha'] + '.zip'
-        source  = OpenBench.utils.path_join(request.POST['%s_repo' % (field)], 'archive', treeurl)
-        return (source, branch, data['sha'], bench, title), True
-
-    ## Step 3: Construct the URL for the API request to list all Artifacts
-    ## [A] OpenBench artifacts are always run via a file named openbench.yml
-    ## [B] These should contain combinations for windows/linux, avx2/avx512, popcnt/pext
-    ## [C] If those artifacts are not found, we flag the test as awaiting, and try later.
-
-    url, has_all = fetch_artifact_url(base, engine, headers, data['sha'])
-    return (url, branch, data['sha'], bench, title), has_all
+    source = OpenBench.utils.path_join(base, 'zipball', data['sha'])
+    return (source, branch, data['sha'], bench, data['commit']['message'], title)
 
 def branch_of_sha(base, sha, headers):
 
@@ -488,12 +471,12 @@ def branch_of_sha(base, sha, headers):
 def requests_illegal_fork(request, field):
 
     # Strip trailing '/'s for sanity
-    engine  = OpenBench.config.OPENBENCH_CONFIG['engines'][request.POST['%s_engine' % (field)]]
-    eng_src = engine['source'].rstrip('/')
+    config  = EngineConfig.objects.filter(name=request.POST['%s_engine' % (field)]).first()
+    eng_src = config.source.rstrip('/')
     tar_src = request.POST['%s_repo' % (field)].rstrip('/')
 
     # Illegal if sources do not match for Private engines
-    return engine['private'] and eng_src != tar_src
+    return config.private and eng_src != tar_src
 
 def determine_bench(request, field, message):
 
@@ -507,30 +490,28 @@ def determine_bench(request, field, message):
         return int(benches[-1].replace(',', ''))
     except: return None
 
-def fetch_artifact_url(base, engine, headers, sha):
+def determine_info(request, message):
 
-    try:
-        # Fetch the run id for the openbench workflow for this comment
-        url    = OpenBench.utils.path_join(base, 'actions', 'workflows', 'openbench.yml', 'runs')
-        url   += '?head_sha=%s' % (sha)
-        run_id = requests.get(url=url, headers=headers).json()['workflow_runs'][0]['id']
+    # Use the provided info if possible
+    if info := request.POST.get('info'):
+        return info
 
-        # Fetch information about individual job results
-        url  = OpenBench.utils.path_join(base, 'actions', 'runs', str(run_id), 'jobs')
-        jobs = requests.get(url=url, headers=headers).json()['jobs']
+    # Do not auto populate when comparing different engines, or the same branch
+    if request.POST.get('dev_engine') != request.POST.get('base_engine'):
+        return ''
 
-        # Fetch information about individual artifact
-        url       = OpenBench.utils.path_join(base, 'actions', 'runs', str(run_id), 'artifacts')
-        artifacts = requests.get(url=url, headers=headers).json()['artifacts']
+    if request.POST.get('dev_branch') == request.POST.get('base_branch'):
+        return ''
 
-        # All jobs finished, with at least one non-expired Artifact
-        assert not any(job['conclusion'] != 'success' for job in jobs)
-        assert not any(artifact['expired'] for artifact in artifacts)
-        assert len(artifacts) >= len(jobs)
-
-        # Only set the url if we have everything we need
-        return (url, True)
-
-    except Exception as error:
-        # If anything goes wrong, retry later with the same base URL
-        return (base, False)
+    # Strip the bench from the commit message, and tidy the whitespace
+    lines = message.strip().split("\n")
+    bench_search = re.compile(r"(^|\s)[Bb]ench[ :]+([1-9]\d{5,7})(?!\d)")
+    for i, line in enumerate(reversed(lines)):
+        new_line, n = bench_search.subn("", line)
+        if n:
+            lines[-i - 1] = new_line
+            break
+    s = "\n".join(lines)
+    s = re.sub(r"[ \t]+", " ", s)
+    s = re.sub(r"\n+", r"\n", s)
+    return s.rstrip()
