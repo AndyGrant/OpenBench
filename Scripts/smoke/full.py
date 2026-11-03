@@ -46,7 +46,8 @@ NYAYO_INSTANCE = 'smoke'
 CLIENT_TIMERS = { 'TIMEOUT_ERROR' : 1, 'TIMEOUT_WORKLOAD' : 1, 'REPORT_INTERVAL' : 2 }
 
 # Client requests that are events in expect.py
-WATCHED = { 'clientSubmitResults' : 'results', 'clientBenchError' : 'bench_error', 'clientSubmitPGN' : 'pgn' }
+WATCHED = { 'clientSubmitResults' : 'results', 'clientBenchError' : 'bench_error', 'clientSubmitPGN' : 'pgn',
+            'clientGetWorkload' : 'workload' }
 
 
 class SmokeFailure(Exception):
@@ -292,6 +293,7 @@ class Harness:
         self.lock       = threading.Lock()  # Orders events: recorded client requests and actions by hand
         self.expect     = expect.Expectations(NYAYO_INSTANCE)
         self.nyayo_down = False
+        self.nyayo_enabled = nyayo
         self.nyayo_server = nyayo_server
         self.nyayo      = NyayoRecorder(NYAYO_TOKEN, NYAYO_INSTANCE, nyayo_server and nyayo_server.url).start()
         self.recorder   = ClientRecorder(self.url, self.on_client_event, WATCHED).start()
@@ -413,17 +415,37 @@ class Harness:
             test['lowerllr'] = math.log(test['beta'] / (1.0 - test['alpha']))
             test['upperllr'] = math.log((1.0 - test['beta']) / test['alpha'])
 
+        # Made as the create page makes one: reported at once (create_workload), approved or not, and only then
+        # open to workers, so no workload of it can be reported before the test is. The report is sent from the
+        # shell, synchronously, since its process ends at once and a queued report would go with it.
+        began, approved = time.time(), test['approved']
         output = self.manage('shell', '-c', (
-            'import json; from OpenBench.models import Engine, Test; '
-            'f = json.loads(%r); '
+            'import json; from OpenBench.models import Engine, Test; from OpenBench.nyayo import report_test; '
+            'f = json.loads(%r); f.pop("approved"); '
             'dev = Engine.objects.create(**f.pop("dev")); base = Engine.objects.create(**f.pop("base")); '
-            'print("SMOKE_TEST_ID", Test.objects.create(dev=dev, base=base, **f).id)'
+            'test = Test.objects.create(dev=dev, base=base, approved=False, **f); '
+            'report_test(test.id); '
+            'print("SMOKE_TEST_ID", test.id)'
         ) % (json.dumps({ **test, 'dev' : dev, 'base' : base })), capture=True)
 
         match = re.search(r'SMOKE_TEST_ID (\d+)', output)
         if not match:
             raise SmokeFailure('creating a test printed no id\n%s' % (output))
-        return int(match.group(1))
+        test_id = int(match.group(1))
+
+        # Opened to workers only after its creation is on record, so no hand-out comes before it
+        with self.lock:
+            row = self.test_row(test_id)
+            if self.nyayo_enabled:
+                self.expect.record(began, 'create', test_id, row, row, lost=self.nyayo_down)
+            if approved:
+                db = sqlite3.connect(self.temp / 'server' / 'db.sqlite3', timeout=30)
+                try:
+                    with db:
+                        db.execute('UPDATE OpenBench_test SET approved = 1 WHERE id = ?', (test_id,))
+                finally:
+                    db.close()
+        return test_id
 
     def query(self, sql, *params):
         db = sqlite3.connect('file:%s?mode=ro' % (self.temp / 'server' / 'db.sqlite3'), uri=True, timeout=10)
@@ -451,7 +473,22 @@ class Harness:
 
     # Events: what the worker said, and what the harness did by hand
 
+    def on_workload(self, entry, forward):
+        # A workload handed out: its request names no test, its answer does. One report follows
+        with self.lock:
+            response = forward()
+            try:
+                test_id = response.json()['workload']['test']['id']
+            except (ValueError, KeyError, TypeError):
+                return response  # No work for the machine
+            if self.nyayo_enabled:
+                row = self.test_row(test_id)
+                self.expect.record(entry['t'], 'workload', test_id, row, row, lost=self.nyayo_down)
+        return response
+
     def on_client_event(self, endpoint, entry, forward):
+        if endpoint == 'clientGetWorkload':
+            return self.on_workload(entry, forward)
         test_id = int(entry['form']['test_id'])
         with self.lock:
             before   = self.test_row(test_id)
@@ -933,6 +970,33 @@ def scenario_backfill_games(h):
     return 'test %d: %d uploads sent again twice, one from before client 39 named and tagged (%s)' % (
         test_id, len(live), ', '.join(str(x['status']) for x in sent))
 
+def scenario_from_the_start(h):
+    # A test is on nyayo's list as waiting the moment it exists, before any worker may see it (it isn't approved yet,
+    # and the worker is idle), and shows its worker once that worker is handed a workload
+    test_id = h.create_test(test_mode='GAMES', max_games=4, approved=False)
+
+    reports = h.nyayo.for_test(test_id)
+    check(len(reports) == 1, 'expected the one report of its creation, nyayo had %d' % (len(reports)))
+    doc, view = reports[0]['document'], expect.view(reports[0]['document'])
+    check(view['state'] == 'waiting', 'the test is %r on creation, not waiting' % (view['state']))
+    check(view['counts']['games'] == 0 and not view['machines'], 'a waiting test has no games and no machines: %s' % (doc))
+    check(not h.results(test_id), 'a worker has the test, which is unapproved')
+    if h.args.schema == 'v1':
+        check(doc['match']['settings']['tc'] and doc['subject']['commit'] and doc['opponents'][0]['commit'],
+              'the first document lacks the settings or the engines: %s' % (doc))
+        check(doc['match']['finished_at'] is None, 'finished_at on a waiting test: %s' % (doc['match']['finished_at']))
+
+    h.action(test_id, 'APPROVE')  # A report of its own, still waiting
+    h.wait_for(lambda: any(expect.view(x['document'])['machines'] for x in h.nyayo.for_test(test_id)), 30,
+               'the worker to show in a report of test %d' % (test_id))
+    shown = next(x for x in h.nyayo.for_test(test_id) if expect.view(x['document'])['machines'])
+    check(expect.view(shown['document'])['state'] == 'waiting' and expect.view(shown['document'])['counts']['games'] == 0,
+          'the worker showed only once games were played: %s' % (shown['document']))
+
+    h.wait_for(lambda: h.test_row(test_id)['finished'], 90, 'test %d to finish' % (test_id))
+    h.verify(test_id)
+    return 'test %d: waiting on creation, its worker shown at hand-out, then %s' % (test_id, score(h.test_row(test_id)))
+
 
 SCENARIOS = collections.OrderedDict([
     ('1',  ('GAMES test to max_games',          scenario_games_to_max)),
@@ -950,6 +1014,7 @@ SCENARIOS = collections.OrderedDict([
     ('13', ('two tests, status ahead of games',   scenario_two_tests)),
     ('14', ('nyayo busy for games (503)',         scenario_nyayo_busy)),
     ('15', ('report_to_nyayo --games, an older upload', scenario_backfill_games)),
+    ('16', ('reported from creation, waiting; its worker at hand-out', scenario_from_the_start)),
 ])
 
 # Not written yet, each waiting on the work named

@@ -31,11 +31,14 @@
 
 import math
 
+from django.db import transaction
+
 import OpenBench.utils
 import OpenBench.views
 
 from OpenBench.models import *
 from OpenBench.config import OPENBENCH_CONFIG
+from OpenBench.nyayo import enqueue_report
 from OpenBench.workloads.verify_workload import verify_workload
 
 def create_workload(request, workload_type):
@@ -98,6 +101,10 @@ def create_workload(request, workload_type):
 
     if not OPENBENCH_CONFIG['use_cross_approval'] and profile.approver:
         workload.approved = True; workload.save()
+
+    # Reported from creation, approved or not, once it's all committed: a test is on nyayo's list as
+    # waiting before any worker has seen it. Every fixed field of the match is known here.
+    transaction.on_commit(lambda: enqueue_report(workload.id))
 
     return OpenBench.views.redirect(request, '/index/', warning=warning)
 
