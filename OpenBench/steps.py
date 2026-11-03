@@ -346,39 +346,45 @@ def stop_test(step):
 
 def settle(result, step, side, was_passed=False):
     # Called after a step ended, passed or failed. Judges the failed steps of its stage once both engines are done,
-    # and returns what the worker is answered: { 'stop' : True }, { 'retry_after' : seconds }, or {} where there is
-    # nothing to say (a stage still going, a step that passed, trouble that isn't judged).
+    # and returns (what the worker is answered, whether a verdict was made or changed). The answer is { 'stop' : True },
+    # { 'retry_after' : seconds }, or {} where there is nothing to say (a stage still going, a step that passed,
+    # trouble that isn't judged). A stage reported again answers the same and changes nothing.
     rows = list(Step.objects.filter(result=result, step=step).select_related('result__machine__user', 'result__test'))
     if len(rows) != 2 or any(x.state not in ('passed', 'failed') for x in rows):
-        return {}
+        return {}, False
 
+    changed = False
     for row in rows:
         if row.state == 'failed' and not row.blame:
             if decided := decide(row, was_passed and row.side == side):
+                changed = True
                 if enact(row, *decided):
                     stop_test(row)
 
     for row in rows:
-        judge_again(row)
+        changed = judge_again(row) or changed
 
     if any(x.state == 'failed' and x.blame == 'engine' for x in rows):
-        return { 'stop' : True }
+        return { 'stop' : True }, changed
 
     waits = [x.retry_at for x in rows if x.state == 'failed' and x.retry_at]
     if waits:
-        return { 'retry_after' : max(1, round((max(waits) - timezone.now()).total_seconds())) }
+        return { 'retry_after' : max(1, round((max(waits) - timezone.now()).total_seconds())) }, changed
     if any(x.state == 'failed' and x.blame == 'unclear' for x in rows):
-        return { 'retry_after' : retry_seconds() } # Away from the test, as long as the server keeps it so
-    return {}
+        return { 'retry_after' : retry_seconds() }, changed # Away from the test, as long as the server keeps it so
+    return {}, changed
 
 
 def judge_again(row):
-    # A new machine's failure is what a can't-tell on another machine was waiting for
+    # A new machine's failure is what a can't-tell on another machine was waiting for. True where one changed.
+    changed = False
     for old in Step.objects.filter(result__test_id=row.result.test_id, step=row.step, side=row.side, state='failed',
                                    blame='unclear').exclude(result=row.result).select_related('result__machine__user', 'result__test'):
         if (decided := decide(old)) and decided[0] != 'unclear':
+            changed = True
             if enact(old, *decided):
                 stop_test(old)
+    return changed
 
 
 def left_tests(machine):

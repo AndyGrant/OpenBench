@@ -729,14 +729,14 @@ def client_report_step(request, machine):
         step   = OpenBench.steps.record_step(result, form)
 
         # A stage that has ended on both engines is judged, and the worker answered { 'stop' } or { 'retry_after' }
-        answer = {}
+        answer, judged = {}, False
         if form.get('state') in ('passed', 'failed') and form.get('step') in ('compile', 'bench'):
-            answer = OpenBench.steps.settle(result, form['step'], form.get('side', ''), getattr(step, 'was_passed', False))
+            answer, judged = OpenBench.steps.settle(result, form['step'], form.get('side', ''), getattr(step, 'was_passed', False))
     except (Test.DoesNotExist, Result.DoesNotExist, KeyError, ValueError):
         return JsonResponse({})
 
     # A verdict can stop the test or move another machine's: the report is built from what is committed
-    if step is not None or answer:
+    if step is not None or judged:
         transaction.on_commit(lambda: enqueue_report(test.id))
 
     return JsonResponse(answer)

@@ -62,7 +62,7 @@ def report(result, step, side, state, **form):
     # What the view does with a report: records it, and settles a stage that has ended
     row = steps.record_step(result, { 'step' : step, 'side' : side, 'state' : state, **form })
     if state in ('passed', 'failed') and step in ('compile', 'bench'):
-        return steps.settle(result, step, side, getattr(row, 'was_passed', False))
+        return steps.settle(result, step, side, getattr(row, 'was_passed', False))[0]
     return {}
 
 def ok(result, step, side='dev'):
