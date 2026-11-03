@@ -137,7 +137,7 @@ class Test(Model):
     # Misc information
     author      = CharField(max_length=64)
     upload_pgns = CharField(max_length=16, default='FALSE')
-    name        = CharField(max_length=256, default='', blank=True) # The match's name in nyayo, if not <engine> <branch> vs <branch>
+    name        = CharField(max_length=200, default='', blank=True) # The match's name in nyayo, if not <engine> <branch> vs <branch>
 
     # Opening book settings
     book_name  = CharField(max_length=32)

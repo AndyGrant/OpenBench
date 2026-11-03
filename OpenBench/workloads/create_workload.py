@@ -123,7 +123,7 @@ def create_new_test(request):
     test.book_name         = request.POST['book_name']
     test.upload_pgns       = OpenBench.utils.always_upload(request.POST['upload_pgns'])
 
-    test.name              = request.POST.get('name', '').strip() or dev_info[4]
+    test.name              = (request.POST.get('name', '').strip() or dev_info[4])[:200].strip()
     test.dev               = get_engine(*dev_info)
     test.dev_repo          = request.POST['dev_repo']
     test.dev_engine        = request.POST['dev_engine']

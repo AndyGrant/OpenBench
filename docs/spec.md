@@ -161,7 +161,7 @@ this section says when OpenBench sends what.
 - **A name for a test**: a branch or tag typed is the branch, and is not looked up further. When a sha is typed (40 hex
   digits), `collect_github_info` names it, in this order, the first to answer winning (it asks GitHub with the engine's token if it is private, and
   needs none for a public one; a request that fails or answers oddly is passed over and never stops a test being made):
-  1. the **name** typed on the create page (`Test.name`, offered for a test only) is the match's name, whatever else follows, and is used for a branch typed too;
+  1. the **name** typed on the create page (`Test.name`, cut to 200 characters, nyayo's limit, offered for a test only) is the match's name, whatever else follows, and is used for a branch typed too;
   2. `commits/<sha>/branches-where-head`: that branch, preferring one that is not the repository's default;
   3. `commits/<sha>/pulls`: the head branch of a pull request from the repository itself (a fork's is another's
      branch of the same name);

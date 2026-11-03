@@ -173,6 +173,18 @@ def test_a_base_by_sha_gets_a_branch_but_never_a_name():
     test, document = create(answers_for(**{ heads_of(BASE): [], pulls_of(BASE): [] }), 'feature-y', BASE)
     assert test.name == '' and test.base.name == BASE
 
+def test_a_long_name_is_cut_to_nyayos_limit():
+    long = 'x' * 150 + ' ' + 'y' * 150
+    none = { heads_of(SHA): [], pulls_of(SHA): [] }
+    answers = answers_for(**none)
+    answers['/commits/' + SHA] = commit(SHA, long + '\n\nBench: 5')
+    test, document = create(answers, SHA)
+    assert test.name == long[:200] and len(document['match']['name']) == 200
+
+    # The same for a name that was typed
+    test, document = create(answers_for(**none), SHA, name='z' * 300)
+    assert test.name == 'z' * 200 and document['match']['name'] == 'z' * 200
+
 def test_older_tests_keep_their_rows():
     engine = Engine.objects.create(name='old-branch', source='', sha='0' * 40, bench=1)
     test   = Test.objects.create(dev=engine, base=engine, dev_engine='elephant', approved=True)
@@ -185,7 +197,7 @@ if __name__ == '__main__':
                  test_the_commits_first_line_when_nothing_has_it, test_github_down_still_gives_the_sha,
                  test_a_typed_branch_is_not_looked_up, test_a_test_by_sha_is_named_by_its_branch,
                  test_a_test_with_no_branch_is_named_by_the_commit, test_a_test_made_with_github_down,
-                 test_a_typed_name_wins, test_a_base_by_sha_gets_a_branch_but_never_a_name,
+                 test_a_typed_name_wins, test_a_long_name_is_cut_to_nyayos_limit, test_a_base_by_sha_gets_a_branch_but_never_a_name,
                  test_older_tests_keep_their_rows):
         test()
         print('PASS', test.__name__)
