@@ -253,6 +253,59 @@ class Configuration:
         except OSError:
             self.huge_pages = 'UNKNOWN'
 
+LAST_RTT_MS = None # Round trip of the last call to the server, in whole milliseconds, sent with the next calls
+RTT_ENDPOINTS = ('clientGetWorkload', 'clientHeartbeat', 'clientSubmitResults')
+
+def timed_post(target, **kwargs):
+
+    # requests.post, noting how long the round trip took. Best effort: the timing never fails a request.
+    global LAST_RTT_MS
+    start    = time.monotonic()
+    response = requests.post(target, **kwargs)
+    try: LAST_RTT_MS = int(round((time.monotonic() - start) * 1000))
+    except Exception: pass
+    return response
+
+def with_rtt(payload):
+
+    # The last measured round trip, in the payload of the calls that carry it
+    if LAST_RTT_MS is not None:
+        payload['rtt_ms'] = LAST_RTT_MS
+    return payload
+
+def command_lines(command):
+
+    # The lines a command prints, or none: a missing tool, a failure or a slow one is no GPU, never an error
+    try:
+        output = subprocess.run(command, stdout=PIPE, stderr=subprocess.DEVNULL, timeout=5, text=True, errors='replace')
+        return [line.strip() for line in output.stdout.splitlines() if line.strip()] if output.returncode == 0 else []
+    except Exception:
+        return []
+
+def detect_gpus():
+
+    # Names of the GPUs of this machine, as strings. Best effort: an empty list when none are found, or on any failure.
+    try:
+        if platform.system() == 'Windows':
+            return command_lines(['powershell', '-NoProfile', '-NonInteractive', '-Command',
+                '(Get-CimInstance Win32_VideoController).Name'])
+
+        if platform.system() == 'Linux':
+            gpus = []
+
+            # Under WSL lspci shows nothing useful, but the driver of the host may answer
+            if 'microsoft' in platform.release().lower():
+                gpus = [re.sub(r' \(UUID: .*\)$', '', line).split(': ', 1)[-1]
+                        for line in command_lines(['nvidia-smi', '-L']) if line.startswith('GPU ')]
+
+            if not gpus:
+                gpus = [line.split(': ', 1)[-1] for line in command_lines(['lspci'])
+                        if 'VGA compatible controller' in line or '3D controller' in line]
+            return gpus
+    except Exception:
+        pass
+    return []
+
 class ServerReporter:
 
     ## Handles reporting things to the server, which are not intended to send a great
@@ -264,9 +317,10 @@ class ServerReporter:
 
         payload['machine_id'] = config.machine_id
         payload['secret']     = config.secret_token
+        if endpoint in RTT_ENDPOINTS: with_rtt(payload)
 
         target   = utils.url_join(config.server, endpoint)
-        response = requests.post(target, data=payload, files=files, timeout=TIMEOUT_HTTP)
+        response = timed_post(target, data=payload, files=files, timeout=TIMEOUT_HTTP)
 
         # Check for a json repsone, to look for Client Version Errors
         try: as_json = response.json()
@@ -1085,6 +1139,7 @@ def server_configure_worker(config):
         'physical_cores' : config.physical_cores, # Physical cores, to differentiate hyperthreads
         'ram_total_mb'   : config.ram_total_mb,   # Total RAM on the system, to avoid over assigning
         'huge_pages'     : config.huge_pages,     # Transparent Huge Pages: always, madvise, never, or UNKNOWN
+        'gpus'           : detect_gpus(),         # Names of the GPUs found, or an empty list
         'machine_id'     : config.machine_id,     # Assigned value, or None. Will be replaced if wrong
         'machine_name'   : config.identity,       # Optional pseudonym for the machine, otherwise None
         'concurrency'    : config.threads,        # Threads to use to play games
@@ -1144,8 +1199,9 @@ def server_request_workload(config):
     print('\nRequesting Workload from Server...')
 
     payload  = { 'machine_id' : config.machine_id, 'secret' : config.secret_token, 'blacklist' : blacklisted(config) }
+    with_rtt(payload)
     target   = utils.url_join(config.server, 'clientGetWorkload')
-    response = requests.post(target, data=payload, timeout=TIMEOUT_HTTP)
+    response = timed_post(target, data=payload, timeout=TIMEOUT_HTTP)
 
     # Server errors produce garbage back, which we should not alarm a user with
     try: response = response.json()
