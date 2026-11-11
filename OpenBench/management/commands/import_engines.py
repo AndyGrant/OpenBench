@@ -32,7 +32,7 @@ import os
 from django.core.management.base import BaseCommand, CommandError
 
 from OpenBench.config import PRESET_TYPES, verify_engine_presets
-from OpenBench.model_utils import ordered_presets
+from OpenBench.model_utils import preset_order
 from OpenBench.models import EngineConfig
 
 class Command(BaseCommand):
@@ -88,7 +88,8 @@ def engine_fields(fname, name, conf):
         'build_compilers' : ' '.join(build.get('compilers', [])),
         'build_cpuflags'  : ' '.join(build.get('cpuflags', [])),
         'build_systems'   : ' '.join(build.get('systems', [])),
-        'presets'         : ordered_presets(presets),
+        'presets'         : presets,
+        'preset_order'    : preset_order(presets),
     }
 
 def expand_path(path):
