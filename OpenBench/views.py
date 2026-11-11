@@ -649,7 +649,7 @@ def manage_engines(request, name=None, action=None):
         data = {
             'engine_config'     : config,
             'can_manage'        : can_manage,
-            'presets'           : json.dumps(config.presets, indent=4),
+            'presets'           : json.dumps(OpenBench.model_utils.restore_preset_order(config), indent=4),
         }
         return render(request, 'manage_engine.html', data)
 

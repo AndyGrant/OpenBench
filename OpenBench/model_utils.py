@@ -9,6 +9,40 @@ def network_to_dict(network):
 def engine_to_dict(engine):
     return { 'id': engine.id, **model_to_dict(engine, exclude=['id']) }
 
+def ordered_presets(presets):
+
+    # The internal binary representation of JSON objects used by MySQL's JSON
+    # type (and PostgreSQL's jsonb, etc.) normalizes and sorts object keys,
+    # losing the original order in which they were presented.
+    # To avoid shuffling, store the intended order alongside the presets.
+    return {
+        **presets,
+        '_preset_order' : {
+            preset_type : list(group.keys())
+            for preset_type, group in presets.items()
+            if preset_type != '_preset_order' and isinstance(group, dict)
+        },
+    }
+
+def restore_preset_order(config):
+
+    presets = dict(config.presets or {})
+    order   = presets.pop('_preset_order', {})
+
+    ordered = {}
+    for preset_type, group in presets.items():
+
+        if not isinstance(group, dict):
+            ordered[preset_type] = group
+            continue
+
+        names = [name for name in order.get(preset_type, []) if name in group]
+        names += [name for name in group if name not in names]
+
+        ordered[preset_type] = { name : group[name] for name in names }
+
+    return ordered
+
 def engine_config_to_dict(config):
 
     # Matches the shape of the Engines/<name>.json files these replaced
@@ -17,7 +51,7 @@ def engine_config_to_dict(config):
         'nps'     : config.nps,
         'source'  : config.source,
         'build'   : config.build(),
-        **config.presets,
+        **restore_preset_order(config),
     }
 
 def workload_to_dict(workload):
