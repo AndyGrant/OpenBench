@@ -475,6 +475,7 @@ def engine_fields(request):
         'build_cpuflags'  : request.POST['build_cpuflags'],
         'build_systems'   : request.POST['build_systems'],
         'presets'         : presets,
+        'preset_order'    : OpenBench.model_utils.preset_order(presets),
     }
 
 def engine_create(request, name):

@@ -68,6 +68,9 @@ class EngineConfig(Model):
     # { 'test_presets' : {...}, 'tune_presets' : {...}, 'datagen_presets' : {...} }
     presets = JSONField(default=dict, blank=True)
 
+    # { 'test_presets' : [...], 'tune_presets' : [...], 'datagen_presets' : [...] }
+    preset_order = JSONField(default=dict, blank=True)
+
     def __str__(self):
         return self.name
 
