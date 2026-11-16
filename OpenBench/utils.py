@@ -294,9 +294,13 @@ def network_upload(request, engine, name):
         FileSystemStorage().save('%s' % (sha256), netfile)
 
     # Create the Network object mapping to the saved local file
-    Network.objects.create(
+    network = Network.objects.create(
         sha256=sha256, name=name,
         engine=engine, author=request.user.username)
+
+    # Keep a zstd copy alongside the file, which may already exist from another engine
+    if network.build_compressed_copy():
+        network.ob_compressed = True; network.save(update_fields=['ob_compressed'])
 
     # Redirect to Engine specific view, to add clarity
     return OpenBench.views.redirect(request, '/networks/%s/' % (engine), status='Uploaded %s for %s' % (name, engine))

@@ -21,6 +21,7 @@
 import hashlib
 import json
 import os
+import zstandard
 
 from django.db.models import CharField, IntegerField, BigIntegerField, BooleanField, FloatField
 from django.db.models import JSONField, ForeignKey, DateTimeField, OneToOneField
@@ -333,6 +334,31 @@ class Network(Model):
     def has_compressed_copy(self):
         # Trust the flag only if the file is actually there
         return self.ob_compressed and os.path.isfile(self.compressed_path())
+
+    def build_compressed_copy(self):
+
+        # Create Media/<sha256>.zst if appropriate. True if a usable copy exists
+        source = os.path.join(MEDIA_ROOT, self.sha256)
+        target = self.compressed_path()
+
+        # Already compressed data gains nothing from being compressed again
+        if self.is_precompressed():
+            return False
+
+        # Nothing to do if the copy exists already
+        if os.path.isfile(target):
+            return True
+
+        # Nothing to compress if the original is missing
+        if not os.path.isfile(source):
+            return False
+
+        # Write to a temp file first, so a partial copy is never left behind
+        with open(source, 'rb') as fin, open(target + '.tmp', 'wb') as fout:
+            zstandard.ZstdCompressor().copy_stream(fin, fout)
+        os.replace(target + '.tmp', target)
+
+        return True
 
 class PGN(Model):
 
