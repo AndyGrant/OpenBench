@@ -304,13 +304,19 @@ function init_regex_selector(field_id, options_id, names_id) {
 
     field.addEventListener('input', update);
     update(); // The field may already hold a default
+
+    // Browsers restore typed values when navigating back, which can happen
+    // after the initial load, so refresh the chips once that has settled
+    window.addEventListener('pageshow', update);
 }
 
 function init_collapsible_sections() {
 
     // Headings marked "collapsible" in the template toggle the rows that follow
     // them, up to the next heading. Those also marked "collapsed" start hidden.
-    // Hidden inputs are still submitted with the form.
+    // Hidden inputs are still submitted with the form. A collapsed section is
+    // opened if one of its inputs, marked with a data-default, no longer holds
+    // that default, e.g. a value the browser restored after navigating back.
 
     function apply(heading) {
         var hide = heading.classList.contains('collapsed');
@@ -318,11 +324,28 @@ function init_collapsible_sections() {
             el.style.display = hide ? 'none' : '';
     }
 
+    function has_changed_input(heading) {
+        for (var el = heading.nextElementSibling; el && el.tagName !== 'H3'; el = el.nextElementSibling)
+            for (const input of el.querySelectorAll('[data-default]'))
+                if (input.value !== input.dataset.default)
+                    return true;
+        return false;
+    }
+
     for (const heading of document.querySelectorAll('#content .form h3.collapsible')) {
+
         heading.addEventListener('click', function () {
             heading.classList.toggle('collapsed');
             apply(heading);
         });
+
+        window.addEventListener('pageshow', function () {
+            if (has_changed_input(heading)) {
+                heading.classList.remove('collapsed');
+                apply(heading);
+            }
+        });
+
         apply(heading);
     }
 }
