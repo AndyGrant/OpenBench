@@ -120,8 +120,9 @@ def filter_valid_workloads(request, machine):
     if machine.info.get('noisy'):
         workloads = [x for x in workloads if not OpenBench.utils.workload_uses_time_based_tc(x)]
 
-    # Skip workloads that we have insufficient threads to play
-    options = [x for x in workloads if valid_hardware_assignment(x, machine)]
+    # Skip workloads that we have insufficient threads to play, or whose ISA
+    # or Microarch requirements the machine does not meet
+    options = [x for x in workloads if valid_hardware_assignment(x, machine) and valid_machine_regexes(x, machine)]
 
     # Possible that no work exists for the machine
     if not options:
@@ -171,6 +172,19 @@ def valid_hardware_assignment(workload, machine):
 
     # All Criteria have been met
     return True
+
+def valid_machine_regexes(workload, machine):
+
+    # Machines from older Clients do not report these, and are treated as Unknown
+    isa   = machine.info.get('isa_name')   or 'Unknown'
+    uarch = machine.info.get('uarch_name') or 'Unknown'
+
+    # Patterns were verified at creation. Should one still fail to compile, do not
+    # let it break assignment for every Machine, and treat it as matching anything
+    try:
+        return bool(re.search(workload.isa_regex, isa) and re.search(workload.uarch_regex, uarch))
+    except re.error:
+        return True
 
 def compute_resource_distribution(workloads, machine, has_focus):
 
