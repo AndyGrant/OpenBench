@@ -24,6 +24,12 @@
 import platform
 import traceback
 
+# Every name detect_uarch() can return
+UARCH_NAMES = [
+    'zen1', 'zen+', 'zen2', 'zen3',
+    'zen4', 'zen5', 'zen6', 'Unknown',
+]
+
 def read_cpuinfo():
 
     # Fields of the first processor block; all cores share family and model

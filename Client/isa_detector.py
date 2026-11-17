@@ -25,6 +25,15 @@
 import subprocess
 import traceback
 
+# Every name detect_isa() can return
+ISA_NAMES = [
+    'x86-64-avx512icl',   'x86-64-vnni512', 'x86-64-avx512',       'x86-64-avxvnni',
+    'x86-64-bmi2',        'x86-64-avx2',    'x86-64-sse41-popcnt', 'x86-64-ssse3',
+    'x86-64-sse3-popcnt', 'x86-64',         'x86-32-sse41-popcnt', 'x86-32-sse2',
+    'x86-32',             'armv8-dotprod',  'armv8',               'armv7-neon',
+    'armv7',              'general-32',     'Unknown',
+]
+
 def native_macros(cxx):
 
     # Ask the compiler for every macro it defines under -march=native, without
