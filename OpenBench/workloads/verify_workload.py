@@ -39,6 +39,9 @@ import re
 import requests
 import traceback
 
+import Client.isa_detector
+import Client.uarch_detector
+
 import OpenBench.config
 import OpenBench.utils
 
@@ -109,6 +112,10 @@ def verify_test_creation(errors, request):
         (verify_integer        , 'scale_nps', 'Scale NPS'),
         (verify_greater_than   , 'scale_nps', 'Scale NPS', 0),
 
+        # Verify the Machine Settings
+        (verify_machine_regex  , 'isa_regex', 'ISA', Client.isa_detector.ISA_NAMES),
+        (verify_machine_regex  , 'uarch_regex', 'Microarch', Client.uarch_detector.UARCH_NAMES),
+
         # Verify everything about the Adjudicaton Settings
         (verify_syzygy_field   , 'syzygy_adj', 'Syzygy Adjudication'),
         (verify_win_adj        , 'win_adj'),
@@ -148,6 +155,10 @@ def verify_tune_creation(errors, request):
         (verify_scale_method   , 'scale_method'),
         (verify_integer        , 'scale_nps', 'Scale NPS'),
         (verify_greater_than   , 'scale_nps', 'Scale NPS', 0),
+
+        # Verify the Machine Settings
+        (verify_machine_regex         , 'isa_regex', 'ISA', Client.isa_detector.ISA_NAMES),
+        (verify_machine_regex         , 'uarch_regex', 'Microarch', Client.uarch_detector.UARCH_NAMES),
 
         # Verify everything about the Adjudicaton Settings
         (verify_syzygy_field          , 'syzygy_adj', 'Syzygy Adjudication'),
@@ -211,6 +222,10 @@ def verify_datagen_creation(errors, request):
         (verify_integer        , 'scale_nps', 'Scale NPS'),
         (verify_greater_than   , 'scale_nps', 'Scale NPS', 0),
 
+        # Verify the Machine Settings
+        (verify_machine_regex  , 'isa_regex', 'ISA', Client.isa_detector.ISA_NAMES),
+        (verify_machine_regex  , 'uarch_regex', 'Microarch', Client.uarch_detector.UARCH_NAMES),
+
         # Verify everything about the Adjudicaton Settings
         (verify_syzygy_field   , 'syzygy_adj', 'Syzygy Adjudication'),
         (verify_win_adj        , 'win_adj'),
@@ -248,6 +263,19 @@ def verify_book(errors, request, field, field_name):
 def verify_time_control(errors, request, field, field_name):
     try: OpenBench.utils.TimeControl.parse(request.POST[field])
     except: errors.append('{0} is not parsable'.format(field_name))
+
+def verify_machine_regex(errors, request, field, field_name, names):
+
+    # Must be a valid regex, short enough to store, and match at least one of
+    # the names that a Client can report. Matching is a search, not a full match.
+    try:
+        pattern = request.POST[field]
+        assert len(pattern) <= 128
+        regex = re.compile(pattern)
+    except: return errors.append('{0} is not a valid regular expression, of at most 128 characters'.format(field_name))
+
+    if not any(regex.search(name) for name in names):
+        errors.append('{0} regular expression does not match any known {0}'.format(field_name))
 
 def verify_win_adj(errors, request, field):
     try:

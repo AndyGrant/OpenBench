@@ -166,6 +166,9 @@ def create_new_test(request):
     test.scale_method      = request.POST['scale_method']
     test.scale_nps         = int(request.POST['scale_nps'])
 
+    test.isa_regex         = request.POST['isa_regex']
+    test.uarch_regex       = request.POST['uarch_regex']
+
     test.test_mode         = request.POST['test_mode']
 
     if test.test_mode == 'SPRT':
@@ -226,6 +229,9 @@ def create_new_tune(request):
     test.scale_method     = request.POST['scale_method']
     test.scale_nps        = int(request.POST['scale_nps'])
 
+    test.isa_regex        = request.POST['isa_regex']
+    test.uarch_regex      = request.POST['uarch_regex']
+
     test.test_mode        = 'SPSA'
 
     if test.dev_network:
@@ -285,6 +291,9 @@ def create_new_datagen(request):
 
     test.scale_method      = request.POST['scale_method']
     test.scale_nps         = int(request.POST['scale_nps'])
+
+    test.isa_regex         = request.POST['isa_regex']
+    test.uarch_regex       = request.POST['uarch_regex']
 
     test.test_mode         = 'DATAGEN'
 
