@@ -4,20 +4,53 @@
 
 {% block content %}
 
-    <table class="hoverable">
+    <style>
+        th.sortable { cursor: pointer; user-select: none; }
+        /* Always reserve the arrow's space so toggling it never resizes columns */
+        th.sortable::after {
+            content: "\25B2";
+            display: inline-block;
+            width: 1em;
+            margin-left: 0.3em;
+            font-size: 0.8em;
+            color: transparent;
+        }
+        th.sortable.asc::after  { content: "\25B2"; color: #00C020; }
+        th.sortable.desc::after { content: "\25BC"; color: #00C020; }
+        /* Keep every column wide enough for its search box to be legible */
+        #machines-table th { min-width: 60px; }
+        tr.filter-row input {
+            width: 100%;
+            box-sizing: border-box;
+            background-color: var(--color2);
+            color: var(--color-font1);
+            border: 1px solid var(--color3);
+            padding: 2px 4px;
+        }
+    </style>
 
-        <tr class="table-header">
-            <th>#</th>
-            <th>User</th>
-            <th>Name</th>
-            <th>System</th>
-            <th>ISA</th>
-            <th>Microarch</th>
-            <th>Workload</th>
-            <th>Threads</th>
-            <th>NPS</th>
-        </tr>
+    <table class="hoverable" id="machines-table">
 
+        <thead>
+            <tr class="table-header">
+                <th class="sortable">#</th>
+                <th class="sortable">User</th>
+                <th class="sortable">Name</th>
+                <th class="sortable">System</th>
+                <th class="sortable">ISA</th>
+                <th class="sortable">Microarch</th>
+                <th class="sortable">Workload</th>
+                <th class="sortable">Threads</th>
+                <th class="sortable">NPS</th>
+            </tr>
+            <tr class="filter-row">
+                {% for _ in "123456789" %}
+                    <th><input type="text" placeholder="Search"></th>
+                {% endfor %}
+            </tr>
+        </thead>
+
+        <tbody>
         {% for machine in machines %}
             <tr>
                 <td class="numeric"><a href="/machines/{{machine.id}}/">{{machine.id}}</a></td>
@@ -26,20 +59,53 @@
                 <td>{{machine.info.os_name}}</td>
                 <td>{{machine.info.isa_name}}</td>
                 <td>{{machine.info.uarch_name}}</td>
-                <td>
-                    {% if machine.workload %}
-                        <a href="{{machine.workload|workload_url}}">
-                            {{machine.workload|workload_pretty_name}}
-                        </a>
-                    {% else %}
-                        None
-                    {% endif %}
-                </td>
+                <td>{% if machine.workload %}<a href="{{machine.workload|workload_url}}">{{machine.workload|workload_pretty_name}}</a>{% else %}None{% endif %}</td>
                 <td class="numeric">{{machine.info.concurrency}}</td>
-                <td class="numeric">{{machine.dev_mnps|twoDigitPrecision}}M / {{machine.base_mnps|twoDigitPrecision}}M</td>
+                <td class="numeric" data-sort="{{machine.dev_mnps|default:0|stringformat:'f'}}">{{machine.dev_mnps|twoDigitPrecision}}M / {{machine.base_mnps|twoDigitPrecision}}M</td>
             </tr>
         {% endfor %}
-
+        </tbody>
     </table>
+
+    <script>
+        (function() {
+            const table   = document.getElementById('machines-table');
+            const headers = Array.from(table.querySelectorAll('th.sortable'));
+            const inputs  = Array.from(table.querySelectorAll('tr.filter-row input'));
+            const tbody   = table.tBodies[0];
+            const rows    = Array.from(tbody.rows);
+
+            // Sort by one column, comparing digits as numbers ("2" before "10")
+            function sortBy(col, dir) {
+                const key = row => row.cells[col].dataset.sort || row.cells[col].textContent.trim();
+                rows.sort((a, b) => dir * key(a).localeCompare(key(b), undefined, { numeric: true }));
+                rows.forEach(r => tbody.appendChild(r));
+                headers.forEach((h, i) => {
+                    h.classList.remove('asc', 'desc');
+                    if (i === col) h.classList.add(dir > 0 ? 'asc' : 'desc');
+                });
+            }
+
+            // Hide any row where a column does not contain the text typed in its box
+            function applyFilters() {
+                rows.forEach(row => {
+                    const match = inputs.every((input, col) =>
+                        row.cells[col].textContent.toLowerCase().includes(input.value.trim().toLowerCase()));
+                    row.style.display = match ? '' : 'none';
+                });
+            }
+
+            headers.forEach((h, i) => h.addEventListener('click', () => {
+                sortBy(i, h.classList.contains('asc') ? -1 : 1);
+            }));
+            inputs.forEach(i => i.addEventListener('input', applyFilters));
+
+            // Freeze the column widths so hiding rows never makes the columns jump around
+            headers.forEach(h => h.style.width = h.offsetWidth + 'px');
+            table.style.tableLayout = 'fixed';
+
+            sortBy(0, 1);
+        })();
+    </script>
 
 {% endblock %}
