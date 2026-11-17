@@ -12,6 +12,7 @@
             <th>Name</th>
             <th>System</th>
             <th>ISA</th>
+            <th>Microarch</th>
             <th>Workload</th>
             <th>Threads</th>
             <th>NPS</th>
@@ -24,6 +25,7 @@
                 <td>{{machine.info.machine_name}}</td>
                 <td>{{machine.info.os_name}}</td>
                 <td>{{machine.info.isa_name}}</td>
+                <td>{{machine.info.uarch_name}}</td>
                 <td>
                     {% if machine.workload %}
                         <a href="{{machine.workload|workload_url}}">

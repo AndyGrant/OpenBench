@@ -164,9 +164,10 @@ async function fetch_summary(workload_id) {
             const table = document.createElement('table');
             table.className = 'stripes wrappable summary-table';
 
-            append_summary_section(table, 'User', data.summary.user);
-            append_summary_section(table, 'CPU',  data.summary.cpu_name, format_cpu_name);
-            append_summary_section(table, 'ISA',  data.summary.isa_name);
+            append_summary_section(table, 'User',      data.summary.user);
+            append_summary_section(table, 'CPU',       data.summary.cpu_name, format_cpu_name);
+            append_summary_section(table, 'ISA',       data.summary.isa_name);
+            append_summary_section(table, 'Microarch', data.summary.uarch_name);
 
             container.appendChild(table);
         })

@@ -99,7 +99,7 @@ def fetch_result_summaries(workload):
 
     # Aggregate the pentanomial counters across every Result of the workload,
     # grouped three ways: by the User who ran it, and by the reporting Machine's
-    # cpu_name and isa_name. We only ever sum penta; the trinomial counts and
+    # cpu_name, isa_name and uarch_name. We only ever sum penta; the trinomial counts and
     # crash/timeloss/active fields are intentionally left out.
     qs = Result.objects.filter(test=workload).select_related('machine__user')
     qs = qs.values(
@@ -114,13 +114,15 @@ def fetch_result_summaries(workload):
         'base_time_scaled',
     )
 
-    by_user = defaultdict(lambda: [0, 0, 0, 0, 0])
-    by_cpu  = defaultdict(lambda: [0, 0, 0, 0, 0])
-    by_isa  = defaultdict(lambda: [0, 0, 0, 0, 0])
+    by_user  = defaultdict(lambda: [0, 0, 0, 0, 0])
+    by_cpu   = defaultdict(lambda: [0, 0, 0, 0, 0])
+    by_isa   = defaultdict(lambda: [0, 0, 0, 0, 0])
+    by_uarch = defaultdict(lambda: [0, 0, 0, 0, 0])
 
-    nps_user = defaultdict(lambda: [0, 0, 0, 0, 0, 0])
-    nps_cpu  = defaultdict(lambda: [0, 0, 0, 0, 0, 0])
-    nps_isa  = defaultdict(lambda: [0, 0, 0, 0, 0, 0])
+    nps_user  = defaultdict(lambda: [0, 0, 0, 0, 0, 0])
+    nps_cpu   = defaultdict(lambda: [0, 0, 0, 0, 0, 0])
+    nps_isa   = defaultdict(lambda: [0, 0, 0, 0, 0, 0])
+    nps_uarch = defaultdict(lambda: [0, 0, 0, 0, 0, 0])
 
     def accumulate(bucket, key, values):
         total = bucket[key if key else 'Unknown']
@@ -132,12 +134,14 @@ def fetch_result_summaries(workload):
         info  = row['machine__info'] or {}
         cpu   = info.get('cpu_name')
         isa   = info.get('isa_name')
+        uarch = info.get('uarch_name')
 
         penta = (row['LL'], row['LD'], row['DD'], row['DW'], row['WW'])
 
         accumulate(by_user, user, penta);
         accumulate(by_cpu,  cpu,  penta);
         accumulate(by_isa,  isa,  penta);
+        accumulate(by_uarch, uarch, penta);
 
         nodes = (
             row['dev_nodes'], row['dev_time'], row['dev_time_scaled'],
@@ -147,6 +151,7 @@ def fetch_result_summaries(workload):
         accumulate(nps_user, user, nodes)
         accumulate(nps_cpu,  cpu,  nodes)
         accumulate(nps_isa,  isa,  nodes)
+        accumulate(nps_uarch, uarch, nodes)
 
     # Turn a { key: penta } bucket into ready-to-display rows: the penta as a
     # single "(a, b, c, d, e)" string, a point-estimate Elo with its symmetric
@@ -176,7 +181,8 @@ def fetch_result_summaries(workload):
         return sorted(rows, key=lambda row: row['pairs'], reverse=True)
 
     return {
-        'user'     : summarize(by_user, nps_user),
-        'cpu_name' : summarize(by_cpu,  nps_cpu),
-        'isa_name' : summarize(by_isa,  nps_isa),
+        'user'       : summarize(by_user, nps_user),
+        'cpu_name'   : summarize(by_cpu,  nps_cpu),
+        'isa_name'   : summarize(by_isa,  nps_isa),
+        'uarch_name' : summarize(by_uarch, nps_uarch),
     }
