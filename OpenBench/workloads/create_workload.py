@@ -40,6 +40,9 @@ import OpenBench.spsa_utils
 import OpenBench.utils
 import OpenBench.views
 
+import Client.isa_detector
+import Client.uarch_detector
+
 from OpenBench.config import OPENBENCH_CONFIG
 from OpenBench.models import *
 from OpenBench.workloads.verify_workload import verify_workload, determine_info
@@ -62,6 +65,10 @@ def create_workload(request, workload_type):
             'networks' : list(Network.objects.all().values()),
             'books'    : Book.objects.filter(enabled=True).order_by('name'),
             'engines'  : engines,
+
+            # Every ISA and Microarch a Client can report, for the regex selectors
+            'isa_names'   : Client.isa_detector.ISA_NAMES,
+            'uarch_names' : Client.uarch_detector.UARCH_NAMES,
 
             # The presets, nps and source are all applied by create_workload.js
             'engine_configs' : {

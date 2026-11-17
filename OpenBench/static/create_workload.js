@@ -270,3 +270,59 @@ function set_test_type() {
         document.getElementById('test_max_games' ).value = base.test_max_games || stc.test_max_games || 40000;
     }
 }
+
+
+function init_regex_selector(field_id, options_id, names_id) {
+
+    // Show every possible value as a chip, grey until the user types a regex.
+    // Then each chip turns green if the regex matches it, or red if not. An
+    // empty or invalid regex leaves everything grey.
+
+    var field   = document.getElementById(field_id);
+    var holder  = document.getElementById(options_id);
+    var names   = JSON.parse(document.getElementById(names_id).textContent);
+    var chips   = [];
+
+    for (const name of names) {
+        var chip = document.createElement('span');
+        chip.className   = 'regex-option';
+        chip.textContent = name;
+        holder.appendChild(chip);
+        chips.push(chip);
+    }
+
+    function update() {
+
+        var regex = null;
+
+        try { regex = field.value ? new RegExp(field.value) : null; }
+        catch (e) { regex = null; }
+
+        for (const chip of chips)
+            chip.className = 'regex-option' + (regex ? (regex.test(chip.textContent) ? ' match' : ' miss') : '');
+    }
+
+    field.addEventListener('input', update);
+    update(); // The field may already hold a default
+}
+
+function init_collapsible_sections() {
+
+    // Headings marked "collapsible" in the template toggle the rows that follow
+    // them, up to the next heading. Those also marked "collapsed" start hidden.
+    // Hidden inputs are still submitted with the form.
+
+    function apply(heading) {
+        var hide = heading.classList.contains('collapsed');
+        for (var el = heading.nextElementSibling; el && el.tagName !== 'H3'; el = el.nextElementSibling)
+            el.style.display = hide ? 'none' : '';
+    }
+
+    for (const heading of document.querySelectorAll('#content .form h3.collapsible')) {
+        heading.addEventListener('click', function () {
+            heading.classList.toggle('collapsed');
+            apply(heading);
+        });
+        apply(heading);
+    }
+}

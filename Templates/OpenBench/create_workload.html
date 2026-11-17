@@ -8,6 +8,8 @@
     {{ engine_configs|json_script:"json-engines" }}
     {{ networks|json_script:"json-networks" }}
     {{ profile.repos|json_script:"json-repos" }}
+    {{ isa_names|json_script:"json-isa-names" }}
+    {{ uarch_names|json_script:"json-uarch-names" }}
 
     <script src="{% static 'create_workload.js' %}?{{ static_version }}"></script>
     <script src="{% static 'default_text.js' %}?{{ static_version }}"></script>
@@ -18,6 +20,9 @@
                 change_engine('{{ profile.engine }}', 'dev', '{{workload}}');
                 enforce_default_text('dev_repo', 'https://github.com/');
                 enforce_default_text('base_repo', 'https://github.com/');
+                init_collapsible_sections();
+                init_regex_selector('isa_regex', 'isa-options', 'json-isa-names');
+                init_regex_selector('uarch_regex', 'uarch-options', 'json-uarch-names');
             }, false
         );
     </script>
@@ -260,7 +265,21 @@
                     </select>
                 </div>
 
-                <h3> Adjudication Settings </h3>
+                <h3 class="collapsible collapsed"> Machine Settings </h3>
+                <div class="row">
+                    <label for="isa_regex"> ISA </label> <input value="." id="isa_regex" name="isa_regex" autocomplete="off">
+                </div>
+                <div class="row">
+                    <label></label> <div id="isa-options" class="regex-options"></div>
+                </div>
+                <div class="row">
+                    <label for="uarch_regex"> Microarch </label> <input value="." id="uarch_regex" name="uarch_regex" autocomplete="off">
+                </div>
+                <div class="row">
+                    <label></label> <div id="uarch-options" class="regex-options"></div>
+                </div>
+
+                <h3 class="collapsible collapsed"> Adjudication Settings </h3>
                 <div class="row">
                     <label for="syzygy_adj"> Syzygy ADJ. </label>
                     <select id="syzygy_adj" name="syzygy_adj">
@@ -280,7 +299,7 @@
                     <label for="draw_adj"> Draw ADJ. </label> <input id="draw_adj" name="draw_adj">
                 </div>
 
-                <h3> Scaling Settings </h3>
+                <h3 class="collapsible collapsed"> Scaling Settings </h3>
                 <div class="row">
                     <label for="scale_method"> Scale Method </label>
                     <select id="scale_method" name="scale_method">

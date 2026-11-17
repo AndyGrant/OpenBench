@@ -135,3 +135,45 @@
     text-align: left;
     margin-bottom: 0.15rem;
 }
+
+#content .regex-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    flex-grow: 1;
+    min-width: 0;
+}
+
+#content .regex-option {
+    font-family: "Courier Prime", serif;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    color: var(--color-font2);
+}
+
+#content .regex-option.match {
+    background-color: #046c52;
+    color: var(--color-font1);
+}
+
+#content .regex-option.miss {
+    background-color: #6c2020;
+    color: var(--color-font1);
+}
+
+#content .form h3.collapsible {
+    cursor: pointer;
+    user-select: none;
+}
+
+#content .form h3.collapsible::before {
+    content: "\25BE";
+    display: inline-block;
+    width: 1em;
+    margin-right: 0.25rem;
+}
+
+#content .form h3.collapsible.collapsed::before {
+    content: "\25B8";
+}
